@@ -53,6 +53,7 @@ pub enum RenderMaterialTextureDimension {
     D2,
     D2Array,
     Cube,
+    CubeArray,
     D3,
 }
 
@@ -60,11 +61,28 @@ impl RenderMaterialTextureDimension {
     pub fn from_shader_kind(kind: &str) -> Self {
         match kind.trim().to_ascii_lowercase().as_str() {
             "texture_2d_array" | "texture2darray" | "2d_array" => Self::D2Array,
+            "texture_cube_array" | "texturecubearray" | "cube_array" => Self::CubeArray,
             "texture_cube" | "texturecube" | "cubemap" | "cube" => Self::Cube,
             "texture_3d" | "texture3d" | "3d" => Self::D3,
             "texture_1d" | "texture1d" | "1d" => Self::D1,
             _ => Self::D2,
         }
+    }
+
+    pub const fn wgsl_sampled_texture_type(self) -> &'static str {
+        match self {
+            Self::D1 => "texture_1d<f32>",
+            Self::D2 => "texture_2d<f32>",
+            Self::D2Array => "texture_2d_array<f32>",
+            Self::Cube => "texture_cube<f32>",
+            Self::CubeArray => "texture_cube_array<f32>",
+            Self::D3 => "texture_3d<f32>",
+        }
+    }
+
+    /// The MVP material set layout exposes only filterable 2D sampled textures.
+    pub const fn is_supported_by_default_material_binding(self) -> bool {
+        matches!(self, Self::D2)
     }
 
     pub fn from_image_descriptor(descriptor: &RenderImageDescriptor) -> Self {
@@ -73,6 +91,7 @@ impl RenderMaterialTextureDimension {
             RenderImageDimension::D2 if descriptor.array_layer_count > 1 => Self::D2Array,
             RenderImageDimension::D2 => Self::D2,
             RenderImageDimension::D3 => Self::D3,
+            RenderImageDimension::Cube if descriptor.array_layer_count > 6 => Self::CubeArray,
             RenderImageDimension::Cube => Self::Cube,
         }
     }
@@ -302,6 +321,35 @@ mod tests {
                     detail: "ktx2 texture format or level index is not upload-ready".to_string(),
                 },
             })
+        );
+    }
+
+    #[test]
+    fn material_texture_dimension_preserves_cube_array_shader_and_asset_shape() {
+        assert_eq!(
+            RenderMaterialTextureDimension::from_shader_kind("texture_cube_array"),
+            RenderMaterialTextureDimension::CubeArray
+        );
+
+        let descriptor = RenderImageDescriptor {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 12,
+            dimension: RenderImageDimension::Cube,
+            format: "rgba8unorm".to_string(),
+            color_space: crate::core::framework::render::RenderImageColorSpace::Linear,
+            metadata: crate::core::framework::render::TextureMetadata::default(),
+            sampler: crate::core::framework::render::RenderSamplerDescriptor::default(),
+            usage: Vec::new(),
+            asset_usage: Vec::new(),
+            mip_count: 1,
+            array_layer_count: 12,
+            fallback: crate::core::framework::render::RenderImageFallbackKind::MissingImage,
+        };
+
+        assert_eq!(
+            RenderMaterialTextureDimension::from_image_descriptor(&descriptor),
+            RenderMaterialTextureDimension::CubeArray
         );
     }
 }

@@ -6,13 +6,13 @@ use std::sync::Arc;
 use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, LifecycleEventKind};
 use crate::scene::{EntityId, World};
 
-use super::ObserverId;
 use super::callback_registry::{append_observer_to_bucket, remove_observer_from_bucket};
 use super::entry::{
     EntityEventCallbackBucket, EntityEventObserver, EntityEventObserverKey, EventCallbackBucket,
     EventObserver, LifecycleCallbackBucket, LifecycleObserver, LifecycleObserverKey,
     ObserverBucket,
 };
+use super::ObserverId;
 
 #[derive(Default)]
 pub struct ObserverStore {

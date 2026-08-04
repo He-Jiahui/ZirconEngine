@@ -1,4 +1,54 @@
-schema_version = 1
+schema_version = 2
+
+[[builtin_modules]]
+id = "foundation"
+rust_variant = "Foundation"
+
+[[builtin_modules]]
+id = "log"
+rust_variant = "Log"
+
+[[builtin_modules]]
+id = "tasks"
+rust_variant = "Tasks"
+
+[[builtin_modules]]
+id = "time"
+rust_variant = "Time"
+
+[[builtin_modules]]
+id = "frame_count"
+rust_variant = "FrameCount"
+
+[[builtin_modules]]
+id = "diagnostics_core"
+rust_variant = "DiagnosticsCore"
+
+[[builtin_modules]]
+id = "platform"
+rust_variant = "Platform"
+
+[[builtin_modules]]
+id = "input"
+rust_variant = "Input"
+
+[[builtin_modules]]
+id = "asset"
+rust_variant = "Asset"
+
+[[builtin_modules]]
+id = "scene"
+rust_variant = "Scene"
+
+[[builtin_modules]]
+id = "graphics"
+rust_variant = "Graphics"
+required_feature = "graphics"
+
+[[builtin_modules]]
+id = "script"
+rust_variant = "Script"
+required_feature = "script"
 
 [[profiles]]
 id = "minimal"
@@ -6,6 +56,20 @@ rust_variant = "Minimal"
 cargo_feature = "core-min"
 runtime_features = ["core-min"]
 app_features = ["zircon_runtime/core-min"]
+descriptor_name = "minimal"
+target_mode = "client_runtime"
+builtin_modules = ["foundation", "tasks", "time", "frame_count", "diagnostics_core"]
+minimum_maturity = "core"
+default_plugins = []
+optional_plugins = []
+required_capabilities = [
+    "runtime.core.lifecycle",
+    "runtime.core.tasks",
+    "runtime.core.time",
+    "runtime.core.frame_count",
+    "runtime.core.diagnostics",
+]
+allow_externalized_required_plugins = false
 
 [[profiles]]
 id = "client2d"
@@ -43,6 +107,38 @@ app_features = [
     "ui",
     "default-platform",
 ]
+descriptor_name = "client_2d"
+target_mode = "client_runtime"
+builtin_modules = [
+    "foundation",
+    "log",
+    "tasks",
+    "time",
+    "frame_count",
+    "diagnostics_core",
+    "platform",
+    "input",
+    "asset",
+    "scene",
+    "graphics",
+    "script",
+]
+minimum_maturity = "beta"
+default_plugins = [
+    { id = "ui", required = true },
+    { id = "sound", required = true },
+    { id = "rendering", required = true },
+    { id = "texture", required = false },
+]
+optional_plugins = ["tilemap_2d", "particles", "animation"]
+required_capabilities = [
+    "runtime.core.asset",
+    "runtime.core.scene",
+    "runtime.core.render.base",
+    "runtime.plugin.sound",
+    "runtime.plugin.rendering",
+]
+allow_externalized_required_plugins = false
 
 [[profiles]]
 id = "client3d"
@@ -80,6 +176,46 @@ app_features = [
     "ui",
     "default-platform",
 ]
+descriptor_name = "client_3d"
+target_mode = "client_runtime"
+builtin_modules = [
+    "foundation",
+    "log",
+    "tasks",
+    "time",
+    "frame_count",
+    "diagnostics_core",
+    "platform",
+    "input",
+    "asset",
+    "scene",
+    "graphics",
+    "script",
+]
+minimum_maturity = "beta"
+default_plugins = [
+    { id = "ui", required = true },
+    { id = "sound", required = true },
+    { id = "rendering", required = true },
+    { id = "texture", required = false },
+]
+optional_plugins = [
+    "animation",
+    "ai",
+    "navigation",
+    "particles",
+    "virtual_geometry",
+    "hybrid_gi",
+    "solari",
+]
+required_capabilities = [
+    "runtime.core.asset",
+    "runtime.core.scene",
+    "runtime.core.render.base",
+    "runtime.plugin.sound",
+    "runtime.plugin.rendering",
+]
+allow_externalized_required_plugins = false
 
 [[profiles]]
 id = "editor"
@@ -121,6 +257,32 @@ app_features = [
     "dep:zircon_editor",
     "default-platform",
 ]
+descriptor_name = "editor"
+target_mode = "editor_host"
+builtin_modules = [
+    "foundation",
+    "log",
+    "tasks",
+    "time",
+    "frame_count",
+    "diagnostics_core",
+    "platform",
+    "input",
+    "asset",
+    "scene",
+    "graphics",
+    "script",
+]
+minimum_maturity = "beta"
+default_plugins = [
+    { id = "ui", required = true },
+    { id = "sound", required = true },
+    { id = "rendering", required = true },
+    { id = "texture", required = false },
+]
+optional_plugins = ["animation", "navigation", "particles", "net"]
+required_capabilities = ["editor.host.ui_shell", "editor.host.plugin_management"]
+allow_externalized_required_plugins = false
 
 [[profiles]]
 id = "dev"
@@ -162,6 +324,41 @@ app_features = [
     "dep:zircon_editor",
     "default-platform",
 ]
+descriptor_name = "dev"
+target_mode = "editor_host"
+builtin_modules = [
+    "foundation",
+    "log",
+    "tasks",
+    "time",
+    "frame_count",
+    "diagnostics_core",
+    "platform",
+    "input",
+    "asset",
+    "scene",
+    "graphics",
+    "script",
+]
+minimum_maturity = "experimental"
+default_plugins = [
+    { id = "ui", required = true },
+    { id = "sound", required = true },
+    { id = "rendering", required = true },
+    { id = "texture", required = false },
+    { id = "net", required = false },
+]
+optional_plugins = [
+    "ai",
+    "animation",
+    "navigation",
+    "particles",
+    "virtual_geometry",
+    "hybrid_gi",
+    "solari",
+]
+required_capabilities = ["runtime.core.diagnostics", "editor.host.plugin_management"]
+allow_externalized_required_plugins = false
 
 [[profiles]]
 id = "server"
@@ -173,3 +370,22 @@ app_features = [
     "diagnostic-log",
     "platform-headless",
 ]
+descriptor_name = "server"
+target_mode = "server_runtime"
+builtin_modules = [
+    "foundation",
+    "log",
+    "tasks",
+    "time",
+    "frame_count",
+    "diagnostics_core",
+    "platform",
+    "input",
+    "asset",
+    "scene",
+]
+minimum_maturity = "beta"
+default_plugins = [{ id = "net", required = false }]
+optional_plugins = ["ai", "physics", "animation", "navigation"]
+required_capabilities = ["runtime.core.lifecycle", "runtime.core.scene"]
+allow_externalized_required_plugins = false

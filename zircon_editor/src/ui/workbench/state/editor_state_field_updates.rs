@@ -11,6 +11,11 @@ impl EditorState {
         false
     }
 
+    pub fn update_scale_field(&mut self, axis: usize, value: String) -> bool {
+        self.scale_fields[axis] = value;
+        false
+    }
+
     pub fn update_name_field(&mut self, value: String) {
         self.name_field = value;
     }

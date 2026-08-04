@@ -7,7 +7,7 @@ Forward-repair files: ["zircon_runtime/src/graphics/scene/scene_renderer/core/sc
 Async-repair files: ["zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs", "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs", "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs"]
 Depends on: M6
 Evidence-support files: ["tools/zircon_validate_shader_pbr_viewer_evidence.py", "tools/tests/test_zircon_validate_shader_pbr_viewer_evidence.py"]
-Files: ["docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md", "docs/plans/zircon_runtime/shader/06/2026-08-01-m7-global-ibl-core-specialization.md", "zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs", "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl", "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl", "zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl", "zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs", "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs", "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs", "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs", "zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs", "zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl", "zircon_runtime/src/graphics/shader/includes/zr_pbr_extras_core.wgsl", "zircon_runtime/src/graphics/shader/template/assemble.rs", "zircon_runtime/src/graphics/shader/template/material_surface.rs", "zircon_runtime/src/graphics/shader/template/module_registry.rs", "zircon_runtime/src/graphics/shader/template/pass_specialization.rs", "zircon_runtime/src/graphics/shader/template/tests.rs", "zircon_runtime/src/graphics/shader/template/tests/environment.rs", "zircon_runtime/src/graphics/shader/template/tests/standard_material_surface_template.rs", "zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs", "zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_environment_core.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_environment_generic_api.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_environment_only_pbr.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr_basic.wgsl", "zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs", "zircon_runtime/tests/runtime_environment_wgpu_cubemap_sampling_contract.rs", "zircon_runtime/tests/runtime_volumetric_shading_contract.rs"]
+Files: ["docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md", "docs/plans/zircon_runtime/shader/06/2026-08-01-m7-global-ibl-core-specialization.md", "zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs", "zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs", "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_environment_only_pbr.wgsl", "zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl", "zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl", "zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs", "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs", "zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs", "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs", "zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs", "zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs", "zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl", "zircon_runtime/src/graphics/shader/includes/zr_pbr_extras_core.wgsl", "zircon_runtime/src/graphics/shader/template/assemble.rs", "zircon_runtime/src/graphics/shader/template/material_surface.rs", "zircon_runtime/src/graphics/shader/template/module_registry.rs", "zircon_runtime/src/graphics/shader/template/pass_specialization.rs", "zircon_runtime/src/graphics/shader/template/tests.rs", "zircon_runtime/src/graphics/shader/template/tests/environment.rs", "zircon_runtime/src/graphics/shader/template/tests/standard_material_surface_template.rs", "zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs", "zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_environment_core.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_environment_generic_api.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_environment_only_pbr.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl", "zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr_basic.wgsl", "zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs", "zircon_runtime/tests/runtime_environment_wgpu_cubemap_sampling_contract.rs", "zircon_runtime/tests/runtime_volumetric_shading_contract.rs"]
 
 ## Reason
 
@@ -82,14 +82,20 @@ the managed product evidence is accepted.
 The screenshot handoff now has a standalone evidence gate:
 `python tools/zircon_validate_shader_pbr_viewer_evidence.py <ready.png> --expected-backend Dx12 --require-direct-present`.
 It validates the bounded actual RGBA PNG structure, checksum, dimensions,
-visible-pixel non-blankness, and matching v2 ready-frame sidecar, including the
+visible-pixel non-blankness, and matching v4 ready-frame sidecar, including the
 environment-only PBR profile, complete active-cubemap face-size/mip layout,
 phase-duration hierarchy, and the explicit process-local `MeshPipelineCache`
-scope for the Base-prewarm cache hit. The tool is standard-library-only and
-never starts the engine. Its fixture suite accepts a valid evidence unit and
+scope for the Base-prewarm cache hit plus capture-time Base-pipeline readiness.
+The library retains v2/v3 read compatibility for historical inspection, while
+the CLI acceptance command requires v4 and the current decimal IBL bake version
+`202608020005` by default; `--allow-legacy-schema` is an explicit
+historical-baseline inspection opt-in for legacy schemas or bake versions. A
+static contract keeps that decimal value aligned with Rust's canonical
+`IBL_BAKE_ALGORITHM_VERSION`. It is standard-library-only and never starts the
+engine. Its fixture suite accepts a valid evidence unit and
 rejects viewport/cache-scope drift, incomplete cubemap mip layouts,
 blank/fully transparent images, an oversized encoded input, or a phase total
-shorter than its recorded component intervals. Historical screenshots without the v2
+shorter than its recorded component intervals. Historical screenshots without the current v4
 sidecar remain baselines only;
 this gate is preparation for, not a substitute for, the required fresh managed
 DX12 screenshot and RenderDoc evidence.
@@ -122,9 +128,9 @@ The post-repair independent reviews report `Critical 0 / Important 0 / Minor 0`.
 They confirmed that both PBR providers return before reflection or BRDF sampling
 for zero normal/view input, that SSR applies its configured intensity once, and
 that replay errors preserve their primary timeout or command-failure cause even
-when temporary-snapshot cleanup also fails. The standalone evidence-tool suites
-pass 21 tests, including CLI error reporting, bounded process output, snapshot
-integrity, cleanup, and current v2 viewer-sidecar contracts. This is static and
+when temporary-snapshot cleanup also fails. The standalone evidence-tool suite
+currently passes 13 tests, including CLI error reporting, bounded process output,
+snapshot integrity, cleanup, and current v4 viewer-sidecar contracts. This is static and
 tooling evidence only; it does not promote the milestone beyond `in_progress`.
 
 The deferred PBR GBuffer boundary now also decodes its normal through the
@@ -293,3 +299,29 @@ deferred profile closures, the provider-upgrade ABI, and all five current WGSL
 pass for every touched Rust path, including the fallback test source after its
 earlier mapped-file writeback issue cleared. Managed Rust/WGSL, WGPU, DX12
 screenshot/timing, and RenderDoc remain required. M7 remains `in_progress`.
+
+The device-lifetime BRDF LUT upload now reuses one process-local immutable RG16
+byte payload. `SceneEnvironmentBrdfLut` still creates and owns a separate
+texture/view for every WGPU device, then uploads the same bytes to that device;
+only the deterministic `128x128x1024` CPU Hammersley integration and f16
+encoding are cached after the first renderer-core construction. A focused local
+`OnceLock` regression requires the producer closure to run once while both
+callers observe the initial bytes. This removes repeated CPU setup without
+claiming a DX12 PSO or GPU timing improvement. M7 remains `in_progress` pending
+the existing managed Rust/WGSL, WGPU, DX12 screenshot/timing, and RenderDoc
+evidence.
+
+The current view-direction hot-path repair now short-circuits the two exact
+camera endpoints in every PBR consumer: environment-only Forward, advanced and
+basic Standard-PBR Forward, environment-only and generic deferred, and fallback
+mesh. After clamping the camera-direction blend, perspective (`0`) returns its
+already zero-safe normalized camera-to-fragment vector, while orthographic
+(`1`) returns the zero-safe camera direction without constructing the unused
+perspective vector. Only an intermediate blend retains the existing normalized
+`mix` calculation, preserving that path's result and its invalid-direction
+handling. The source regression asserts branch ordering across all six
+consumers; scoped formatting and diff integrity pass. Independent review reports
+`Critical 0 / Important 0 / Minor 0`. This is fragment ALU convergence only,
+not a DX12 timing or acceptance claim, and M7 remains `in_progress` pending the
+existing managed Rust/WGSL, WGPU, DX12 screenshot/timing, and RenderDoc
+evidence.

@@ -6,8 +6,11 @@ use crate::core::editing::engine::EditorTransactionEngine;
 use crate::core::editor_event::EditorEventService;
 use crate::core::editor_message::SharedEditorMessageBus;
 use crate::core::gateway::{EditorRuntimeGatewayHandle, RuntimeCapabilities};
+use crate::core::i18n::EditorI18nService;
 use crate::core::jobs::EditorJobSystem;
+use crate::core::logging::EditorLogService;
 use crate::core::notifications::EditorNotificationService;
+use crate::core::settings::{SettingsAuthority, SettingsPersistenceService};
 
 use super::ToolSchedulerService;
 
@@ -15,13 +18,17 @@ use super::ToolSchedulerService;
 pub struct EditorContext {
     bus: SharedEditorMessageBus,
     events: Arc<EditorEventService>,
+    i18n: Arc<EditorI18nService>,
     jobs: EditorJobSystem,
+    logs: EditorLogService,
     notifications: EditorNotificationService,
     transactions: Arc<EditorTransactionEngine>,
     dirty_documents: DirtyRegistry,
     commands: EditorCommandRegistryHandle,
     command_eval: CommandEvalSnapshotHandle,
     tools: ToolSchedulerService,
+    settings: Arc<SettingsAuthority>,
+    settings_persistence: SettingsPersistenceService,
     gateway: EditorRuntimeGatewayHandle,
 }
 
@@ -29,12 +36,16 @@ impl EditorContext {
     pub(super) fn new(
         bus: SharedEditorMessageBus,
         events: Arc<EditorEventService>,
+        i18n: Arc<EditorI18nService>,
         jobs: EditorJobSystem,
+        logs: EditorLogService,
         notifications: EditorNotificationService,
         transactions: EditorTransactionEngine,
         commands: EditorCommandRegistryHandle,
         command_eval: CommandEvalSnapshotHandle,
         tools: ToolSchedulerService,
+        settings: Arc<SettingsAuthority>,
+        settings_persistence: SettingsPersistenceService,
         gateway: EditorRuntimeGatewayHandle,
     ) -> Self {
         let transactions = Arc::new(transactions);
@@ -42,13 +53,17 @@ impl EditorContext {
         Self {
             bus,
             events,
+            i18n,
             jobs,
+            logs,
             notifications,
             transactions,
             dirty_documents,
             commands,
             command_eval,
             tools,
+            settings,
+            settings_persistence,
             gateway,
         }
     }
@@ -61,8 +76,16 @@ impl EditorContext {
         &self.events
     }
 
+    pub fn i18n(&self) -> &EditorI18nService {
+        &self.i18n
+    }
+
     pub fn jobs(&self) -> &EditorJobSystem {
         &self.jobs
+    }
+
+    pub fn logs(&self) -> &EditorLogService {
+        &self.logs
     }
 
     pub fn notifications(&self) -> &EditorNotificationService {
@@ -89,6 +112,14 @@ impl EditorContext {
         &self.tools
     }
 
+    pub fn settings(&self) -> &Arc<SettingsAuthority> {
+        &self.settings
+    }
+
+    pub fn settings_persistence(&self) -> &SettingsPersistenceService {
+        &self.settings_persistence
+    }
+
     pub fn gateway(&self) -> &EditorRuntimeGatewayHandle {
         &self.gateway
     }
@@ -102,7 +133,7 @@ impl EditorContext {
 mod tests {
     use crate::core::context::ToolSchedulerService;
     use crate::core::editor_message::{
-        EditorMessagePayload, EditorTopic, SharedEditorMessageBus, ToolMessage, TOPIC_TOOL,
+        EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TOPIC_TOOL, ToolMessage,
     };
     use crate::core::tools::{
         AcquireOutcome, ExclusiveResource, ToolId, ToolLifecycleEvent, ToolResourceSet,

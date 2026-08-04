@@ -15,6 +15,7 @@ use super::execute_hzb_build::{
 const TEST_SCENE_SIZE: UVec2 = UVec2::new(4, 4);
 const F16_ONE_BITS: u16 = 0x3c00;
 const COPY_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+const ZR_REDUCE_INCLUDE: &str = include_str!("../../../../../shader/includes/zr_reduce.wgsl");
 
 #[test]
 fn hzb_params_upload_uses_fixed_stack_storage() {
@@ -125,6 +126,7 @@ fn assert_hzb_depth_chain(
             plan.mip_size(mip_level),
             mip_level,
             &params_upload_buffer,
+            None,
             HzbBuildMipResources {
                 bind_group_layout,
                 pipeline,
@@ -386,7 +388,7 @@ fn hzb_bind_group_layout(device: &wgpu::Device, multisampled: bool) -> wgpu::Bin
 fn hzb_pipeline(
     device: &wgpu::Device,
     bind_group_layout: &wgpu::BindGroupLayout,
-    shader_source: &'static str,
+    shader_source: &str,
     multisampled: bool,
 ) -> wgpu::ComputePipeline {
     let plan = if multisampled {
@@ -394,6 +396,7 @@ fn hzb_pipeline(
     } else {
         hzb_build_dispatch_plan()
     };
+    let shader_source = [ZR_REDUCE_INCLUDE, shader_source].concat();
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some(&plan.pipeline_label),
         source: wgpu::ShaderSource::Wgsl(shader_source.into()),

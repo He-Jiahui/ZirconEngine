@@ -223,7 +223,7 @@ children = [{ node = "disabled_button" }, { node = "dropdown_button" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchDisabledButton"
 classes = ["workbench-control-button", "workbench-disabled-button"]
-props = { text = "Disabled", button_variant = "outlined", button_color = "secondary", button_size = "small", disabled = true }
+props = { text = "Disabled", button_variant = "outlined", button_color = "secondary", button_size = "small", disabled = true, overflow = "shrink" }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.dropdown_button]

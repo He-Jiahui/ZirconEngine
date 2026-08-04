@@ -4,7 +4,7 @@ use std::time::Duration;
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
 
-const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v2";
+const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v8";
 // This reports only reuse inside the viewer's MeshPipelineCache, never a persisted driver PSO.
 const ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE: &str = "process_local_mesh_pipeline_cache";
 
@@ -20,6 +20,8 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) active_pmrem_face_size: u32,
     pub(crate) active_pmrem_mip_count: u32,
     pub(crate) render_profile: String,
+    pub(crate) environment_only_base_prewarm_pipeline_ready: bool,
+    pub(crate) environment_only_base_pipeline_ready_at_capture: bool,
     pub(crate) environment_only_base_prewarm_cache_hit: bool,
     pub(crate) environment_only_base_prewarm_shader_source_resolution: Duration,
     pub(crate) environment_only_base_prewarm_pipeline_creation: Duration,
@@ -30,6 +32,22 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) ibl_staging_status: String,
     pub(crate) ibl_staging_elapsed: Duration,
     pub(crate) ibl_total_elapsed: Duration,
+    pub(crate) scene_startup_hdri_decode: Duration,
+    pub(crate) scene_startup_project_assets: Duration,
+    pub(crate) scene_startup_runtime_bootstrap: Duration,
+    pub(crate) scene_startup_project_open: Duration,
+    pub(crate) scene_startup_world_load: Duration,
+    pub(crate) scene_startup_renderer_initialization: Duration,
+    pub(crate) scene_startup_renderer_backend_initialization: Duration,
+    pub(crate) scene_startup_renderer_deferred_initialization: Duration,
+    pub(crate) scene_startup_renderer_deferred_standard_pipeline: Duration,
+    pub(crate) scene_startup_resource_streamer_initialization: Duration,
+    pub(crate) scene_startup_ibl_restore: Duration,
+    pub(crate) scene_startup_total: Duration,
+    pub(crate) one_shot_base_pipeline_wait_elapsed: Duration,
+    pub(crate) viewer_scene_load_elapsed: Duration,
+    // Captured after the Ready frame renders, so async Base PSO admission is included.
+    pub(crate) viewer_ready_elapsed: Duration,
     pub(crate) ready_frame_render_elapsed: Duration,
     pub(crate) ready_frame_render_extract: Duration,
     pub(crate) ready_frame_renderer_call: Duration,
@@ -145,6 +163,8 @@ fn write_ready_frame_metadata(
          active_pmrem_face_size={}\n\
          active_pmrem_mip_count={}\n\
          render_profile={}\n\
+         environment_only_base_prewarm_pipeline_ready={}\n\
+         environment_only_base_pipeline_ready_at_capture={}\n\
          environment_only_base_prewarm_cache_hit={}\n\
          environment_only_base_prewarm_cache_scope={}\n\
          environment_only_base_prewarm_shader_source_resolution_ns={}\n\
@@ -157,6 +177,21 @@ fn write_ready_frame_metadata(
          ibl_staging_status={}\n\
          ibl_staging_elapsed_ns={}\n\
          ibl_total_elapsed_ns={}\n\
+         scene_startup_hdri_decode_ns={}\n\
+         scene_startup_project_assets_ns={}\n\
+         scene_startup_runtime_bootstrap_ns={}\n\
+         scene_startup_project_open_ns={}\n\
+         scene_startup_world_load_ns={}\n\
+         scene_startup_renderer_initialization_ns={}\n\
+         scene_startup_renderer_backend_initialization_ns={}\n\
+         scene_startup_renderer_deferred_initialization_ns={}\n\
+         scene_startup_renderer_deferred_standard_pipeline_ns={}\n\
+         scene_startup_resource_streamer_initialization_ns={}\n\
+         scene_startup_ibl_restore_ns={}\n\
+         scene_startup_total_ns={}\n\
+         one_shot_base_pipeline_wait_elapsed_ns={}\n\
+         viewer_scene_load_elapsed_ns={}\n\
+         viewer_ready_elapsed_ns={}\n\
          ready_frame_render_elapsed_ns={}\n\
          ready_frame_extract_ns={}\n\
          ready_frame_renderer_call_ns={}\n\
@@ -171,6 +206,8 @@ fn write_ready_frame_metadata(
         metadata.active_pmrem_face_size,
         metadata.active_pmrem_mip_count,
         metadata.render_profile,
+        metadata.environment_only_base_prewarm_pipeline_ready,
+        metadata.environment_only_base_pipeline_ready_at_capture,
         metadata.environment_only_base_prewarm_cache_hit,
         ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE,
         metadata
@@ -188,6 +225,29 @@ fn write_ready_frame_metadata(
         metadata.ibl_staging_status,
         metadata.ibl_staging_elapsed.as_nanos(),
         metadata.ibl_total_elapsed.as_nanos(),
+        metadata.scene_startup_hdri_decode.as_nanos(),
+        metadata.scene_startup_project_assets.as_nanos(),
+        metadata.scene_startup_runtime_bootstrap.as_nanos(),
+        metadata.scene_startup_project_open.as_nanos(),
+        metadata.scene_startup_world_load.as_nanos(),
+        metadata.scene_startup_renderer_initialization.as_nanos(),
+        metadata
+            .scene_startup_renderer_backend_initialization
+            .as_nanos(),
+        metadata
+            .scene_startup_renderer_deferred_initialization
+            .as_nanos(),
+        metadata
+            .scene_startup_renderer_deferred_standard_pipeline
+            .as_nanos(),
+        metadata
+            .scene_startup_resource_streamer_initialization
+            .as_nanos(),
+        metadata.scene_startup_ibl_restore.as_nanos(),
+        metadata.scene_startup_total.as_nanos(),
+        metadata.one_shot_base_pipeline_wait_elapsed.as_nanos(),
+        metadata.viewer_scene_load_elapsed.as_nanos(),
+        metadata.viewer_ready_elapsed.as_nanos(),
         metadata.ready_frame_render_elapsed.as_nanos(),
         metadata.ready_frame_render_extract.as_nanos(),
         metadata.ready_frame_renderer_call.as_nanos(),
@@ -320,6 +380,8 @@ mod tests {
             active_pmrem_face_size: 256,
             active_pmrem_mip_count: 9,
             render_profile: "environment_only_pbr_preview".to_owned(),
+            environment_only_base_prewarm_pipeline_ready: false,
+            environment_only_base_pipeline_ready_at_capture: true,
             environment_only_base_prewarm_cache_hit: false,
             environment_only_base_prewarm_shader_source_resolution: Duration::from_millis(2),
             environment_only_base_prewarm_pipeline_creation: Duration::from_millis(11),
@@ -330,6 +392,21 @@ mod tests {
             ibl_staging_status: "Reused".to_owned(),
             ibl_staging_elapsed: Duration::from_millis(8),
             ibl_total_elapsed: Duration::from_millis(12),
+            scene_startup_hdri_decode: Duration::from_millis(21),
+            scene_startup_project_assets: Duration::from_millis(34),
+            scene_startup_runtime_bootstrap: Duration::from_millis(55),
+            scene_startup_project_open: Duration::from_millis(89),
+            scene_startup_world_load: Duration::from_millis(144),
+            scene_startup_renderer_initialization: Duration::from_millis(3_600),
+            scene_startup_renderer_backend_initialization: Duration::from_millis(377),
+            scene_startup_renderer_deferred_initialization: Duration::from_millis(1_600),
+            scene_startup_renderer_deferred_standard_pipeline: Duration::from_millis(987),
+            scene_startup_resource_streamer_initialization: Duration::from_millis(1_597),
+            scene_startup_ibl_restore: Duration::from_millis(2_584),
+            scene_startup_total: Duration::from_millis(7_000),
+            one_shot_base_pipeline_wait_elapsed: Duration::from_millis(75),
+            viewer_scene_load_elapsed: Duration::from_millis(7_120),
+            viewer_ready_elapsed: Duration::from_millis(7_250),
             ready_frame_render_elapsed: Duration::from_millis(16),
             ready_frame_render_extract: Duration::from_millis(2),
             ready_frame_renderer_call: Duration::from_millis(11),
@@ -348,7 +425,7 @@ mod tests {
             metadata_path,
             ready_frame_evidence_metadata_path(&path).unwrap()
         );
-        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v2"));
+        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v8"));
         assert!(metadata_text.contains("screenshot_presentation=cpu_readback"));
         assert!(metadata_text.contains("backend=Dx12"));
         assert!(metadata_text.contains("hdri_path=polyhaven_lakes_2k.hdr"));
@@ -359,6 +436,8 @@ mod tests {
         assert!(metadata_text.contains("active_pmrem_face_size=256"));
         assert!(metadata_text.contains("active_pmrem_mip_count=9"));
         assert!(metadata_text.contains("render_profile=environment_only_pbr_preview"));
+        assert!(metadata_text.contains("environment_only_base_prewarm_pipeline_ready=false"));
+        assert!(metadata_text.contains("environment_only_base_pipeline_ready_at_capture=true"));
         assert!(metadata_text.contains("environment_only_base_prewarm_cache_hit=false"));
         assert!(metadata_text.contains(
             "environment_only_base_prewarm_cache_scope=process_local_mesh_pipeline_cache"
@@ -372,6 +451,28 @@ mod tests {
         assert!(metadata_text.contains("interactive_direct_present_enabled=true"));
         assert!(metadata_text.contains("ibl_bake_algorithm_version=202608020005"));
         assert!(metadata_text.contains("ibl_staging_status=Reused"));
+        assert!(metadata_text.contains("scene_startup_hdri_decode_ns=21000000"));
+        assert!(metadata_text.contains("scene_startup_project_assets_ns=34000000"));
+        assert!(metadata_text.contains("scene_startup_runtime_bootstrap_ns=55000000"));
+        assert!(metadata_text.contains("scene_startup_project_open_ns=89000000"));
+        assert!(metadata_text.contains("scene_startup_world_load_ns=144000000"));
+        assert!(metadata_text.contains("scene_startup_renderer_initialization_ns=3600000000"));
+        assert!(
+            metadata_text.contains("scene_startup_renderer_backend_initialization_ns=377000000")
+        );
+        assert!(
+            metadata_text.contains("scene_startup_renderer_deferred_initialization_ns=1600000000")
+        );
+        assert!(metadata_text
+            .contains("scene_startup_renderer_deferred_standard_pipeline_ns=987000000"));
+        assert!(
+            metadata_text.contains("scene_startup_resource_streamer_initialization_ns=1597000000")
+        );
+        assert!(metadata_text.contains("scene_startup_ibl_restore_ns=2584000000"));
+        assert!(metadata_text.contains("scene_startup_total_ns=7000000000"));
+        assert!(metadata_text.contains("one_shot_base_pipeline_wait_elapsed_ns=75000000"));
+        assert!(metadata_text.contains("viewer_scene_load_elapsed_ns=7120000000"));
+        assert!(metadata_text.contains("viewer_ready_elapsed_ns=7250000000"));
     }
 
     #[test]
@@ -396,6 +497,8 @@ mod tests {
             active_pmrem_face_size: 64,
             active_pmrem_mip_count: 7,
             render_profile: "environment_only_pbr_preview".to_owned(),
+            environment_only_base_prewarm_pipeline_ready: true,
+            environment_only_base_pipeline_ready_at_capture: true,
             environment_only_base_prewarm_cache_hit: true,
             environment_only_base_prewarm_shader_source_resolution: Duration::ZERO,
             environment_only_base_prewarm_pipeline_creation: Duration::ZERO,
@@ -406,6 +509,21 @@ mod tests {
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::ZERO,
             ibl_total_elapsed: Duration::ZERO,
+            scene_startup_hdri_decode: Duration::ZERO,
+            scene_startup_project_assets: Duration::ZERO,
+            scene_startup_runtime_bootstrap: Duration::ZERO,
+            scene_startup_project_open: Duration::ZERO,
+            scene_startup_world_load: Duration::ZERO,
+            scene_startup_renderer_initialization: Duration::ZERO,
+            scene_startup_renderer_backend_initialization: Duration::ZERO,
+            scene_startup_renderer_deferred_initialization: Duration::ZERO,
+            scene_startup_renderer_deferred_standard_pipeline: Duration::ZERO,
+            scene_startup_resource_streamer_initialization: Duration::ZERO,
+            scene_startup_ibl_restore: Duration::ZERO,
+            scene_startup_total: Duration::ZERO,
+            one_shot_base_pipeline_wait_elapsed: Duration::ZERO,
+            viewer_scene_load_elapsed: Duration::ZERO,
+            viewer_ready_elapsed: Duration::ZERO,
             ready_frame_render_elapsed: Duration::ZERO,
             ready_frame_render_extract: Duration::ZERO,
             ready_frame_renderer_call: Duration::ZERO,
@@ -443,6 +561,8 @@ mod tests {
             active_pmrem_face_size: 64,
             active_pmrem_mip_count: 7,
             render_profile: "environment_only_pbr_preview".to_owned(),
+            environment_only_base_prewarm_pipeline_ready: true,
+            environment_only_base_pipeline_ready_at_capture: true,
             environment_only_base_prewarm_cache_hit: true,
             environment_only_base_prewarm_shader_source_resolution: Duration::ZERO,
             environment_only_base_prewarm_pipeline_creation: Duration::ZERO,
@@ -453,6 +573,21 @@ mod tests {
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::ZERO,
             ibl_total_elapsed: Duration::ZERO,
+            scene_startup_hdri_decode: Duration::ZERO,
+            scene_startup_project_assets: Duration::ZERO,
+            scene_startup_runtime_bootstrap: Duration::ZERO,
+            scene_startup_project_open: Duration::ZERO,
+            scene_startup_world_load: Duration::ZERO,
+            scene_startup_renderer_initialization: Duration::ZERO,
+            scene_startup_renderer_backend_initialization: Duration::ZERO,
+            scene_startup_renderer_deferred_initialization: Duration::ZERO,
+            scene_startup_renderer_deferred_standard_pipeline: Duration::ZERO,
+            scene_startup_resource_streamer_initialization: Duration::ZERO,
+            scene_startup_ibl_restore: Duration::ZERO,
+            scene_startup_total: Duration::ZERO,
+            one_shot_base_pipeline_wait_elapsed: Duration::ZERO,
+            viewer_scene_load_elapsed: Duration::ZERO,
+            viewer_ready_elapsed: Duration::ZERO,
             ready_frame_render_elapsed: Duration::ZERO,
             ready_frame_render_extract: Duration::ZERO,
             ready_frame_renderer_call: Duration::ZERO,

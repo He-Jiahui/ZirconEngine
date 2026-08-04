@@ -64,8 +64,9 @@ use super::text_fields::{text_field_render_commands, text_field_suppresses_owner
 use super::text_prewarm::{
     prewarm_render_command_text, resolve_missing_render_command_text_layouts,
 };
+use crate::text::TextDocumentKey;
 use crate::ui::text::{
-    UiTextLayoutRequest, UiTextLayoutResolution, UiTextMeasureCache,
+    UiTextLayoutRequest, UiTextLayoutResolution, UiTextMeasureCache, UiTextViewport,
     prepare_render_command_text_artifacts, resolve_text_layout,
 };
 
@@ -182,12 +183,24 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
                 };
 
             let text_layout = owner_text.as_deref().map(|text| {
-                let request = UiTextLayoutRequest::new(
+                let mut request = UiTextLayoutRequest::new(
                     text,
                     &owner_style,
                     arranged_node.frame,
                     Some(arranged_node.clip_frame),
-                );
+                )
+                .with_document_key(TextDocumentKey::new(
+                    node_id.0,
+                    node.layout_cache.text_layout_revision,
+                ));
+                if visual.editable.is_none() {
+                    if let Some(viewport) = UiTextViewport::from_document_and_clip(
+                        arranged_node.frame,
+                        arranged_node.clip_frame,
+                    ) {
+                        request = request.with_viewport(viewport);
+                    }
+                }
                 let mut layout =
                     resolve_text_layout_with_cache(&request, text_measure_cache.as_deref_mut())
                         .layout;

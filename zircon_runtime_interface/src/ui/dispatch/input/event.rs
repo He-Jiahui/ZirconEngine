@@ -7,6 +7,12 @@ use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::UiPoint;
 use crate::ui::surface::UiNavigationEventKind;
 
+pub use crate::ui::surface::{
+    UiTextByteRange, UiTextPreeditClause as UiImePreeditClause,
+    UiTextPreeditClauseError as UiImePreeditClauseError,
+    UiTextPreeditClauseKind as UiImePreeditClauseKind,
+};
+
 use super::{UiDragSessionId, UiInputEventMetadata};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -92,22 +98,6 @@ pub struct UiTextInputEvent {
     pub text: String,
 }
 
-/// UTF-8 byte offsets into the event text, matching Rust string slicing units.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct UiTextByteRange {
-    pub start_byte: u32,
-    pub end_byte: u32,
-}
-
-impl UiTextByteRange {
-    pub const fn new(start_byte: u32, end_byte: u32) -> Self {
-        Self {
-            start_byte,
-            end_byte,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum UiImeInputEventKind {
     Preedit,
@@ -138,8 +128,37 @@ pub struct UiImeInputEvent {
     pub text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor_range: Option<UiTextByteRange>,
+    /// Optional platform conversion styling for `Preedit` text.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub preedit_clauses: Vec<UiImePreeditClause>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub delete_surrounding: Option<UiImeDeleteSurrounding>,
+}
+
+impl UiImeInputEvent {
+    pub fn validate(&self) -> Result<(), UiImePreeditClauseError> {
+        if self.kind != UiImeInputEventKind::Preedit {
+            return self
+                .preedit_clauses
+                .is_empty()
+                .then_some(())
+                .ok_or(UiImePreeditClauseError::ClausesRequirePreedit);
+        }
+        UiImePreeditClause::validate_preedit_payload(
+            &self.text,
+            self.cursor_range,
+            &self.preedit_clauses,
+        )
+    }
+
+    /// Validates preedit-local byte ranges and their non-overlapping text order.
+    pub fn validate_preedit_payload(
+        text: &str,
+        cursor_range: Option<UiTextByteRange>,
+        preedit_clauses: &[UiImePreeditClause],
+    ) -> Result<(), UiImePreeditClauseError> {
+        UiImePreeditClause::validate_preedit_payload(text, cursor_range, preedit_clauses)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

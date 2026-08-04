@@ -1,3 +1,4 @@
+use super::super::super::super::paint_text::HostTextLayoutPolicy;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::{
     WORKBENCH_ALERT_INFO_SURFACE, WORKBENCH_ALERT_WARNING_SURFACE,
@@ -50,4 +51,42 @@ fn workbench_warning_alert_uses_warning_tone() {
     );
     assert_eq!(pixel_at(&bytes, 192, 27, 18), PALETTE.warning);
     assert!(changed_pixel_count(&bytes, 192, 38, 16, 84, 18) > 0);
+}
+
+#[test]
+fn tall_inline_alert_requests_runtime_word_wrap_for_its_content_band() {
+    let height = 76.0;
+    let node = positioned_alert_node(
+        "WorkbenchInfoAlert",
+        "Imported assets require validation before opening this project.",
+        "info",
+        8.0,
+        8.0,
+        220.0,
+        height,
+    );
+    let rect = crate::ui::retained_host::host_contract::data::FrameRect {
+        x: 8.0,
+        y: 8.0,
+        width: 220.0,
+        height,
+    };
+    let mut commands = Vec::new();
+
+    assert!(super::super::push_alert_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        1,
+        1.0,
+    ));
+
+    let text = commands
+        .iter()
+        .find(|command| command.text.is_some())
+        .expect("inline alert content command");
+    assert_eq!(text.text_layout_policy, HostTextLayoutPolicy::WordWrap);
+    let metrics = super::super::template_alerts::layout::alert_metrics();
+    assert!(text.frame.height >= metrics.line_height * 2.0);
 }

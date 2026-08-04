@@ -445,6 +445,8 @@ fn empty_compiled_pipeline(
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            half_resolution_transparency_depth_sigma:
+                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: RenderGraphBuilder::new("cache-test").compile().unwrap(),
         },
     )

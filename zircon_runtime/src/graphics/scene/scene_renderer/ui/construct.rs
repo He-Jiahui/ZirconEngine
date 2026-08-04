@@ -83,6 +83,9 @@ impl ScreenSpaceUiRenderer {
 
         Ok(Self {
             pipeline,
+            vertex_buffer: None,
+            vertex_buffer_capacity_bytes: 0,
+            vertex_buffer_payload_hash: None,
             image_system,
             text_system,
             last_text_prepare_report: ScreenSpaceUiTextPrepareReport::default(),

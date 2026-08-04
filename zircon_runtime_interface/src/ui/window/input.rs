@@ -6,12 +6,12 @@ use crate::ui::{
     dispatch::{
         UiAccessibilityInputEvent, UiAnalogInputEvent, UiDeviceId, UiDragDropInputEvent,
         UiDragDropInputEventKind, UiDragSessionId, UiImeDeleteSurrounding, UiImeInputEvent,
-        UiImeInputEventKind, UiInputEvent, UiInputEventMetadata, UiInputModifiers,
-        UiKeyboardInputEvent, UiKeyboardInputState, UiMouseMotionInputEvent,
-        UiNavigationInputEvent, UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerSource,
-        UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiSurfaceId,
-        UiTextByteRange, UiTextInputEvent, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
-        UiUserId,
+        UiImeInputEventKind, UiImePreeditClause, UiImePreeditClauseError, UiInputEvent,
+        UiInputEventMetadata, UiInputModifiers, UiKeyboardInputEvent, UiKeyboardInputState,
+        UiMouseMotionInputEvent, UiNavigationInputEvent, UiPointerEvent, UiPointerId,
+        UiPointerInputEvent, UiPointerSource, UiPopupInputEvent, UiPopupInputEventKind,
+        UiPreciseScrollDelta, UiSurfaceId, UiTextByteRange, UiTextInputEvent,
+        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiUserId,
     },
     event_ui::UiNodeId,
     layout::UiPoint,
@@ -337,9 +337,30 @@ impl UiWindowPlatformInputEvent {
                 kind,
                 text: text.into(),
                 cursor_range,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             },
         )
+    }
+
+    pub fn ime_with_preedit_clauses(
+        context: UiWindowInputContext,
+        text: impl Into<String>,
+        cursor_range: Option<UiTextByteRange>,
+        preedit_clauses: Vec<UiImePreeditClause>,
+    ) -> Result<Self, UiImePreeditClauseError> {
+        let text = text.into();
+        UiImeInputEvent::validate_preedit_payload(&text, cursor_range, &preedit_clauses)?;
+        Ok(Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Ime {
+                kind: UiImeInputEventKind::Preedit,
+                text,
+                cursor_range,
+                preedit_clauses,
+                delete_surrounding: None,
+            },
+        ))
     }
 
     pub fn ime_delete_surrounding(
@@ -353,6 +374,7 @@ impl UiWindowPlatformInputEvent {
                 kind: UiImeInputEventKind::DeleteSurrounding,
                 text: String::new(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: Some(UiImeDeleteSurrounding::new(before_bytes, after_bytes)),
             },
         )
@@ -688,12 +710,14 @@ impl UiWindowPlatformInputEvent {
                 kind,
                 text,
                 cursor_range,
+                preedit_clauses,
                 delete_surrounding,
             } => UiInputEvent::Ime(UiImeInputEvent {
                 metadata,
                 kind,
                 text,
                 cursor_range,
+                preedit_clauses,
                 delete_surrounding,
             }),
             UiWindowPlatformInputEventKind::Navigation { kind } => {
@@ -792,6 +816,8 @@ pub enum UiWindowPlatformInputEventKind {
         text: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cursor_range: Option<UiTextByteRange>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        preedit_clauses: Vec<UiImePreeditClause>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         delete_surrounding: Option<UiImeDeleteSurrounding>,
     },

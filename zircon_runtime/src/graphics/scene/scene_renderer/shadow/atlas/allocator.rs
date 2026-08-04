@@ -257,10 +257,15 @@ pub(crate) struct ShadowAtlasFrameAllocation {
     pub(crate) frame_index: u64,
     pub(crate) scale_factor: u32,
     pub(crate) allocations: Vec<ShadowSlotAllocation>,
+    slot_generations: HashMap<ShadowSlotKey, u64>,
     pub(crate) rejected: Vec<ShadowSlotRejection>,
 }
 
 impl ShadowAtlasFrameAllocation {
+    pub(crate) fn slot_generation_for(&self, key: ShadowSlotKey) -> Option<u64> {
+        self.slot_generations.get(&key).copied()
+    }
+
     #[cfg(test)]
     pub(crate) fn allocation_for(&self, key: ShadowSlotKey) -> Option<&ShadowSlotAllocation> {
         self.allocations
@@ -285,6 +290,8 @@ pub(crate) struct ShadowAtlasAllocator {
     config: ShadowAtlasConfig,
     frame_index: u64,
     previous: HashMap<ShadowSlotKey, RetainedShadowSlot>,
+    slot_generations: HashMap<ShadowSlotKey, u64>,
+    next_slot_generation: u64,
     preemption: HashMap<(ShadowSlotKey, ShadowSlotKey), u32>,
     last_frame: ShadowAtlasFrameAllocation,
 }
@@ -295,6 +302,8 @@ impl ShadowAtlasAllocator {
             config,
             frame_index: 0,
             previous: HashMap::new(),
+            slot_generations: HashMap::new(),
+            next_slot_generation: 1,
             preemption: HashMap::new(),
             last_frame: ShadowAtlasFrameAllocation::default(),
         }
@@ -314,6 +323,7 @@ impl ShadowAtlasAllocator {
             frame_index: self.frame_index,
             scale_factor: 1,
             allocations: Vec::new(),
+            slot_generations: HashMap::new(),
             rejected: Vec::new(),
         };
 
@@ -416,6 +426,20 @@ impl ShadowAtlasAllocator {
             }
         }
 
+        let mut slot_generations = HashMap::with_capacity(frame.allocations.len());
+        for allocation in &frame.allocations {
+            let generation = if allocation.reused_previous {
+                match self.slot_generations.get(&allocation.key).copied() {
+                    Some(generation) => generation,
+                    None => self.allocate_slot_generation(),
+                }
+            } else {
+                self.allocate_slot_generation()
+            };
+            slot_generations.insert(allocation.key, generation);
+        }
+        frame.slot_generations = slot_generations.clone();
+        self.slot_generations = slot_generations;
         self.previous = frame
             .allocations
             .iter()
@@ -432,6 +456,14 @@ impl ShadowAtlasAllocator {
             .collect();
         self.last_frame = frame.clone();
         frame
+    }
+
+    fn allocate_slot_generation(&mut self) -> u64 {
+        let generation = self.next_slot_generation;
+        self.next_slot_generation = generation
+            .checked_add(1)
+            .expect("shadow atlas slot generation space exhausted");
+        generation
     }
 
     fn pack_planned_slot(
@@ -652,11 +684,7 @@ impl FreeRectPacker {
             .iter()
             .find(|free_rect| free_rect.width >= size && free_rect.height >= size)
             .map(|free_rect| ShadowAtlasRect::new(free_rect.x, free_rect.y, size, size))?;
-        if self.reserve(rect) {
-            Some(rect)
-        } else {
-            None
-        }
+        if self.reserve(rect) { Some(rect) } else { None }
     }
 }
 

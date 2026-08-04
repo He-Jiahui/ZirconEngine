@@ -33,9 +33,6 @@ fn runtime_15_material_asset_schema_v1_defaults_use_versioned_names() {
     );
     let render_assets_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/asset/render-assets.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "material asset schema-v1 defaults owner",
@@ -65,9 +62,6 @@ fn runtime_15_material_asset_schema_v1_defaults_use_versioned_names() {
         ("module convention doc", module_doc.as_str()),
         ("zmeta material doc", zmeta_material_doc.as_str()),
         ("render assets doc", render_assets_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

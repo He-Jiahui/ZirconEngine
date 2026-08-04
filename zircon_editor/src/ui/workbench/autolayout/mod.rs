@@ -38,6 +38,8 @@ pub(crate) use geometry::{
 };
 pub use geometry::{
     compute_workbench_shell_geometry, compute_workbench_shell_geometry_with_region_defaults,
+    compute_workbench_shell_geometry_with_region_defaults_and_scale_mode,
+    compute_workbench_shell_geometry_with_scale_mode,
 };
 #[cfg(test)]
 pub(crate) use layout_tier::workbench_layout_defaults;
@@ -53,7 +55,7 @@ pub use pane_constraint_override::PaneConstraintOverride;
 pub use region_binding::{
     EditorRegion, EditorRegionRole, RegionBinding, RegionBindingError, WorkbenchConstraintTokenName,
 };
-pub use resolution_context::ResolutionContext;
+pub use resolution_context::{ResolutionContext, ResolutionScaleMode};
 pub use shell_region_id::ShellRegionId;
 pub use shell_regions_asset::{
     WorkbenchShellRegionsAsset, WorkbenchShellRegionsAssetError, WorkbenchShellRegionsAssetHeader,

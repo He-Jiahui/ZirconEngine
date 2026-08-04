@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::asset::migration::AssetMigrationError;
+use crate::asset::project::ProjectPaths;
 use crate::asset::safe_project_path::is_link_or_reparse;
 
 use super::JOURNAL_DIRECTORY;
@@ -49,11 +50,9 @@ fn validate_directory(
     if is_link_or_reparse(&metadata) || !metadata.is_dir() {
         return Err(invalid(path, format!("{label} must be a real directory")));
     }
-    let canonical_root = project_root
-        .canonicalize()
+    let canonical_root = ProjectPaths::resolve_existing_path(project_root)
         .map_err(|error| invalid(project_root, error.to_string()))?;
-    let canonical = path
-        .canonicalize()
+    let canonical = ProjectPaths::resolve_existing_path(path)
         .map_err(|error| invalid(path, error.to_string()))?;
     if !canonical.starts_with(&canonical_root) {
         return Err(invalid(path, format!("{label} escapes project root")));

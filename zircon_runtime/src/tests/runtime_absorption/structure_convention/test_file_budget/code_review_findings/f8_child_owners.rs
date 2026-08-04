@@ -12,12 +12,8 @@ mod root_inventory;
 mod root_paths;
 #[path = "f8_owners/root_sources.rs"]
 mod root_sources;
-#[path = "f8_owners/root_statuses.rs"]
-mod root_statuses;
 #[path = "f8_owners/route_ownership.rs"]
 mod route_ownership;
-#[path = "f8_owners/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;

@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
-use crate::scene::World;
 use crate::scene::ecs::{
     SceneSystem, SceneSystemMetadata, SystemParam, SystemParamAccess, SystemParamError, SystemState,
 };
+use crate::scene::World;
 
 pub struct FunctionSceneSystem<P, F>
 where

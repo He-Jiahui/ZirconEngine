@@ -42,7 +42,7 @@ pub(super) fn ripple_clip(
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn ripple_diameter(
     rect: &FrameRect,
 ) -> f32 {
-    rect.width * RIPPLE_DIAMETER_EXPANSION
+    rect.width.max(rect.height) * RIPPLE_DIAMETER_EXPANSION
 }
 
 pub(super) fn ripple_radius(rect: &FrameRect) -> f32 {

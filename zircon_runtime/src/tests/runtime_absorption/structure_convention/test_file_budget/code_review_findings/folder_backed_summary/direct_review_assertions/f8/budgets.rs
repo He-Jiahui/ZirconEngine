@@ -30,10 +30,6 @@ pub(super) fn assert_f8_direct_assertions_children_line_budgets_are_current() {
             F8_DIRECT_ASSERTIONS_BUDGETS_CHILD,
             read_runtime_src(F8_DIRECT_ASSERTIONS_BUDGETS_CHILD),
         ),
-        (
-            F8_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD,
-            read_runtime_src(F8_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(

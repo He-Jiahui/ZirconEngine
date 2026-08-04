@@ -62,12 +62,15 @@ impl EditorUiHost {
             }
         };
 
+        // A restored legacy session can still point at zircon-project.toml. Record the opened
+        // document root so future startup and removal operations use one project identity.
+        self.remember_opened_project(&document.root_path, document.manifest.summary())?;
         let status_message = restored_project_status_message(&document);
         Ok(EditorStartupSessionDocument {
             mode: EditorSessionMode::Project,
             project: Some(document),
             open_builtin_view: None,
-            recent_projects,
+            recent_projects: self.recent_projects_snapshot()?,
             draft: NewProjectDraft::renderable_empty_default(),
             creation_validation: String::new(),
             can_open_existing: false,

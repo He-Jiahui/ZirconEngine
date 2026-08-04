@@ -15,6 +15,7 @@ use zircon_editor::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
 };
 use zircon_editor::ui::workbench::project::EditorProjectDocument;
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
@@ -30,7 +31,7 @@ fn f4_project_authoring_survives_full_application_restart() {
             template: NewProjectTemplate::RenderableEmpty,
         })
         .unwrap();
-    let canonical_project_root = fs::canonicalize(&created.root).unwrap();
+    let canonical_project_root = ProjectPaths::resolve_existing_path(&created.root).unwrap();
 
     let first = EditorApplicationComposition::open_project(&created.root).unwrap();
     let host = first.editor_host();
@@ -52,6 +53,18 @@ fn f4_project_authoring_survives_full_application_restart() {
     assert_eq!(
         opened_project.project_info.failed_asset_count, 0,
         "the RenderableEmpty starter assets must not hide import failures"
+    );
+    assert_eq!(
+        opened_project.project_info.ready_asset_count, opened_project.project_info.asset_count,
+        "the RenderableEmpty starter assets must all reach Ready before F4 authoring begins"
+    );
+    assert!(
+        first
+            .startup_session()
+            .status_message
+            .starts_with("Project opened:"),
+        "F4 authoring must not proceed from a degraded project-open state: {}",
+        first.startup_session().status_message
     );
     assert!(
         first.startup_session().status_message.contains(&format!(
@@ -130,6 +143,13 @@ fn f4_project_authoring_survives_full_application_restart() {
         .translation[0]
         .parse::<f32>()
         .unwrap();
+    let initial_scale_x = host
+        .editor_snapshot()
+        .inspector
+        .expect("selected Cube must project an inspector")
+        .scale[0]
+        .parse::<f32>()
+        .unwrap();
 
     let transform_binding = EditorUiBinding::new(
         "Inspector",
@@ -171,6 +191,46 @@ fn f4_project_authoring_survives_full_application_restart() {
         42.0
     );
 
+    let scale_binding = EditorUiBinding::new(
+        "Inspector",
+        "TransformScaleXCommit",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            [InspectorFieldChange {
+                field_id: "transform.scale.x".to_string(),
+                value: UiBindingValue::Float(1.25),
+            }],
+        ),
+    );
+    let scale_binding_path = scale_binding.path().native_prefix();
+    let scale_record = host
+        .dispatch_binding(scale_binding, EditorEventSource::Headless)
+        .unwrap();
+    assert_eq!(
+        scale_record.binding_path.as_deref(),
+        Some(scale_binding_path.as_str()),
+        "the F4 scale edit must retain its Inspector binding provenance"
+    );
+    assert_eq!(
+        scale_record.operation_id.as_deref(),
+        Some("inspector.field.apply_batch")
+    );
+    assert!(
+        scale_record.transaction_id.is_some(),
+        "the committed scale edit must create a transaction"
+    );
+    assert_eq!(scale_record.save_generation, None);
+    assert_eq!(
+        host.editor_snapshot()
+            .inspector
+            .expect("selected Cube must project an inspector")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        1.25
+    );
+
     host.dispatch_event(
         EditorEventSource::Headless,
         EditorEvent::WorkbenchMenu(MenuAction::Undo),
@@ -180,10 +240,43 @@ fn f4_project_authoring_survives_full_application_restart() {
         host.editor_snapshot()
             .inspector
             .expect("undo must retain the selected Cube inspector")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        initial_scale_x
+    );
+    assert_eq!(
+        host.editor_snapshot()
+            .inspector
+            .expect("undo must retain the selected Cube inspector")
+            .translation[0]
+            .parse::<f32>()
+            .unwrap(),
+        42.0
+    );
+
+    host.dispatch_event(
+        EditorEventSource::Headless,
+        EditorEvent::WorkbenchMenu(MenuAction::Undo),
+    )
+    .unwrap();
+    assert_eq!(
+        host.editor_snapshot()
+            .inspector
+            .expect("second undo must retain the selected Cube inspector")
             .translation[0]
             .parse::<f32>()
             .unwrap(),
         initial_x
+    );
+    assert_eq!(
+        host.editor_snapshot()
+            .inspector
+            .expect("second undo must retain the selected Cube inspector")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        initial_scale_x
     );
 
     host.dispatch_event(
@@ -199,6 +292,30 @@ fn f4_project_authoring_survives_full_application_restart() {
             .parse::<f32>()
             .unwrap(),
         42.0
+    );
+    assert_eq!(
+        host.editor_snapshot()
+            .inspector
+            .expect("redo must retain the selected Cube scale before its transaction is replayed")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        initial_scale_x
+    );
+
+    host.dispatch_event(
+        EditorEventSource::Headless,
+        EditorEvent::WorkbenchMenu(MenuAction::Redo),
+    )
+    .unwrap();
+    assert_eq!(
+        host.editor_snapshot()
+            .inspector
+            .expect("second redo must restore the selected Cube inspector")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        1.25
     );
 
     let save_binding = EditorUiBinding::new(
@@ -261,6 +378,17 @@ fn f4_project_authoring_survives_full_application_restart() {
         42.0
     );
     assert_eq!(
+        reopened
+            .editor_host()
+            .editor_snapshot()
+            .inspector
+            .expect("reopened Cube must project an inspector")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        1.25
+    );
+    assert_eq!(
         reopened_cube, cube,
         "reopening must preserve the persisted Cube entity identity"
     );
@@ -277,6 +405,7 @@ fn f4_project_authoring_survives_full_application_restart() {
         .expect("persisted project must retain the Cube");
     let mut expected_transform = initial_cube.transform.clone();
     expected_transform.translation.x = 42.0;
+    expected_transform.scale.x = 1.25;
     assert_eq!(persisted_cube.id, initial_cube.id);
     assert_eq!(persisted_cube.name, initial_cube.name);
     assert_eq!(persisted_cube.parent, initial_cube.parent);

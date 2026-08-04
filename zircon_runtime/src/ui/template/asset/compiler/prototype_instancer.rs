@@ -246,7 +246,7 @@ impl<'a> PrototypeInstancer<'a> {
                     asset_id: task.asset.asset.id.clone(),
                     detail: format!("reference node {} missing component_ref", node.node_id),
                 })?;
-        let _ = component_name_from_reference(reference)?;
+        let _ = parse_component_reference(reference)?;
         let (asset, component_name) = self.store.component_prototype(reference)?;
         let component = asset
             .components

@@ -1,6 +1,6 @@
 ---
 title: WOS197 Aether Surge charge runtime
-status: in_progress
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -73,3 +73,12 @@ transactions.
 
 The future package must execute only through `zr_vm:project`; no local VM or
 native fallback is acceptable evidence.
+
+## Second Review
+
+2026-08-03: second static review confirmed pre-resolution charge reads,
+post-impact charge refresh, the single ordered Aether Rush draw, exact free
+cast consumption, persistence and typed/slot routing. The focused fixture
+declares `zr_vm:project`, and
+`node tools/wos197_aether_surge_charge_runtime_static_guard.mjs` passed from
+`examples/woc`. Dynamic ZrVM execution remains pending.

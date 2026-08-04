@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::SwashContent;
+use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, Weight, fontdb};
 use glyphon::{Attrs, Buffer, Metrics, Shaping};
 
 use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapPlaceholderGlyph,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapPlaceholderGlyph,
     GlyphAtlasBitmapPlaceholderMode, GlyphAtlasBitmapQueuedGlyph,
     GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasPageKey, GlyphAtlasPageSpec,
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas,
 };
 use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
@@ -107,6 +107,7 @@ fn test_frame(
         clip_rect: test_clip_rect(),
         visible_raster_glyph_count,
         missing_raster_image_count: 0,
+        visible_missing_raster_image_count: 0,
         approximate_raster_image_count: 0,
         unsupported_glyph_count,
         clipped_glyph_count,

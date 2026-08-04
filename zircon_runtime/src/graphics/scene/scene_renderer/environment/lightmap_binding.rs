@@ -205,8 +205,8 @@ impl SceneLightmapResources {
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer) fn lightmap_bind_group_layout_entries(
-) -> [wgpu::BindGroupLayoutEntry; 3] {
+pub(in crate::graphics::scene::scene_renderer) fn lightmap_bind_group_layout_entries()
+-> [wgpu::BindGroupLayoutEntry; 3] {
     [
         wgpu::BindGroupLayoutEntry {
             binding: LIGHT_PROBE_GRID_BINDING,

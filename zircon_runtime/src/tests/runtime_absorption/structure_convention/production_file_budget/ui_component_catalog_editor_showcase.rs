@@ -12,9 +12,6 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "editor showcase parent keeps catalog registry and descriptor list ownership",
@@ -101,15 +98,4 @@ fn runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI component catalog editor-showcase helper owner split",
-            "runtime_15_ui_component_catalog_editor_showcase_helper_owner_split_static_passed_cargo_timeout_no_result",
-            "ui/component/catalog/editor_showcase.rs",
-            "ui/component/catalog/editor_showcase/descriptor_builders.rs",
-            "runtime_15_ui_component_catalog_editor_showcase_helpers_are_child_owner",
-        ],
-    );
 }

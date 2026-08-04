@@ -22,15 +22,6 @@ fn runtime_15_plugin_importer_d1_capability_guard_is_folder_backed() {
     let status_docs = include_str!("status_docs.rs");
     let support = include_str!("support.rs");
     let split_layout = include_str!("split_layout.rs");
-    let row_data = include_str!(
-        "../../../../../../../zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/review_guards.rs"
-    );
-    let status_map = include_str!(
-        "../../../../../../../zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs"
-    );
-    let date_map = include_str!(
-        "../../../../../../../zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs"
-    );
     let docs = [
         include_str!(
             "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
@@ -135,35 +126,6 @@ fn runtime_15_plugin_importer_d1_capability_guard_is_folder_backed() {
         "D1 split-layout guard should stay focused"
     );
 
-    for anchor in [
-        D1_FOLDER_BACKED_SLICE,
-        D1_FOLDER_BACKED_STATUS,
-        D1_FOLDER_BACKED_GUARD,
-        D1_PARENT_PATH,
-        D1_CHILD_PATHS[0],
-        D1_CHILD_PATHS[5],
-    ] {
-        assert!(
-            row_data.contains(anchor),
-            "D1 row data should contain `{anchor}`"
-        );
-    }
-    for anchor in [
-        D1_FOLDER_BACKED_SLICE,
-        D1_FOLDER_BACKED_STATUS,
-        D1_FOLDER_BACKED_GUARD,
-    ] {
-        assert!(
-            status_map.contains(anchor),
-            "D1 status map should contain `{anchor}`"
-        );
-    }
-    for anchor in [D1_FOLDER_BACKED_SLICE, "2026-07-06"] {
-        assert!(
-            date_map.contains(anchor),
-            "D1 date map should contain `{anchor}`"
-        );
-    }
     for anchor in [
         D1_FOLDER_BACKED_SLICE,
         D1_FOLDER_BACKED_STATUS,

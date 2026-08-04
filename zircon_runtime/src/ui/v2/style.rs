@@ -363,6 +363,9 @@ impl UiV2RuntimeStyleIndex {
         metadata.style_overrides = next_style_overrides;
         metadata.style_tokens = next_style_tokens;
         if mark_dirty {
+            if dirty.text && !node.dirty.text {
+                node.layout_cache.advance_text_layout_revision();
+            }
             merge_dirty_flags_into(&mut node.dirty, dirty);
         }
         Ok(1)

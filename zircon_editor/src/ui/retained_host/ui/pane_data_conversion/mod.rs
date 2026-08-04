@@ -61,6 +61,7 @@ pub(super) use self::pane_menu_projection::structured_menu_items;
 pub(super) use self::pane_option_projection::structured_options_for_node;
 pub(super) use self::pane_ui_asset_conversion::to_host_contract_ui_asset_pane;
 pub(crate) use self::performance_timeline::to_host_contract_performance_timeline_pane_from_host_pane;
+pub(crate) use self::hierarchy_projection::to_host_contract_hierarchy_pane_from_host_pane_with_query;
 pub(crate) use self::runtime_diagnostics::{
     refresh_runtime_diagnostics_debug_reflector_from_body_surface,
     to_host_contract_runtime_diagnostics_pane_from_host_pane,

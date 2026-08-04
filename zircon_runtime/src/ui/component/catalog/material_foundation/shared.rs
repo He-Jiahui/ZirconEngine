@@ -317,12 +317,14 @@ pub(super) fn with_text_input_state_props(
         .with_prop(bool_prop("validation_dirty", false))
         .with_prop(bool_prop("validation_touched", false))
         .with_prop(int_prop("caret_offset", 0))
+        .with_prop(default_string_prop("caret_affinity", "downstream"))
         .with_prop(int_prop("selection_anchor", 0))
         .with_prop(int_prop("selection_focus", 0))
         .with_prop(int_prop("composition_start", 0))
         .with_prop(int_prop("composition_end", 0))
         .with_prop(string_prop("composition_text"))
         .with_prop(string_prop("composition_restore_text"))
+        .with_prop(array_prop("composition_clauses"))
 }
 
 fn text_validation_timing_prop() -> UiPropSchema {

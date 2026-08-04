@@ -1,6 +1,7 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     surface::UiSurface,
+    text::{hit_test_text_layout, UiTextHitTest},
 };
 use zircon_runtime_interface::ui::{
     binding::{UiBindingSourceKind, UiEventKind},
@@ -12,7 +13,7 @@ use zircon_runtime_interface::ui::{
     },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{UiFrame, UiPoint},
-    surface::{UiPointerButton, UiPointerEventKind},
+    surface::{UiPointerButton, UiPointerEventKind, UiTextCaretAffinity, UiTextDirection},
     template::UiBindingRef,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
     widget::{UiWidgetBehavior, UiWidgetContract},
@@ -471,6 +472,57 @@ fn text_input_pointer_press_handles_empty_value_layout() {
 }
 
 #[test]
+fn text_input_pointer_persists_visual_bidi_hit_affinity() {
+    let mut surface = text_input_surface("A \u{2067}אב\u{2069} Z", 0);
+    let (point, hit) = upstream_bidi_hit(&surface);
+
+    let result = dispatch_pointer(
+        &mut surface,
+        UiPointerEventKind::Down,
+        point,
+        Some(UiPointerButton::Primary),
+        UiPointerId::new(21),
+        |_| {},
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(int_attr(&surface, "caret_offset"), hit.source_offset as i64);
+    assert_eq!(string_attr(&surface, "caret_affinity"), "upstream");
+}
+
+fn upstream_bidi_hit(surface: &UiSurface) -> (UiPoint, UiTextHitTest) {
+    let layout = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .and_then(|command| command.text_layout.as_ref())
+        .expect("text input layout");
+    assert!(layout
+        .lines
+        .iter()
+        .flat_map(|line| &line.runs)
+        .any(|run| matches!(run.direction, UiTextDirection::RightToLeft)));
+    let line = layout.lines.first().expect("Bidi line");
+    let mut advance = 0.0;
+    for glyph_advance in &line.glyph_advances {
+        if *glyph_advance > 0.0 {
+            let point = UiPoint::new(
+                line.frame.x + advance + glyph_advance * 0.75,
+                line.frame.center().y,
+            );
+            let hit = hit_test_text_layout(layout, point);
+            if matches!(hit.affinity, UiTextCaretAffinity::Upstream) {
+                return (point, hit);
+            }
+        }
+        advance += glyph_advance;
+    }
+    panic!("Bidi isolate layout should expose an upstream visual hit boundary");
+}
+
+#[test]
 fn disabled_text_input_pointer_press_does_not_move_caret_or_capture() {
     let mut surface = text_input_surface("abcd", 1);
     surface
@@ -648,6 +700,18 @@ fn int_attr(surface: &UiSurface, key: &str) -> i64 {
         .and_then(|metadata| metadata.attributes.get(key))
         .and_then(toml::Value::as_integer)
         .unwrap_or_default()
+}
+
+fn string_attr(surface: &UiSurface, key: &str) -> String {
+    surface
+        .tree
+        .nodes
+        .get(&UiNodeId::new(2))
+        .and_then(|node| node.template_metadata.as_ref())
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(toml::Value::as_str)
+        .unwrap_or_default()
+        .to_string()
 }
 
 fn binding(path: &str, event: UiEventKind) -> UiBindingRef {

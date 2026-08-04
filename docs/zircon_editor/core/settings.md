@@ -1,21 +1,38 @@
+---
+related_code:
+  - zircon_editor/src/core/settings
+  - zircon_editor/src/core/context/editor_context.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
+  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/shutdown.rs
+implementation_files:
+  - zircon_editor/src/core/settings/registry.rs
+  - zircon_editor/src/core/settings/change_log.rs
+  - zircon_editor/src/core/settings/persistence.rs
+  - zircon_editor/src/core/settings/io.rs
+plan_sources:
+  - docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
+  - docs/plans/zircon_editor/editor/17/failure-2026-07-30-editor-settings-persistence-and-hot-projection.md
+tests:
+  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
+doc_type: module-detail
+---
+
 # Editor Settings
 
-`zircon_editor::core::settings` owns the editor's typed, layered settings contract. It is usable by retained-host and headless code; UI panels are consumers, not persistence owners.
+`zircon_editor::core::settings` owns the editor's typed, layered settings
+contract. `SettingsAuthority` is the sole mutable owner; retained-host,
+workbench, EditorManager, and viewport code consume its immutable snapshots or
+bounded deltas. UI panels never create a registry copy or own persistence.
 
-## Registry
+## Authority And Snapshots
 
-Register a `SettingDefinition` before reading or writing a value. A definition has a validated lowercase dot-separated `SettingsKey`, a maximum durable scope, a `SettingSchema`, default value, restart flag, and slash-separated category path.
-
-`SettingsRegistry::resolve` always uses this precedence:
-
-| Priority | Layer |
-| --- | --- |
-| 1 | Session |
-| 2 | Project |
-| 3 | User |
-| 4 | Definition default |
-
-The definition scope is the highest durable layer the setting may occupy:
+Definitions have a validated lowercase dot-separated `SettingsKey`, a maximum
+durable scope, a `SettingSchema`, default value, restart flag, and category
+path. Resolution precedence is Session, Project, User, then the definition
+default. A definition scope restricts the durable layers it may occupy:
 
 | Definition scope | Allowed writes |
 | --- | --- |
@@ -23,9 +40,23 @@ The definition scope is the highest durable layer the setting may occupy:
 | Project | User, Project, Session |
 | Session | Session |
 
-Every write validates the schema and emits a `SettingChange` containing the key, written scope, monotonic revision, and `requires_restart`. Loading a durable layer validates all values before replacing that layer, so an unknown key, invalid value, or forbidden scope leaves the prior layer unchanged.
+`SettingsAuthority` validates mutations, publishes one immutable generation
+snapshot, and exposes pre-parsed typed slots for design tokens, keymap
+overrides, command-palette MRU, and viewport snap steps. Stable consumers must
+not parse settings keys, walk layered maps, or allocate projection values.
 
-## Persistence
+`SettingsRegistry` is the authority's internal mutable representation. A
+no-op write neither advances the generation nor emits a change. Consumers that
+need changes use a cursor/delta API backed by entry, byte, and age budgets; a
+cursor that falls behind receives `requires_snapshot` rather than retaining an
+unbounded history.
+
+User and Project sources are loaded through the authority and cached for the
+active binding. Switching or clearing a project invalidates that binding before
+the next project source is read. Invalid source data is recorded as invalid and
+does not partially replace a valid layer.
+
+## Persistence And Shutdown
 
 `SettingsStore` persists only User and Project layers:
 
@@ -33,30 +64,28 @@ Every write validates the schema and emits a `SettingChange` containing the key,
 - Project: `<project-root>/.zircon/settings.toml`.
 - Session: never written to disk.
 
-`ZIRCON_EDITOR_APPEARANCE_PREFERENCES` remains the User-root override required by the editor architecture plan. Its value is a directory root, not a settings-file path. An existing file value is rejected; no old appearance path is reinterpreted.
+`ZIRCON_EDITOR_APPEARANCE_PREFERENCES` is the User-root override. Its value is
+a directory root, not a settings-file path; a file is rejected. The settings
+file is the Plan11 versioned envelope with schema id `zircon.editor.settings`
+and schema version 1. Legacy or unwrapped payloads fail closed. Writes use the
+shared atomic writer, including durable file replacement where supported.
 
-The `.toml` file name is the planned location. Its contents are the canonical Plan11 versioned text envelope with schema id `zircon.editor.settings` and schema version 1, not a separately parsed TOML dialect. Version zero and unwrapped/legacy payloads fail closed. There is no old preferences reader, migration, fallback parser, or dual write path.
+`SettingsPersistenceService` converts a typed changed key, scope, and
+generation into Runtime11 bounded keyed I/O. Its lane identity includes the
+persistent target path, so the same key for different project roots cannot
+coalesce. The worker serializes the authority's currently bound layer and does
+the filesystem work; callers on the UI or frame path only receive a ticket.
 
-Writes create a unique file in the target directory, flush its contents, atomically replace the target, and synchronize the parent directory where the platform supports it. A failed read at retained-host startup logs a warning and resolves registered defaults; it never resurrects the retired preferences module.
-
-## Built-in Setting
-
-The current built-in definition is `editor.appearance.design_tokens`:
-
-- Scope: User with a Session override permitted by the registry.
-- Schema/value: strong `EditorDesignTokens`, never a JSON string.
-- Default: `EditorDesignTokens::workbench_dark()`.
-- Startup: `editor_design_tokens_at_startup()` loads the User layer and applies the resolved token set before the retained host is created.
+A failed ticket may be retried only as the same typed request. Project changes
+cancel unstarted tickets and the authority verifies the target binding before a
+worker writes, preventing a stale Project A request from serializing Project B
+state into A. At host shutdown, `flush_then_shutdown().finish()` must complete:
+it returns success only when its fence succeeds, so a final persistence failure
+cannot become a successful editor exit.
 
 ## Extension Rules
 
-New settings must add a typed `SettingValue`/`SettingSchema` pair when an existing scalar domain is insufficient. Do not store structured configuration as JSON or TOML text inside `SettingValue::String`.
-
-The following first-batch migrations remain open in their owning plans and must use this registry/store rather than add a private persistence path:
-
-- Editor08 keymap user layer: `docs/plans/zircon_editor/editor/08/failure-2026-07-23-settings-registry-keymap-user-layer-migration.md`.
-- Editor05 project snap steps: `docs/plans/zircon_editor/editor/05/failure-2026-07-23-settings-registry-project-snap-step-migration.md`.
-- Editor14 job-category quotas: `docs/plans/zircon_editor/editor/14/failure-2026-07-23-settings-registry-job-category-quota-migration.md`.
-- Editor13 script-build batch window: `docs/plans/zircon_editor/editor/13/failure-2026-07-23-settings-registry-script-build-batch-window-migration.md`.
-
-Each migration must prove current-shell round-trip, schema rejection, scope precedence, and removal of its prior private file I/O or configuration fallback.
+New structured settings add a typed `SettingValue` and `SettingSchema`; they
+must not embed JSON or TOML inside `SettingValue::String`. New consumers use
+the authority snapshot or its bounded delta contract and must not introduce a
+second settings cache, reader, scheduler, fallback parser, or persistence path.

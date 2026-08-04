@@ -19,36 +19,35 @@ mod variant_prewarm;
 
 pub use asset_kind::ShaderAssetKind;
 pub use compute_dispatch::{
-    COMPUTE_SHADER_FIRST_RESOURCE_BINDING, COMPUTE_SHADER_PARAMS_BINDING,
-    COMPUTE_SHADER_RESOURCE_GROUP, ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef,
-    ComputePipelineCacheKey, ShaderAbiBinding, ShaderDispatchBuildDiagnostic, ShaderDispatchExtent,
-    ShaderNamedResourceBinding, ShaderParameterValue,
+    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, ComputePipelineCacheKey,
+    ShaderAbiBinding, ShaderDispatchBuildDiagnostic, ShaderDispatchExtent,
+    ShaderNamedResourceBinding, ShaderParameterValue, COMPUTE_SHADER_FIRST_RESOURCE_BINDING,
+    COMPUTE_SHADER_PARAMS_BINDING, COMPUTE_SHADER_RESOURCE_GROUP,
 };
 pub use definition_value::RenderShaderDefinitionValue;
 pub use dependency::RenderShaderDependency;
 pub use entry_point::RenderShaderEntryPointDescriptor;
 pub use fullscreen_pass::{
+    FullscreenPassBuilder, FullscreenPassPlan, FullscreenPipelineCacheKey, FullscreenShaderRef,
     FULLSCREEN_FIRST_PASS_INPUT_BINDING, FULLSCREEN_FRAME_GROUP, FULLSCREEN_PARAMS_BINDING,
-    FULLSCREEN_PASS_INPUT_GROUP, FULLSCREEN_TRIANGLE_VERTEX_ENTRY, FullscreenPassBuilder,
-    FullscreenPassPlan, FullscreenPipelineCacheKey, FullscreenShaderRef,
+    FULLSCREEN_PASS_INPUT_GROUP, FULLSCREEN_TRIANGLE_VERTEX_ENTRY,
 };
 pub use geometry_source::{
-    GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    GEOMETRY_SOURCE_PLUGIN_ID_START, GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH,
-    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH,
-    GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH, GeometrySourceBindingKind,
-    GeometrySourceBindingRequirement, GeometrySourceDescriptor, GeometrySourceId,
-    GeometrySourceVertexAttribute, builtin_geometry_source_descriptor,
-    builtin_geometry_source_descriptors,
+    builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, GEOMETRY_SOURCE_ID_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GEOMETRY_SOURCE_PLUGIN_ID_START,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MESH,
+    GEOMETRY_SOURCE_WGSL_INCLUDE_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_WGSL_INCLUDE_STATIC_MESH,
 };
 pub use ide_env::{
-    SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_ENV_SCHEMA_VERSION, SHADER_IDE_MODULE_MAP_FILE,
-    SHADER_IDE_PREVIEW_DEFAULT_VARIANT, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
-    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewSegment, ShaderIdePreviewVariant,
     shader_ide_generated_material_stub_relative_path, shader_ide_module_stub_relative_path,
     shader_ide_preview_relative_path, shader_ide_preview_segments_relative_path,
-    shader_ide_relative_path_string,
+    shader_ide_relative_path_string, ShaderIdeModuleMap, ShaderIdeModuleMapEntry,
+    ShaderIdeModuleSource, ShaderIdePreviewMap, ShaderIdePreviewSegment, ShaderIdePreviewVariant,
+    SHADER_IDE_ENV_CACHE_DIR, SHADER_IDE_ENV_SCHEMA_VERSION, SHADER_IDE_MODULE_MAP_FILE,
+    SHADER_IDE_PREVIEW_DEFAULT_VARIANT,
 };
 pub use material_property_layout::{
     MaterialOptionKind, MaterialOptionRef, MaterialOptionTable, MaterialPropertyKind,
@@ -56,10 +55,11 @@ pub use material_property_layout::{
     PropertyScalarClass,
 };
 pub use module_import::{
-    GENERATED_MATERIAL_MODULE_IMPORT_PATH, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
-    SHADER_SELF_MODULE_NAMESPACE, ShaderImportPathDerivation, ShaderImportPathDerivationError,
     derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
     shader_project_namespace_from_name, strip_wgsl_include_directives, wgsl_include_paths,
+    ShaderImportPathDerivation, ShaderImportPathDerivationError,
+    GENERATED_MATERIAL_MODULE_IMPORT_PATH, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
+    SHADER_SELF_MODULE_NAMESPACE,
 };
 pub use pipeline_layout::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
@@ -86,5 +86,6 @@ pub use variant_prewarm::{
     ShaderVariantPrewarmManifestIntegrityError, ShaderVariantPrewarmReport,
     ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId,
     ShaderVariantPrewarmSourceProvenanceEntry, ShaderVariantPrewarmSourceProvenanceSummary,
-    ShaderVariantPrewarmWgpuModuleValidationSummary, ShaderVariantPrewarmWrittenVariant,
+    ShaderVariantPrewarmWgpuModuleValidationSummary,
+    ShaderVariantPrewarmWgpuPipelineValidationSummary, ShaderVariantPrewarmWrittenVariant,
 };

@@ -1,19 +1,25 @@
 use super::geometry::vertical_scrollbar_geometry;
 use super::style::{WorkbenchScrollbarMetrics, workbench_scrollbar_metrics_from_host};
 use super::{
-    asset::{activity_asset_content_viewport_and_extent, asset_tree_viewport_frame},
-    draw_activity_asset_content_scrollbar, hierarchy_content_extent,
+    asset::{
+        activity_asset_content_viewport_and_extent,
+        activity_asset_reference_viewport_and_row_count, asset_tree_viewport_frame,
+        browser_asset_reference_viewport_and_row_count,
+    },
+    draw_activity_asset_content_scrollbar, draw_activity_asset_reference_scrollbars,
+    draw_browser_asset_reference_scrollbars, hierarchy_content_extent,
 };
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::hierarchy_pointer::constants::{ROW_GAP, ROW_HEIGHT, ROW_Y};
 use crate::ui::retained_host::host_contract::data::{
-    AssetsActivityPaneData, FrameRect, HostPaneInteractionStateData, PaneData,
-    TemplateNodeFrameData, TemplatePaneNodeData,
+    AssetBrowserPaneData, AssetsActivityPaneData, FrameRect, HostPaneInteractionStateData,
+    PaneData, TemplateNodeFrameData, TemplatePaneNodeData,
 };
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 use crate::ui::workbench::asset_content_layout::{
-    AssetContentPaintNodeInput, AssetContentSurface, asset_content_paint_metadata,
+    ActivityAssetReferenceListKind, AssetContentPaintNodeInput, AssetContentSurface,
+    BrowserAssetReferenceListKind, asset_content_paint_metadata,
 };
 
 #[test]
@@ -130,6 +136,86 @@ fn activity_asset_content_scrollbar_is_absent_for_empty_and_fitting_content() {
     }
 }
 
+#[test]
+fn browser_reference_scrollbars_paint_each_list_with_independent_extents_and_scroll() {
+    let pane = browser_reference_pane(3, 4);
+    let body = frame(20.0, 30.0, 240.0, 240.0);
+    let clip = frame(0.0, 0.0, 300.0, 300.0);
+    let references = browser_asset_reference_viewport_and_row_count(
+        &pane.asset_browser.nodes,
+        &body,
+        BrowserAssetReferenceListKind::References,
+    )
+    .expect("references viewport");
+    let used_by = browser_asset_reference_viewport_and_row_count(
+        &pane.asset_browser.nodes,
+        &body,
+        BrowserAssetReferenceListKind::UsedBy,
+    )
+    .expect("Used By viewport");
+    assert_eq!(references.1, 3);
+    assert_eq!(used_by.1, 4);
+
+    let mut pixels = HostRgbaFrame::filled(300, 300, [0, 0, 0, 255]);
+    assert!(draw_browser_asset_reference_scrollbars(
+        &mut pixels,
+        &pane,
+        &body,
+        &clip,
+        &HostPaneInteractionStateData {
+            browser_asset_references_scroll_px: 24.0,
+            browser_asset_references_hovered_index: 1,
+            browser_asset_used_by_scroll_px: 52.0,
+            browser_asset_used_by_hovered_index: 2,
+            ..HostPaneInteractionStateData::default()
+        },
+    ));
+
+    let bytes = pixels.into_bytes();
+    assert_ne!(pixel_at(&bytes, 300, 122, 76), [0, 0, 0, 255]);
+    assert_ne!(pixel_at(&bytes, 300, 242, 176), [0, 0, 0, 255]);
+}
+
+#[test]
+fn activity_reference_scrollbars_paint_each_list_with_independent_extents_and_scroll() {
+    let pane = activity_reference_pane(3, 4);
+    let body = frame(20.0, 30.0, 240.0, 240.0);
+    let clip = frame(0.0, 0.0, 300.0, 300.0);
+    let references = activity_asset_reference_viewport_and_row_count(
+        &pane.assets_activity.nodes,
+        &body,
+        ActivityAssetReferenceListKind::References,
+    )
+    .expect("activity References viewport");
+    let used_by = activity_asset_reference_viewport_and_row_count(
+        &pane.assets_activity.nodes,
+        &body,
+        ActivityAssetReferenceListKind::UsedBy,
+    )
+    .expect("activity Used By viewport");
+    assert_eq!(references.1, 3);
+    assert_eq!(used_by.1, 4);
+
+    let mut pixels = HostRgbaFrame::filled(300, 300, [0, 0, 0, 255]);
+    assert!(draw_activity_asset_reference_scrollbars(
+        &mut pixels,
+        &pane,
+        &body,
+        &clip,
+        &HostPaneInteractionStateData {
+            activity_asset_references_scroll_px: 24.0,
+            activity_asset_references_hovered_index: 1,
+            activity_asset_used_by_scroll_px: 52.0,
+            activity_asset_used_by_hovered_index: 2,
+            ..HostPaneInteractionStateData::default()
+        },
+    ));
+
+    let bytes = pixels.into_bytes();
+    assert_ne!(pixel_at(&bytes, 300, 122, 76), [0, 0, 0, 255]);
+    assert_ne!(pixel_at(&bytes, 300, 242, 176), [0, 0, 0, 255]);
+}
+
 fn test_metrics() -> WorkbenchScrollbarMetrics {
     WorkbenchScrollbarMetrics {
         thickness: 8.0,
@@ -191,4 +277,163 @@ fn activity_content_pane(content_extent: f32) -> PaneData {
         assets_activity: AssetsActivityPaneData { nodes },
         ..PaneData::default()
     }
+}
+
+fn browser_reference_pane(reference_count: usize, used_by_count: usize) -> PaneData {
+    let mut view_nodes = vec![
+        view_node(
+            "AssetBrowserReferenceLeftScrollBody",
+            10.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        view_node(
+            "AssetBrowserReferenceRightScrollBody",
+            130.0,
+            120.0,
+            100.0,
+            60.0,
+        ),
+    ];
+    for index in 1..=reference_count {
+        view_nodes.push(view_node(
+            format!("AssetBrowserReferenceLeftRowPanel{index:02}").as_str(),
+            10.0,
+            20.0 + (index - 1) as f32 * 38.0,
+            96.0,
+            34.0,
+        ));
+    }
+    for index in 1..=used_by_count {
+        view_nodes.push(view_node(
+            format!("AssetBrowserReferenceRightRowPanel{index:02}").as_str(),
+            130.0,
+            120.0 + (index - 1) as f32 * 38.0,
+            96.0,
+            34.0,
+        ));
+    }
+    let metadata = asset_content_paint_metadata(
+        view_nodes.iter().map(|node| {
+            AssetContentPaintNodeInput::new(
+                node.control_id.as_str(),
+                node.frame.x,
+                node.frame.y,
+                node.frame.width,
+                node.frame.height,
+                node.value_number,
+            )
+        }),
+        AssetContentSurface::Browser,
+    );
+    let nodes = crate::ui::retained_host::primitives::ModelRc::with_metadata(view_nodes, metadata)
+        .map_preserving_metadata(|node| TemplatePaneNodeData {
+            control_id: node.control_id.clone(),
+            value_number: node.value_number,
+            frame: TemplateNodeFrameData {
+                x: node.frame.x,
+                y: node.frame.y,
+                width: node.frame.width,
+                height: node.frame.height,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+
+    PaneData {
+        kind: "AssetBrowser".into(),
+        asset_browser: AssetBrowserPaneData { nodes },
+        ..PaneData::default()
+    }
+}
+
+fn activity_reference_pane(reference_count: usize, used_by_count: usize) -> PaneData {
+    let mut view_nodes = vec![
+        view_node(
+            "AssetsActivityReferenceLeftScrollBody",
+            10.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        view_node(
+            "AssetsActivityReferenceRightScrollBody",
+            130.0,
+            120.0,
+            100.0,
+            60.0,
+        ),
+    ];
+    for index in 1..=reference_count {
+        view_nodes.push(view_node(
+            format!("AssetsActivityReferenceLeftRowPanel{index:02}").as_str(),
+            10.0,
+            20.0 + (index - 1) as f32 * 38.0,
+            96.0,
+            34.0,
+        ));
+    }
+    for index in 1..=used_by_count {
+        view_nodes.push(view_node(
+            format!("AssetsActivityReferenceRightRowPanel{index:02}").as_str(),
+            130.0,
+            120.0 + (index - 1) as f32 * 38.0,
+            96.0,
+            34.0,
+        ));
+    }
+    let metadata = asset_content_paint_metadata(
+        view_nodes.iter().map(|node| {
+            AssetContentPaintNodeInput::new(
+                node.control_id.as_str(),
+                node.frame.x,
+                node.frame.y,
+                node.frame.width,
+                node.frame.height,
+                node.value_number,
+            )
+        }),
+        AssetContentSurface::Activity,
+    );
+    let nodes = crate::ui::retained_host::primitives::ModelRc::with_metadata(view_nodes, metadata)
+        .map_preserving_metadata(|node| TemplatePaneNodeData {
+            control_id: node.control_id.clone(),
+            value_number: node.value_number,
+            frame: TemplateNodeFrameData {
+                x: node.frame.x,
+                y: node.frame.y,
+                width: node.frame.width,
+                height: node.frame.height,
+            },
+            ..TemplatePaneNodeData::default()
+        });
+
+    PaneData {
+        kind: "Assets".into(),
+        assets_activity: AssetsActivityPaneData { nodes },
+        ..PaneData::default()
+    }
+}
+
+fn view_node(control_id: &str, x: f32, y: f32, width: f32, height: f32) -> ViewTemplateNodeData {
+    ViewTemplateNodeData {
+        control_id: control_id.into(),
+        frame: ViewTemplateFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..ViewTemplateNodeData::default()
+    }
+}
+
+fn pixel_at(bytes: &[u8], width: u32, x: u32, y: u32) -> [u8; 4] {
+    let index = ((y as usize * width as usize) + x as usize) * 4;
+    [
+        bytes[index],
+        bytes[index + 1],
+        bytes[index + 2],
+        bytes[index + 3],
+    ]
 }

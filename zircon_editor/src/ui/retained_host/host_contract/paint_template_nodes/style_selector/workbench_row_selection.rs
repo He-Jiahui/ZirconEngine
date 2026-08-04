@@ -15,7 +15,7 @@ pub(super) fn workbench_row_selection_palette_from_host(
     palette: HostMaterialPalette,
 ) -> WorkbenchRowSelectionPalette {
     WorkbenchRowSelectionPalette {
-        selected_outline: palette.border,
+        selected_outline: palette.accent,
     }
 }
 
@@ -37,7 +37,7 @@ mod tests {
     #[test]
     fn row_selection_palette_projects_selected_outline_from_host_palette() {
         let mut palette = PALETTE;
-        palette.border = [10, 11, 12, 255];
+        palette.accent = [10, 11, 12, 255];
 
         let selection_palette = workbench_row_selection_palette_from_host(palette);
 

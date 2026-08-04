@@ -4,9 +4,9 @@ use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::super::{
-    CorePipelineKind, MaterialPropertyOverrideBlock, MeshPhaseInput, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
-    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, build_mesh_phase_queue,
+    build_mesh_phase_queue, CorePipelineKind, MaterialPropertyOverrideBlock, MeshPhaseInput,
+    RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhaseQueue,
+    RenderPhaseQueueSummary, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
 };
 use super::resolved_phase_queue;
 
@@ -258,7 +258,7 @@ fn build_static_mesh_batches(
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        RenderMaterialPropertyValue, RenderMeshStaticState, render_mesh_stable_instance_key,
+        render_mesh_stable_instance_key, RenderMaterialPropertyValue, RenderMeshStaticState,
     };
     use crate::core::math::{Transform, Vec4};
 

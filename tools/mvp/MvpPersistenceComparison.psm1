@@ -1,6 +1,6 @@
 Set-StrictMode -Version Latest
 
-Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpPersistenceComparisonValue {
     param(
@@ -39,12 +39,16 @@ function Select-MvpPersistenceState {
 function Write-MvpPersistenceComparisonJson {
     param(
         [Parameter(Mandatory)][string]$Path,
-        [Parameter(Mandatory)]$Value
+        [Parameter(Mandatory)]$Value,
+        [string]$CompatibleWriteLeaseRoot
     )
 
     $contentBytes = [Text.UTF8Encoding]::new($false).GetBytes(
         (ConvertTo-Json -InputObject $Value -Depth 64))
-    Write-MvpAcceptanceNewFileNoFollow -Path $Path -ContentBytes $contentBytes
+    Write-MvpAcceptanceNewFileNoFollow `
+        -Path $Path `
+        -ContentBytes $contentBytes `
+        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
 }
 
 function Write-MvpPersistenceComparisonEvidence {
@@ -52,7 +56,8 @@ function Write-MvpPersistenceComparisonEvidence {
         [Parameter(Mandatory)][string]$EvidenceRoot,
         [Parameter(Mandatory)]$BaselineAutomation,
         [Parameter(Mandatory)]$AuthoringAutomation,
-        [Parameter(Mandatory)]$ReopenAutomation
+        [Parameter(Mandatory)]$ReopenAutomation,
+        [string]$CompatibleWriteLeaseRoot
     )
 
     if (-not (Test-Path -LiteralPath $EvidenceRoot -PathType Container)) {
@@ -87,25 +92,31 @@ function Write-MvpPersistenceComparisonEvidence {
     }
 
     $comparisonRoot = Join-Path $EvidenceRoot 'comparison'
-    New-Item -ItemType Directory -Force -Path $comparisonRoot | Out-Null
+    Ensure-MvpAcceptanceDirectoryPathNoFollow `
+        -RootPath $EvidenceRoot `
+        -RelativePath 'comparison' `
+        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot | Out-Null
     return @(
         [pscustomobject]@{
             relative_path = 'comparison/persisted-state-before.json'
             content_bytes = Write-MvpPersistenceComparisonJson `
                 -Path (Join-Path $comparisonRoot 'persisted-state-before.json') `
-                -Value $before
+                -Value $before `
+                -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         }
         [pscustomobject]@{
             relative_path = 'comparison/persisted-state-after.json'
             content_bytes = Write-MvpPersistenceComparisonJson `
                 -Path (Join-Path $comparisonRoot 'persisted-state-after.json') `
-                -Value $after
+                -Value $after `
+                -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         }
         [pscustomobject]@{
             relative_path = 'comparison/reopened-state.json'
             content_bytes = Write-MvpPersistenceComparisonJson `
                 -Path (Join-Path $comparisonRoot 'reopened-state.json') `
-                -Value $reopened
+                -Value $reopened `
+                -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         }
     )
 }

@@ -1,14 +1,13 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiPaintElement, UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
-    UiResolvedStyle, UiTextAlign, UiTextDecorations, UiTextDirection, UiTextPaintDecorationKind,
-    UiTextRange, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
-    normalize_ui_text_language_tag,
+    normalize_ui_text_language_tag, UiPaintElement, UiPaintPayload, UiRenderCommand,
+    UiRenderCommandKind, UiRenderExtract, UiResolvedStyle, UiTextAlign, UiTextDecorations,
+    UiTextDirection, UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode, UiTextRunPaintStyle,
+    UiTextWrap, UiTextWritingMode,
 };
 
 use crate::core::framework::render::SkyboxMode;
@@ -35,24 +34,24 @@ mod text_paint;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_projection;
 mod text_route_identity;
 
-use background::{ScreenSpaceUiBackgroundTracker, text_batch_background_color};
+use background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
 use color::parse_color;
 pub(super) use geometry::ScreenSpaceUiVertex;
-pub(super) use geometry::{ScreenSpaceUiScissor, frame_to_scissor};
+pub(super) use geometry::{clipped_scissor, frame_to_scissor, ScreenSpaceUiScissor};
 use geometry::{push_border, push_rect};
 pub(in crate::graphics::scene::scene_renderer::ui) use glyph_artifact::{
     ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine,
 };
 pub(super) use text_advances::ScreenSpaceUiShapedGlyph;
 use text_decorations::{
-    ScreenSpaceUiTextDecorations, resolve_text_decorations, resolved_text_decoration_baseline,
+    resolve_text_decorations, resolved_text_decoration_baseline, ScreenSpaceUiTextDecorations,
 };
 use text_distance_field::resolved_text_distance_field_mode;
-use text_effects::{ScreenSpaceUiTextEffects, resolve_text_effects};
+use text_effects::{resolve_text_effects, ScreenSpaceUiTextEffects};
 pub(in crate::graphics::scene::scene_renderer::ui) use text_route_identity::ScreenSpaceUiTextRouteIdentity;
 
 struct PreparedScreenSpaceUi {
-    vertex_buffer: Option<wgpu::Buffer>,
+    vertices: Vec<ScreenSpaceUiVertex>,
     draws: Vec<ScreenSpaceUiDraw>,
     post_text_draws: Vec<ScreenSpaceUiDraw>,
     auto_texts: Vec<ScreenSpaceUiTextBatch>,
@@ -101,6 +100,16 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) clip_transform: Option<text_projection::ScreenSpaceUiTextClipTransform>,
 }
 
+impl ScreenSpaceUiTextBatch {
+    pub(super) fn requires_sdf_layout_fidelity(&self) -> bool {
+        self.glyph_artifact_line.is_some()
+            || (!self.glyph_advances.is_empty()
+                && self.source_range.is_some_and(|range| {
+                    range.end.saturating_sub(range.start) != self.text.len()
+                }))
+    }
+}
+
 #[derive(Clone)]
 pub(super) struct ScreenSpaceUiTextRouteContext {
     tree_id: Arc<str>,
@@ -109,7 +118,6 @@ pub(super) struct ScreenSpaceUiTextRouteContext {
 }
 
 fn prepare_screen_space_ui(
-    device: &wgpu::Device,
     frame: &ViewportRenderFrame,
     attachment_ops: RenderGraphAttachmentOps,
     pass_clear_color: wgpu::Color,
@@ -133,16 +141,8 @@ fn prepare_screen_space_ui(
         return None;
     }
 
-    let vertex_buffer = (!plan.vertices.is_empty()).then(|| {
-        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-screen-space-ui-vertices"),
-            contents: bytemuck::cast_slice(&plan.vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        })
-    });
-
     Some(PreparedScreenSpaceUi {
-        vertex_buffer,
+        vertices: plan.vertices,
         draws: plan.draws,
         post_text_draws: plan.post_text_draws,
         auto_texts: plan.auto_texts,
@@ -203,8 +203,13 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
     let route_tree_id = Arc::<str>::from(extract.tree_id.0.as_str());
 
     for command in &extract.list.commands {
+        let Some(scissor) =
+            clipped_scissor(command.frame, command.clip_frame, viewport, full_scissor)
+        else {
+            backgrounds.observe_command(command, viewport);
+            continue;
+        };
         let paint_elements = command.to_paint_elements(0);
-        let scissor = command_scissor(command, viewport, full_scissor);
         let start = plan.vertices.len() as u32;
         plan_command_batches(
             command,
@@ -307,18 +312,6 @@ fn opaque_f32_color(color: [f32; 4]) -> Option<[f32; 4]> {
     } else {
         None
     }
-}
-
-fn command_scissor(
-    command: &UiRenderCommand,
-    viewport: UiFrame,
-    fallback: ScreenSpaceUiScissor,
-) -> ScreenSpaceUiScissor {
-    command
-        .clip_frame
-        .and_then(|clip| viewport.intersection(clip))
-        .and_then(frame_to_scissor)
-        .unwrap_or(fallback)
 }
 
 fn plan_command_batches(
@@ -432,6 +425,7 @@ fn push_text_decoration_vertices(
             let decoration_before_text = matches!(
                 decoration.kind,
                 UiTextPaintDecorationKind::Selection
+                    | UiTextPaintDecorationKind::CompositionHighlight
                     | UiTextPaintDecorationKind::TableCellBackground
             );
             if decoration_before_text != before_text {
@@ -458,6 +452,7 @@ fn push_text_decoration_vertices(
 fn text_decoration_fallback_color(kind: UiTextPaintDecorationKind) -> [f32; 4] {
     match kind {
         UiTextPaintDecorationKind::Selection => [0.30, 0.54, 1.0, 0.40],
+        UiTextPaintDecorationKind::CompositionHighlight => [0.30, 0.54, 1.0, 0.14],
         UiTextPaintDecorationKind::CompositionUnderline => [0.30, 0.54, 1.0, 1.0],
         UiTextPaintDecorationKind::Caret => [0.91, 0.93, 0.97, 1.0],
         UiTextPaintDecorationKind::Outline => [0.91, 0.93, 0.97, 1.0],
@@ -764,7 +759,7 @@ fn push_text_batch(
         text_decoration_baseline,
         clip_transform: None,
     };
-    if has_glyph_artifact_line {
+    if batch.requires_sdf_layout_fidelity() {
         plan.sdf_texts.push(batch);
         return;
     }

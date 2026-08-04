@@ -17,9 +17,6 @@ const LISTING_PROSE_GUARD: &str =
 const FRONTMATTER_UNIQUENESS_GUARD_PATH: &str = "priority_plan_docs/frontmatter_uniqueness.rs::runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries";
 const INVENTORY_SYNC_GUARD_PATH: &str = "priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources";
 const LISTING_PROSE_GUARD_PATH: &str = "priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_listing_prose_names_full_inventory";
-const INTEGRITY_ROW_DATA_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/integrity_guards.rs";
-const OWNER_ROW_DATA_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards.rs";
-const STALE_PARENT_ROW_DATA_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs";
 
 #[test]
 fn runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources() {
@@ -31,40 +28,6 @@ fn runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = priority_plan_doc_owner_row_source();
-    let status_map = priority_plan_doc_status_map_source();
-    let date_map = priority_plan_doc_date_map_source();
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("structure convention plan", structure_plan.as_str()),
-        ("review findings plan", review_findings.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        (
-            "priority-plan-doc owner status-output row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                SLICE,
-                STATUS,
-                GUARD,
-                FRONTMATTER_UNIQUENESS_GUARD_PATH,
-                INVENTORY_SYNC_GUARD_PATH,
-                INTEGRITY_ROW_DATA_PATH,
-                OWNER_ROW_DATA_PATH,
-                "child row-data source",
-                "Cargo gate deferred",
-            ],
-        );
-    }
-
-    assert_contains_all("status expected-slice map", &status_map, &[SLICE, STATUS]);
-    assert_contains_all("date expected-slice map", &date_map, &[SLICE, "2026-07-04"]);
 }
 
 #[test]
@@ -75,48 +38,6 @@ fn runtime_15_priority_plan_docs_listing_prose_names_full_inventory() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = priority_plan_doc_owner_row_source();
-    let status_map = priority_plan_doc_status_map_source();
-    let date_map = priority_plan_doc_date_map_source();
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("structure convention plan", structure_plan.as_str()),
-        ("review findings plan", review_findings.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        (
-            "priority-plan-doc owner status-output row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                LISTING_PROSE_SLICE,
-                LISTING_PROSE_STATUS,
-                LISTING_PROSE_GUARD,
-                FRONTMATTER_UNIQUENESS_GUARD_PATH,
-                INVENTORY_SYNC_GUARD_PATH,
-                LISTING_PROSE_GUARD_PATH,
-                "full priority-plan-doc guard inventory",
-                "Cargo gate deferred",
-            ],
-        );
-        assert_listing_prose_has_no_stale_inventory_terms(label, source);
-    }
-
-    assert_contains_all(
-        "status expected-slice map",
-        &status_map,
-        &[LISTING_PROSE_SLICE, LISTING_PROSE_STATUS],
-    );
-    assert_contains_all(
-        "date expected-slice map",
-        &date_map,
-        &[LISTING_PROSE_SLICE, "2026-07-04"],
-    );
 }
 
 fn assert_listing_prose_has_no_stale_inventory_terms(label: &str, source: &str) {

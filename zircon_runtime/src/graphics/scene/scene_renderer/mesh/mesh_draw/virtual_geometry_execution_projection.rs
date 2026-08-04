@@ -134,7 +134,7 @@ fn execution_draw_ref_index(
 
 #[cfg(test)]
 mod tests {
-    use super::{execution_draw_ref_index, VirtualGeometrySubmissionDetail};
+    use super::{VirtualGeometrySubmissionDetail, execution_draw_ref_index};
 
     #[test]
     fn execution_draw_ref_index_prefers_explicit_submission_detail_source() {

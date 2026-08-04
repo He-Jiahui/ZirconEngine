@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    GeometrySourceId, GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GeometrySourceId,
 };
 use crate::core::framework::scene::Mobility;
 use crate::graphics::scene::resources::PipelineKey;
@@ -196,9 +196,11 @@ mod tests {
             false,
         );
 
-        assert!(profile
-            .geometry_source()
-            .uses_cpu_morphed_gpu_skinning_source());
+        assert!(
+            profile
+                .geometry_source()
+                .uses_cpu_morphed_gpu_skinning_source()
+        );
         assert_eq!(
             profile.shader_geometry_source_id(),
             GEOMETRY_SOURCE_ID_SKINNED_MESH
@@ -217,9 +219,11 @@ mod tests {
         );
 
         assert!(profile.geometry_source().uses_cpu_morphed_source());
-        assert!(!profile
-            .geometry_source()
-            .uses_cpu_morphed_gpu_skinning_source());
+        assert!(
+            !profile
+                .geometry_source()
+                .uses_cpu_morphed_gpu_skinning_source()
+        );
         assert_eq!(
             profile.shader_geometry_source_id(),
             GEOMETRY_SOURCE_ID_STATIC_MESH

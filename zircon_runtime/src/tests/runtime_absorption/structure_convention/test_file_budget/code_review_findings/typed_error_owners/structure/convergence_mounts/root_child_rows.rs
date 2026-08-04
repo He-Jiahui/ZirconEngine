@@ -21,11 +21,6 @@ pub(super) const TYPED_ERROR_CONVERGENCE_MOUNT_CHILDREN: &[(&str, &str, &str)] =
         TYPED_ERROR_CONVERGENCE_MOUNTS_BUDGETS_CHILD,
         "assert_typed_error_convergence_mount_budgets_are_focused",
     ),
-    (
-        "status_mirrors",
-        TYPED_ERROR_CONVERGENCE_MOUNTS_STATUS_MIRRORS_CHILD,
-        TYPED_ERROR_CONVERGENCE_MOUNTS_STATUS_GUARD,
-    ),
 ];
 
 pub(super) const TYPED_ERROR_CONVERGENCE_MOUNT_CHILD_PATH_AUDIT: &[&str] = &[
@@ -33,7 +28,6 @@ pub(super) const TYPED_ERROR_CONVERGENCE_MOUNT_CHILD_PATH_AUDIT: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/asset_parents.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/runtime_parents.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/budgets.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/status_mirrors.rs",
 ];
 
 pub(super) const TYPED_ERROR_CONVERGENCE_MOUNT_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
@@ -41,11 +35,6 @@ pub(super) const TYPED_ERROR_CONVERGENCE_MOUNT_ROOT_CHILDREN: &[(&str, &str, &st
         "root_paths",
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_PATHS_CHILD,
         "TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_PATHS_CHILD",
-    ),
-    (
-        "root_statuses",
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_STATUSES_CHILD,
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_STATUS,
     ),
     (
         "root_child_rows",
@@ -56,10 +45,5 @@ pub(super) const TYPED_ERROR_CONVERGENCE_MOUNT_ROOT_CHILDREN: &[(&str, &str, &st
         "root_sources",
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_SOURCES_CHILD,
         "typed_error_convergence_mount_sources",
-    ),
-    (
-        "root_inventory",
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_CHILD,
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_GUARD,
     ),
 ];

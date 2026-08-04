@@ -52,7 +52,6 @@ pub(super) fn assert_folder_backed_summary_structure_delegation_is_current() {
             "runtime_15_code_review_findings_structure_guard_folder_backed_summary_direct_assertions_are_child_owned",
             "runtime_15_code_review_findings_structure_guard_folder_backed_summary_source_inventory_is_child_owned",
             "runtime_15_code_review_findings_structure_guard_folder_backed_summary_children_line_budgets_are_current",
-            "runtime_15_code_review_findings_structure_guard_folder_backed_summary_guard_folder_backed_status_is_current",
         ],
     );
     for (_, child_path, anchor) in FOLDER_BACKED_SUMMARY_STRUCTURE_GUARD_CHILDREN {

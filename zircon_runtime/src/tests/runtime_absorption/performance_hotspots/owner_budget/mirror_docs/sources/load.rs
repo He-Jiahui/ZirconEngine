@@ -142,6 +142,5 @@ pub(super) fn load() -> MirrorDocsSources {
         submit_context_split_layout_guard: include_str!("../../../submit_context/split_layout.rs"),
         submit_context_status_docs_guard: include_str!("../../../submit_context/status_docs.rs"),
         submit_error_paths_guard: include_str!("../../../submit_error_paths.rs"),
-        cargo_gate_guard: include_str!("../../../../plan_status/cargo_gates/early.rs"),
     }
 }

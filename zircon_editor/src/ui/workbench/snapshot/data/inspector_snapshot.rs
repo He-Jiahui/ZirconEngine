@@ -8,6 +8,7 @@ pub struct InspectorSnapshot {
     pub name: String,
     pub parent: String,
     pub translation: [String; 3],
+    pub scale: [String; 3],
     pub plugin_components: Vec<InspectorPluginComponentSnapshot>,
 }
 

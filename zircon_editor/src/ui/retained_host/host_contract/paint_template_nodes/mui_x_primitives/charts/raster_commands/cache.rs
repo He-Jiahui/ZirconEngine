@@ -149,12 +149,13 @@ impl ChartRasterCache {
             self.remove(&evicted_key);
         }
         self.resident_bytes = self.resident_bytes.saturating_add(byte_size);
+        let last_used = self.next_access();
         self.entries.insert(
             key,
             ChartRasterCacheEntry {
                 resource_key,
                 rgba,
-                last_used: self.next_access(),
+                last_used,
             },
         );
     }

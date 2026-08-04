@@ -38,7 +38,7 @@ pub stateSchema(): string {
         contracts.schemaFingerprint() + "\",\"command_catalog\":\"" +
         commands.fingerprintHex(1, 1, 2, 3, 5, 8, 13, 21) +
         "\",\"command_payload_schema\":\"" + payloads.fingerprintHex(true) +
-        "\",\"world_state\":\"WOS83\"," +
+        "\",\"world_state\":\"WOS113\"," +
         "\"simulation_hz\":20,\"presentation_hz\":60}";
 }
 
@@ -88,7 +88,7 @@ pub lifecycleSelfTest(): int {
         contracts.schemaFingerprint() + "\",\"command_catalog\":\"" +
         commands.fingerprintHex(1, 1, 2, 3, 5, 8, 13, 21) +
         "\",\"command_payload_schema\":\"" + payloads.fingerprintHex(true) +
-        "\",\"world_state\":\"WOS83\"," +
+        "\",\"world_state\":\"WOS113\"," +
         "\"simulation_hz\":20,\"presentation_hz\":60}";
     if (schema != expectedSchema) {
         return -4;

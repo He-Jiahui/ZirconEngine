@@ -1,5 +1,4 @@
 use super::super::super::super::paint_theme::PALETTE;
-use super::super::super::style_selector::WORKBENCH_TOAST_BORDER;
 use super::super::{AlertTone, select_workbench_alert_style, select_workbench_toast_style};
 use super::support::positioned_alert_node;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -32,13 +31,12 @@ fn workbench_toast_style_uses_shared_state_priority() {
     node.pressed = false;
     let focused = select_workbench_toast_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused.border, WORKBENCH_TOAST_BORDER);
-    assert_ne!(focused.border, PALETTE.focus_ring);
+    assert_eq!(focused.border, PALETTE.focus_ring);
 
     node.popup_open = true;
     let focused_open = select_workbench_toast_style(&node);
     assert_eq!(focused_open.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused_open.border, WORKBENCH_TOAST_BORDER);
+    assert_eq!(focused_open.border, PALETTE.focus_ring);
 
     node.focused = false;
     let open = select_workbench_toast_style(&node);

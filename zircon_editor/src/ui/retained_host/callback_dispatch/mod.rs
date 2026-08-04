@@ -16,7 +16,9 @@ mod workbench;
 pub(crate) use asset::{dispatch_asset_item_selection, dispatch_asset_search};
 pub(crate) use asset::{dispatch_builtin_asset_surface_control, dispatch_mesh_import_path_edit};
 pub(crate) use constants::PANE_SURFACE_CONTROL_ID;
-pub(crate) use hierarchy::dispatch_hierarchy_selection;
+pub(crate) use hierarchy::{
+    dispatch_hierarchy_rename, dispatch_hierarchy_reparent, dispatch_hierarchy_selection,
+};
 pub(crate) use inspector::dispatch_builtin_inspector_surface_control;
 #[cfg(test)]
 pub(crate) use inspector::{

@@ -9,14 +9,11 @@ mod current_checks;
 mod folder_backed;
 #[path = "structure/source_trees.rs"]
 mod source_trees;
-#[path = "structure/status_mirrors.rs"]
-mod status_mirrors;
 
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_SOURCE_TREES_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/source_trees.rs";
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_CURRENT_CHECKS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/current_checks.rs";
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/folder_backed.rs";
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_BUDGETS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/budgets.rs";
-const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/status_mirrors.rs";
 
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_SLICE: &str = "Runtime 15 M3 code review findings structure guard typed-error structure assertions folder-backed split";
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_STATUS: &str = "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred";
@@ -43,11 +40,6 @@ const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILDREN: &[(&str, &str, 
         "budgets",
         STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_BUDGETS_CHILD_OWNER,
         "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_children_stay_budgeted",
-    ),
-    (
-        "status_mirrors",
-        STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_STATUS_MIRRORS_CHILD_OWNER,
-        "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_status_mirrors_are_current",
     ),
 ];
 

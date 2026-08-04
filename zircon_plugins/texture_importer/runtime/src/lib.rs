@@ -4,7 +4,10 @@ mod container;
 mod cubemap;
 mod importers;
 mod manifest_source;
+mod mipgen;
+mod normal_convention;
 mod plugin;
+mod transcode;
 
 pub use array::import_texture_array_manifest;
 pub use capability::{
@@ -16,11 +19,11 @@ pub use capability::{
 pub use cubemap::import_cubemap_manifest;
 pub use importers::{import_image, import_psd, import_texture_container};
 pub use plugin::{
-    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
-    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
-    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
-    TextureImporterRuntimePlugin, TEXTURE_IMPORTER_DIST_CRATE_NAME,
-    TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY,
+    TEXTURE_IMPORTER_DIST_CRATE_NAME, TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY,
+    TextureImporterRuntimePlugin, asset_importer_descriptors, dist_module_manifest,
+    module_descriptor, package_manifest, plugin_registration, runtime_capabilities,
+    runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor, runtime_selection,
+    supported_platforms, supported_targets,
 };
 
 #[cfg(test)]

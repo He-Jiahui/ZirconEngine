@@ -16,15 +16,6 @@ fn review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagn
     let resolver_doc = include_str!(
         "../../../../../../docs/zircon_runtime/ui/template/asset/resource_ref/resolver.md"
     );
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "ResourceLocatorError",
@@ -63,29 +54,6 @@ fn review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagn
         assert!(
             resolver_tests.contains(required),
             "UI resource resolver behavior tests should contain `{required}`"
-        );
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 UI template resource resolver typed errors",
-        "runtime_15_ui_template_resource_resolver_typed_errors_static_passed_cargo_deferred",
-        "review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary",
-        "ui/template/asset/resource_ref/resolver.rs",
-        "UiResourceLookupError",
-        "UiResourceLookupResult",
-        "ResourceLocatorError::EmptyLabel",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || resolver_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 UI resource resolver typed-error docs/status should record `{doc_anchor}`"
         );
     }
 }

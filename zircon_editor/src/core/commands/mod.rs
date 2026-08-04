@@ -25,6 +25,7 @@ pub use descriptor::{
 pub use document_kind::{DocumentKind, DocumentKindError};
 pub use eval_snapshot_handle::CommandEvalSnapshotHandle;
 pub use key_chord::{EditorKeyChord, EditorKeyChordParseError};
+pub(crate) use key_chord::{EditorKeyChordSignature, EditorKeyboardChordInput};
 pub use keymap::{EditorKeyBinding, EditorKeymap, EditorKeymapConflict, EditorKeymapError};
 pub use menu_model::{MenuBarModel, MenuItemModel, MenuModel};
 pub use palette::{

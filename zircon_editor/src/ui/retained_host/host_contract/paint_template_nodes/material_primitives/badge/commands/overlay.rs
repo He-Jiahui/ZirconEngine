@@ -26,7 +26,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ba
         return;
     }
     let badge_rect = badge_overlay_frame(node, rect, &display, dot);
-    if badge_rect.width <= 0.0 || badge_rect.height <= 0.0 {
+    if !badge_rect.x.is_finite()
+        || !badge_rect.y.is_finite()
+        || badge_rect.width <= 0.0
+        || badge_rect.height <= 0.0
+    {
         return;
     }
     push_badge_overlay_surface(
@@ -48,5 +52,30 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ba
             order + 1,
             opacity,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn non_finite_badge_anchor_does_not_emit_paint_commands() {
+        let node = TemplatePaneNodeData {
+            component_role: "badge".to_owned(),
+            value_text: "1".to_owned(),
+            ..TemplatePaneNodeData::default()
+        };
+        let rect = FrameRect {
+            x: f32::INFINITY,
+            y: 8.0,
+            width: 24.0,
+            height: 24.0,
+        };
+        let mut commands = Vec::new();
+
+        push_badge_overlay(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        assert!(commands.is_empty());
     }
 }

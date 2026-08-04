@@ -4,7 +4,10 @@ use super::super::{ChromeCommand, ChromeCommandKind};
 use super::geometry::{ui_image_uv_rect, ui_rect};
 use super::text_style::{ui_text_font_family, ui_text_font_weight, ui_text_style};
 
-pub(super) fn ui_surface_command_from_chrome(command: &ChromeCommand) -> UiSurfaceCommand {
+pub(super) fn ui_surface_command_from_chrome(
+    command: &ChromeCommand,
+    image_pixels_are_in_resource_table: bool,
+) -> UiSurfaceCommand {
     UiSurfaceCommand {
         z_index: command.z_index,
         frame: ui_rect(&command.frame),
@@ -48,7 +51,9 @@ pub(super) fn ui_surface_command_from_chrome(command: &ChromeCommand) -> UiSurfa
                     width: payload.width,
                     height: payload.height,
                     upload_bytes: payload.upload_bytes,
-                    rgba: payload.rgba.clone(),
+                    rgba: (!image_pixels_are_in_resource_table)
+                        .then(|| payload.rgba.clone())
+                        .flatten(),
                     atlas_uv: payload.atlas_uv.map(ui_image_uv_rect),
                 },
             },

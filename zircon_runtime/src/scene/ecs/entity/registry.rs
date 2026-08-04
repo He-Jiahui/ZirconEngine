@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::ArchetypeId;
+use crate::scene::EntityId;
 
 use super::despawned::DespawnedEntity;
 use super::error::EntityRegistryError;
 use super::internal::InternalEntity;
 use super::location::EntityLocation;
-use super::slot::{EntitySlot, next_generation};
+use super::slot::{next_generation, EntitySlot};
 use super::stable_location::StableEntityLocation;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -27,13 +27,26 @@ impl EntityRegistry {
             return Err(EntityRegistryError::DuplicateStableId(stable_id));
         }
 
+        Ok(self.spawn_prevalidated(stable_id, location))
+    }
+
+    pub(crate) fn spawn_prevalidated(
+        &mut self,
+        stable_id: EntityId,
+        location: EntityLocation,
+    ) -> InternalEntity {
+        assert!(
+            !self.stable_to_internal.contains_key(&stable_id),
+            "prevalidated entity registry spawn must have a unique stable id"
+        );
+
         let slot_index = self.allocate_slot();
         let slot = &mut self.slots[slot_index as usize];
         let internal = InternalEntity::new(slot_index, slot.generation);
         slot.stable_id = Some(stable_id);
         slot.location = Some(location);
         self.stable_to_internal.insert(stable_id, internal);
-        Ok(internal)
+        internal
     }
 
     pub fn despawn(&mut self, stable_id: EntityId) -> Result<DespawnedEntity, EntityRegistryError> {

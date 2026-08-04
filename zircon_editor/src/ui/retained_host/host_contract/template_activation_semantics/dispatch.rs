@@ -12,19 +12,20 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_primar
     if hit.disabled {
         return;
     }
-    if let Some(source_index) = hit.table_row_source_index
-        && !hit.pane_id.is_empty()
-        && !hit.table_row_identity_kind.is_empty()
-        && !hit.table_row_identity_text.is_empty()
-    {
-        pane_host.invoke_template_table_row_selected(
-            hit.pane_id,
-            hit.control_id,
-            source_index,
-            hit.table_row_identity_kind,
-            hit.table_row_identity_text,
-        );
-        return;
+    if let Some(source_index) = hit.table_row_source_index {
+        if !hit.pane_id.is_empty()
+            && !hit.table_row_identity_kind.is_empty()
+            && !hit.table_row_identity_text.is_empty()
+        {
+            pane_host.invoke_template_table_row_selected(
+                hit.pane_id,
+                hit.control_id,
+                source_index,
+                hit.table_row_identity_kind,
+                hit.table_row_identity_text,
+            );
+            return;
+        }
     }
     match primary_activation_route(&hit) {
         TemplatePrimaryActivationRoute::TextInputFocusOnly => {}

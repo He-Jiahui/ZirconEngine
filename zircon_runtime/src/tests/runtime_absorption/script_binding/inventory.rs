@@ -49,7 +49,6 @@ pub(super) const RUNTIME_13_GUARD_ANCHORS: &[&str] = &[
     "host_function_without_required_capability_is_rejected_with_explicit_error",
     "script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi",
     "script_held_entity_handle_reports_invalid_after_despawn",
-    "runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass",
     "runtime_13_script_binding_mirror_docs_match_structure_audit_counts",
     "runtime_13_gameplay_host_owner_split_keeps_domain_files",
 ];

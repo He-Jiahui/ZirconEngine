@@ -47,9 +47,6 @@ fn runtime_15_core_framework_render_fixtures_use_current_names() {
         manifest_root,
         "docs/zircon_runtime/core/framework/render/common_api.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "core framework render fixture current names",
@@ -86,9 +83,6 @@ fn runtime_15_core_framework_render_fixtures_use_current_names() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("common render API doc", common_render_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,

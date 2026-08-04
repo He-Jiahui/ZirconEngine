@@ -22,6 +22,7 @@ pub struct PlayEditProtection {
 struct PlayEditProtectionState {
     policy: PlayEditPolicy,
     resolving: bool,
+    decision_publishing: bool,
 }
 
 impl PlayEditProtection {
@@ -36,7 +37,7 @@ impl PlayEditProtection {
         if state.policy.is_playing() {
             return Err(PlayEditBeginError::AlreadyPlaying);
         }
-        if state.resolving {
+        if state.resolving || state.decision_publishing {
             return Err(PlayEditBeginError::ResolutionInProgress);
         }
         if let Some(prompt) = self.pending_edits.decision_prompt() {
@@ -66,7 +67,7 @@ impl PlayEditProtection {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if state.resolving {
+        if state.resolving || state.decision_publishing {
             return Err(PlayEditRouteError::PendingResolutionInProgress);
         }
         let decision = state.policy.evaluate(target);
@@ -130,7 +131,7 @@ impl PlayEditProtection {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if state.resolving {
+        if state.resolving || state.decision_publishing {
             return Some(PlayEditBeginError::ResolutionInProgress);
         }
         self.pending_edits.decision_prompt().map(|prompt| {
@@ -141,7 +142,38 @@ impl PlayEditProtection {
     }
 
     pub(super) fn pending_decision_prompt(&self) -> Option<PendingEditDecisionPrompt> {
+        let state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if state.resolving || state.decision_publishing {
+            return None;
+        }
         self.pending_edits.decision_prompt()
+    }
+
+    pub(super) fn with_pending_decision_prompt<E>(
+        &self,
+        publish: impl FnOnce(&PendingEditDecisionPrompt) -> Result<(), E>,
+    ) -> Result<bool, E> {
+        let prompt = {
+            let mut state = self
+                .state
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if state.resolving || state.decision_publishing {
+                return Ok(false);
+            }
+            let Some(prompt) = self.pending_edits.decision_prompt() else {
+                return Ok(false);
+            };
+            state.decision_publishing = true;
+            prompt
+        };
+        let publication = PendingEditDecisionPublicationGuard { state: &self.state };
+        let result = publish(&prompt);
+        drop(publication);
+        result.map(|()| true)
     }
 
     fn begin_resolution(&self) -> Result<PendingEditResolutionGuard<'_>, PlayEditResolutionError> {
@@ -152,7 +184,7 @@ impl PlayEditProtection {
         if state.policy.is_playing() {
             return Err(PlayEditResolutionError::PlayActive);
         }
-        if state.resolving {
+        if state.resolving || state.decision_publishing {
             return Err(PlayEditResolutionError::ResolutionInProgress);
         }
         state.resolving = true;
@@ -170,6 +202,19 @@ impl Drop for PendingEditResolutionGuard<'_> {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .resolving = false;
+    }
+}
+
+struct PendingEditDecisionPublicationGuard<'a> {
+    state: &'a Mutex<PlayEditProtectionState>,
+}
+
+impl Drop for PendingEditDecisionPublicationGuard<'_> {
+    fn drop(&mut self) {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .decision_publishing = false;
     }
 }
 

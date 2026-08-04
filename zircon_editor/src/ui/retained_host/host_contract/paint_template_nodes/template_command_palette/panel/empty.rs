@@ -18,7 +18,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_co
     let metrics = command_palette_metrics();
     let palette = command_palette_palette();
     let style = command_palette_empty_text_style(&palette, &metrics);
-    commands.push(HostPaintCommand::text(
+    commands.push(HostPaintCommand::wrapped_text(
         empty_text_rect(rect),
         Some(clip.clone()),
         order,

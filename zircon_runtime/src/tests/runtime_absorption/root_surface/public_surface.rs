@@ -30,12 +30,8 @@ fn runtime_crate_root_public_surface_stays_curated() {
     ];
     assert_eq!(public_modules.as_slice(), &expected_modules);
     assert!(
-        LIB_RS.contains("mod rhi_wgpu;"),
-        "Runtime 02 hard-cutover keeps the WGPU backend module crate-private behind the RHI owner"
-    );
-    assert!(
-        !LIB_RS.contains("pub mod rhi_wgpu;"),
-        "the concrete WGPU backend must not return to the runtime crate-root public surface"
+        !LIB_RS.contains("rhi_wgpu"),
+        "the physical zr_rhi_wgpu crate must not retain a runtime crate-root module"
     );
 
     let public_use_count = LIB_RS

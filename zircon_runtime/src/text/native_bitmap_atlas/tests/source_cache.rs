@@ -7,8 +7,8 @@ use crate::text::parallel::raster_pool::{
     TextRasterWorkItem, TextRasterWorkResult, TextRasterWorkerPool, TextRasterWorkerPoolOptions,
 };
 use crate::text::raster::{GlyphBitmap, SwashRasterError, SwashRasterRequest};
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::FontSystem;
+use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, Weight, fontdb};
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -347,13 +347,15 @@ fn native_bitmap_atlas_source_cache_cancels_pending_worker_work_on_face_invalida
     cache.begin_frame();
     assert_eq!(cache.frame_report().worker_request_cancelled_count, 1);
     assert!(worker_pool.process_next_request_for_test());
-    assert!(worker_pool
-        .drain_completed_for_face_epoch(
-            cache.face_epoch(),
-            TextRasterCompletionDrainBudget::new(1, usize::MAX),
-        )
-        .accepted
-        .is_empty());
+    assert!(
+        worker_pool
+            .drain_completed_for_face_epoch(
+                cache.face_epoch(),
+                TextRasterCompletionDrainBudget::new(1, usize::MAX),
+            )
+            .accepted
+            .is_empty()
+    );
     assert_eq!(worker_pool.diagnostics().cancelled, 1);
 }
 
@@ -472,9 +474,11 @@ fn native_bitmap_atlas_source_cache_bounds_approximate_probes_at_full_capacity()
         cache.insert_test_image(test_cache_key(glyph_id), test_cached_image(1));
     }
 
-    assert!(cache
-        .approximate_cached_image(test_cache_key(RESIDENT_ENTRY_COUNT + 1))
-        .is_none());
+    assert!(
+        cache
+            .approximate_cached_image(test_cache_key(RESIDENT_ENTRY_COUNT + 1))
+            .is_none()
+    );
     assert_eq!(cache.frame_report().approximate_probe_count, 3);
 }
 

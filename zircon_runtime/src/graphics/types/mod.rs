@@ -14,6 +14,8 @@ mod viewport_render_frame_with_prepared_runtime_sidebands;
 mod viewport_render_frame_with_previous_motion_vector_camera;
 mod viewport_render_frame_with_runtime_overlays;
 mod viewport_render_frame_with_shader_quality;
+mod viewport_render_frame_with_texture_max_anisotropy;
+mod viewport_render_frame_with_texture_mip_bias;
 mod viewport_render_frame_with_ui;
 mod viewport_render_frame_with_virtual_geometry_debug_snapshot;
 mod viewport_render_output_target;
@@ -28,12 +30,12 @@ pub(crate) use viewport_camera_stack_output_policy::ViewportCameraStackOutputPol
 pub use viewport_frame::ViewportFrame;
 pub use viewport_frame_texture_handle::ViewportFrameTextureHandle;
 pub(crate) use viewport_render_frame::ViewportRenderFrame;
-pub(crate) use viewport_render_output_target::{
-    ViewportRenderOutputTarget, ViewportTextureGraphImportPlan, ViewportTextureGraphImportStatus,
-    ViewportTextureWritebackPlan, ViewportTextureWritebackStatus,
-};
 #[cfg(test)]
 pub(crate) use viewport_render_output_target::{
     FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL,
+};
+pub(crate) use viewport_render_output_target::{
+    ViewportRenderOutputTarget, ViewportTextureGraphImportPlan, ViewportTextureGraphImportStatus,
+    ViewportTextureWritebackPlan, ViewportTextureWritebackStatus,
 };
 pub use viewport_render_region::ViewportRenderRegion;

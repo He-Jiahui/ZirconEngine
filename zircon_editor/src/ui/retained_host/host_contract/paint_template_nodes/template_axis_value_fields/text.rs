@@ -1,7 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_axis_value_field_style::axis_field_text_color;
-use super::metrics::{AxisValueFieldMetrics, axis_value_field_metrics};
+use super::metrics::{axis_value_field_metrics, AxisValueFieldMetrics};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_axis_field_value(
@@ -22,9 +23,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     if text_rect.width <= 0.0 || text_rect.height <= 0.0 {
         return;
     }
+    let Some(text_clip) = intersect(&text_rect, clip) else {
+        return;
+    };
     commands.push(HostPaintCommand::text(
         text_rect,
-        Some(clip.clone()),
+        Some(text_clip),
         order,
         value.to_string(),
         axis_field_text_color(node),

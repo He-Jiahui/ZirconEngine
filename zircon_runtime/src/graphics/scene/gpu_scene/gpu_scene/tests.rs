@@ -236,6 +236,8 @@ fn test_primitive_data() -> GpuPrimitiveData {
         first_instance_index: u32::MAX,
         instance_count: u32::MAX,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        material_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        material_payload_padding: [0; 3],
     }
 }
 

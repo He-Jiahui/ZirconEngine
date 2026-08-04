@@ -1,13 +1,13 @@
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::Instant;
 
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, JobScheduler};
-use crate::scene::LevelSystem;
 use crate::scene::ecs::{
     BoxedSceneSystem, InternalSceneSystem, NativeSystemCallbackTiming, SceneSystemDescriptor,
     ScheduleConflictGraph, ScheduledSceneStep, ScheduledSceneStepRef, SystemStage,
 };
+use crate::scene::LevelSystem;
 use crate::scene::{SceneRuntimeHookContext, SceneRuntimeHookRegistration};
 
 pub(crate) struct SceneScheduleRunner;
@@ -133,22 +133,23 @@ fn flush_worker_batch(
     let result = catch_unwind(AssertUnwindSafe(|| {
         run_worldless_systems(scheduler, &mut systems, &mut timings, ready_at)
     }));
-    let command_buffer_result = if result.is_ok() {
-        let mut command_buffers = systems
-            .iter_mut()
-            .filter_map(|system| system.worker_command_buffer_mut())
-            .collect::<Vec<_>>();
-        let has_worker_commands = !command_buffers.is_empty();
-        level.with_world_mut(|world| {
-            world.merge_worker_command_buffers(&mut command_buffers)?;
-            if has_worker_commands {
-                world.apply_deferred();
-            }
+    let command_buffer_result: Result<(), crate::scene::ecs::WorkerCommandBufferMergeError> =
+        if result.is_ok() {
+            let mut command_buffers = systems
+                .iter_mut()
+                .filter_map(|system| system.worker_command_buffer_mut())
+                .collect::<Vec<_>>();
+            let has_worker_commands = !command_buffers.is_empty();
+            level.with_world_mut(|world| {
+                world.merge_worker_command_buffers(&mut command_buffers)?;
+                if has_worker_commands {
+                    world.apply_deferred();
+                }
+                Ok(())
+            })
+        } else {
             Ok(())
-        })
-    } else {
-        Ok(())
-    };
+        };
     let batch_elapsed = batch_started_at.elapsed();
     level.with_world_mut(|world| {
         world.restore_worldless_native_scene_systems(systems);
@@ -219,8 +220,8 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use crate::core::CoreRuntime;
     use crate::core::framework::scene::WorldHandle;
+    use crate::core::CoreRuntime;
     use crate::plugin::RuntimeExtensionRegistry;
     use crate::scene::ecs::{Resource, SceneSystemThreadAffinity, SystemParamAccess};
     use crate::scene::{LevelMetadata, World};

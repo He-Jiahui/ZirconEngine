@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::{DefaultLevelManager, NodeKind, World};
 use zircon_runtime_interface::math::UVec2;
-use zircon_runtime_interface::{ZrRuntimeApiV3, ZrRuntimeSessionHandle};
+use zircon_runtime_interface::{ZrRuntimeApiV4, ZrRuntimeSessionHandle};
 
 use crate::core::editing::authoring_world::EditorAuthoringWorld;
 use crate::core::editing::intent::EditorIntent;
@@ -46,7 +46,7 @@ fn play_gateway_attachment_preserves_authoring_world_access_across_detach() {
     let session_gateway = unsafe {
         SessionGateway::new(
             Arc::new(()),
-            ZrRuntimeApiV3::empty(),
+            ZrRuntimeApiV4::empty(),
             ZrRuntimeSessionHandle::new(1),
             RuntimeCapabilities::editor_default(),
         )
@@ -138,7 +138,7 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
     let session_gateway = unsafe {
         SessionGateway::new(
             Arc::new(()),
-            ZrRuntimeApiV3::empty(),
+            ZrRuntimeApiV4::empty(),
             ZrRuntimeSessionHandle::new(2),
             RuntimeCapabilities::editor_default(),
         )

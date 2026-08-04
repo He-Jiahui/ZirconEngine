@@ -5,7 +5,7 @@ use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb, Rgba};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;
 use crate::asset::{
-    AssetUri, ImportedAsset, RGBA8_UNORM_FORMAT, TextureUploadReadiness, TextureUploadSupport,
+    AssetUri, ImportedAsset, TextureUploadReadiness, TextureUploadSupport, RGBA8_UNORM_FORMAT,
 };
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
@@ -335,6 +335,67 @@ fn importer_applies_texture_import_settings_to_descriptor() {
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_rejects_texture_metadata_errors_before_publishing_an_asset() {
+    let root = unique_temp_project_root("texture_import_metadata_error");
+    fs::create_dir_all(&root).unwrap();
+    let png_path = root.join("invalid-hdr.png");
+    ImageBuffer::<Rgba<u8>, _>::from_fn(2, 2, |_x, _y| Rgba([128, 128, 128, 255]))
+        .save_with_format(&png_path, ImageFormat::Png)
+        .unwrap();
+
+    let mut settings = toml::Table::new();
+    settings.insert("usage_hint".to_string(), "hdr".into());
+    settings.insert("color_space".to_string(), "linear".into());
+    settings.insert("format".to_string(), "rgba8unorm".into());
+
+    let error = importer_with_first_wave_plugin_fixtures()
+        .import_with_settings(
+            &png_path,
+            &AssetUri::parse("res://textures/invalid-hdr.png").unwrap(),
+            settings,
+        )
+        .unwrap_err();
+
+    assert!(error
+        .to_string()
+        .contains("hdr texture 'res://textures/invalid-hdr.png' requires a float format"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_reports_non_blocking_texture_metadata_warnings() {
+    let root = unique_temp_project_root("texture_import_metadata_warning");
+    fs::create_dir_all(&root).unwrap();
+    let png_path = root.join("linear-albedo.png");
+    ImageBuffer::<Rgba<u8>, _>::from_fn(2, 2, |_x, _y| Rgba([128, 128, 128, 255]))
+        .save_with_format(&png_path, ImageFormat::Png)
+        .unwrap();
+
+    let mut settings = toml::Table::new();
+    settings.insert("usage_hint".to_string(), "albedo".into());
+    settings.insert("color_space".to_string(), "linear".into());
+    settings.insert("format".to_string(), "rgba8unorm".into());
+
+    let outcome = importer_with_first_wave_plugin_fixtures()
+        .import_with_settings(
+            &png_path,
+            &AssetUri::parse("res://textures/linear-albedo.png").unwrap(),
+            settings,
+        )
+        .unwrap();
+    let diagnostics = &outcome.root_entry().expect("root texture").diagnostics;
+
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.severity == zircon_runtime_interface::resource::ResourceDiagnosticSeverity::Warning
+            && diagnostic.message
+                == "albedo texture 'res://textures/linear-albedo.png' declares linear; expected srgb unless intentional"
+    }));
 
     let _ = fs::remove_dir_all(root);
 }

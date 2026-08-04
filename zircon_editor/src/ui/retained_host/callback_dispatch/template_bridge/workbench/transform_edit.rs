@@ -12,10 +12,6 @@ const POSITION_ROW: &str = "WorkbenchTransformPosition";
 const POSITION_X: &str = "WorkbenchTransformPositionX";
 const POSITION_Y: &str = "WorkbenchTransformPositionY";
 const POSITION_Z: &str = "WorkbenchTransformPositionZ";
-const ROTATION_ROW: &str = "WorkbenchTransformRotation";
-const ROTATION_X: &str = "WorkbenchTransformRotationX";
-const ROTATION_Y: &str = "WorkbenchTransformRotationY";
-const ROTATION_Z: &str = "WorkbenchTransformRotationZ";
 const SCALE_ROW: &str = "WorkbenchTransformScale";
 const SCALE_X: &str = "WorkbenchTransformScaleX";
 const SCALE_Y: &str = "WorkbenchTransformScaleY";
@@ -30,12 +26,12 @@ struct TransformAxisEdit {
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
-    pub(crate) fn transform_position_axis_commit_binding(
+    pub(crate) fn transform_axis_commit_binding(
         &self,
         control_id: &str,
         binding_id: &str,
         value: &str,
-    ) -> Option<EditorUiBinding> {
+    ) -> Result<Option<EditorUiBinding>, String> {
         let (expected_control_id, field_id, axis_label, binding_control_id) = match binding_id {
             "Inspector/TransformPositionXCommit" => (
                 POSITION_X,
@@ -55,16 +51,26 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "Z",
                 "TransformPositionZCommit",
             ),
-            _ => return None,
+            "Inspector/TransformScaleXCommit" => {
+                (SCALE_X, "transform.scale.x", "X", "TransformScaleXCommit")
+            }
+            "Inspector/TransformScaleYCommit" => {
+                (SCALE_Y, "transform.scale.y", "Y", "TransformScaleYCommit")
+            }
+            "Inspector/TransformScaleZCommit" => {
+                (SCALE_Z, "transform.scale.z", "Z", "TransformScaleZCommit")
+            }
+            _ => return Ok(None),
         };
         if !control_id.is_empty() && control_id != expected_control_id {
-            return None;
+            return Ok(None);
         }
         if !self.has_control(expected_control_id) {
-            return None;
+            return Ok(None);
         }
+        let scalar = parse_finite_axis_scalar(value, axis_label)?;
 
-        Some(EditorUiBinding::new(
+        Ok(Some(EditorUiBinding::new(
             "Inspector",
             binding_control_id,
             EditorUiEventKind::Submit,
@@ -72,10 +78,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "entity://selected",
                 [InspectorFieldChange::new(
                     field_id,
-                    UiBindingValue::string(strip_axis_prefix(value, axis_label)),
+                    UiBindingValue::Float(scalar),
                 )],
             ),
-        ))
+        )))
     }
 
     pub(crate) fn edit_inspector_transform_axis(
@@ -122,15 +128,6 @@ fn transform_axis_edit_for_binding(binding_id: &str) -> Option<TransformAxisEdit
         "Inspector/TransformPositionZEdit" | "Inspector/TransformPositionZCommit" => {
             Some(position_edit(POSITION_Z, "Z"))
         }
-        "Inspector/TransformRotationXEdit" | "Inspector/TransformRotationXCommit" => {
-            Some(rotation_edit(ROTATION_X, "X"))
-        }
-        "Inspector/TransformRotationYEdit" | "Inspector/TransformRotationYCommit" => {
-            Some(rotation_edit(ROTATION_Y, "Y"))
-        }
-        "Inspector/TransformRotationZEdit" | "Inspector/TransformRotationZCommit" => {
-            Some(rotation_edit(ROTATION_Z, "Z"))
-        }
         "Inspector/TransformScaleXEdit" | "Inspector/TransformScaleXCommit" => {
             Some(scale_edit(SCALE_X, "X"))
         }
@@ -149,15 +146,6 @@ fn position_edit(control_id: &'static str, axis_label: &'static str) -> Transfor
         control_id,
         row_control_id: POSITION_ROW,
         row_fields: [POSITION_X, POSITION_Y, POSITION_Z],
-        axis_label,
-    }
-}
-
-fn rotation_edit(control_id: &'static str, axis_label: &'static str) -> TransformAxisEdit {
-    TransformAxisEdit {
-        control_id,
-        row_control_id: ROTATION_ROW,
-        row_fields: [ROTATION_X, ROTATION_Y, ROTATION_Z],
         axis_label,
     }
 }
@@ -196,6 +184,20 @@ fn strip_axis_prefix(value: &str, axis_label: &str) -> String {
         .to_string()
 }
 
+fn parse_finite_axis_scalar(value: &str, axis_label: &str) -> Result<f32, String> {
+    let scalar = strip_axis_prefix(value, axis_label);
+    let parsed = scalar.parse::<f32>().map_err(|_| {
+        format!("Inspector transform {axis_label} value `{scalar}` must be a finite number")
+    })?;
+    if parsed.is_finite() {
+        Ok(parsed)
+    } else {
+        Err(format!(
+            "Inspector transform {axis_label} value `{scalar}` must be a finite number"
+        ))
+    }
+}
+
 fn control_string(
     bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
@@ -214,6 +216,7 @@ fn control_string(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime_interface::ui::layout::UiSize;
 
     #[test]
     fn strip_axis_prefix_accepts_native_axis_labels() {
@@ -226,6 +229,44 @@ mod tests {
         assert_eq!(
             format_axis_row_value("12.0", "3.5", "-8.0"),
             "X 12.0   Y 3.5   Z -8.0"
+        );
+    }
+
+    #[test]
+    fn transform_commit_emits_a_typed_finite_scalar() {
+        let bridge =
+            BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+
+        let binding = bridge
+            .transform_axis_commit_binding(
+                POSITION_X,
+                "Inspector/TransformPositionXCommit",
+                "X 4.25",
+            )
+            .unwrap()
+            .expect("position commit should resolve");
+        let EditorUiBindingPayload::InspectorFieldBatch { changes, .. } = binding.payload() else {
+            panic!("position commit must dispatch an inspector field batch");
+        };
+
+        assert_eq!(changes[0].field_id, "transform.translation.x");
+        assert_eq!(changes[0].value, UiBindingValue::Float(4.25));
+
+        let binding = bridge
+            .transform_axis_commit_binding(SCALE_Z, "Inspector/TransformScaleZCommit", "Z 2.5")
+            .unwrap()
+            .expect("scale commit should resolve");
+        let EditorUiBindingPayload::InspectorFieldBatch { changes, .. } = binding.payload() else {
+            panic!("scale commit must dispatch an inspector field batch");
+        };
+
+        assert_eq!(changes[0].field_id, "transform.scale.z");
+        assert_eq!(changes[0].value, UiBindingValue::Float(2.5));
+        assert_eq!(
+            bridge
+                .transform_axis_commit_binding(SCALE_Z, "Inspector/TransformScaleZCommit", "Z NaN",)
+                .unwrap_err(),
+            "Inspector transform Z value `NaN` must be a finite number"
         );
     }
 }

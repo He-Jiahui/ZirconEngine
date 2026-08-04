@@ -49,6 +49,7 @@ pub struct TypeRegistry {
     registrations: BTreeMap<String, RuntimeTypeRegistration>,
     short_paths: BTreeMap<String, String>,
     ambiguous_short_paths: BTreeSet<String>,
+    schema_catalog_generation: u64,
 }
 
 impl TypeRegistry {
@@ -62,6 +63,7 @@ impl TypeRegistry {
         let short_type_path = registration.registration.type_path.short_type_path.as_str();
         self.update_short_path_lookup(&type_path, short_type_path);
         self.registrations.insert(type_path, registration);
+        self.advance_schema_catalog_generation();
         Ok(())
     }
 
@@ -135,6 +137,7 @@ impl TypeRegistry {
         validate_registration(&replacement.registration)?;
         self.registrations.insert(type_path, replacement);
         self.rebuild_short_path_lookup();
+        self.advance_schema_catalog_generation();
         Ok(())
     }
 
@@ -152,6 +155,7 @@ impl TypeRegistry {
         }
         self.registrations.remove(type_path);
         self.rebuild_short_path_lookup();
+        self.advance_schema_catalog_generation();
         Ok(())
     }
 
@@ -240,10 +244,22 @@ impl TypeRegistry {
         self.registrations.contains_key(type_path)
     }
 
+    /// Returns the revision of the registered reflection catalog.
+    ///
+    /// Dynamic-scene spawn plans bind this value so a reflected registration
+    /// change cannot reuse a plan compiled against an older schema catalog.
+    pub fn schema_catalog_generation(&self) -> u64 {
+        self.schema_catalog_generation
+    }
+
     pub fn clear(&mut self) {
+        let had_registrations = !self.registrations.is_empty();
         self.registrations.clear();
         self.short_paths.clear();
         self.ambiguous_short_paths.clear();
+        if had_registrations {
+            self.advance_schema_catalog_generation();
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -294,6 +310,10 @@ impl TypeRegistry {
         }
         self.short_paths = short_paths;
         self.ambiguous_short_paths = ambiguous_short_paths;
+    }
+
+    fn advance_schema_catalog_generation(&mut self) {
+        self.schema_catalog_generation = self.schema_catalog_generation.saturating_add(1);
     }
 }
 
@@ -450,6 +470,7 @@ impl fmt::Debug for TypeRegistry {
             .field("registrations", &self.registrations)
             .field("short_paths", &self.short_paths)
             .field("ambiguous_short_paths", &self.ambiguous_short_paths)
+            .field("schema_catalog_generation", &self.schema_catalog_generation)
             .finish()
     }
 }

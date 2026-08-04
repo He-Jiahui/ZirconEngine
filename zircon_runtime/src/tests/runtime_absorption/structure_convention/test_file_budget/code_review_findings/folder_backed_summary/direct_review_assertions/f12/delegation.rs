@@ -39,10 +39,8 @@ fn runtime_15_code_review_findings_f12_direct_assertions_are_child_owner() {
             F12_DIRECT_ASSERTIONS_DELEGATION_CHILD,
             F12_DIRECT_ASSERTIONS_REVIEW_GUARD_CHILD,
             F12_DIRECT_ASSERTIONS_BUDGETS_CHILD,
-            F12_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD,
             "runtime_15_code_review_findings_f12_direct_assertions_are_child_owner",
             F12_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            F12_DIRECT_ASSERTIONS_STATUS_GUARD,
         ],
     );
 

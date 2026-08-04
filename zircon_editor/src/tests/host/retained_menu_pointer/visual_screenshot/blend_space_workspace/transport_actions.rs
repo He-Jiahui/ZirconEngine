@@ -37,6 +37,7 @@ fn workbench_transport_controls_use_shared_dense_control_tokens() {
     .expect("Workbench transport controls asset should be readable");
 
     for required in [
+        "styles = [\"res://ui/editor/theme/editor_tokens.zui\"]",
         "gap = \"$editor.density.gap.xsmall\"",
         "height = { min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\", stretch = \"Fixed\" }",
         "layout_padding_left = \"$editor.density.gap.xsmall\"",

@@ -82,6 +82,45 @@ impl TextShapeParagraph {
         }
     }
 
+    /// Splits a document into independently cacheable physical paragraphs. The source ranges
+    /// remain absolute so later layout and text-input consumers can reuse the same shaped runs.
+    pub(crate) fn horizontal_paragraphs(
+        text: &str,
+        style: TextStyle,
+        base_direction: TextDirection,
+        document_source_range: TextRange,
+    ) -> Vec<Self> {
+        if document_source_range
+            .end
+            .checked_sub(document_source_range.start)
+            != Some(text.len())
+        {
+            return vec![Self::horizontal(
+                text,
+                style,
+                base_direction,
+                document_source_range,
+            )];
+        }
+
+        crate::text::hard_lines(text)
+            .into_iter()
+            .map(|line| {
+                let line_source_range = line.source_range();
+                let paragraph = &text[line_source_range.clone()];
+                Self::horizontal(
+                    paragraph,
+                    style.clone(),
+                    base_direction,
+                    TextRange {
+                        start: document_source_range.start + line_source_range.start,
+                        end: document_source_range.start + line_source_range.end,
+                    },
+                )
+            })
+            .collect()
+    }
+
     fn request(&self) -> BackendShapeRequest<'_> {
         BackendShapeRequest::horizontal_with_kerning(
             self.text.as_ref(),
@@ -354,6 +393,74 @@ mod tests {
         assert_eq!(cache_report.insert_count, 2);
         assert!(Arc::ptr_eq(&batch.runs[0], &batch.runs[2]));
         assert!(Arc::ptr_eq(&batch.runs[1], &batch.runs[3]));
+    }
+
+    #[test]
+    fn text_paragraph_dirty_reshapes_edited_only() {
+        let style = compact_editor_label_style();
+        let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
+        let mut cache = ShapedRunCache::with_capacity(16);
+        let original = "one\ntwo\nthree";
+        let edited = "one\nTWO\nthree";
+
+        cache.begin_frame(1);
+        let original_requests = TextShapeParagraph::horizontal_paragraphs(
+            original,
+            style.clone(),
+            TextDirection::LeftToRight,
+            TextRange {
+                start: 0,
+                end: original.len(),
+            },
+        );
+        let original_batch = shape_paragraphs_with_cache(&pool, &mut cache, &original_requests, 1);
+
+        cache.begin_frame(2);
+        let edited_requests = TextShapeParagraph::horizontal_paragraphs(
+            edited,
+            style,
+            TextDirection::LeftToRight,
+            TextRange {
+                start: 0,
+                end: edited.len(),
+            },
+        );
+        let edited_batch = shape_paragraphs_with_cache(&pool, &mut cache, &edited_requests, 1);
+
+        assert_eq!(original_requests.len(), 3);
+        assert_eq!(original_batch.report.shaped_count, 3);
+        assert_eq!(edited_requests.len(), 3);
+        assert_eq!(edited_batch.report.cache_hit_count, 2);
+        assert_eq!(edited_batch.report.cache_miss_count, 1);
+        assert_eq!(edited_batch.report.shaped_count, 1);
+        assert_eq!(
+            edited_batch
+                .runs
+                .iter()
+                .map(|run| run.source_text.as_ref())
+                .collect::<Vec<_>>(),
+            vec!["one\n", "TWO\n", "three"]
+        );
+    }
+
+    #[test]
+    fn text_paragraphs_preserve_absolute_source_ranges() {
+        let text = "one\ntwo";
+        let paragraphs = TextShapeParagraph::horizontal_paragraphs(
+            text,
+            compact_editor_label_style(),
+            TextDirection::LeftToRight,
+            TextRange {
+                start: 40,
+                end: 40 + text.len(),
+            },
+        );
+
+        assert_eq!(paragraphs.len(), 2);
+        assert_eq!(paragraphs[0].source_range, TextRange { start: 40, end: 44 });
+        assert_eq!(paragraphs[1].source_range, TextRange { start: 44, end: 47 });
+        assert_eq!(paragraphs[0].text(), "one\n");
+        assert_eq!(paragraphs[1].text(), "two");
     }
 
     #[test]

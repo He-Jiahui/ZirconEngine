@@ -1,11 +1,13 @@
 use std::time::{Duration, Instant};
 
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     MotionVectorCameraStatus, PostProcessGraphResourceNames, PostProcessPassGraph, RenderBudgetKey,
     RenderGraphPassProfileMetrics, RenderPluginRendererOutputs,
 };
-use crate::graphics::backend::{GpuPassTimer, GpuPassTimestampScope};
+use crate::core::TaskPool;
+use crate::graphics::backend::{
+    GpuPassTimer, GpuPassTimestampScope, GpuPipelineStatisticsTimer,
+};
 use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
 };
@@ -14,6 +16,11 @@ use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePa
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::cluster_dimensions_for_size;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
+use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
+    IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
+    IBL_BAKE_PMREM_EXECUTOR_ID,
+};
+use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::graph_execution::parallel_encoder_set::ParallelEncoderSet;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     FrameCommandEncoderSet, RenderGraphComputeDispatchRecord,
@@ -23,10 +30,10 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
     PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
@@ -55,6 +62,7 @@ struct RenderGraphStageExecution
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) plugin_outputs:
         &'a mut RenderPluginRendererOutputs,
     gpu_pass_timer: Option<&'a mut GpuPassTimer>,
+    gpu_pipeline_statistics_timer: Option<&'a mut GpuPipelineStatisticsTimer>,
 }
 
 struct RecordedGraphPass {
@@ -92,12 +100,14 @@ impl<'a> RenderGraphStageExecution<'a> {
         record: &'a mut RenderGraphExecutionRecord,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
         gpu_pass_timer: Option<&'a mut GpuPassTimer>,
+        gpu_pipeline_statistics_timer: Option<&'a mut GpuPipelineStatisticsTimer>,
     ) -> Self {
         Self {
             resources,
             record,
             plugin_outputs,
             gpu_pass_timer,
+            gpu_pipeline_statistics_timer,
         }
     }
 
@@ -188,6 +198,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     sprite_renderer: Option<&SpriteRenderer>,
     streamer: Option<&ResourceStreamer>,
     mut mesh_pipelines: Option<&mut MeshPipelineCache>,
+    mut ibl_bake_pipeline_cache: Option<&mut IblBakeWgpuPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
@@ -230,9 +241,23 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         });
     }
 
+    let ibl_bake_pass_present = prepared_passes.iter().any(|prepared| {
+        matches!(
+            prepared.pass.executor_id.as_deref(),
+            Some(
+                IBL_BAKE_PMREM_EXECUTOR_ID
+                    | IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID
+                    | IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID
+            )
+        )
+    });
+    let gpu_timestamps_enabled = execution.gpu_pass_timer.is_some();
+    let gpu_pipeline_statistics_enabled = execution.gpu_pipeline_statistics_timer.is_some();
     let mutable_recording_owner_present = screen_space_ui_renderer.is_some()
         || overlay_renderer.is_some()
-        || mesh_pipelines.is_some();
+        || mesh_pipelines.is_some()
+        || mesh_draw_lists.is_some()
+        || ibl_bake_pass_present;
     let all_executors_parallel_safe = prepared_passes.iter().all(|prepared| {
         prepared
             .pass
@@ -241,75 +266,93 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             .is_some_and(|executor_id| registry.supports_parallel_recording(executor_id))
     });
     let execution_resources = execution.resources;
-    if let Some((task_pool, min_passes_per_bucket)) = parallel_recording
-        && !mutable_recording_owner_present
-        && all_executors_parallel_safe
-    {
-        let mut prepared_index_by_graph_pass = vec![None; pipeline.graph().passes().len()];
-        for (prepared_index, prepared) in prepared_passes.iter().enumerate() {
-            prepared_index_by_graph_pass[prepared.graph_pass_index] = Some(prepared_index);
-        }
-        let parallel_encoders = ParallelEncoderSet::partition_filtered(
-            pipeline.graph(),
-            min_passes_per_bucket,
-            |pass_index, _| prepared_index_by_graph_pass[pass_index].is_some(),
-        );
-        if parallel_encoders.should_record_parallel(true, task_pool) {
-            command_encoders.flush_serial_prefix();
-            let recorded_buckets = parallel_encoders.record_parallel_with_outputs(
-                device,
-                task_pool,
-                |bucket, encoder| {
-                    let mut recorded = Vec::with_capacity(bucket.pass_count());
-                    for pass_index in bucket.pass_indices() {
-                        let prepared_index = prepared_index_by_graph_pass[*pass_index]
-                            .expect("parallel encoder bucket must reference a prepared stage pass");
-                        let prepared = &prepared_passes[prepared_index];
-                        recorded.push(execute_graph_pass(
-                            pipeline,
-                            registry,
-                            prepared.stage_entry,
-                            prepared.pass,
-                            device,
-                            queue,
-                            encoder,
-                            frame,
-                            scene_bind_group_layout,
-                            target_format,
-                            depth_format,
-                            scene_bind_group,
-                            None,
-                            post_process_stack,
-                            None,
-                            prepared_overlays,
-                            deferred,
-                            particle_renderer,
-                            sprite_renderer,
-                            streamer,
-                            None,
-                            mesh_draw_lists,
-                            hzb_occlusion_culler,
-                            shadow_map_renderer,
-                            shadow_atlas_resources,
-                            shadow_frame_plan,
-                            execution_resources,
-                            prepared.gpu_timestamp_scope.clone(),
-                        )?);
-                    }
-                    Ok(recorded)
-                },
-            )?;
-            for recorded_bucket in recorded_buckets {
-                let (command_buffer, recorded_passes) = recorded_bucket.into_parts();
-                command_encoders.append_parallel_buffers([command_buffer]);
-                for recorded in recorded_passes {
-                    execution.commit_recorded_pass(
-                        recorded,
-                        mesh_draw_lists.map(|lists| lists.replay_stats),
-                    );
-                }
+    if let Some((task_pool, min_passes_per_bucket)) = parallel_recording {
+        if !gpu_timestamps_enabled
+            && !gpu_pipeline_statistics_enabled
+            && !mutable_recording_owner_present
+            && all_executors_parallel_safe
+        {
+            let parallel_prepared_passes = prepared_passes
+                .iter()
+                .map(|prepared| {
+                    (
+                        prepared.graph_pass_index,
+                        prepared.stage_entry,
+                        prepared.pass,
+                    )
+                })
+                .collect::<Vec<_>>();
+            let mut prepared_index_by_graph_pass = vec![None; pipeline.graph().passes().len()];
+            for (prepared_index, (graph_pass_index, _, _)) in
+                parallel_prepared_passes.iter().enumerate()
+            {
+                prepared_index_by_graph_pass[*graph_pass_index] = Some(prepared_index);
             }
-            return Ok(());
+            let parallel_encoders = ParallelEncoderSet::partition_filtered(
+                pipeline.graph(),
+                min_passes_per_bucket,
+                |pass_index, _| prepared_index_by_graph_pass[pass_index].is_some(),
+            );
+            if parallel_encoders.should_record_parallel(true, task_pool) {
+                command_encoders.flush_serial_prefix();
+                let recorded_buckets = parallel_encoders.record_parallel_with_outputs(
+                    device,
+                    task_pool,
+                    |bucket, encoder| {
+                        let mut recorded = Vec::with_capacity(bucket.pass_count());
+                        for pass_index in bucket.pass_indices() {
+                            let prepared_index = prepared_index_by_graph_pass[*pass_index].expect(
+                                "parallel encoder bucket must reference a prepared stage pass",
+                            );
+                            let (_, stage_entry, pass) = parallel_prepared_passes[prepared_index];
+                            recorded.push(execute_graph_pass(
+                                pipeline,
+                                registry,
+                                stage_entry,
+                                pass,
+                                device,
+                                queue,
+                                encoder,
+                                frame,
+                                scene_bind_group_layout,
+                                target_format,
+                                depth_format,
+                                scene_bind_group,
+                                None,
+                                post_process_stack,
+                                None,
+                                prepared_overlays,
+                                deferred,
+                                particle_renderer,
+                                sprite_renderer,
+                                streamer,
+                                None,
+                                None,
+                                None,
+                                hzb_occlusion_culler,
+                                shadow_map_renderer,
+                                shadow_atlas_resources,
+                                shadow_frame_plan,
+                                execution_resources,
+                                None,
+                                None,
+                            )?);
+                        }
+                        Ok::<_, GraphicsError>(recorded)
+                    },
+                )?;
+                for recorded_bucket in recorded_buckets {
+                    let (command_buffer, recorded_passes) = recorded_bucket.into_parts();
+                    command_encoders.append_parallel_buffers([command_buffer]);
+                    for recorded in recorded_passes {
+                        execution.commit_recorded_pass(
+                            recorded,
+                            mesh_draw_lists.map(|lists| lists.replay_stats),
+                        );
+                    }
+                }
+                return Ok(());
+            }
         }
     }
 
@@ -336,6 +379,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             particle_renderer,
             sprite_renderer,
             streamer,
+            ibl_bake_pipeline_cache.as_deref_mut(),
             mesh_pipelines.as_deref_mut(),
             mesh_draw_lists,
             hzb_occlusion_culler,
@@ -343,6 +387,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             shadow_atlas_resources,
             shadow_frame_plan,
             execution_resources,
+            execution.gpu_pipeline_statistics_timer.as_deref_mut(),
             prepared.gpu_timestamp_scope,
         )?;
         execution.commit_recorded_pass(recorded, mesh_draw_lists.map(|lists| lists.replay_stats));
@@ -366,7 +411,7 @@ mod tests {
     use crate::render_graph::QueueLane;
 
     use super::{
-        RecordedGraphPass, RenderGraphStageExecution, render_profile_metrics_from_mesh_replay_stats,
+        render_profile_metrics_from_mesh_replay_stats, RecordedGraphPass, RenderGraphStageExecution,
     };
 
     #[test]
@@ -375,11 +420,13 @@ mod tests {
             draw_call_count: 3,
             state_change_count: 5,
             bind_skip_count: 2,
+            ..MeshDrawReplayStats::default()
         };
         let after = MeshDrawReplayStats {
             draw_call_count: 7,
             state_change_count: 11,
             bind_skip_count: 4,
+            ..MeshDrawReplayStats::default()
         };
 
         assert_eq!(
@@ -411,7 +458,13 @@ mod tests {
         let mut record = RenderGraphExecutionRecord::default();
         let mut plugin_outputs = RenderPluginRendererOutputs::default();
         let mut execution =
-            RenderGraphStageExecution::new(&mut resources, &mut record, &mut plugin_outputs, None);
+            RenderGraphStageExecution::new(
+                &mut resources,
+                &mut record,
+                &mut plugin_outputs,
+                None,
+                None,
+            );
 
         execution.record_post_process_graph(&graph);
 
@@ -429,7 +482,13 @@ mod tests {
         let mut record = RenderGraphExecutionRecord::default();
         let mut plugin_outputs = RenderPluginRendererOutputs::default();
         let mut execution =
-            RenderGraphStageExecution::new(&resources, &mut record, &mut plugin_outputs, None);
+            RenderGraphStageExecution::new(
+                &resources,
+                &mut record,
+                &mut plugin_outputs,
+                None,
+                None,
+            );
 
         for (pass_name, alive_count) in [("first", 3), ("second", 7)] {
             execution.commit_recorded_pass(
@@ -489,9 +548,7 @@ mod tests {
         assert!(!source.contains(
             "if let (Some(mesh_pipelines), Some(streamer), Some(mesh_draw_lists)) =\n        (mesh_pipelines, streamer, mesh_draw_lists)"
         ));
-        assert!(
-            scene_passes.contains("&self.deferred,\n                &mut self.mesh_pipelines,")
-        );
+        assert!(scene_passes.contains("&self.deferred,\n                &mut self.mesh_pipelines,"));
         assert!(
             scene_passes.contains("RenderPassStage::Deferred,\n                Some(streamer),")
         );
@@ -510,6 +567,7 @@ mod tests {
         assert!(stage_source.contains("ParallelEncoderSet::partition_filtered"));
         assert!(stage_source.contains("record_parallel_with_outputs"));
         assert!(stage_source.contains("registry.supports_parallel_recording(executor_id)"));
+        assert!(stage_source.contains("|| mesh_draw_lists.is_some()"));
         assert!(stage_source.contains("command_encoders.flush_serial_prefix()"));
         assert!(render_source.contains("command_buffers: command_encoders.finish()"));
         assert!(submit_source.contains("queue.submit(command_buffers)"));
@@ -539,6 +597,7 @@ fn execute_graph_pass(
     particle_renderer: Option<&ParticleRenderer>,
     sprite_renderer: Option<&SpriteRenderer>,
     streamer: Option<&ResourceStreamer>,
+    ibl_bake_pipeline_cache: Option<&mut IblBakeWgpuPipelineCache>,
     mesh_pipelines: Option<&mut MeshPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
@@ -546,6 +605,7 @@ fn execute_graph_pass(
     shadow_atlas_resources: Option<&ShadowAtlasResources>,
     shadow_frame_plan: Option<&ShadowFramePlan>,
     resources: &RenderGraphExecutionResources,
+    pipeline_statistics_timer: Option<&mut GpuPipelineStatisticsTimer>,
     gpu_timestamp_scope: Option<GpuPassTimestampScope>,
 ) -> Result<RecordedGraphPass, GraphicsError> {
     if let Some(marker) = marker_for_render_pass_stage(stage_entry.stage) {
@@ -577,8 +637,17 @@ fn execute_graph_pass(
         resources,
         &mut pass_plugin_outputs,
         screen_space_ui_renderer,
+    )
+    .with_half_resolution_transparency_depth_sigma(
+        pipeline.half_resolution_transparency_depth_sigma(),
     );
+    if let Some(pipeline_statistics_timer) = pipeline_statistics_timer {
+        gpu = gpu.with_pipeline_statistics_timer(pipeline_statistics_timer);
+    }
     gpu.streamer = streamer;
+    if let Some(ibl_bake_pipeline_cache) = ibl_bake_pipeline_cache {
+        gpu = gpu.with_ibl_bake_pipeline_cache(ibl_bake_pipeline_cache);
+    }
     if let Some(shadow_atlas_resources) = shadow_atlas_resources {
         gpu = gpu.with_shadow_atlas_resources(shadow_atlas_resources);
     }

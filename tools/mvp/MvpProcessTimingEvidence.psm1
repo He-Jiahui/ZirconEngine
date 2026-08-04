@@ -84,6 +84,20 @@ function Assert-MvpProcessTimingEvidence {
     $null = Get-MvpProcessTimingWindow -Evidence $Evidence -Label $Label
 }
 
+function ConvertTo-MvpCanonicalProcessTimingWindow {
+    param(
+        [Parameter(Mandatory)]$Evidence,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    $window = Get-MvpProcessTimingWindow -Evidence $Evidence -Label $Label
+    # Windows PowerShell can deserialize ISO timestamps as local DateTime values. Normalize only
+    # after validation so the immutable evidence manifest retains the Stage-owned UTC wire form.
+    $Evidence.PSObject.Properties['started_at_utc'].Value = $window.started_at.ToUniversalTime().ToString('o')
+    $Evidence.PSObject.Properties['ended_at_utc'].Value = $window.ended_at.ToUniversalTime().ToString('o')
+    return $window
+}
+
 function Get-MvpF5ProductProcess {
     param(
         [Parameter(Mandatory)]$ProductRuns,
@@ -133,7 +147,9 @@ function Assert-MvpF5ProcessTimingEvidence {
     $previousWindow = $null
     $previousLabel = $null
     foreach ($process in $timeline) {
-        $window = Get-MvpProcessTimingWindow -Evidence $process.evidence -Label $process.label
+        $window = ConvertTo-MvpCanonicalProcessTimingWindow `
+            -Evidence $process.evidence `
+            -Label $process.label
         if ($null -ne $previousWindow -and $window.started_at -lt $previousWindow.ended_at) {
             throw "$($process.label) overlaps or precedes completed prior process '$previousLabel'."
         }

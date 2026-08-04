@@ -33,7 +33,8 @@ pub fn builtin_shader_ide_module_sources() -> Vec<ShaderIdeModuleSource> {
 
 pub(crate) use template::{
     DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderTemplateAssemblyError,
+    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderAssemblySegmentKind,
+    ShaderTemplateAssemblyError,
     ShaderTemplateInclude, ShaderTemplateValidationError, TaaReactiveMaskShaderTemplateRequest,
     assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
     assemble_taa_reactive_mask_shader_template, standard_material_surface_source_for_features,

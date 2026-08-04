@@ -1,6 +1,6 @@
 use super::{
-    CubemapFace, cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_texel_direction, cubemap_texel_solid_angle,
+    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
+    cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,
 };
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
@@ -109,6 +109,33 @@ impl SourceCubemapMipChain {
             source_face_size,
             source_mip_count,
             source_texels: source_texels.into(),
+            pmrem_face_size,
+            pmrem_mip_count,
+            pmrem_texels: pmrem_texels.into(),
+            irradiance_sh9,
+        }
+    }
+
+    /// Keeps the immutable captured source pyramid while replacing the
+    /// artifact-produced PMREM and irradiance coefficients.
+    pub(super) fn with_bake_artifact_pmrem(
+        &self,
+        pmrem_face_size: u32,
+        pmrem_mip_count: u32,
+        pmrem_texels: Vec<[Real; 4]>,
+        irradiance_sh9: SourceCubemapIrradianceSh9,
+    ) -> Self {
+        let pmrem_face_size = pmrem_face_size.max(1);
+        let pmrem_mip_count = pmrem_mip_count.clamp(1, source_cubemap_mip_count(pmrem_face_size));
+        assert_eq!(
+            pmrem_texels.len(),
+            source_cubemap_sample_count(pmrem_face_size, pmrem_mip_count),
+            "source cubemap PMREM texel count must match its independent layout"
+        );
+        Self {
+            source_face_size: self.source_face_size,
+            source_mip_count: self.source_mip_count,
+            source_texels: Arc::clone(&self.source_texels),
             pmrem_face_size,
             pmrem_mip_count,
             pmrem_texels: pmrem_texels.into(),
@@ -240,10 +267,10 @@ pub fn source_cubemap_capture_hash(
     let hash = hasher.finalize();
     let bytes = hash.as_bytes();
     [
-        u32::from_le_bytes(bytes[0..4].try_into().expect("blake3 word 0")),
-        u32::from_le_bytes(bytes[4..8].try_into().expect("blake3 word 1")),
-        u32::from_le_bytes(bytes[8..12].try_into().expect("blake3 word 2")),
-        u32::from_le_bytes(bytes[12..16].try_into().expect("blake3 word 3")),
+        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+        u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+        u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
+        u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
     ]
 }
 

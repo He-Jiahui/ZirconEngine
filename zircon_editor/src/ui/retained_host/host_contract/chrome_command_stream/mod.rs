@@ -8,11 +8,12 @@ pub(in crate::ui::retained_host::host_contract) use replay::{
 };
 pub(in crate::ui::retained_host::host_contract) use runtime_draw_list::{
     ui_surface_draw_list_from_owned_stream, ui_surface_draw_list_from_owned_stream_with_generation,
-    ui_surface_draw_list_from_stream,
+    ui_surface_draw_list_from_owned_stream_with_generation_and_residency,
+    ui_surface_draw_list_from_stream, ui_surface_draw_list_from_stream_with_residency,
 };
 use stream::clamp_surface_size;
 pub(in crate::ui::retained_host::host_contract) use stream::{
-    ChromeCommandStream, ChromeImageResource,
+    ChromeCommandStream, ChromeImageResource, ChromeImageResources,
 };
 
 #[cfg(test)]

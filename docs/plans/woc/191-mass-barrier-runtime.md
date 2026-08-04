@@ -1,6 +1,6 @@
 ---
 title: WOS191 Mass Barrier runtime
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---

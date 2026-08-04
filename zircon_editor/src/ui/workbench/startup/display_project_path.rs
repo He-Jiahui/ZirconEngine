@@ -1,5 +1,10 @@
+use std::path::Path;
+
+use zircon_runtime::asset::project::ProjectPaths;
+
 pub(crate) fn display_project_path(path: impl AsRef<str>) -> String {
-    display_project_text(path.as_ref())
+    let display_path = ProjectPaths::display_path(Path::new(path.as_ref()));
+    display_project_text(&display_path.to_string_lossy())
 }
 
 pub(crate) fn display_project_title(path: impl AsRef<str>) -> String {

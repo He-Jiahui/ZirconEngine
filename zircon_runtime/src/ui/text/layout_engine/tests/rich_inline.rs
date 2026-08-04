@@ -253,11 +253,10 @@ fn html_inline_image_follows_shared_mixed_visual_order() {
         .position(|grapheme| grapheme == "\u{fffc}")
         .expect("mixed visual inline grapheme index");
     assert!((line.glyph_advances[inline_index] - 18.0).abs() < 0.01);
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft)
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "ב" && run.direction == UiTextDirection::RightToLeft));
 }
 
 #[test]
@@ -279,11 +278,10 @@ fn html_inline_image_follows_shared_rtl_visual_order() {
         .expect("rtl visual inline grapheme index");
     assert!((line.glyph_advances[inline_index] - 18.0).abs() < 0.01);
     assert_eq!(line.glyph_advances.len(), line.text.graphemes(true).count());
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "\u{fffc}" && run.source_range.start < run.source_range.end)
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "\u{fffc}" && run.source_range.start < run.source_range.end));
 }
 
 #[test]
@@ -354,12 +352,10 @@ fn bbcode_inline_image_vertical_rl_composes_first_column_indent_and_continuation
     assert!((layout.lines[1].frame.y - frame.y).abs() < 0.01);
     assert!(layout.lines[0].frame.x > layout.lines[1].frame.x);
     assert!((layout.lines[1].glyph_advances[0] - 16.0).abs() < 0.01);
-    assert!(
-        layout.lines[1]
-            .runs
-            .iter()
-            .any(|run| run.text == "\u{fffc}")
-    );
+    assert!(layout.lines[1]
+        .runs
+        .iter()
+        .any(|run| run.text == "\u{fffc}"));
     assert!(layout.lines[1].measured_width <= frame.height + 0.01);
 }
 

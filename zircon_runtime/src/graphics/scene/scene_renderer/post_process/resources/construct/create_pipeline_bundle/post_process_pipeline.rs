@@ -68,8 +68,10 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(10) var effect_lut_tex"));
         assert!(POST_PROCESS_SHADER.contains("textureLoad(effect_lut_tex"));
         assert!(POST_PROCESS_SHADER.contains("sample_effect_lut_2d_strip"));
-        assert!(POST_PROCESS_SHADER
-            .contains("mapped = mix(mapped, sample_effect_lut(mapped, params.effect_flags.y)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("mapped = mix(mapped, sample_effect_lut(mapped, params.effect_flags.y)")
+        );
     }
 
     #[test]
@@ -78,14 +80,18 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(27) var contact_shadow_tex"));
         assert!(POST_PROCESS_SHADER.contains("params.lighting_flags.x != 0u"));
         assert!(POST_PROCESS_SHADER.contains("textureLoad(contact_shadow_tex"));
-        assert!(POST_PROCESS_SHADER
-            .contains("occlusion_factor = occlusion_factor * max(contact_shadow"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("occlusion_factor = occlusion_factor * max(contact_shadow")
+        );
     }
 
     #[test]
     fn post_process_shader_applies_resolved_exposure_before_tonemap() {
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(28) var<storage, read> exposure_buffer"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("@group(0) @binding(28) var<storage, read> exposure_buffer")
+        );
         assert!(POST_PROCESS_SHADER.contains(
             "let exposure = exp2(params.effect_tonemap_lut.x) * max(exposure_buffer[0].x, 0.0);"
         ));
@@ -98,8 +104,11 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(13) var effect_lut_sampler"));
         assert!(POST_PROCESS_SHADER.contains("textureSampleLevel(effect_lut_3d_tex"));
         assert!(POST_PROCESS_SHADER.contains("effect_lut_sampler"));
-        assert!(POST_PROCESS_SHADER
-            .contains("clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)) * axis_max + vec3<f32>(0.5)"));
+        assert!(
+            POST_PROCESS_SHADER.contains(
+                "clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)) * axis_max + vec3<f32>(0.5)"
+            )
+        );
         assert!(POST_PROCESS_SHADER.contains("if (binding_mode == 3u)"));
         assert!(POST_PROCESS_SHADER.contains("if (params.effect_flags.y == 4u)"));
         assert!(POST_PROCESS_SHADER.contains("return sample_effect_lut_3d(color);"));
@@ -144,13 +153,17 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("let north_coc = load_depth_of_field_coc"));
         assert!(POST_PROCESS_SHADER.contains("let east_coc = load_depth_of_field_coc"));
         assert!(POST_PROCESS_SHADER.contains("let dilated_coc = dilated_depth_of_field_coc"));
-        assert!(POST_PROCESS_SHADER.contains("let prepared_coc_radius = depth_of_field_coc_radius"));
+        assert!(
+            POST_PROCESS_SHADER.contains("let prepared_coc_radius = depth_of_field_coc_radius")
+        );
         assert!(POST_PROCESS_SHADER.contains("max(prepared_coc_radius, scene_depth_radius)"));
     }
 
     #[test]
     fn post_process_shader_samples_bound_depth_of_field_bokeh_texture() {
-        assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(18) var depth_of_field_bokeh_tex"));
+        assert!(
+            POST_PROCESS_SHADER.contains("@group(0) @binding(18) var depth_of_field_bokeh_tex")
+        );
         assert!(POST_PROCESS_SHADER.contains("textureLoad(depth_of_field_bokeh_tex"));
         assert!(POST_PROCESS_SHADER.contains("fn load_depth_of_field_coc"));
         assert!(POST_PROCESS_SHADER.contains("fn load_depth_of_field_bokeh_seed"));
@@ -160,16 +173,20 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("fn sample_prepared_depth_of_field_bokeh"));
         assert!(POST_PROCESS_SHADER.contains("let sample_coc = load_depth_of_field_coc"));
         assert!(POST_PROCESS_SHADER.contains("seed.a * depth_of_field_bokeh_layer_weight"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let prepared_bokeh = sample_prepared_depth_of_field_bokeh"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("let prepared_bokeh = sample_prepared_depth_of_field_bokeh")
+        );
         assert!(POST_PROCESS_SHADER.contains("prepared_bokeh.a"));
         assert!(POST_PROCESS_SHADER.contains("mix(procedural_bokeh, prepared_bokeh.rgb"));
     }
 
     #[test]
     fn post_process_shader_samples_reconstructed_motion_vector_for_motion_blur() {
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(19) var motion_vector_neighbor_max_tex"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("@group(0) @binding(19) var motion_vector_neighbor_max_tex")
+        );
         assert!(POST_PROCESS_SHADER.contains("effect_motion_blur: vec4<f32>"));
         assert!(POST_PROCESS_SHADER.contains("const MOTION_BLUR_MAX_SAMPLES: u32 = 32u"));
         assert!(POST_PROCESS_SHADER.contains("fn load_motion_vector_neighbor_max"));
@@ -181,18 +198,26 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("fn apply_motion_blur_vector_gather"));
         assert!(POST_PROCESS_SHADER.contains("params.effect_motion_blur.x"));
         assert!(POST_PROCESS_SHADER.contains("params.effect_motion_blur.y"));
-        assert!(POST_PROCESS_SHADER.contains("let motion_vector = load_motion_vector_neighbor_max"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let center_depth = load_scene_view_depth(coord_i32, viewport_size)"));
+        assert!(
+            POST_PROCESS_SHADER.contains("let motion_vector = load_motion_vector_neighbor_max")
+        );
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("let center_depth = load_scene_view_depth(coord_i32, viewport_size)")
+        );
         assert!(POST_PROCESS_SHADER.contains("motion_vector * shutter_fraction"));
         assert!(POST_PROCESS_SHADER.contains("sample_index <= MOTION_BLUR_MAX_SAMPLES"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let sample_depth = load_scene_view_depth(sample_coord, viewport_size)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("let sample_depth = load_scene_view_depth(sample_coord, viewport_size)")
+        );
         assert!(
             POST_PROCESS_SHADER.contains("motion_blur_sample_weight(motion_vector, sample_motion)")
         );
-        assert!(POST_PROCESS_SHADER
-            .contains("* motion_blur_depth_visibility(center_depth, sample_depth)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("* motion_blur_depth_visibility(center_depth, sample_depth)")
+        );
         assert!(POST_PROCESS_SHADER.contains("color = apply_motion_blur_vector_gather"));
     }
 
@@ -213,8 +238,10 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("params.effect_vignette_grain.y"));
         assert!(POST_PROCESS_SHADER.contains("params.effect_vignette_grain.z"));
         assert!(POST_PROCESS_SHADER.contains("fn apply_grain_and_dither"));
-        assert!(POST_PROCESS_SHADER
-            .contains("params.effect_vignette_grain.w * max(params.effect_fog_color.w, 0.0)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("params.effect_vignette_grain.w * max(params.effect_fog_color.w, 0.0)")
+        );
         assert!(POST_PROCESS_SHADER.contains("params.effect_dither_ssr.x"));
         assert!(POST_PROCESS_SHADER.contains("params.effect_dither_ssr.y"));
 
@@ -258,8 +285,10 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("dot(params.effect_view_x.xyz, world_normal)"));
         assert!(POST_PROCESS_SHADER.contains("dot(params.effect_view_y.xyz, world_normal)"));
         assert!(POST_PROCESS_SHADER.contains("dot(params.effect_view_z.xyz, world_normal)"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let normal = world_normal_to_view_space(load_scene_normal"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("let normal = world_normal_to_view_space(load_scene_normal")
+        );
         assert!(POST_PROCESS_SHADER.contains("reflect(view_direction, normal)"));
     }
 
@@ -280,8 +309,10 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("const SSR_HIT_REFINE_STEPS: u32 = 4u"));
         assert!(POST_PROCESS_SHADER.contains("fn sample_screen_space_reflection_hit"));
         assert!(POST_PROCESS_SHADER.contains("fn refine_screen_space_reflection_hit"));
-        assert!(POST_PROCESS_SHADER
-            .contains("for (var refine_index = 0u; refine_index < SSR_HIT_REFINE_STEPS"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("for (var refine_index = 0u; refine_index < SSR_HIT_REFINE_STEPS")
+        );
         assert!(
             POST_PROCESS_SHADER.contains("let refined_hit = refine_screen_space_reflection_hit")
         );
@@ -300,25 +331,37 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("clamp("));
         assert!(POST_PROCESS_SHADER.contains("round(history_pixel)"));
         assert!(POST_PROCESS_SHADER.contains("vec2<f32>(viewport_size) - vec2<f32>(1.0, 1.0)"));
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(20) var history_screen_space_reflection_tex"));
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(21) var resolved_screen_space_reflection_tex"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("@group(0) @binding(20) var history_screen_space_reflection_tex")
+        );
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("@group(0) @binding(21) var resolved_screen_space_reflection_tex")
+        );
         assert!(POST_PROCESS_SHADER.contains("textureLoad(history_screen_space_reflection_tex"));
         assert!(POST_PROCESS_SHADER.contains("textureLoad(resolved_screen_space_reflection_tex"));
         assert!(POST_PROCESS_SHADER.contains("clamp(history.rgb, neighborhood.minimum"));
         assert!(POST_PROCESS_SHADER.contains("clamp(history.a, 0.0, 1.0)"));
         assert!(POST_PROCESS_SHADER.contains("fn ssr_temporal_blend_weight"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let temporal_blend_max = clamp(params.effect_ssr_limits.z, 0.0, 1.0)"));
-        assert!(POST_PROCESS_SHADER
-            .contains("temporal_blend_max * traced_visibility * motion_stability"));
-        assert!(POST_PROCESS_SHADER.contains("let motion_vector = load_motion_vector_neighbor_max"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("let temporal_blend_max = clamp(params.effect_ssr_limits.z, 0.0, 1.0)")
+        );
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("temporal_blend_max * traced_visibility * motion_stability")
+        );
+        assert!(
+            POST_PROCESS_SHADER.contains("let motion_vector = load_motion_vector_neighbor_max")
+        );
         assert!(POST_PROCESS_SHADER.contains("fn resolve_screen_space_reflection_history"));
         assert!(POST_PROCESS_SHADER.contains("fn fs_screen_space_reflection_resolve"));
         assert!(!POST_PROCESS_SHADER.contains("@location(2) screen_space_reflection_history"));
-        assert!(POST_PROCESS_SHADER
-            .contains("load_resolved_screen_space_reflection(coord_i32, viewport_size)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("load_resolved_screen_space_reflection(coord_i32, viewport_size)")
+        );
         assert!(
             !POST_PROCESS_SHADER.contains("screen_space_reflection_history = resolved_reflection")
         );
@@ -326,8 +369,10 @@ mod tests {
         assert!(
             POST_PROCESS_SHADER.contains("let temporal_history = sample_reprojected_ssr_history")
         );
-        assert!(POST_PROCESS_SHADER
-            .contains("mix(traced_reflection.rgb, temporal_history.rgb, temporal_weight)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("mix(traced_reflection.rgb, temporal_history.rgb, temporal_weight)")
+        );
     }
 
     #[test]
@@ -336,8 +381,10 @@ mod tests {
         assert!(
             POST_PROCESS_SHADER.contains("let reflection_weight =\n        resolved_reflection.a;")
         );
-        assert!(!POST_PROCESS_SHADER
-            .contains("resolved_reflection.a * clamp(params.effect_dither_ssr.z, 0.0, 1.0)"));
+        assert!(
+            !POST_PROCESS_SHADER
+                .contains("resolved_reflection.a * clamp(params.effect_dither_ssr.z, 0.0, 1.0)")
+        );
     }
 
     #[test]
@@ -349,11 +396,16 @@ mod tests {
         );
         assert!(POST_PROCESS_SHADER.contains("let ambient_occlusion ="));
         assert!(POST_PROCESS_SHADER.contains("let occlusion_response ="));
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(22) var screen_space_reflection_specular_occlusion_tex"));
+        assert!(
+            POST_PROCESS_SHADER.contains(
+                "@group(0) @binding(22) var screen_space_reflection_specular_occlusion_tex"
+            )
+        );
         assert!(POST_PROCESS_SHADER.contains("fn load_screen_space_reflection_specular_occlusion"));
-        assert!(POST_PROCESS_SHADER
-            .contains("textureLoad(screen_space_reflection_specular_occlusion_tex"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("textureLoad(screen_space_reflection_specular_occlusion_tex")
+        );
         assert!(
             POST_PROCESS_SHADER.contains("clamp(factors.g, 0.0, 1.0) * clamp(traced_visibility")
         );
@@ -367,39 +419,57 @@ mod tests {
         assert!(POST_PROCESS_SHADER.contains("@group(0) @binding(16) var scene_material_tex"));
         assert!(POST_PROCESS_SHADER.contains("textureLoad(scene_material_tex"));
         assert!(POST_PROCESS_SHADER.contains("fn load_scene_material_roughness"));
-        assert!(POST_PROCESS_SHADER
-            .contains("let roughness = load_scene_material_roughness(coord_i32, viewport_size)"));
+        assert!(
+            POST_PROCESS_SHADER.contains(
+                "let roughness = load_scene_material_roughness(coord_i32, viewport_size)"
+            )
+        );
         assert!(POST_PROCESS_SHADER.contains("roughness_visibility"));
     }
 
     #[test]
     fn post_process_shader_samples_shared_hzb_and_reflection_pyramids_with_coarse_fallbacks() {
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(23) var screen_space_reflection_depth_pyramid_tex"));
-        assert!(POST_PROCESS_SHADER
-            .contains("@group(0) @binding(24) var screen_space_reflection_reflection_pyramid_tex"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("@group(0) @binding(23) var screen_space_reflection_depth_pyramid_tex")
+        );
+        assert!(
+            POST_PROCESS_SHADER.contains(
+                "@group(0) @binding(24) var screen_space_reflection_reflection_pyramid_tex"
+            )
+        );
         assert!(POST_PROCESS_SHADER.contains(
             "@group(0) @binding(25) var screen_space_reflection_depth_pyramid_coarse_tex"
         ));
         assert!(POST_PROCESS_SHADER.contains(
             "@group(0) @binding(26) var screen_space_reflection_reflection_pyramid_coarse_tex"
         ));
-        assert!(POST_PROCESS_SHADER
-            .contains("textureNumLevels(screen_space_reflection_depth_pyramid_tex)"));
-        assert!(POST_PROCESS_SHADER
-            .contains("textureNumLevels(screen_space_reflection_reflection_pyramid_tex)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("textureNumLevels(screen_space_reflection_depth_pyramid_tex)")
+        );
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("textureNumLevels(screen_space_reflection_reflection_pyramid_tex)")
+        );
         assert!(POST_PROCESS_SHADER.contains(
             "textureLoad(\n        screen_space_reflection_depth_pyramid_tex,\n        vec2<i32>(safe_coord),\n        mip_level"
         ));
         assert!(POST_PROCESS_SHADER.contains(
             "textureLoad(\n        screen_space_reflection_reflection_pyramid_tex,\n        vec2<i32>(safe_coord),\n        mip_level"
         ));
-        assert!(POST_PROCESS_SHADER
-            .contains("return load_screen_space_reflection_depth_pyramid_mip(coord, 1u)"));
-        assert!(POST_PROCESS_SHADER
-            .contains("return load_screen_space_reflection_reflection_pyramid_mip(coord, 1u)"));
-        assert!(POST_PROCESS_SHADER
-            .contains("return load_screen_space_reflection_depth_pyramid_mip(coord, 0u)"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("return load_screen_space_reflection_depth_pyramid_mip(coord, 1u)")
+        );
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("return load_screen_space_reflection_reflection_pyramid_mip(coord, 1u)")
+        );
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("return load_screen_space_reflection_depth_pyramid_mip(coord, 0u)")
+        );
         assert!(POST_PROCESS_SHADER.contains(
             "textureLoad(\n        screen_space_reflection_reflection_pyramid_coarse_tex"
         ));
@@ -407,8 +477,10 @@ mod tests {
         assert!(
             POST_PROCESS_SHADER.contains("fn screen_space_reflection_reflection_pyramid_rough_mip")
         );
-        assert!(POST_PROCESS_SHADER
-            .contains("let biased_roughness = clamp(roughness + params.effect_ssr_limits.w"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("let biased_roughness = clamp(roughness + params.effect_ssr_limits.w")
+        );
         assert!(POST_PROCESS_SHADER.contains("smoothstep(0.2, 0.95, biased_roughness)"));
         assert!(POST_PROCESS_SHADER.contains("smoothstep(0.18, 1.0, biased_roughness)"));
     }

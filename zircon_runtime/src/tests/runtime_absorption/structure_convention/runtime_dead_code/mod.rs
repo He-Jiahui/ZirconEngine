@@ -3,7 +3,6 @@ mod production_scan;
 mod runtime_owned;
 mod runtime_ui;
 mod script_host;
-mod status_anchor_cleanup;
 mod ui_text;
 
 use super::{repo_path, runtime_src_path};

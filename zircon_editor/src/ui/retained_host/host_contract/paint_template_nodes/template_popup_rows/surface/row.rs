@@ -2,7 +2,6 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchPopupRowStyle;
-use super::super::geometry::frame_is_within;
 use super::super::layers::popup_row_surface_order;
 use super::super::metrics::workbench_popup_row_metrics;
 
@@ -18,7 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
     style: WorkbenchPopupRowStyle,
     opacity: f32,
 ) {
-    if intersect(row_rect, clip).is_none() || !frame_is_within(clip, row_rect) {
+    if intersect(row_rect, clip).is_none() {
         return;
     }
     let metrics = workbench_popup_row_metrics();

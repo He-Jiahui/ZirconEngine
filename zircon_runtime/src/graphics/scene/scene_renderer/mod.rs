@@ -8,7 +8,9 @@ mod graph_execution;
 mod history;
 mod hzb;
 pub(crate) mod lighting;
+pub(crate) mod material;
 mod mesh;
+pub(in crate::graphics::scene) mod mip_gen;
 mod overlay;
 mod particle;
 mod post_process;
@@ -19,6 +21,7 @@ mod shadow;
 mod sprite;
 mod temporal;
 mod transparent;
+pub(crate) mod transparency;
 mod ui;
 
 pub use advanced_lighting::{
@@ -50,6 +53,7 @@ pub use graph_execution::{
 pub use mesh::{RuntimeShaderPipelinePrewarmFailure, RuntimeShaderPipelinePrewarmReport};
 
 pub(crate) use core::{FINAL_COLOR_FORMAT, SCENE_COLOR_HDR_FORMAT, create_depth_texture};
+pub(in crate::graphics) use core::{AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission};
 pub(crate) use deferred::{
     GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT,
 };

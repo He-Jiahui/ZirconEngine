@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 
 #[cfg(test)]
@@ -17,6 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
 {
     pub mark_inset_x: f32,
     pub mark_size: f32,
+    pub border_width: f32,
+    pub checkbox_radius: f32,
     pub label_gap: f32,
     pub text_inset_y: f32,
     pub radio_dot_size: f32,
@@ -29,8 +31,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub line_height: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_selection_control_metrics()
--> WorkbenchSelectionControlMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_selection_control_metrics(
+) -> WorkbenchSelectionControlMetrics {
     workbench_selection_control_metrics_from_host(current_host_metrics())
 }
 
@@ -46,6 +48,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     WorkbenchSelectionControlMetrics {
         mark_inset_x,
         mark_size,
+        border_width: metrics.border_width,
+        checkbox_radius: metrics.radius_control.min(mark_size * 0.5),
         label_gap: metrics.gap_m + metrics.border_width,
         text_inset_y,
         radio_dot_size: metrics.gap_s + metrics.border_width,

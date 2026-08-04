@@ -6,6 +6,7 @@ mod progress;
 mod state;
 
 use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
 use backdrop::{is_material_backdrop_node, push_material_backdrop_commands};
 use progress::push_material_progress_commands;
@@ -19,15 +20,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ma
     order: i32,
     opacity: f32,
 ) -> bool {
-    if is_material_backdrop_node(node) {
-        push_material_backdrop_commands(commands, node, rect, clip, order, opacity);
-        return true;
+    let is_backdrop = is_material_backdrop_node(node);
+    let is_progress = is_material_progress_node(node);
+    if !is_backdrop && !is_progress {
+        return false;
     }
-    if is_material_progress_node(node) {
-        push_material_progress_commands(commands, node, rect, clip, order, opacity);
+    let Some(clip) = intersect(rect, clip) else {
         return true;
+    };
+    if is_backdrop {
+        push_material_backdrop_commands(commands, node, rect, &clip, order, opacity);
+    } else {
+        push_material_progress_commands(commands, node, rect, &clip, order, opacity);
     }
-    false
+    true
 }
 
 #[cfg(test)]

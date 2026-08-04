@@ -1,4 +1,5 @@
 use crate::core::notifications::{DecisionOptionId, DecisionTicket};
+use crate::core::play::PendingEditIntent;
 
 pub(crate) const PLAY_PENDING_EDITS_APPLY_OPTION: &str = "apply";
 pub(crate) const PLAY_PENDING_EDITS_DISCARD_OPTION: &str = "discard";
@@ -54,7 +55,7 @@ impl PlayPendingDecisionOption {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct PlayPendingDecisionSelection {
+pub(crate) struct PlayPendingDecisionSelection {
     ticket: DecisionTicket,
     option_id: DecisionOptionId,
 }
@@ -69,28 +70,19 @@ impl PlayPendingDecisionSelection {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct PlayPendingEditApplyFailure {
-    pending_edit_id: u64,
-    operation_id: String,
+    intent: PendingEditIntent,
     error: String,
 }
 
 impl PlayPendingEditApplyFailure {
-    pub(super) fn new(pending_edit_id: u64, operation_id: String, error: String) -> Self {
-        Self {
-            pending_edit_id,
-            operation_id,
-            error,
-        }
+    pub(super) fn new(intent: PendingEditIntent, error: String) -> Self {
+        Self { intent, error }
     }
 
-    pub(crate) fn pending_edit_id(&self) -> u64 {
-        self.pending_edit_id
-    }
-
-    pub(crate) fn operation_id(&self) -> &str {
-        &self.operation_id
+    pub(crate) fn intent(&self) -> &PendingEditIntent {
+        &self.intent
     }
 
     pub(crate) fn error(&self) -> &str {
@@ -98,7 +90,7 @@ impl PlayPendingEditApplyFailure {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum PlayPendingEditDecisionOutcome {
     Applied {
         applied_count: usize,

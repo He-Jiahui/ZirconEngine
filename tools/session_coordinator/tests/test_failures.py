@@ -488,6 +488,38 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual(2, origin_text.count(f"[fixed 已修复：table-row]({destination_link})"))
         self.assertIn("[unrelated](../other/failure.md)", origin_text)
 
+    def test_return_preserves_unrelated_links_in_the_same_handoff_bullet(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/08-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        peer_fixer = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        failure = self.fixture.add_handoff(origin, fixing, "provider")
+        peer = self.fixture.add_handoff(origin, peer_fixer, "peer")
+        source_link = Path(os.path.relpath(failure, origin.path.parent)).as_posix()
+        peer_link = Path(os.path.relpath(peer, origin.path.parent)).as_posix()
+        origin_text = origin.path.read_text(encoding="utf-8")
+        origin_text = origin_text.replace(
+            f"- open 待修复：[provider]({source_link})",
+            f"- open lifecycle：[provider]({source_link}) · [peer]({peer_link})",
+        ).replace(f"\n- open 待修复：[peer]({peer_link})\n", "\n")
+        origin.path.write_text(origin_text, encoding="utf-8")
+        node = next(
+            node
+            for node in self.service.import_repository().nodes
+            if node.summary_slug == "provider"
+        )
+
+        fixed = self.service.return_fixed(
+            node.lifecycle_key,
+            FailureResolution("root", "architecture", "validation", "return"),
+            resolved_at=date(2026, 7, 15),
+        )
+
+        destination_link = Path(os.path.relpath(fixed, origin.path.parent)).as_posix()
+        rewritten = origin.path.read_text(encoding="utf-8")
+        self.assertIn(f"[fixed 已修复：provider]({destination_link})", rewritten)
+        self.assertIn(f"[peer]({peer_link})", rewritten)
+        self.assertEqual([], self.service.validator_errors())
+
     def test_child_record_only_return_moves_fixed_artifact_without_writing_parent_plans(self) -> None:
         origin = self.fixture.add_plan("docs/plans/runtime/04-runtime.md")
         fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")

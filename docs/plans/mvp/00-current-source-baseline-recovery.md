@@ -21,6 +21,8 @@ last_refined: 2026-08-01
 
 # 当前源码与验证基线恢复 Implementation Plan
 
+- open 待修复：[validation ticket deletion manifest](00/failure-2026-08-03-validation-ticket-deletion-manifest.md)；删除墓碑协议与 focused 回归已实现，最终复审 `C0/I0/M0`；focused terminal receipt 与 [Coordinator01 大 manifest CLI transport](../zircon_tooling/session_coordinator/01/failure-2026-08-03-validation-ticket-large-manifest-cli-transport.md) fixed return 尚未返回。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: 使用 `subagent-driven-development`（推荐）或 `executing-plans` 按里程碑执行；开始前使用 `cross-session-coordination`，测试阶段使用 `zircon-dev-validation` 和 `support-first-regression-testing`。
 
 **Goal:** 恢复机器可读的受管验证入口，完成 Runtime 04 migration resolver index 的单一 generation 接线，并使 `zircon_runtime`、`zircon_editor`、`zircon_app` 当前源码重新通过包级编译检查。
@@ -73,6 +75,7 @@ last_refined: 2026-08-01
 - [x] 非 JSON 模式继续断言 `Coordinator ready.`，普通 CLI 反馈未被吞掉。
 - [x] `tools/zircon-session.ps1` 仅在 `-not $Json` 时输出 readiness；JSON starting/response 各保持单一 document 语义。
 - [x] `validate-matrix.ps1` 继续严格 `ConvertFrom-Json`；不得恢复宽松截断或忽略前导文本。
+- [x] validation ticket `source_manifest` 以 JSON `null` 封存归属删除路径；queue claim、copy overlay 与 materialized-copy 的路径重现统一判为 `snapshot_stale`。
 - [ ] 重跑 validator dry-run 回归，确认异常路径也释放 lane，不遗留 starting/active job，并把 exact count 记入本阶段 outcome。
 
 ### 测试阶段：M0.1 Tooling Contract Gate
@@ -96,13 +99,13 @@ last_refined: 2026-08-01
 
 ### 实现切片
 
-- [ ] 以 [`../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md`](../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md) 为唯一 failure owner，重新盘点 `run.rs`、`scan.rs`、`sidecar.rs`、`resolver.rs` 和 `resolver_index.rs` 当前调用图。
+- [x] 以 [`../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md`](../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md) 为唯一 failure owner，重新盘点 `run.rs`、`scan.rs`、`sidecar.rs`、`resolver.rs` 和 `resolver_index.rs` 当前调用图。
 - [x] `migration/mod.rs` 已注册并在 crate 内 re-export `resolver_index`；不存在孤立 `mod` 声明。
-- [ ] 让 scan owner 从已经 canonicalized、拒绝 symlink/reparse 的 regular-file inventory 构建 `MigrationSourceProjection`；禁止 index 自己再次访问文件系统。
-- [ ] 让 sidecar 解析发布经过验证的 compound binding；重复 registry identity、重复 locator、ambiguous root 和 missing source 返回现有 typed error/issue kind。
+- [x] 让 scan owner 从已经 canonicalized、拒绝 symlink/reparse 的 regular-file inventory 构建 `MigrationSourceProjection`；禁止 index 自己再次访问文件系统。
+- [x] 让 sidecar 解析发布经过验证的 compound binding；重复 registry identity、重复 locator、ambiguous root 和 missing source 返回现有 typed error/issue kind。
 - [x] `MigrationResolver::new` 当前只接收 `AssetRegistryIndex` 与 `MigrationResolverIndex`；per-reference roots/FS fallback 已删除。
-- [ ] 扩充 `resolver_index.rs` 测试：唯一 source、compound zmeta hint、duplicate registry 优先级、ambiguous source、missing source、跨 root 相同相对路径、link/reparse 拒绝和 index generation 一致性。
-- [ ] 添加源码 guard，阻止 migration resolver 恢复 filesystem fallback 或第二次 root scan。
+- [x] 扩充 `resolver_index.rs` 测试：唯一 source、compound zmeta hint、duplicate registry 优先级、ambiguous source、missing source、跨 root 相同相对路径、link/reparse 拒绝和 index generation 一致性。
+- [x] 添加源码 guard，阻止 migration resolver 恢复 filesystem fallback 或第二次 root scan。
 
 M0.2 current-source handoffs:
 
@@ -121,7 +124,7 @@ M0.2 continues from the lowest passing test target while these owners complete t
 ### 退出证据
 
 - [ ] `zircon_runtime` 当前源码编译通过。
-- [ ] migration resolver 不包含 filesystem lookup/fallback，所有查询来自单一 index generation。
+- [x] migration resolver 不包含 filesystem lookup/fallback，所有查询来自单一 index generation。
 - [ ] open failure 已完成 upward validation 并按 canonical failure/fixed 流程返回。
 
 ## 7. M0.3 Runtime → Editor → App 编译收敛
@@ -132,11 +135,21 @@ M0.2 continues from the lowest passing test target while these owners complete t
 
 ### 实现切片
 
-- [ ] 生成 validation manifest，按 `zircon_runtime`、`zircon_editor`、`zircon_app` 顺序列出 feature/profile、受影响 contract 和已知 open failure。
+- [x] 生成 validation manifest，按 `zircon_runtime`、`zircon_editor`、`zircon_app` 顺序列出 feature/profile、受影响 contract 和已知 open failure。
 - [ ] 每次只处理当前最早编译错误；先判断是否属于本计划已修改边界、现有 owner 变化或新的跨计划 failure。
 - [ ] 属于其他 owner 的最低原因写入该 owner 的 numbered failure 目录，并继续不依赖该失败的检查；不得在上层添加兼容 alias 或 feature bypass。
 - [ ] 每次根因修复后重新运行最低包 focused check，再向上运行依赖包。
 - [ ] 完成 `git diff --check`、触及 Rust 文件的 formatter check 和 source guards。
+
+### M0.3 Validation Manifest
+
+| 顺序 | 包 / profile | 受管 compile gate | 受影响 contract | 已知 open failure |
+|---|---|---|---|---|
+| 1 | `zircon_runtime` / default | `validate-matrix.ps1 -Package zircon_runtime -SkipTest` | Runtime04 single-inventory indexed resolver；Runtime15 receipt-test hard cut | [Runtime04 indexed resolver generation](../zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md)；[Runtime15 plan-status receipt compile debt](../zircon_runtime/runtime/15/failure-2026-08-02-plan-status-receipt-test-compile-debt.md) |
+| 2 | `zircon_editor` / default | `validate-matrix.ps1 -Package zircon_editor -SkipTest` | Runtime facade、RHI neutral presenter、Editor host compile boundary | [Frameworks01 RHI WGPU presenter/backend contract test owner](../zircon_runtime/frameworks/01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md) |
+| 3 | `zircon_app` / default | `validate-matrix.ps1 -Package zircon_app -SkipTest` | Runtime/Editor entry composition 与 app startup compile boundary | fresh gate 前没有可复用的 current-source lowest failure；若出现诊断，按最低 owner 新建或刷新 canonical handoff |
+
+三个 gate 必须由 coordinator 以同一 current-source manifest 顺序执行；任一 compile input 变化都会废弃该批次，不允许用旧 ticket、feature bypass 或上层 alias 继续。
 
 ### 测试阶段：M0.3 Current-Source Compile Gate
 
@@ -171,5 +184,7 @@ M0.2 continues from the lowest passing test target while these owners complete t
 ## Code Review 同步结论 (2026-07-30，2026-08-01 落实)
 
 - JSON readiness 污染、resolver module registration 与 resolver FS fallback 三条旧 blocker 已同步到正文和 checklist，不再作为待实施工作。
-- 计划状态由 `planned` 改为 `in_progress`：M0.1/M0.2 implementation 已有 current-source 形态，M0.3 的 Runtime→Editor→App current-source compile gate 尚未 GREEN。
+- 2026-08-03 Runtime04 review repair 已将 linked current/retired sidecar 决策收回单一 inventory generation，并把 source-presence lookup 收敛为排序后的 O(logN) 查询；1/1k/100k references、1/4 roots 的双向顺序回归已落地，独立复审为 Critical/Important/Minor=`0/0/0`。
+- 2026-08-03 M0.1 validation-ticket 删除墓碑协议已落地；focused Python batch 16/16 通过，首轮独立复审 `C0/I2/M1` 的 copy-race 分类、真实 baseline deletion 覆盖与 manifest 输入覆盖均已修复，最终独立复审 `C0/I0/M0`。manifest `d7e44074...` / ticket `00dfbdb27a9e4e85935a5f85a7c4f462` 已受理但无 terminal receipt。
+- 计划状态保持 `in_progress`：M0.2 implementation 已完成，manifest `a587940b...` 的 package-check 与 focused tickets 已受理但尚无 terminal receipt；M0.3 的 Runtime→Editor→App current-source compile gate 尚未 GREEN。
 - 下游不得继续引用 2026-07-24 的旧 blocker，但也不得仅凭静态修正解除 `blocked_by_00`；解除条件仍是 M0.1 focused、M0.2 resolver batch 与 M0.3 三包受管编译在同一 source fingerprint 下通过并写入 accepted outcome。

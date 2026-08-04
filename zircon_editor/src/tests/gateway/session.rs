@@ -6,7 +6,7 @@ use zircon_runtime_interface::{
     ProfileControlCommand, ProfileControlRequest, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
-    ZrRuntimeApiV3, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeApiV4, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
     ZrRuntimeFrameV1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
     ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimePluginEventDeliveryBatchV1,
@@ -493,8 +493,8 @@ fn capabilities() -> RuntimeCapabilities {
     )
 }
 
-fn api_table() -> ZrRuntimeApiV3 {
-    let mut api = ZrRuntimeApiV3::empty();
+fn api_table() -> ZrRuntimeApiV4 {
+    let mut api = ZrRuntimeApiV4::empty();
     api.tick_frame = Some(fake_tick_frame);
     api.handle_event = Some(fake_handle_event);
     api.capture_frame = Some(fake_capture_frame);
@@ -507,7 +507,7 @@ fn api_table() -> ZrRuntimeApiV3 {
     api
 }
 
-fn gateway(api: ZrRuntimeApiV3) -> SessionGateway {
+fn gateway(api: ZrRuntimeApiV4) -> SessionGateway {
     let owner: Arc<dyn Send + Sync> = Arc::new(());
     unsafe {
         SessionGateway::new(owner, api, ZrRuntimeSessionHandle::new(17), capabilities())
@@ -616,7 +616,7 @@ fn session_gateway_forwards_abi_tick_event_and_frame_calls() {
 
 #[test]
 fn session_gateway_reports_missing_optional_pointer_as_typed_capability_error() {
-    let gateway = gateway(ZrRuntimeApiV3::empty());
+    let gateway = gateway(ZrRuntimeApiV4::empty());
 
     assert_eq!(
         gateway.tick_frame(),

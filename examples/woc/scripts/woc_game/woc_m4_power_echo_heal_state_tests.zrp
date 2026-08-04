@@ -1,6 +1,2 @@
-{
-  "name": "woc_m4_power_echo_heal_state_tests",
-  "source": "src",
-  "binary": "bin-m4-power-echo-heal-state-tests",
-  "entry": "combat/power_echo_heal_state_test_main"
-}
+backend = "zr_vm:project"
+entry = "src/combat/power_echo_heal_state_test_main.zr"

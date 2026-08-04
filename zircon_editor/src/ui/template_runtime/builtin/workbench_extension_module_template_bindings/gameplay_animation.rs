@@ -1,4 +1,4 @@
-use super::types::{change, click, submit, ExtensionBindingSpec};
+use super::types::{ExtensionBindingSpec, change, click, submit};
 
 pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click("SequencerOpen", "workbench.extension.sequencer.open"),
@@ -234,6 +234,14 @@ pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click(
         "BlendSpaceApply",
         "workbench.extension.blend_space.apply.invoke",
+    ),
+    change(
+        "BlendSpaceSearchEdit",
+        "workbench.extension.blend_space.search.edit",
+    ),
+    submit(
+        "BlendSpaceSearchCommit",
+        "workbench.extension.blend_space.search.commit",
     ),
     change(
         "BlendSpaceAssetEdit",

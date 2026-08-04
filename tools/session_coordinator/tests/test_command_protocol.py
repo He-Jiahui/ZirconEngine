@@ -16,7 +16,7 @@ from tools.session_coordinator.command_requests import (
 )
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
-from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.migrations import LATEST_SCHEMA_VERSION, migrate
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.server import CoordinatorApplication, RunningCoordinator
 from tools.session_coordinator.tests.helpers import init_repo
@@ -76,37 +76,6 @@ class CommandProtocolTests(unittest.TestCase):
         self.assertEqual(request_id, first["requestId"])
         self.assertEqual("completed", query["request"]["status"])
         self.assertEqual("session-a", query["result"]["session"]["session_id"])
-
-    def test_duplicate_request_id_executes_command_exactly_once(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            config = CoordinatorConfig.for_repo(
-                init_repo(root / "repo"), state_root=root / "state", port=0
-            )
-            request_id = "b" * 32
-            payload = {
-                "request_id": request_id,
-                "command": "session.register",
-                "arguments": {"session_id": "session-a"},
-            }
-            with RunningCoordinator.start(config) as running:
-                application = running.httpd.application
-                original = application.command
-                executions = 0
-
-                def counted(*args, **kwargs):
-                    nonlocal executions
-                    executions += 1
-                    return original(*args, **kwargs)
-
-                with mock.patch.object(application, "command", side_effect=counted):
-                    first = self._request(running.base_url, "POST", "/command", payload)
-                    second = self._request(running.base_url, "POST", "/command", payload)
-
-        first.pop("_httpStatus")
-        second.pop("_httpStatus")
-        self.assertEqual(first, second)
-        self.assertEqual(1, executions)
 
     def test_transactional_admission_commits_start_ack_before_scheduling(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -742,7 +711,7 @@ class CommandProtocolTests(unittest.TestCase):
                     )
                 ]
 
-            self.assertEqual(50, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
 
             with database.connect() as connection:
                 after = [

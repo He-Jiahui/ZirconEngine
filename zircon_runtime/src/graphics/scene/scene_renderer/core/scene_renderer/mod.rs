@@ -6,3 +6,6 @@ pub use scene_renderer::{
     SceneRenderer, SceneRendererCoreStartupReport, SceneRendererDeferredLightingProfile,
     SceneRendererFrameTimingReport, SceneRendererStartupOptions, SceneRendererStartupReport,
 };
+pub(in crate::graphics::scene::scene_renderer::core) use scene_renderer::{
+    ScenePostProcessStartupMode, SceneRendererCaptureTarget,
+};

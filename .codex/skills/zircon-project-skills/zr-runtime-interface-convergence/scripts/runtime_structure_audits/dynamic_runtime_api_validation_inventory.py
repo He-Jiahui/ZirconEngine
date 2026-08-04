@@ -74,10 +74,6 @@ BEHAVIOR_TEST_ANCHORS = (
 
 CARGO_GATE_ANCHORS = (
     (
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_10.rs",
-        "runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation",
-    ),
-    (
         "docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md",
         "cargo test -p zircon_runtime --lib dynamic_api --locked -- --nocapture",
     ),

@@ -1,5 +1,3 @@
-#[path = "module_convention_gate/audit_status.rs"]
-mod audit_status;
 #[path = "module_convention_gate/debt_boundary.rs"]
 mod debt_boundary;
 #[path = "module_convention_gate/helpers.rs"]

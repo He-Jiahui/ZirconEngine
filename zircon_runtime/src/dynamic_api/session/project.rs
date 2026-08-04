@@ -55,9 +55,10 @@ impl RuntimeProjectConfig {
                 source,
             }
         })?;
+        let root = project.paths().root().to_path_buf();
         let manifest = RuntimeLoadedProjectManifest::from(project.manifest());
         Ok(RuntimePreparedProject {
-            root: self.root,
+            root,
             manifest,
             project: Some(project),
         })
@@ -308,6 +309,7 @@ impl From<&ProjectManifest> for RuntimeLoadedProjectManifest {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::asset::project::ProjectManifest;
@@ -412,6 +414,42 @@ mod tests {
         assert_eq!(prepared.root_display(), root.to_string_lossy());
 
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn prepared_project_normalizes_a_relative_root_before_runtime_consumers_use_it() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let relative_root = PathBuf::from(format!(
+            "zircon_runtime_relative_project_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        fs::create_dir_all(&relative_root).unwrap();
+        ProjectManifest::new(
+            "Relative Runtime Root",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(relative_root.join("zircon-project.toml"))
+        .unwrap();
+
+        let prepared = RuntimeProjectConfig::from_root(&relative_root)
+            .prepare()
+            .unwrap();
+
+        assert_eq!(
+            prepared.root_display(),
+            std::env::current_dir()
+                .unwrap()
+                .join(&relative_root)
+                .to_string_lossy()
+                .into_owned()
+        );
+
+        fs::remove_dir_all(relative_root).unwrap();
     }
 
     #[test]

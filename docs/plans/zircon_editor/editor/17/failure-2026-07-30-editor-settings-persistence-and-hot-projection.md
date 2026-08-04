@@ -2,7 +2,7 @@
 handoff_kind: failure
 status: open
 created_at: 2026-07-30
-updated_at: 2026-07-30
+updated_at: 2026-08-04
 summary_slug: editor-settings-persistence-and-hot-projection
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 fixing_plan: docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
@@ -28,7 +28,7 @@ tests:
 - 修复责任计划：`docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md`
 - 交接原因：设置 authority、无界 change retention、同步持久化与高频 snapshot 投影跨越 Editor17/Editor05/Runtime11 边界，不能由 Performance01 在局部性能切片中建立第二套缓存或调度器。
 - current-source 静态证据：`docs/plans/performance/01/2026-07-30-editor-core-settings-static-review.md`。
-- 当前状态：`open / implementation_and_managed_validation_pending`。本记录不声明源码修复、Cargo 通过或产品验收。
+- 当前状态：`open / implementation_static_green / independent_second_review_green / managed_validation_pending`。本记录不声明 Cargo 通过或产品验收；动态 keymap service、V2 payload identity 与 User locale hot-apply 的审查问题均已完成前向修复并通过二次审查。
 
 ## 失败现象与复现证据
 
@@ -65,4 +65,16 @@ tests:
 
 ## 修复结果与回传
 
-Open state：`implementation_and_managed_validation_pending`。本次仅把既有 failure 内容迁移到当前 handoff schema，未修改 settings 生产代码，也没有获得 managed Cargo 或产品 trace 证据。Editor17 owner 必须完成上述 authority、bounded delta、worker persistence 与 stable snapshot 合同后，再写 fixed return；不得因记录格式已通过审计而关闭本失败。
+Open state：`implementation_static_green / independent_second_review_green / managed_validation_pending`。Editor17 已实现唯一 `SettingsAuthority`、有界 cursor/delta change log、Runtime11 shared bounded persistence lane 与 immutable typed settings snapshot；持久化不在 UI/frame caller 执行。2026-08-04 又把六个内建 key 固化为注册期 slot，snapshot 发布不再解析静态 key，未命中变更复用既有 immutable payload；MRU 已新增 authority 内的 typed mutation，字节预算淘汰会将落后 cursor 明确降级为 snapshot。
+
+2026-08-04 independent second review 的三个 Important 已前向修复并完成再审查，`Critical/Important/Minor = 0/0/0`：`EDITOR_KEYMAP_NAME` 现在解析为动态 authority-backed `EditorKeymapService`，已解析的 manager 与 retained-host keyboard dispatch 会观察后续 override；V2、appearance 与 shell extent 仅以 `Arc<EditorDesignTokens>` payload identity 更新，不再由 authority-local generation 驱动无关 MRU/snap 重投影，也不会跨 authority 错误复用。静态格式和契约检查已通过；尚未进入受管 Cargo、F0 启动或 F4 viewport trace。
+
+2026-08-04 locale hot-apply forward repair 已完成并二次复审 `Critical/Important/Minor = 0/0/0`：`editor.language.locale` 是唯一的 User enum authority（`en`/`zh-CN`）；`EditorContextBuilder` 先以启动快照同步 i18n，再安装锁外 settings subscriber，后续 set/clear 与持久层替换都只传递 immutable snapshot。i18n 以 settings generation 拒绝迟到快照，内部 direct locale setter 已收窄为 crate-local，不能再形成公开的第二 preference 写入口。回归覆盖 builder 的 set/clear 热应用、旧 generation 并发倒灌拒绝，以及 subscriber 在 1 秒内可重入读取 bounded delta。限定 `rustfmt --check`、`git diff --check` 和上述静态契约均通过；Cargo/F0/F4 仍必须由 coordinator 创建 current-source 受管验证，故 handoff 保持 `open`。
+
+未完成的验收边界保持不变：必须完成 current-source 受管 Cargo、F0 启动和 F4 viewport 产品 trace，并恢复完整 M1 manifest 的 attribution/lease 后才能受管提交和写 `fixed-*` return。当前 Session 的 write_scope 不可变，而若干已归属 M1 UI/viewport source 尚未进入该 immutable manifest；这只延后 accepted closeout，不得回滚已集成源码或宣称 Cargo/产品验收通过。
+
+## 产出记录与时间
+
+| 日期 | 切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-08-04 | Settings failure forward repair | `implementation_static_green / independent_second_review_green / managed_validation_pending` | 注册期 `BuiltInSettingsSlots` 消除 snapshot 发布期的 static key parse；MRU typed mutation 收回 authority，viewport mutation保持 design token/keymap/MRU Arc payload 复用；条目/字节/年龄预算都使落后 cursor 要求 snapshot。三个二审 Important 均已前向修复：模块服务改为动态 `EditorKeymapService`，V2/appearance/shell extent 改以 token `Arc` identity 投影。User locale 现经 context startup snapshot + lock-external subscriber 热应用，generation 拒绝迟到快照，direct setter 为 crate-local；回归覆盖 set/clear、倒灌和有界 delta 的可重入读取。两轮独立审查最终 `Critical/Important/Minor = 0/0/0`，局部 rustfmt 与静态契约检查通过。未运行 Cargo，受管 F0/F4 和完整 immutable manifest attribution 仍待协调器安排。 |

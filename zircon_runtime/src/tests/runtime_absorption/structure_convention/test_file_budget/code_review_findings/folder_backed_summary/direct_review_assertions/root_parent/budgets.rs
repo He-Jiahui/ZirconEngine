@@ -26,10 +26,6 @@ pub(super) fn assert_root_parent_direct_assertions_children_line_budgets_are_cur
             ROOT_PARENT_DIRECT_ASSERTIONS_BUDGETS_CHILD,
             read_runtime_src(ROOT_PARENT_DIRECT_ASSERTIONS_BUDGETS_CHILD),
         ),
-        (
-            ROOT_PARENT_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD,
-            read_runtime_src(ROOT_PARENT_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(

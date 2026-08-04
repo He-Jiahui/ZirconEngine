@@ -143,7 +143,7 @@ fn executable_topology_layers(
     mut include_pass: impl FnMut(usize, &crate::render_graph::CompiledRenderPass) -> bool,
 ) -> Vec<TopologyLayer> {
     let passes = compiled.passes();
-    let mut layer_by_pass_id = HashMap::with_capacity(passes.len());
+    let mut layer_by_pass_id = HashMap::<_, usize>::with_capacity(passes.len());
     let mut pass_indices_by_layer = Vec::<Vec<usize>>::new();
     for (pass_index, pass) in passes.iter().enumerate() {
         let layer = pass

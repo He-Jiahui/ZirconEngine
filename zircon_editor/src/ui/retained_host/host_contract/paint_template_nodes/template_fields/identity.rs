@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
-    TemplateComponentFamily, is_component_family, uses_workbench_visual_language,
+    is_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
 use super::search::is_search_field;
 
@@ -15,5 +15,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_stepper_field(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    node.control_id.as_str() == "WorkbenchInputStepper"
+    node.layout_stepper || node.control_id.as_str() == "WorkbenchInputStepper"
 }

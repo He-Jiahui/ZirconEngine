@@ -19,6 +19,8 @@ pub enum RenderFeatureCapabilityRequirement {
     AsyncCopy,
     NeuralCompute,
     SparseTexture,
+    SubgroupOps,
+    PipelineStatisticsQuery,
 }
 
 impl RenderFeatureCapabilityRequirement {
@@ -45,6 +47,8 @@ impl RenderFeatureCapabilityRequirement {
             Self::AsyncCopy => RenderCapabilityKind::AsyncCopy,
             Self::NeuralCompute => RenderCapabilityKind::NeuralCompute,
             Self::SparseTexture => RenderCapabilityKind::SparseTexture,
+            Self::SubgroupOps => RenderCapabilityKind::SubgroupOps,
+            Self::PipelineStatisticsQuery => RenderCapabilityKind::PipelineStatisticsQuery,
         }
     }
 
@@ -67,10 +71,27 @@ impl RenderFeatureCapabilityRequirement {
             RenderCapabilityKind::AsyncCopy => Self::AsyncCopy,
             RenderCapabilityKind::NeuralCompute => Self::NeuralCompute,
             RenderCapabilityKind::SparseTexture => Self::SparseTexture,
+            RenderCapabilityKind::SubgroupOps => Self::SubgroupOps,
+            RenderCapabilityKind::PipelineStatisticsQuery => Self::PipelineStatisticsQuery,
         }
     }
 
     pub const fn label(self) -> &'static str {
         self.capability_kind().label()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RenderFeatureCapabilityRequirement;
+    use crate::core::framework::render::RenderCapabilityKind;
+
+    #[test]
+    fn feature_requirements_round_trip_every_render_capability() {
+        for capability in RenderCapabilityKind::ALL {
+            let requirement = RenderFeatureCapabilityRequirement::from_capability_kind(capability);
+
+            assert_eq!(requirement.capability_kind(), capability);
+        }
     }
 }

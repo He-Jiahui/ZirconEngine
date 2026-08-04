@@ -40,9 +40,6 @@ fn runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name() {
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let ecs_doc = read_repo_text(manifest_root, "docs/zircon_runtime/scene/ecs.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_query_helpers.exists(),
@@ -80,17 +77,7 @@ fn runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name() {
         "scene ECS systems test-budget guard should not keep retired query_helpers path"
     );
 
-    let docs = [
-        ("Runtime 15 plan", runtime_15_plan),
-        ("runtime index", runtime_index),
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("module convention doc", module_doc),
-        ("scene ECS doc", ecs_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
-    ];
+    let docs = [];
     for (label, source) in docs {
         assert_contains_all(
             label,

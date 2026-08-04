@@ -8,6 +8,7 @@ mod default_deferred;
 mod default_forward_plus;
 mod descriptor_filtering;
 mod graph_resources;
+mod half_resolution_transparency;
 mod pass_authoring;
 mod plugin_render_features;
 mod resource_descriptors;

@@ -15,9 +15,8 @@ fn realtime_runtime_defers_gpu_resource_creation_until_a_procedural_frame() {
 
 #[test]
 fn first_procedural_frame_initializes_realtime_gpu_resources_and_starts_full_batch() {
-    let Ok(backend) = RenderBackend::new_offscreen() else {
-        return;
-    };
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for the first procedural realtime IBL frame");
     let mut runtime = RealtimeIblRuntime::new();
 
     let prepared = runtime.prepare_frame(&backend.device, ProceduralSkyParams::default_gradient());

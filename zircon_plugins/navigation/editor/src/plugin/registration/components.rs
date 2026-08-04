@@ -1,6 +1,7 @@
 use zircon_editor::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorExtensionRegistry, EditorExtensionRegistryError,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_runtime::core::framework::navigation::{
     NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
@@ -42,7 +43,7 @@ pub(super) fn register(
             NAV_MESH_OFF_MESH_LINK_DRAWER_ID,
         ),
     ] {
-        registry.register_component_drawer(ComponentDrawerDescriptor::new(
+        registry.register_inspector_customization(InspectorCustomizationDescriptor::new(
             component_type,
             document,
             controller,

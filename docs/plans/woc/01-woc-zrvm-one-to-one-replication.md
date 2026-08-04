@@ -102,6 +102,22 @@ browser/WebGPU. WOC may continue independent schemas, catalogs, ZrVM modules
 and fixtures, but may not replace any of these with a game-local workaround or
 call an MVP/playable result complete while they remain open.
 
+### 2026-08-03 ZrVM fixture-backend assessment
+
+The WOC gameplay project is **not yet dynamically reproducible** through the
+required plugin path. A focused forward migration made all 42
+`woc_m4_*runtime_tests.zrp` fixtures explicitly select `zr_vm:project`, and
+their associated static guards no longer accept legacy JSON entry declarations.
+That is static package binding evidence only, not a real VM transaction.
+
+The broader fixture audit still found 281 `*.zrp` manifests without an explicit
+`zr_vm:project` backend, including 82 non-runtime `woc_m4_*.zrp` state/module
+fixtures. Plugins08 owns the required supported manifest migration and runner
+dispatch proof. WOC must continue independent gameplay slices, schemas and
+content while that owner demonstrates that canonical packages execute through
+the reliable plugin rather than a fallback; it must not bulk-rewrite the legacy
+population or supply a game-local VM substitute.
+
 The scalar-math handoff is a distinct current-source execution blocker. The
 runtime registers only `zr.zircon.math` and currently exposes
 `vec3_length`/`vec3_dot`; it does not expose scalar `sqrt`, `sin`, `cos`,

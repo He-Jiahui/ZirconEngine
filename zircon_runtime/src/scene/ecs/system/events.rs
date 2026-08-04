@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, EventCursor, EventReadIter, EventStore, EventTypeId, Events, SystemParam,
     SystemParamAccess, SystemParamError,
 };
+use crate::scene::World;
 
 pub struct EventReaderParam<T>(PhantomData<fn() -> T>);
 

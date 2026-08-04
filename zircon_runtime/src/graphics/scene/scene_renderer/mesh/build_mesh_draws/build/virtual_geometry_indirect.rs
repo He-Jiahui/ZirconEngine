@@ -11,9 +11,9 @@ use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::pending_mesh_draw::{
-    draw_ref_input, segment_input, PendingMeshDraw, VirtualGeometryIndirectDrawRef,
-    VirtualGeometryIndirectDrawRefInput, VirtualGeometryIndirectSegmentInput,
-    VirtualGeometryIndirectSegmentKey,
+    PendingMeshDraw, VirtualGeometryIndirectDrawRef, VirtualGeometryIndirectDrawRefInput,
+    VirtualGeometryIndirectSegmentInput, VirtualGeometryIndirectSegmentKey, draw_ref_input,
+    segment_input,
 };
 
 pub(super) struct VirtualGeometryIndirectDrawPlan {

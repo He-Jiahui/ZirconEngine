@@ -42,6 +42,7 @@ pub struct CompiledRenderPipeline {
     pub capability_requirements: Vec<RenderFeatureCapabilityRequirement>,
     pub history_bindings: Vec<FrameHistoryBinding>,
     pub environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
+    half_resolution_transparency_depth_sigma: u16,
     runtime_metadata: Arc<CompiledRenderPipelineRuntimeMetadata>,
     graph: CompiledRenderGraph,
 }
@@ -57,6 +58,7 @@ pub(crate) struct CompiledRenderPipelineParts {
     pub(crate) capability_requirements: Vec<RenderFeatureCapabilityRequirement>,
     pub(crate) history_bindings: Vec<FrameHistoryBinding>,
     pub(crate) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
+    pub(crate) half_resolution_transparency_depth_sigma: u16,
     pub(crate) graph: CompiledRenderGraph,
 }
 
@@ -79,6 +81,8 @@ impl CompiledRenderPipeline {
             capability_requirements: parts.capability_requirements,
             history_bindings: parts.history_bindings,
             environment_ibl_bake_request: parts.environment_ibl_bake_request,
+            half_resolution_transparency_depth_sigma: parts
+                .half_resolution_transparency_depth_sigma,
             runtime_metadata,
             graph: parts.graph,
         }
@@ -105,6 +109,10 @@ impl CompiledRenderPipeline {
 
     pub(crate) fn runtime_feature_flags(&self) -> CompiledRenderPipelineRuntimeFeatureFlags {
         self.runtime_metadata.runtime_feature_flags()
+    }
+
+    pub(crate) const fn half_resolution_transparency_depth_sigma(&self) -> u16 {
+        self.half_resolution_transparency_depth_sigma
     }
 
     pub(crate) fn executor_validation_generation(&self) -> u64 {

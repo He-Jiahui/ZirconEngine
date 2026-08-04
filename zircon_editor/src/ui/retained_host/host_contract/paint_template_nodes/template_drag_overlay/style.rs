@@ -1,5 +1,5 @@
 use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
-use super::super::data::TemplatePaneNodeData;
+use super::super::super::data::TemplatePaneNodeData;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct DragOverlayPalette {

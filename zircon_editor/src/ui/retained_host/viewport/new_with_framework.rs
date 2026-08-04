@@ -11,6 +11,7 @@ impl RetainedViewportController {
             shared: Arc::new(Mutex::new(ViewportState::with_render_framework(
                 render_framework,
             ))),
+            viewport_lifecycle: Arc::new(Mutex::new(())),
         }
     }
 }

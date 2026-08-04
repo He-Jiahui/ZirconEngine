@@ -177,8 +177,8 @@ mod tests {
     };
 
     use super::{
-        summarize_pending_mesh_command_cache_plan_items, PendingMeshCommandCachePlanItem,
-        PendingMeshCommandCacheVisibility,
+        PendingMeshCommandCachePlanItem, PendingMeshCommandCacheVisibility,
+        summarize_pending_mesh_command_cache_plan_items,
     };
 
     #[test]

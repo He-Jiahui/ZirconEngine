@@ -1,15 +1,16 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::asset::AssetUri;
-use crate::asset::project::mint_meta_for_migration;
-use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
+use crate::asset::project::{
+    mint_meta_for_migration, AssetMetaDocument, AssetSourceUnit, ProjectPaths,
+};
 use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
 use crate::asset::safe_project_path::is_safe_regular_file;
+use crate::asset::AssetUri;
 
 use super::document::PendingDocument;
 use super::resolver_index::MigrationCompoundBinding;
-use super::scan::{MigrationInventory, RecognizedSource};
+use super::scan::MigrationInventory;
 use super::{AssetMigrationIssue, AssetMigrationIssueKind};
 
 pub(super) struct SidecarPreflight {
@@ -102,7 +103,10 @@ pub(super) fn preflight_sidecars(
             } else {
                 path.clone()
             };
-            if target != path && target.exists() {
+            if target != path && inventory.is_rejected_path(&target) {
+                return Err(rejected_sidecar_path(&target));
+            }
+            if target != path && inventory.physical_path_for(&target).is_some() {
                 let current = fs::read_to_string(&target)
                     .map_err(|error| invalid(&target, error.to_string()))?;
                 if current != canonical {
@@ -148,7 +152,7 @@ pub(super) fn preflight_sidecars(
             documents.push(document);
         }
     }
-    mint_missing_sidecars(inventory.recognized_sources(), &mut documents, &mut pending)?;
+    mint_missing_sidecars(inventory, &mut documents, &mut pending)?;
     let mut entries = Vec::new();
     for document in documents {
         entries.push(
@@ -185,11 +189,11 @@ pub(super) fn preflight_sidecars(
 }
 
 fn mint_missing_sidecars(
-    recognized: &[RecognizedSource],
+    inventory: &MigrationInventory,
     documents: &mut Vec<AssetMetaDocument>,
     pending: &mut Vec<PendingDocument>,
 ) -> Result<(), AssetMigrationIssue> {
-    for source in recognized {
+    for source in inventory.recognized_sources() {
         let target = source.path.with_file_name(format!(
             "{}.zmeta",
             source
@@ -202,7 +206,15 @@ fn mint_missing_sidecars(
             "{}.meta.toml",
             source.path.file_name().unwrap().to_string_lossy()
         ));
-        if target.exists() || retired.exists() {
+        if let Some(rejected) = [&target, &retired]
+            .into_iter()
+            .find(|path| inventory.is_rejected_path(path))
+        {
+            return Err(rejected_sidecar_path(rejected));
+        }
+        if inventory.physical_path_for(&target).is_some()
+            || inventory.physical_path_for(&retired).is_some()
+        {
             continue;
         }
         let candidates = &source.root_relative_identities;
@@ -246,6 +258,13 @@ fn mint_missing_sidecars(
         });
     }
     Ok(())
+}
+
+fn rejected_sidecar_path(path: &Path) -> AssetMigrationIssue {
+    invalid(
+        path,
+        "sidecar path is a symbolic link or reparse point rejected by the migration inventory",
+    )
 }
 
 fn require_digest(
@@ -301,9 +320,10 @@ fn safe_compound_directory(root: &Path, path: &Path) -> Result<bool, AssetMigrat
     if !metadata.is_dir() || crate::asset::safe_project_path::is_link_or_reparse(&metadata) {
         return Ok(false);
     }
-    let canonical = fs::canonicalize(path).map_err(|error| invalid(path, error.to_string()))?;
-    let canonical_root =
-        fs::canonicalize(root).map_err(|error| invalid(root, error.to_string()))?;
+    let canonical = ProjectPaths::resolve_existing_path(path)
+        .map_err(|error| invalid(path, error.to_string()))?;
+    let canonical_root = ProjectPaths::resolve_existing_path(root)
+        .map_err(|error| invalid(root, error.to_string()))?;
     Ok(canonical.starts_with(canonical_root))
 }
 

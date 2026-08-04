@@ -32,7 +32,7 @@ fn selection_indicator_stays_within_a_narrow_list_row() {
     let rect = FrameRect {
         x: 8.0,
         y: 6.0,
-        width: 0.5,
+        width: 1.0,
         height: 24.0,
     };
     let mut commands = Vec::new();
@@ -58,7 +58,7 @@ fn narrow_list_row_surface_radius_stays_within_the_row_extent() {
     let rect = FrameRect {
         x: 8.0,
         y: 6.0,
-        width: 0.5,
+        width: 1.0,
         height: 24.0,
     };
     let mut commands = Vec::new();
@@ -103,6 +103,66 @@ fn collapsed_list_row_text_slot_does_not_emit_a_one_pixel_text_command() {
 }
 
 #[test]
+fn fully_clipped_list_row_does_not_emit_paint_commands() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 160.0,
+        height: 24.0,
+    };
+    let clip = FrameRect {
+        x: 200.0,
+        y: 0.0,
+        width: 80.0,
+        height: 80.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_list_row_commands(
+        &mut commands,
+        &list_node(true, false),
+        &rect,
+        &clip,
+        4,
+        1.0,
+    ));
+
+    assert!(commands.is_empty());
+}
+
+#[test]
+fn partially_clipped_list_row_keeps_only_clipped_paint_commands() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 160.0,
+        height: 24.0,
+    };
+    let clip = FrameRect {
+        x: 16.0,
+        y: 8.0,
+        width: 60.0,
+        height: 18.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_list_row_commands(
+        &mut commands,
+        &list_node(true, false),
+        &rect,
+        &clip,
+        4,
+        1.0,
+    ));
+
+    assert!(!commands.is_empty());
+    assert!(commands.iter().all(|command| command
+        .clip_frame
+        .as_ref()
+        .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+}
+
+#[test]
 fn narrow_list_row_elides_an_adornment_that_would_escape_its_frame() {
     let metrics = workbench_row_metrics();
     let rect = FrameRect {
@@ -122,11 +182,9 @@ fn narrow_list_row_elides_an_adornment_that_would_escape_its_frame() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.image_pixels.is_none())
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.image_pixels.is_none()));
 }
 
 #[test]
@@ -149,9 +207,7 @@ fn short_list_row_elides_an_adornment_that_would_escape_its_frame() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.image_pixels.is_none())
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.image_pixels.is_none()));
 }

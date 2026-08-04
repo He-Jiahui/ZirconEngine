@@ -1,6 +1,7 @@
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::view::WorkbenchSlot;
 use crate::ui::workbench::view::{
     PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PaneTemplateSpec,
     ViewDescriptor, ViewDescriptorId, ViewKind,

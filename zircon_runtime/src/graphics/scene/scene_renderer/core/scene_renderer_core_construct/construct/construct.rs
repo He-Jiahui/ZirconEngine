@@ -12,7 +12,7 @@ use crate::graphics::{
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
-use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
+use super::super::super::super::hzb::{HzbOcclusionCuller, hzb_occlusion_supported_by_limits};
 use super::super::super::super::mesh::skinning::{
     create_empty_skinned_joint_palette_buffer, skinned_joint_palette_storage_min_binding_size,
 };
@@ -21,11 +21,11 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::super::shadow::atlas::{
-    ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
-};
 use super::super::super::super::shadow::ShadowMapRenderer;
+use super::super::super::super::shadow::atlas::{
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasConfig,
+    ShadowAtlasResourceConfig, ShadowAtlasResources,
+};
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::constants::{DEPTH_FORMAT, SCENE_COLOR_HDR_FORMAT};
@@ -107,13 +107,12 @@ impl SceneRendererCore {
         let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
         // The zero-direct-light preview retains valid shared bindings without reserving the
         // full 4096-square shadow atlas used by scene-capable renderer profiles.
-        let shadow_atlas_resource_config = if deferred_lighting_profile
-            .uses_full_shadow_atlas_resources()
-        {
-            ShadowAtlasResourceConfig::default()
-        } else {
-            ENVIRONMENT_ONLY_SHADOW_ATLAS_PLACEHOLDER
-        };
+        let shadow_atlas_resource_config =
+            if deferred_lighting_profile.uses_full_shadow_atlas_resources() {
+                ShadowAtlasResourceConfig::default()
+            } else {
+                ENVIRONMENT_ONLY_SHADOW_ATLAS_PLACEHOLDER
+            };
         let shadow_atlas_resources =
             ShadowAtlasResources::new(device, shadow_atlas_resource_config);
         let shadow_atlas_resource_config = shadow_atlas_resources.config();

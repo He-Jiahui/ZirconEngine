@@ -23,9 +23,6 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let script_vm_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/script_vm_recovery.rs",
-    );
 
     assert_contains_all_exact(
         "VM plugin manager selected-backend poison recovery",
@@ -49,31 +46,6 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
         ],
     );
     assert_no_direct_rwlock_unwrap_in_production("VM plugin manager", &vm_plugin_manager);
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("script VM doc", script_vm_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 VM plugin manager selected-backend lock poison recovery",
-                "runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred",
-                "script/vm/runtime/vm_plugin_manager.rs",
-                "vm_plugin_manager_selected_backend_accessors_recover_poisoned_lock",
-                "runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector",
-            ],
-        );
-    }
 }
 
 fn assert_no_direct_rwlock_unwrap_in_production(label: &str, source: &str) {

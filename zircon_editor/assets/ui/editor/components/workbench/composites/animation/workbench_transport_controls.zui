@@ -8,7 +8,7 @@ display_name = "Workbench Transport Controls"
 widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
 ]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchTransportControls]
 root = "root"

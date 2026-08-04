@@ -14,6 +14,7 @@ mod atlas_resources;
 mod compiled_frame;
 mod decorations;
 mod material;
+mod shaped_advances;
 mod vertex_buffer;
 mod vertices;
 

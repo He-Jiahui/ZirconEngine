@@ -20,11 +20,7 @@ fn open_popup_menu_paints_right_aligned_item_icons() {
 fn selected_dropdown_option_paints_right_check_adornment() {
     let bytes = paint_template_nodes_for_test(150, 120, model_rc(vec![dropdown_node()]));
 
-    assert!(matching_pixel_count(&bytes, 150, PALETTE.border, 12, 44, 112, 28) > 64);
-    assert_eq!(
-        matching_pixel_count(&bytes, 150, PALETTE.accent, 12, 44, 112, 28),
-        0
-    );
+    assert!(matching_pixel_count(&bytes, 150, PALETTE.accent, 12, 44, 112, 28) > 64);
     assert!(matching_pixel_count(&bytes, 150, PALETTE.surface_pressed, 14, 46, 108, 24) > 1_500);
     assert_eq!(
         matching_pixel_count(&bytes, 150, PALETTE.surface_selected, 14, 46, 108, 24),
@@ -41,12 +37,8 @@ fn selected_dropdown_option_paints_right_check_adornment() {
 fn standalone_dropdown_popup_paints_selected_row_outline_inside_projected_popup_frame() {
     let bytes = paint_template_nodes_for_test(180, 140, model_rc(vec![dropdown_popup_node()]));
 
-    assert_eq!(pixel_at(&bytes, 180, 20, 20), PALETTE.border);
-    assert!(matching_pixel_count(&bytes, 180, PALETTE.border, 20, 16, 120, 24) > 72);
-    assert_eq!(
-        matching_pixel_count(&bytes, 180, PALETTE.accent, 20, 16, 120, 24),
-        0
-    );
+    assert_eq!(pixel_at(&bytes, 180, 20, 20), PALETTE.accent);
+    assert!(matching_pixel_count(&bytes, 180, PALETTE.accent, 20, 16, 120, 24) > 72);
     assert!(matching_pixel_count(&bytes, 180, PALETTE.surface_pressed, 22, 18, 116, 20) > 1_800);
     assert_eq!(
         matching_pixel_count(&bytes, 180, PALETTE.surface_selected, 22, 18, 116, 20),

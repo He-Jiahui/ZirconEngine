@@ -7,13 +7,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_
     state: UiPainterResolvedState,
     palette: &WorkbenchChromePalette,
 ) -> Option<[u8; 4]> {
-    if kind == WorkbenchChromeKind::DrawerColumn {
-        return None;
-    }
     if kind == WorkbenchChromeKind::ContentPanel {
         return Some(content_panel_fill(state, palette));
     }
-    let normal = normal_chrome_fill(kind, palette);
+    let normal = normal_chrome_fill(kind, palette)?;
     Some(match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             palette.surface_disabled
@@ -46,8 +43,11 @@ fn content_panel_fill(state: UiPainterResolvedState, palette: &WorkbenchChromePa
     }
 }
 
-fn normal_chrome_fill(kind: WorkbenchChromeKind, palette: &WorkbenchChromePalette) -> [u8; 4] {
-    match kind {
+fn normal_chrome_fill(
+    kind: WorkbenchChromeKind,
+    palette: &WorkbenchChromePalette,
+) -> Option<[u8; 4]> {
+    Some(match kind {
         WorkbenchChromeKind::WindowRoot => palette.root_bg,
         WorkbenchChromeKind::TopToolbar => palette.topbar_bg,
         WorkbenchChromeKind::MainBand => palette.main_bg,
@@ -59,8 +59,8 @@ fn normal_chrome_fill(kind: WorkbenchChromeKind, palette: &WorkbenchChromePalett
         WorkbenchChromeKind::ViewportPanel => palette.viewport_frame_bg,
         WorkbenchChromeKind::ComponentDrawer => palette.drawer_bg,
         WorkbenchChromeKind::DrawerBody => palette.drawer_body_bg,
-        WorkbenchChromeKind::DrawerColumn => unreachable!("drawer columns do not draw a fill"),
+        WorkbenchChromeKind::DrawerColumn => return None,
         WorkbenchChromeKind::StatusBar => palette.status_bg,
         WorkbenchChromeKind::TabsBand => palette.tab_bg,
-    }
+    })
 }

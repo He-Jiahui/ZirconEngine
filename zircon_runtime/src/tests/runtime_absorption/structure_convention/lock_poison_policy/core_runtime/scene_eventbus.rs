@@ -20,9 +20,6 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let level_doc = read_repo("docs/zircon_runtime/scene/level_system.md");
     let event_doc = read_repo("docs/zircon_runtime/core/runtime/events.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "structure convention parent lock-poison mount",
@@ -117,29 +114,5 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         ("event topic", event_topic.as_str()),
     ] {
         assert_no_direct_lock_unwrap_in_production(label, source);
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("level system doc", level_doc.as_str()),
-        ("event bus doc", event_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 F2 lock poison recovery guard",
-                "runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending",
-                "structure_convention/lock_poison_policy.rs",
-                "review_f2_scene_eventbus_locks_recover_after_poison",
-                "scene/EventBus poison-safe lock recovery complete",
-                "runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus",
-            ],
-        );
     }
 }

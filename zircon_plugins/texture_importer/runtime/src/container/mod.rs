@@ -11,6 +11,8 @@ use support::*;
 
 pub(crate) struct TextureContainerInfo {
     pub(crate) format: String,
+    /// Rewritten container bytes when the importer expands standard KTX2 supercompression.
+    pub(crate) upload_bytes: Option<Vec<u8>>,
     pub(crate) width: u32,
     pub(crate) height: u32,
     pub(crate) dimension: RenderImageDimension,

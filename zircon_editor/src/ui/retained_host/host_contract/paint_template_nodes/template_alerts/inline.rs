@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::super::style_selector::{WorkbenchAlertTone as AlertTone, select_workbench_alert_style};
+use super::super::style_selector::{select_workbench_alert_style, WorkbenchAlertTone as AlertTone};
 use super::super::template_alert_glyphs::push_alert_mark;
 use super::super::template_node_labels::template_node_label;
 use super::layout::{alert_icon_rect, alert_metrics, alert_text_rect, frame_is_within};
@@ -49,15 +49,30 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_in
     if !frame_is_within(&text_rect, rect) || text_rect.height < metrics.line_height {
         return;
     }
-    commands.push(HostPaintCommand::text(
-        text_rect,
-        Some(clip.clone()),
-        order + 2,
-        label,
-        style.text,
-        metrics.font_size,
-        metrics.line_height,
-        UiTextRunPaintStyle::default(),
-        opacity,
-    ));
+    let command = if text_rect.height > metrics.line_height {
+        HostPaintCommand::wrapped_text(
+            text_rect,
+            Some(clip.clone()),
+            order + 2,
+            label,
+            style.text,
+            metrics.font_size,
+            metrics.line_height,
+            UiTextRunPaintStyle::default(),
+            opacity,
+        )
+    } else {
+        HostPaintCommand::text(
+            text_rect,
+            Some(clip.clone()),
+            order + 2,
+            label,
+            style.text,
+            metrics.font_size,
+            metrics.line_height,
+            UiTextRunPaintStyle::default(),
+            opacity,
+        )
+    };
+    commands.push(command);
 }

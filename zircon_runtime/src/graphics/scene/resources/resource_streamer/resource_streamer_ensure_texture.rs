@@ -32,11 +32,14 @@ impl ResourceStreamer {
             device,
             queue,
             texture_layout,
+            Arc::clone(&self.texture_sampler_cache),
             id,
             texture,
+            &self.runtime_mip_gen_pass,
         )?);
         self.textures
-            .insert(id, PreparedTexture { revision, resource });
+            .insert(id, PreparedTexture::fully_resident(revision, resource));
+        self.mip_streaming_states.remove(&id);
         Ok(())
     }
 

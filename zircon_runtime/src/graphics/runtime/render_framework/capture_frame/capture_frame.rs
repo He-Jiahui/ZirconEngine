@@ -35,14 +35,16 @@ pub(in crate::graphics::runtime::render_framework) fn capture_frame_if_newer(
                 },
             )?;
             record.promote_completed_async_capture();
-            last_generation
-                .is_some()
-                .then(|| record.last_capture())
-                .flatten()
-                .filter(|capture| {
-                    last_generation.is_some_and(|generation| capture.generation > generation)
-                })
-                .and_then(|_| record.capture_for_inspection())
+            match last_generation {
+                Some(generation)
+                    if record
+                        .last_capture()
+                        .is_some_and(|capture| capture.generation > generation) =>
+                {
+                    record.capture_for_inspection()
+                }
+                _ => None,
+            }
         };
     let frame =
         if let Some(frame) = completed_frame {

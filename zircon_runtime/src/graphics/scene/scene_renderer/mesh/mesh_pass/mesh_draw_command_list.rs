@@ -35,6 +35,7 @@ pub(crate) struct MeshPassCommandBuffers {
     advanced_pbr_opaque: MeshDrawCommandList,
     transmission: MeshDrawCommandList,
     transparent: MeshDrawCommandList,
+    half_resolution_transparent: MeshDrawCommandList,
     velocity: MeshDrawCommandList,
     taa_reactive_mask: MeshDrawCommandList,
     cache_stats: MeshDrawCommandCacheStats,
@@ -121,6 +122,10 @@ impl MeshPassCommandBuffers {
         append_command_list(&mut self.advanced_pbr_opaque, other.advanced_pbr_opaque);
         append_command_list(&mut self.transmission, other.transmission);
         append_command_list(&mut self.transparent, other.transparent);
+        append_command_list(
+            &mut self.half_resolution_transparent,
+            other.half_resolution_transparent,
+        );
         append_command_list(&mut self.velocity, other.velocity);
         append_command_list(&mut self.taa_reactive_mask, other.taa_reactive_mask);
         self.cache_stats.accumulate(other.cache_stats);
@@ -137,6 +142,7 @@ impl MeshPassCommandBuffers {
         let mut advanced_pbr_opaque = Vec::new();
         let mut transmission = Vec::new();
         let mut transparent = Vec::new();
+        let mut half_resolution_transparent = Vec::new();
         let mut velocity = Vec::new();
         let mut taa_reactive_mask = Vec::new();
 
@@ -151,6 +157,9 @@ impl MeshPassCommandBuffers {
                 }
                 RenderPhase::Transparent3d if is_transmission(&command) => {
                     transmission.push(command)
+                }
+                RenderPhase::Transparent3d if command.uses_half_resolution_transparency() => {
+                    half_resolution_transparent.push(command)
                 }
                 RenderPhase::Transparent3d => transparent.push(command),
                 RenderPhase::PostProcess
@@ -179,6 +188,9 @@ impl MeshPassCommandBuffers {
             advanced_pbr_opaque: MeshDrawCommandList::from_commands(advanced_pbr_opaque),
             transmission: MeshDrawCommandList::from_commands(transmission),
             transparent: MeshDrawCommandList::from_commands(transparent),
+            half_resolution_transparent: MeshDrawCommandList::from_commands(
+                half_resolution_transparent,
+            ),
             velocity: MeshDrawCommandList::from_commands(velocity),
             taa_reactive_mask: MeshDrawCommandList::from_commands(taa_reactive_mask),
             cache_stats,
@@ -213,6 +225,17 @@ impl MeshPassCommandBuffers {
         &self.transparent
     }
 
+    pub(crate) fn half_resolution_transparent(&self) -> &MeshDrawCommandList {
+        &self.half_resolution_transparent
+    }
+
+    /// Keeps material-marked transparency visible whenever the compiled graph does not own the
+    /// half-resolution mesh pass. The merged list is re-sorted before indirect batching.
+    pub(crate) fn merge_half_resolution_transparent_into_transparent(&mut self) {
+        let half_resolution_transparent = std::mem::take(&mut self.half_resolution_transparent);
+        append_command_list(&mut self.transparent, half_resolution_transparent);
+    }
+
     pub(crate) fn velocity(&self) -> &MeshDrawCommandList {
         &self.velocity
     }
@@ -236,6 +259,7 @@ impl MeshPassCommandBuffers {
         let advanced_pbr_opaque = self.advanced_pbr_opaque.stats();
         let transmission = self.transmission.stats();
         let transparent = self.transparent.stats();
+        let half_resolution_transparent = self.half_resolution_transparent.stats();
         let velocity = self.velocity.stats();
         let taa_reactive_mask = self.taa_reactive_mask.stats();
         let lists = [
@@ -246,6 +270,7 @@ impl MeshPassCommandBuffers {
             advanced_pbr_opaque,
             transmission,
             transparent,
+            half_resolution_transparent,
             velocity,
             taa_reactive_mask,
         ];
@@ -259,6 +284,7 @@ impl MeshPassCommandBuffers {
                 self.alpha_mask.commands(),
                 self.advanced_pbr_opaque.commands(),
                 self.transparent.commands(),
+                self.half_resolution_transparent.commands(),
                 self.velocity.commands(),
                 self.taa_reactive_mask.commands(),
             ],
@@ -280,7 +306,9 @@ impl MeshPassCommandBuffers {
             alpha_mask_command_count: alpha_mask.command_count,
             advanced_pbr_opaque_command_count: advanced_pbr_opaque.command_count,
             transmission_command_count: transmission.command_count,
-            transparent_command_count: transparent.command_count,
+            transparent_command_count: transparent
+                .command_count
+                .saturating_add(half_resolution_transparent.command_count),
             velocity_command_count: velocity.command_count,
             taa_reactive_mask_command_count: taa_reactive_mask.command_count,
             direct_indexed_count: lists.iter().map(|stats| stats.direct_indexed_count).sum(),

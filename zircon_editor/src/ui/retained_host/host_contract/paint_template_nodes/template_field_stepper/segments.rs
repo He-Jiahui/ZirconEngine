@@ -1,4 +1,5 @@
 use super::super::super::data::FrameRect;
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 
 const STEPPER_GLYPH_GRID_WIDTH_UNITS: f32 = 50.0;
@@ -39,8 +40,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
     opacity: f32,
 ) {
     for segment in STEPPER_GLYPH_SEGMENTS {
+        let rect = segment_rect(origin, *segment);
+        if intersect(&rect, clip).is_none() {
+            continue;
+        }
         commands.push(HostPaintCommand::quad(
-            segment_rect(origin, *segment),
+            rect,
             Some(clip.clone()),
             order,
             Some(color),
@@ -106,5 +111,50 @@ mod tests {
         assert_close(segment.y, 4.0);
         assert_close(segment.width, 6.0);
         assert_close(segment.height, 1.4);
+    }
+
+    #[test]
+    fn stepper_glyph_segments_skip_fully_clipped_stepper() {
+        let origin = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 20.0,
+            height: 16.0,
+        };
+        let clip = FrameRect {
+            x: 40.0,
+            y: 0.0,
+            width: 40.0,
+            height: 80.0,
+        };
+        let mut commands = Vec::new();
+
+        push_stepper_glyph_segments(&mut commands, &origin, &clip, 2, [255, 255, 255, 255], 1.0);
+
+        assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn stepper_glyph_segments_keep_partially_visible_segments() {
+        let origin = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 20.0,
+            height: 16.0,
+        };
+        let clip = FrameRect {
+            x: 14.0,
+            y: 22.0,
+            width: 6.0,
+            height: 8.0,
+        };
+        let mut commands = Vec::new();
+
+        push_stepper_glyph_segments(&mut commands, &origin, &clip, 2, [255, 255, 255, 255], 1.0);
+
+        assert!(!commands.is_empty());
+        assert!(commands
+            .iter()
+            .all(|command| command.clip_frame.as_ref() == Some(&clip)));
     }
 }

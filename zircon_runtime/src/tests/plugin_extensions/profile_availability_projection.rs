@@ -14,7 +14,7 @@ use crate::plugin::{
 
 #[test]
 fn availability_projection_runtime_profile_lookup_does_not_build_full_catalog() {
-    let source = include_str!("../../plugin/runtime_profile/defaults.rs");
+    let source = include_str!("../../plugin/runtime_profile/assembly_presets.rs");
     let for_id = source
         .split_once("pub fn for_id")
         .expect("runtime profile lookup should exist")

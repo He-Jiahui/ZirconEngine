@@ -6,7 +6,7 @@ use super::super::state::{
     progress_fill_color, progress_is_indeterminate, progress_percent, progress_track_color,
 };
 use crate::ui::retained_host::host_contract::paint_geometry::{
-    bounded_extent, corner_radius_for_frame,
+    bounded_extent, corner_radius_for_frame, intersect,
 };
 
 const PROGRESS_SEGMENT_RATIO_UNITS: f32 = 100.0;
@@ -39,7 +39,10 @@ pub(super) fn push_linear_progress_commands(
     order: i32,
     opacity: f32,
 ) {
-    if bounded_extent(rect.width) <= 0.0 || bounded_extent(rect.height) <= 0.0 {
+    if bounded_extent(rect.width) <= 0.0
+        || bounded_extent(rect.height) <= 0.0
+        || intersect(rect, clip).is_none()
+    {
         return;
     }
     let track_radius = corner_radius_for_frame(
@@ -68,6 +71,9 @@ pub(super) fn push_linear_progress_commands(
             if bar.width <= 0.0 || bar.height <= 0.0 {
                 continue;
             }
+            if intersect(&bar, clip).is_none() {
+                continue;
+            }
             commands.push(HostPaintCommand::quad(
                 bar.clone(),
                 Some(clip.clone()),
@@ -85,6 +91,9 @@ pub(super) fn push_linear_progress_commands(
     let Some(fill_rect) = determinate_fill_rect(rect, progress_percent(node)) else {
         return;
     };
+    if intersect(&fill_rect, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         fill_rect.clone(),
         Some(clip.clone()),

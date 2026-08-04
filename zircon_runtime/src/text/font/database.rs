@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use glyphon::{FontSystem, fontdb};
+use glyphon::{fontdb, FontSystem};
 
 use crate::asset::assets::decode_font_source;
 use crate::text::{
@@ -21,7 +21,7 @@ use super::face_metadata::FontFaceMetadata;
 use super::fallback::MissingGlyphLog;
 use super::fallback_cache::{CompositeFontIdentity, FallbackCaches};
 use super::instance::{EffectiveInstanceCache, FontInstanceRegistry};
-use super::matching::{FontFamilyIdentity, font_family_identity};
+use super::matching::{font_family_identity, FontFamilyIdentity};
 
 mod asset_lifecycle;
 mod error;

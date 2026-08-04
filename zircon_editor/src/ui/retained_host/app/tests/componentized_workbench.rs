@@ -1,8 +1,15 @@
 use super::*;
+use crate::core::editing::operation::{
+    DeferredOperationInvocation, OperationCommand, OperationCommandFactory,
+    OperationCommandFactoryError, OperationCommandFactoryRegistration, PendingEditRetention,
+};
 use crate::core::editor_event::{EditorEventTransient, EditorViewportEvent, SelectionHostEvent};
+use crate::core::editor_operation::EditorOperationInvocation;
+use crate::core::play::{PlayEditTarget, PlayKind, PlayStartRequest};
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::TransformHandleKind;
 use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+use std::sync::Arc;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     component::{UiComponentEvent, UiValue},
@@ -228,4 +235,93 @@ fn closing_project_dismisses_the_workbench_command_palette() {
         .expect("project close should restore the welcome workspace");
 
     assert!(!host.workbench_window_bridge.command_palette_open());
+}
+
+#[test]
+fn resolved_pending_play_decision_clears_the_retained_notification_modal() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_pending_play_decision_clear");
+    harness.activate_workbench_page();
+
+    let mut host = harness.host.borrow_mut();
+    let stopped = {
+        let controller = host.runtime.play_sessions();
+        controller
+            .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+            .expect("play should start before a deferred edit is queued");
+        controller
+            .route_edit(
+                PlayEditTarget::EditWorkspace,
+                deferred_pending_edit("discard"),
+            )
+            .expect("edit should queue while play is active");
+        controller
+            .request_stop()
+            .expect("stop should surface the real pending-edit prompt")
+    };
+    host.runtime
+        .publish_pending_edit_decision(stopped.pending_edit_prompt.as_ref())
+        .expect("pending decision should publish from the controller queue");
+    host.sync_pending_play_decisions();
+    assert!(workbench_control_bool(
+        &host,
+        "WorkbenchNotificationCenter",
+        "open"
+    ));
+
+    let selection_id = host
+        .runtime
+        .pending_play_decision_options()
+        .expect("pending decision options should project")
+        .into_iter()
+        .last()
+        .expect("discard option should be available")
+        .selection_id()
+        .to_string();
+    let effects = host
+        .dispatch_componentized_workbench_option_selected(
+            "WorkbenchNotificationCenter",
+            "PendingEdit/Discard",
+            &selection_id,
+        )
+        .expect("notification-center control should dispatch the selected decision")
+        .expect("discard callback should resolve the queued edit");
+    assert_eq!(effects.toast_notifications.len(), 1);
+    host.apply_dispatch_effects(effects);
+
+    assert!(!workbench_control_bool(
+        &host,
+        "WorkbenchNotificationCenter",
+        "open"
+    ));
+    assert!(
+        host.runtime
+            .play_sessions()
+            .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+            .is_ok()
+    );
+}
+
+fn deferred_pending_edit(name: &str) -> DeferredOperationInvocation {
+    let invocation = EditorOperationInvocation::parse(format!("editor.test.{name}"))
+        .expect("test operation should be valid");
+    OperationCommandFactoryRegistration::new(
+        invocation.operation_id.clone(),
+        "retained decision fixture",
+        Arc::new(DiscardOnlyPendingEditFactory),
+    )
+    .with_pending_edit_retention(PendingEditRetention::Lossless)
+    .defer(invocation)
+    .expect("fixture registration should bind the test operation")
+}
+
+struct DiscardOnlyPendingEditFactory;
+
+impl OperationCommandFactory for DiscardOnlyPendingEditFactory {
+    fn create(
+        &self,
+        _invocation: &EditorOperationInvocation,
+    ) -> Result<OperationCommand, OperationCommandFactoryError> {
+        unreachable!("discard resolution must not execute a queued operation")
+    }
 }

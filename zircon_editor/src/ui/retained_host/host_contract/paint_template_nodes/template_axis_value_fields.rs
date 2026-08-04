@@ -1,4 +1,5 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
 
 mod geometry;
@@ -34,13 +35,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     if field.width <= 0.0 || field.height <= 0.0 {
         return true;
     }
+    let Some(clip) = intersect(&field, clip) else {
+        return true;
+    };
 
-    push_axis_field_surface(commands, node, &field, clip, order, opacity);
+    push_axis_field_surface(commands, node, &field, &clip, order, opacity);
     push_axis_field_value(
         commands,
         node,
         &field,
-        clip,
+        &clip,
         value_text_order(order),
         opacity,
     );

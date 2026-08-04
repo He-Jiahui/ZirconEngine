@@ -1,6 +1,6 @@
 use crate::core::math::UVec2;
-use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 use crate::text::VariationCoords;
+use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 
 use super::*;
 
@@ -70,6 +70,45 @@ fn text_sdf_glyph_data_rejects_mismatched_byte_length() {
             expected: 16,
             actual: 15,
         })
+    );
+}
+
+#[test]
+fn text_sdf_glyph_data_rejects_mode_channel_mismatch() {
+    let glyph = SdfGlyphData {
+        size: UVec2::new(2, 2),
+        bitmap_left: 0.0,
+        bitmap_bottom: 0.0,
+        advance: 2.0,
+        ascent: 2.0,
+        pixels: vec![0; 4],
+        channels: SdfMode::Sdf.channel_count(),
+        spread_px: 8.0,
+        mode: SdfMode::Msdf,
+    };
+
+    assert_eq!(
+        glyph.validate(),
+        Err(SdfGlyphGenerationError::InvalidChannelCount {
+            expected: SdfMode::Msdf.channel_count(),
+            actual: SdfMode::Sdf.channel_count(),
+        })
+    );
+}
+
+#[test]
+fn text_sdf_glyph_data_rejects_bitmap_larger_than_single_glyph_budget() {
+    let at_budget = UVec2::new(512, 512);
+    let over_budget = UVec2::new(513, 512);
+
+    assert_eq!(
+        super::glyph_data::sdf_glyph_byte_len(at_budget, SdfMode::Msdf.channel_count()),
+        Ok(super::glyph_data::MAX_SDF_GLYPH_BYTE_COUNT)
+    );
+
+    assert_eq!(
+        super::glyph_data::sdf_glyph_byte_len(over_budget, SdfMode::Msdf.channel_count()),
+        Err(SdfGlyphGenerationError::InvalidDimensions(over_budget))
     );
 }
 

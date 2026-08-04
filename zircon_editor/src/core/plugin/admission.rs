@@ -110,16 +110,16 @@ fn visit_dependency(
     path.push(package_id.to_string());
     if let Some(dependencies) = dependencies_by_package.get(package_id) {
         for dependency_id in dependencies {
-            if dependencies_by_package.contains_key(dependency_id)
-                && let Some(cycle) = visit_dependency(
+            if dependencies_by_package.contains_key(dependency_id) {
+                if let Some(cycle) = visit_dependency(
                     dependency_id,
                     dependencies_by_package,
                     completed,
                     visiting,
                     path,
-                )
-            {
-                return Some(cycle);
+                ) {
+                    return Some(cycle);
+                }
             }
         }
     }

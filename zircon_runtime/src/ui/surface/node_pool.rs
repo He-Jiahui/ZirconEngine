@@ -213,6 +213,7 @@ fn merge_reused_node(mut pooled: UiTreeNode, desired: UiTreeNode) -> UiTreeNode 
     let retained_layout_cache = pooled.layout_cache.clone();
     pooled = desired;
     pooled.layout_cache = retained_layout_cache;
+    pooled.layout_cache.advance_text_layout_revision();
     pooled
 }
 

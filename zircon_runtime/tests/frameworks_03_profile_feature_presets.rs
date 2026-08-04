@@ -1,5 +1,13 @@
+#[path = "../build.rs"]
+mod runtime_profile_preset_codegen;
+
+use zircon_runtime::builtin::BuiltinRuntimeModuleId;
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::RuntimeProfileId;
-use zircon_runtime::plugin::{RuntimeProfileFeaturePreset, RUNTIME_PROFILE_FEATURE_PRESETS};
+use zircon_runtime::plugin::{
+    PluginMaturity, RuntimeProfileDescriptor, RuntimeProfileFeaturePreset,
+    RUNTIME_PROFILE_FEATURE_PRESETS,
+};
 
 fn feature_preset_for(profile_id: RuntimeProfileId) -> RuntimeProfileFeaturePreset {
     RUNTIME_PROFILE_FEATURE_PRESETS
@@ -78,7 +86,12 @@ fn runtime_profile_feature_presets_expose_compilation_requirements() {
     let server = feature_preset_for(RuntimeProfileId::Server);
     assert_eq!(
         server.runtime_features,
-        ["core-min", "diagnostic-log", "platform-headless"]
+        [
+            "core-min",
+            "diagnostic-log",
+            "platform-headless",
+            "dep:naga",
+        ]
     );
     assert!(!server.runtime_features.contains(&"graphics"));
     assert!(!server.runtime_features.contains(&"ui"));
@@ -91,4 +104,196 @@ fn runtime_profile_feature_presets_expose_compilation_requirements() {
             "platform-headless",
         ]
     );
+}
+
+#[test]
+fn generated_runtime_profile_assembly_preserves_all_builtin_descriptor_fields() {
+    struct ExpectedProfile {
+        id: RuntimeProfileId,
+        name: &'static str,
+        target_mode: RuntimeTargetMode,
+        modules: Vec<BuiltinRuntimeModuleId>,
+        maturity: PluginMaturity,
+        default_plugins: &'static [(&'static str, bool)],
+        optional_plugins: &'static [&'static str],
+        capabilities: &'static [&'static str],
+    }
+
+    let server_modules = vec![
+        BuiltinRuntimeModuleId::Foundation,
+        BuiltinRuntimeModuleId::Log,
+        BuiltinRuntimeModuleId::Tasks,
+        BuiltinRuntimeModuleId::Time,
+        BuiltinRuntimeModuleId::FrameCount,
+        BuiltinRuntimeModuleId::DiagnosticsCore,
+        BuiltinRuntimeModuleId::Platform,
+        BuiltinRuntimeModuleId::Input,
+        BuiltinRuntimeModuleId::Asset,
+        BuiltinRuntimeModuleId::Scene,
+    ];
+    let mut client_modules = server_modules.clone();
+    #[cfg(feature = "graphics")]
+    client_modules.push(BuiltinRuntimeModuleId::Graphics);
+    #[cfg(feature = "script")]
+    client_modules.push(BuiltinRuntimeModuleId::Script);
+
+    let expected = [
+        ExpectedProfile {
+            id: RuntimeProfileId::Minimal,
+            name: "minimal",
+            target_mode: RuntimeTargetMode::ClientRuntime,
+            modules: vec![
+                BuiltinRuntimeModuleId::Foundation,
+                BuiltinRuntimeModuleId::Tasks,
+                BuiltinRuntimeModuleId::Time,
+                BuiltinRuntimeModuleId::FrameCount,
+                BuiltinRuntimeModuleId::DiagnosticsCore,
+            ],
+            maturity: PluginMaturity::Core,
+            default_plugins: &[],
+            optional_plugins: &[],
+            capabilities: &[
+                "runtime.core.lifecycle",
+                "runtime.core.tasks",
+                "runtime.core.time",
+                "runtime.core.frame_count",
+                "runtime.core.diagnostics",
+            ],
+        },
+        ExpectedProfile {
+            id: RuntimeProfileId::Client2d,
+            name: "client_2d",
+            target_mode: RuntimeTargetMode::ClientRuntime,
+            modules: client_modules.clone(),
+            maturity: PluginMaturity::Beta,
+            default_plugins: &[
+                ("ui", true),
+                ("sound", true),
+                ("rendering", true),
+                ("texture", false),
+            ],
+            optional_plugins: &["tilemap_2d", "particles", "animation"],
+            capabilities: &[
+                "runtime.core.asset",
+                "runtime.core.scene",
+                "runtime.core.render.base",
+                "runtime.plugin.sound",
+                "runtime.plugin.rendering",
+            ],
+        },
+        ExpectedProfile {
+            id: RuntimeProfileId::Client3d,
+            name: "client_3d",
+            target_mode: RuntimeTargetMode::ClientRuntime,
+            modules: client_modules.clone(),
+            maturity: PluginMaturity::Beta,
+            default_plugins: &[
+                ("ui", true),
+                ("sound", true),
+                ("rendering", true),
+                ("texture", false),
+            ],
+            optional_plugins: &[
+                "animation",
+                "ai",
+                "navigation",
+                "particles",
+                "virtual_geometry",
+                "hybrid_gi",
+                "solari",
+            ],
+            capabilities: &[
+                "runtime.core.asset",
+                "runtime.core.scene",
+                "runtime.core.render.base",
+                "runtime.plugin.sound",
+                "runtime.plugin.rendering",
+            ],
+        },
+        ExpectedProfile {
+            id: RuntimeProfileId::Editor,
+            name: "editor",
+            target_mode: RuntimeTargetMode::EditorHost,
+            modules: client_modules.clone(),
+            maturity: PluginMaturity::Beta,
+            default_plugins: &[
+                ("ui", true),
+                ("sound", true),
+                ("rendering", true),
+                ("texture", false),
+            ],
+            optional_plugins: &["animation", "navigation", "particles", "net"],
+            capabilities: &["editor.host.ui_shell", "editor.host.plugin_management"],
+        },
+        ExpectedProfile {
+            id: RuntimeProfileId::Dev,
+            name: "dev",
+            target_mode: RuntimeTargetMode::EditorHost,
+            modules: client_modules,
+            maturity: PluginMaturity::Experimental,
+            default_plugins: &[
+                ("ui", true),
+                ("sound", true),
+                ("rendering", true),
+                ("texture", false),
+                ("net", false),
+            ],
+            optional_plugins: &[
+                "ai",
+                "animation",
+                "navigation",
+                "particles",
+                "virtual_geometry",
+                "hybrid_gi",
+                "solari",
+            ],
+            capabilities: &["runtime.core.diagnostics", "editor.host.plugin_management"],
+        },
+        ExpectedProfile {
+            id: RuntimeProfileId::Server,
+            name: "server",
+            target_mode: RuntimeTargetMode::ServerRuntime,
+            modules: server_modules,
+            maturity: PluginMaturity::Beta,
+            default_plugins: &[("net", false)],
+            optional_plugins: &["ai", "physics", "animation", "navigation"],
+            capabilities: &["runtime.core.lifecycle", "runtime.core.scene"],
+        },
+    ];
+
+    let profiles = RuntimeProfileDescriptor::builtin_profiles();
+    assert_eq!(profiles.len(), expected.len());
+    for (profile, expected) in profiles.iter().zip(expected) {
+        assert_eq!(profile, &RuntimeProfileDescriptor::for_id(expected.id));
+        assert_eq!(profile.id, expected.id);
+        assert_eq!(profile.name, expected.name);
+        assert_eq!(profile.target_mode, expected.target_mode);
+        assert_eq!(profile.builtin_modules, expected.modules);
+        assert_eq!(profile.minimum_maturity, expected.maturity);
+        assert_eq!(
+            profile
+                .default_plugins
+                .iter()
+                .map(|plugin| (plugin.id.as_str(), plugin.required))
+                .collect::<Vec<_>>(),
+            expected.default_plugins
+        );
+        assert_eq!(
+            profile
+                .optional_plugins
+                .iter()
+                .map(|plugin| plugin.as_str())
+                .collect::<Vec<_>>(),
+            expected.optional_plugins
+        );
+        assert_eq!(
+            profile
+                .required_capabilities
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            expected.capabilities
+        );
+        assert!(!profile.allow_externalized_required_plugins);
+    }
 }

@@ -6,7 +6,7 @@ use serde::Deserialize;
 use zircon_runtime_interface::{
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
-    ZrRuntimeApiV3, ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryBatchV1,
+    ZrRuntimeApiV4, ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryBatchV1,
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
 };
@@ -117,7 +117,7 @@ unsafe extern "C" fn abi_drain_plugin_events(
 }
 
 fn abi_gateway() -> SessionGateway {
-    let mut api = ZrRuntimeApiV3::empty();
+    let mut api = ZrRuntimeApiV4::empty();
     api.subscribe_plugin_event = Some(abi_subscribe_plugin_event);
     api.unsubscribe_plugin_event = Some(abi_unsubscribe_plugin_event);
     api.drain_plugin_events = Some(abi_drain_plugin_events);

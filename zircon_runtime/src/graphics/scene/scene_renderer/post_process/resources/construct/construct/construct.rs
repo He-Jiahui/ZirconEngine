@@ -51,6 +51,10 @@ impl FullScenePostProcessResources {
         let cluster_bind_group_layout = bind_group_layouts::cluster(device);
         let hzb_bind_group_layout = bind_group_layouts::hzb(device);
         let hzb_msaa_bind_group_layout = bind_group_layouts::hzb_msaa(device);
+        let half_res_transparency_depth_downsample_bind_group_layout =
+            bind_group_layouts::half_res_transparency_depth_downsample(device);
+        let half_res_transparency_composite_bind_group_layout =
+            bind_group_layouts::half_res_transparency_composite(device);
         let exposure_histogram_bind_group_layout = bind_group_layouts::exposure_histogram(device);
         let exposure_resolve_bind_group_layout = bind_group_layouts::exposure_resolve(device);
         let color_lut_bake_bind_group_layout = bind_group_layouts::color_lut_bake(device);
@@ -85,6 +89,8 @@ impl FullScenePostProcessResources {
             &cluster_bind_group_layout,
             &hzb_bind_group_layout,
             &hzb_msaa_bind_group_layout,
+            &half_res_transparency_depth_downsample_bind_group_layout,
+            &half_res_transparency_composite_bind_group_layout,
             &exposure_histogram_bind_group_layout,
             &exposure_resolve_bind_group_layout,
             &color_lut_bake_bind_group_layout,
@@ -110,6 +116,8 @@ impl FullScenePostProcessResources {
             cluster_bind_group_layout,
             hzb_bind_group_layout,
             hzb_msaa_bind_group_layout,
+            half_res_transparency_depth_downsample_bind_group_layout,
+            half_res_transparency_composite_bind_group_layout,
             exposure_histogram_bind_group_layout,
             exposure_resolve_bind_group_layout,
             color_lut_bake_bind_group_layout,
@@ -129,6 +137,10 @@ impl FullScenePostProcessResources {
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
             hzb_pipeline: pipeline_bundle.hzb_pipeline,
             hzb_msaa_pipeline: pipeline_bundle.hzb_msaa_pipeline,
+            half_res_transparency_depth_downsample_pipeline: pipeline_bundle
+                .half_res_transparency_depth_downsample_pipeline,
+            half_res_transparency_composite_pipeline: pipeline_bundle
+                .half_res_transparency_composite_pipeline,
             exposure_histogram_pipeline: pipeline_bundle.exposure_histogram_pipeline,
             exposure_resolve_pipeline: pipeline_bundle.exposure_resolve_pipeline,
             color_lut_bake_pipeline: pipeline_bundle.color_lut_bake_pipeline,
@@ -161,6 +173,7 @@ impl FullScenePostProcessResources {
             ssao_params_buffer: buffer_bundle.ssao_params_buffer,
             cluster_params_buffer: buffer_bundle.cluster_params_buffer,
             hzb_params_buffer: buffer_bundle.hzb_params_buffer,
+            half_res_transparency_params_buffer: buffer_bundle.half_res_transparency_params_buffer,
             taa_resolve_params_buffer: buffer_bundle.taa_resolve_params_buffer,
             exposure_params_buffer: buffer_bundle.exposure_params_buffer,
             color_lut_bake_params_buffer: buffer_bundle.color_lut_bake_params_buffer,

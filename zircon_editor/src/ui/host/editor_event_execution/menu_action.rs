@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::diagnostic_log::write_log;
 
 use crate::core::editing::engine::{HistoryContextId, HistorySaveMarkOutcome};
@@ -116,9 +117,10 @@ pub(super) fn execute_menu_action(
                 ),
             );
             shell.state.mark_project_open();
-            shell
-                .state
-                .set_status_line(format!("Saved project to {}", path.display()));
+            shell.state.set_status_line(format!(
+                "Saved project to {}",
+                ProjectPaths::display_path(&path).display()
+            ));
             Ok(ExecutionOutcome {
                 changed: true,
                 effects: vec![
@@ -222,8 +224,22 @@ pub(super) fn execute_menu_action(
                                         "Failed to bind runtime plugin event consumers; runtime remains active so Exit Play can retry cleanup: {error}"
                                     ));
                                 }
-                                let _ = controller.play_sessions().request_stop();
-                                let _ = shell.state.exit_play_mode();
+                                if let Err(stop_error) = controller.play_sessions().request_stop() {
+                                    shell.state.set_status_line(format!(
+                                        "Runtime event consumer startup and play session cleanup failed; play mode remains active for retry: {stop_error}"
+                                    ));
+                                    return Err(format!(
+                                        "Failed to bind runtime plugin event consumers: {error}; failed to stop play session, runtime remains active: {stop_error}"
+                                    ));
+                                }
+                                if let Err(exit_error) = shell.state.exit_play_mode() {
+                                    shell.state.set_status_line(format!(
+                                        "Runtime event consumer startup failed after play session stopped; editor state remains in play mode for retry: {exit_error}"
+                                    ));
+                                    return Err(format!(
+                                        "Failed to bind runtime plugin event consumers: {error}; play session stopped but failed to restore editor state: {exit_error}"
+                                    ));
+                                }
                                 shell.state.sync_bridge_diagnostics_matrix(None);
                                 return Err(format!(
                                     "Failed to bind runtime plugin event consumers: {error}"
@@ -243,7 +259,14 @@ pub(super) fn execute_menu_action(
                         }
                     }
                     Err(error) => {
-                        let _ = shell.state.exit_play_mode();
+                        if let Err(exit_error) = shell.state.exit_play_mode() {
+                            shell.state.set_status_line(format!(
+                                "Play session startup failed; editor state remains in play mode for retry: {exit_error}"
+                            ));
+                            return Err(format!(
+                                "Failed to enter play session: {error}; backend startup failed but editor state could not be restored: {exit_error}"
+                            ));
+                        }
                         shell.state.sync_bridge_diagnostics_matrix(None);
                         return Err(format!("Failed to enter play session: {error}"));
                     }
@@ -321,7 +344,7 @@ fn project_save_started_diagnostic(
     pre_save_dirty_generation: u64,
     save_token_generation: u64,
 ) -> String {
-    let project = percent_encode_diagnostic_token(&path.to_string_lossy());
+    let project = project_save_display_token(path);
     format!(
         "editor_project_save result=started project={project} pre_save_dirty={pre_save_dirty} pre_save_dirty_generation={pre_save_dirty_generation} save_token_generation={save_token_generation}",
     )
@@ -337,7 +360,7 @@ fn project_save_completed_diagnostic(
     let persisted_generation = persisted_generation
         .map(|generation| generation.to_string())
         .unwrap_or_else(|| "unavailable".to_string());
-    let project = percent_encode_diagnostic_token(&path.to_string_lossy());
+    let project = project_save_display_token(path);
     format!(
         "editor_project_save result=completed project={project} pre_save_dirty_generation={pre_save_dirty_generation} save_token_generation={save_token_generation} persisted_generation={persisted_generation} save_mark={save_mark:?}",
     )
@@ -346,10 +369,15 @@ fn project_save_completed_diagnostic(
 fn project_save_failed_diagnostic(
     path: &Path,
     phase: &str,
-    error: &impl std::fmt::Display,
+    error: &(impl std::fmt::Display + ?Sized),
 ) -> String {
-    let project = percent_encode_diagnostic_token(&path.to_string_lossy());
+    let project = project_save_display_token(path);
     format!("editor_project_save result=failed project={project} phase={phase} error={error}",)
+}
+
+fn project_save_display_token(path: &Path) -> String {
+    let display_path = ProjectPaths::display_path(path);
+    percent_encode_diagnostic_token(&display_path.to_string_lossy())
 }
 
 #[cfg(test)]
@@ -392,5 +420,15 @@ mod tests {
 
         let resolve_failure = project_save_failed_diagnostic(path, "resolve_scene", "no project");
         assert!(resolve_failure.contains("phase=resolve_scene"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn project_save_diagnostics_expose_a_display_path_without_the_verbatim_prefix() {
+        let diagnostic =
+            project_save_started_diagnostic(Path::new(r"\\?\C:\projects\f3 save"), true, 17, 17);
+
+        assert!(diagnostic.contains("project=C%3A%5Cprojects%5Cf3%20save"));
+        assert!(!diagnostic.contains("%5C%5C%3F%5C"));
     }
 }

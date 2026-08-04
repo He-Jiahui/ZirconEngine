@@ -116,8 +116,16 @@ mod render_stats_product_tests;
 mod render_submit_camera_loop;
 #[path = "production_file_budget/render_surface_targets_texture_target_tests.rs"]
 mod render_surface_targets_texture_target_tests;
+#[path = "production_file_budget/render_ui_image_binding_cache.rs"]
+mod render_ui_image_binding_cache;
+#[path = "production_file_budget/render_ui_image_vertex_buffer.rs"]
+mod render_ui_image_vertex_buffer;
+#[path = "production_file_budget/render_ui_native_bitmap_atlas_upload_reuse.rs"]
+mod render_ui_native_bitmap_atlas_upload_reuse;
 #[path = "production_file_budget/render_ui_screen_space_render.rs"]
 mod render_ui_screen_space_render;
+#[path = "production_file_budget/render_ui_screen_space_vertex_buffer.rs"]
+mod render_ui_screen_space_vertex_buffer;
 #[path = "production_file_budget/render_ui_sdf_atlas_tests.rs"]
 mod render_ui_sdf_atlas_tests;
 #[path = "production_file_budget/render_ui_sdf_render.rs"]

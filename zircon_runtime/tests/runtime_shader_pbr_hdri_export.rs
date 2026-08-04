@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -82,6 +83,9 @@ const LEGACY_GRID_SKY_SAMPLE_Y_MIN: u32 = 24;
 const LEGACY_GRID_SKY_SAMPLE_Y_MAX: u32 = 220;
 const LEGACY_GRID_OFFSET_SAMPLES: [i32; 6] = [-17, -11, -7, 7, 11, 17];
 const PMREM_MIP_DIAGNOSTIC_TILE_SIZE: u32 = 96;
+const SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV: &str = "ZIRCON_SHADER_TEST_OUTPUT_DIR";
+const PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV: &str =
+    "ZIRCON_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME";
 
 #[test]
 fn runtime_shader_pbr_real_hdri_1k_pmrem_mip_diagnostic_png_matches_blur_metrics() {
@@ -131,9 +135,7 @@ fn export_runtime_shader_pbr_real_hdri_ambientcg_metal008_025_029_png() {
 
 fn export_runtime_shader_pbr_real_hdri_1k_pmrem_mip_diagnostic_png_inner() {
     let environment = polyhaven_lakes_source_cubemap_environment(POLYHAVEN_LAKES_1K_HDRI_ASSET, 1);
-    let output = runtime_shader_pbr_real_hdri_output_path(
-        PBR_MATRIX_HDRI_1K_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME,
-    );
+    let output = pmrem_mip_diagnostic_output_path();
 
     save_pmrem_mip_diagnostic(&environment.mip_chain, &output);
     assert_shader_test_output_path(&output);
@@ -404,9 +406,20 @@ fn save_pmrem_mip_diagnostic(mip_chain: &SourceCubemapMipChain, output: &Path) {
         }
     }
 
-    image
-        .save_with_format(output, ImageFormat::Png)
+    let mut output_file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(output)
+        .expect("claim immutable PMREM mip diagnostic screenshot path");
+    image::DynamicImage::ImageRgba8(image)
+        .write_to(&mut output_file, ImageFormat::Png)
         .expect("write PMREM mip diagnostic screenshot");
+    output_file
+        .flush()
+        .expect("flush PMREM mip diagnostic screenshot");
+    output_file
+        .sync_all()
+        .expect("sync PMREM mip diagnostic screenshot");
 }
 
 fn paint_mip_diagnostic_tile(
@@ -566,16 +579,119 @@ fn pbr_matrix_world_y(row: usize) -> f32 {
     ((PBR_MATRIX_DIMENSION as f32 - 1.0) * 0.5 - row as f32) * PBR_MATRIX_STEP_Y
 }
 
-fn shader_test_output_dir() -> PathBuf {
-    let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+fn default_shader_test_output_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("workspace root")
         .join("docs")
         .join("tests")
         .join("runtime")
+        .join("shader")
+}
+
+fn shader_test_output_dir_from_override(override_dir: Option<PathBuf>) -> Result<PathBuf, String> {
+    let output_dir = override_dir.unwrap_or_else(default_shader_test_output_dir);
+    if !output_dir.is_absolute() {
+        return Err(format!(
+            "{SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV} must be an absolute docs/tests/runtime/shader path: {}",
+            output_dir.display()
+        ));
+    }
+    let required_suffix = Path::new("docs")
+        .join("tests")
+        .join("runtime")
         .join("shader");
+    if !output_dir.ends_with(&required_suffix) {
+        return Err(format!(
+            "{SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV} must end in docs/tests/runtime/shader: {}",
+            output_dir.display()
+        ));
+    }
+    Ok(output_dir)
+}
+
+fn shader_test_output_dir() -> PathBuf {
+    let output_dir = shader_test_output_dir_from_override(
+        std::env::var_os(SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV).map(PathBuf::from),
+    )
+    .unwrap_or_else(|error| panic!("invalid Shader test evidence output directory: {error}"));
     fs::create_dir_all(&output_dir).unwrap();
     output_dir
+}
+
+#[test]
+fn shader_test_evidence_output_override_is_confined_to_the_shader_archive() {
+    let valid = default_shader_test_output_dir();
+    assert_eq!(
+        shader_test_output_dir_from_override(Some(valid.clone()))
+            .expect("the canonical shader archive path must be accepted"),
+        valid
+    );
+    assert!(
+        shader_test_output_dir_from_override(Some(PathBuf::from("docs/tests/runtime/shader")))
+            .expect_err("a relative archive override must be rejected")
+            .contains("absolute")
+    );
+    let outside_archive = default_shader_test_output_dir()
+        .parent()
+        .expect("shader archive parent")
+        .join("outside");
+    assert!(shader_test_output_dir_from_override(Some(outside_archive))
+        .expect_err("an output outside the shader archive must be rejected")
+        .contains("must end"));
+}
+
+fn pmrem_mip_diagnostic_output_name_from_override(
+    override_name: Option<String>,
+) -> Result<String, String> {
+    let output_name = override_name
+        .unwrap_or_else(|| PBR_MATRIX_HDRI_1K_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME.to_owned());
+    let required_prefix = "runtime_shader_pbr_real_hdri_lakes_1k_pmrem_mip_diagnostic_";
+    if output_name.is_empty()
+        || output_name.contains('/')
+        || output_name.contains('\\')
+        || !output_name.starts_with(required_prefix)
+        || !output_name.ends_with(".png")
+    {
+        return Err(format!(
+            "{PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV} must be a PMREM diagnostic PNG file name: {output_name}"
+        ));
+    }
+    Ok(output_name)
+}
+
+fn pmrem_mip_diagnostic_output_path() -> PathBuf {
+    let override_name = std::env::var(PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV).ok();
+    let output_name = pmrem_mip_diagnostic_output_name_from_override(override_name)
+        .unwrap_or_else(|error| panic!("invalid PMREM mip diagnostic output name: {error}"));
+    runtime_shader_pbr_real_hdri_output_path(&output_name)
+}
+
+#[test]
+fn pmrem_mip_diagnostic_output_name_requires_a_new_shader_archive_png() {
+    assert_eq!(
+        pmrem_mip_diagnostic_output_name_from_override(None)
+            .expect("the legacy diagnostic name remains readable"),
+        PBR_MATRIX_HDRI_1K_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME
+    );
+    assert_eq!(
+        pmrem_mip_diagnostic_output_name_from_override(Some(
+            "runtime_shader_pbr_real_hdri_lakes_1k_pmrem_mip_diagnostic_current_source_20260803.png"
+                .to_owned(),
+        ))
+        .expect("a current-source diagnostic archive name must be accepted"),
+        "runtime_shader_pbr_real_hdri_lakes_1k_pmrem_mip_diagnostic_current_source_20260803.png"
+    );
+    assert!(pmrem_mip_diagnostic_output_name_from_override(Some(
+        "../runtime_shader_pbr_real_hdri_lakes_1k_pmrem_mip_diagnostic_escape.png".to_owned(),
+    ))
+    .expect_err("diagnostic archive names must not escape the shader evidence directory")
+    .contains("file name"));
+    assert!(pmrem_mip_diagnostic_output_name_from_override(Some(
+        "runtime_shader_pbr_real_hdri_lakes_1k_pmrem_mip_diagnostic_current_source.txt".to_owned(),
+    ))
+    .expect_err("diagnostic archive names must remain PNG files")
+    .contains("file name"));
 }
 
 fn runtime_shader_pbr_real_hdri_output_path(output_name: &str) -> PathBuf {

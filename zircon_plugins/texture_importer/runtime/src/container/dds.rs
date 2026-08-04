@@ -147,6 +147,7 @@ pub(super) fn parse(
 
     Ok(TextureContainerInfo {
         format,
+        upload_bytes: None,
         width,
         height,
         dimension: RenderImageDimension::D2,

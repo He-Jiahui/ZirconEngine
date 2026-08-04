@@ -6,6 +6,7 @@ use super::super::template_segmented_control_geometry::{
 };
 use super::options::segment_label;
 use super::style::{segment_text_color, segmented_group_label_color};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segmented_group_label(
@@ -20,9 +21,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     if label.is_empty() {
         return;
     }
+    let label_rect = segmented_group_label_rect(rect);
+    if intersect(&label_rect, clip).is_none() {
+        return;
+    }
 
     commands.push(HostPaintCommand::text(
-        segmented_group_label_rect(rect),
+        label_rect,
         Some(clip.clone()),
         order,
         label.to_string(),
@@ -45,8 +50,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     opacity: f32,
 ) {
     let label = segment_label(option);
+    let label_rect = segment_label_rect(segment);
+    if intersect(&label_rect, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::text(
-        segment_label_rect(segment),
+        label_rect,
         Some(clip.clone()),
         order,
         label,

@@ -37,7 +37,7 @@ pub(in crate::hybrid_gi::renderer) struct HybridGiGpuReadbackFuture {
 }
 
 impl HybridGiGpuReadbackFuture {
-    pub(super) fn is_ready(&self) -> bool {
+    pub(in crate::hybrid_gi::renderer) fn is_ready(&self) -> bool {
         self.cache.is_ready()
             && self.completed_probes.is_ready()
             && self.completed_traces.is_ready()

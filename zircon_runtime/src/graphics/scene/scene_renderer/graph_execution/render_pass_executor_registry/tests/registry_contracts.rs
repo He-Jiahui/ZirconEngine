@@ -98,8 +98,14 @@ fn builtin_registry_covers_compiled_pipeline_executor_ids() {
     let deferred = RenderPipelineAsset::default_deferred()
         .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
         .unwrap();
+    let half_resolution_transparency = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_half_resolution_transparency(true),
+        )
+        .unwrap();
 
-    for pipeline in [&forward, &deferred] {
+    for pipeline in [&forward, &deferred, &half_resolution_transparency] {
         registry
             .validate_compiled_pipeline(pipeline)
             .expect("builtin registry should cover all compiled executor ids");
@@ -201,6 +207,10 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "visibility.hzb-build",
         "visibility.hzb-occlusion-cull",
         "particle.transparent",
+        "particle.halfres-transparent",
+        "mesh.halfres-transparent",
+        "transparency.halfres-depth-downsample",
+        "transparency.halfres-composite",
         "post.color-lut-bake",
         "post.uber",
         "post.upscale",
@@ -273,6 +283,7 @@ fn parallel_recording_requires_an_explicit_executor_policy() {
         "sprite.alpha-mask",
         "sprite.transparent",
         "particle.transparent",
+        "particle.halfres-transparent",
     ] {
         assert!(
             registry.supports_parallel_recording(executor_id),
@@ -334,6 +345,8 @@ fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            half_resolution_transparency_depth_sigma:
+                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: graph.compile().unwrap(),
         },
     );
@@ -366,6 +379,8 @@ fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            half_resolution_transparency_depth_sigma:
+                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: graph.compile().unwrap(),
         },
     );
@@ -417,6 +432,8 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            half_resolution_transparency_depth_sigma:
+                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: compiled_graph,
         },
     );

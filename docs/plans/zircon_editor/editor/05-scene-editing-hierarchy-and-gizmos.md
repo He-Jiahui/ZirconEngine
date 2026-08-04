@@ -196,7 +196,8 @@ struct DragTxn {
 
 - 具体记录已迁入：[性能评审交接归档](05/2026-08-01-performance-review-handoffs.md)
 - open 待修复：[plugin viewport overlay provider runtime wiring](05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md) · [viewport pointer candidate regeneration](05/failure-2026-07-18-viewport-pointer-candidate-regeneration.md) · [viewport shared extract Arc slice compile regression](05/failure-2026-07-19-viewport-shared-extract-arc-slice-iteration-compile-regression.md) · [world inspection generation projection](05/failure-2026-07-22-world-inspection-generation-projection.md) · [scene mode input ownership hard cut](05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md)
-- open lifecycle：[navigation overlay frame publication](../../zircon_plugins/05/failure-2026-07-30-navigation-overlay-frame-publication.md) · [accepted session register durability](../../zircon_tooling/session_coordinator/01/failure-2026-07-31-accepted-session-register-durability.md) · [highlight set gateway contract](01/failure-2026-07-31-highlight-set-gateway-contract.md)
+- open lifecycle：[navigation overlay frame publication](../../zircon_plugins/05/failure-2026-07-30-navigation-overlay-frame-publication.md) · [highlight set gateway contract](01/failure-2026-07-31-highlight-set-gateway-contract.md)
+- fixed 已修复：[accepted-session-register-durability](05/fixed-2026-08-04-accepted-session-register-durability.md)
 - open cross-plan lifecycle：[Editor02 plugin registration atomicity](02/failure-2026-08-01-plugin-registration-runtime-consumer-atomicity.md) · [Physics03 debug overlay provider](../../zircon_plugins/03/failure-2026-08-01-physics-debug-overlay-provider-missing.md) · [Plugins10 terrain/tilemap scene-mode factories](../../zircon_plugins/10/failure-2026-08-01-terrain-tilemap-scene-mode-factories-missing.md)
 
 ## Code Review 状态

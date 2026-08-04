@@ -7,7 +7,9 @@ use crate::ui::workbench::view::ViewDescriptor;
 
 use super::super::region::{build_document_region_state, build_tool_region_state};
 use super::super::right_drawer_should_collapse_for_logical_width;
-use super::super::{ResolutionContext, ShellFrame, ShellRegionId, ShellSizePx};
+use super::super::{
+    ResolutionContext, ResolutionScaleMode, ShellFrame, ShellRegionId, ShellSizePx,
+};
 use super::super::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
 use super::floating_window_frames::build_floating_window_frames;
 use super::region_frames::build_region_frames;
@@ -25,13 +27,39 @@ pub fn compute_workbench_shell_geometry(
     metrics: &WorkbenchChromeMetrics,
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
 ) -> WorkbenchShellGeometry {
-    compute_workbench_shell_geometry_with_region_defaults(
+    compute_workbench_shell_geometry_with_scale_mode(
         model,
         _chrome,
         layout,
         descriptors,
         shell_size,
         scale_factor,
+        ResolutionScaleMode::ConstantPhysical,
+        metrics,
+        transient_region_preferred,
+    )
+}
+
+/// Solves shell geometry with an explicitly declared root scaling policy.
+pub fn compute_workbench_shell_geometry_with_scale_mode(
+    model: &WorkbenchViewModel,
+    _chrome: &EditorChromeSnapshot,
+    layout: &WorkbenchLayout,
+    descriptors: &[ViewDescriptor],
+    shell_size: ShellSizePx,
+    system_scale_factor: f32,
+    scale_mode: ResolutionScaleMode,
+    metrics: &WorkbenchChromeMetrics,
+    transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+) -> WorkbenchShellGeometry {
+    compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
+        model,
+        _chrome,
+        layout,
+        descriptors,
+        shell_size,
+        system_scale_factor,
+        scale_mode,
         metrics,
         transient_region_preferred,
         None,
@@ -53,11 +81,42 @@ pub fn compute_workbench_shell_geometry_with_region_defaults(
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
     token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
 ) -> WorkbenchShellGeometry {
+    compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
+        model,
+        _chrome,
+        layout,
+        descriptors,
+        shell_size,
+        scale_factor,
+        ResolutionScaleMode::ConstantPhysical,
+        metrics,
+        transient_region_preferred,
+        token_region_preferred,
+    )
+}
+
+/// Solves shell geometry with independent user-drag, token-default, and root-scale inputs.
+pub fn compute_workbench_shell_geometry_with_region_defaults_and_scale_mode(
+    model: &WorkbenchViewModel,
+    _chrome: &EditorChromeSnapshot,
+    layout: &WorkbenchLayout,
+    descriptors: &[ViewDescriptor],
+    shell_size: ShellSizePx,
+    system_scale_factor: f32,
+    scale_mode: ResolutionScaleMode,
+    metrics: &WorkbenchChromeMetrics,
+    transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+    token_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
+) -> WorkbenchShellGeometry {
     let descriptor_map: HashMap<&str, &ViewDescriptor> = descriptors
         .iter()
         .map(|descriptor| (descriptor.descriptor_id.0.as_str(), descriptor))
         .collect();
-    let resolution = ResolutionContext::from_physical_size(shell_size, scale_factor);
+    let resolution = ResolutionContext::from_physical_size_with_scale_mode(
+        shell_size,
+        system_scale_factor,
+        scale_mode,
+    );
     let logical_size = resolution.logical_size();
     let size = ShellSizePx::new(logical_size.width.max(1.0), logical_size.height.max(1.0));
     // Resize capture records host-space pointer deltas and frame extents, while

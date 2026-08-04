@@ -59,6 +59,16 @@ impl RenderPipelineCompileOptions {
         self
     }
 
+    pub fn with_half_resolution_transparency(mut self, enabled: bool) -> Self {
+        self.enable_half_resolution_transparency = enabled;
+        self
+    }
+
+    pub fn with_half_resolution_transparency_depth_sigma(mut self, sigma: u16) -> Self {
+        self.half_resolution_transparency_depth_sigma = sigma.max(1);
+        self
+    }
+
     pub fn with_graph_msaa_sample_count(mut self, sample_count: u32) -> Self {
         self.graph_msaa_sample_count = Some(sample_count.max(1));
         self
@@ -172,6 +182,8 @@ fn capability_requires_explicit_opt_in(requirement: RenderFeatureCapabilityRequi
             | RenderFeatureCapabilityRequirement::RayTracingPipeline
             | RenderFeatureCapabilityRequirement::NeuralCompute
             | RenderFeatureCapabilityRequirement::SparseTexture
+            | RenderFeatureCapabilityRequirement::SubgroupOps
+            | RenderFeatureCapabilityRequirement::PipelineStatisticsQuery
     )
 }
 

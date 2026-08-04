@@ -19,7 +19,6 @@ pub(super) fn assert_plugin_importer_d13_sdk_parent_mounts_guard_is_child_backed
             PLUGIN_IMPORTER_D13_PARENT_MOUNTS_REVIEW_MOUNTS_CHILD,
             PLUGIN_IMPORTER_D13_PARENT_MOUNTS_FOLDER_BACKED_CHILD,
             PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_OWNERSHIP_CHILD,
-            PLUGIN_IMPORTER_D13_PARENT_MOUNTS_STATUS_MIRRORS_CHILD,
             PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_STATUS,
             PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD_SPLIT_GUARD,
         ],
@@ -45,6 +44,4 @@ pub(super) fn assert_plugin_importer_d13_sdk_parent_mounts_guard_is_child_backed
             "parent_mounts child source blob should contain child guard {child_guard}"
         );
     }
-    super::status_mirrors::assert_plugin_importer_d13_sdk_parent_mounts_status_mirrors_are_current(
-    );
 }

@@ -63,6 +63,16 @@ pub enum TextureUploadCompressionFamily {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextureUploadSubresource {
+    pub mip_level: u32,
+    pub array_layer: u32,
+    pub data_offset: usize,
+    pub data_length: usize,
+    pub bytes_per_row: u32,
+    pub block_rows: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TextureUploadPlan {
     pub format: String,
     pub compression: TextureUploadCompressionFamily,
@@ -74,6 +84,9 @@ pub struct TextureUploadPlan {
     pub block_height: u32,
     pub block_depth: u32,
     pub bytes_per_block: u32,
+    /// Absolute container ranges for non-contiguous compressed mip/layer payloads.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subresources: Vec<TextureUploadSubresource>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -142,6 +155,7 @@ fn rgba8_upload_readiness(texture: &TextureAsset) -> TextureUploadReadiness {
         block_height: 1,
         block_depth: 1,
         bytes_per_block: 4,
+        subresources: Vec::new(),
     })
 }
 
@@ -264,6 +278,7 @@ fn lightmap_rgba16f_upload_readiness(
         block_height: 1,
         block_depth: 1,
         bytes_per_block: 8,
+        subresources: Vec::new(),
     })
 }
 

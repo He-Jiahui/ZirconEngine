@@ -23,15 +23,6 @@ fn review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary() {
         include_str!("../../../../../../../docs/zircon_runtime/graphics/render-product-submit.md");
     let module_doc =
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "pub type ShaderPrewarmArgsResult",
@@ -98,28 +89,6 @@ fn review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary() {
         assert!(
             run.contains(required),
             "shader prewarm final sweep should keep CLI display boundary anchor `{required}`"
-        );
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 shader prewarm CLI typed-error sweep",
-        "runtime_15_shader_prewarm_cli_typed_error_sweep_static_passed_cargo_deferred",
-        "review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary",
-        "Result<ExitCode, String>",
-        "bin/zircon_shader_prewarm/run.rs",
-        "bin/zircon_shader_prewarm/error.rs",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || render_doc.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "shader prewarm final sweep docs/status should record `{doc_anchor}`"
         );
     }
 }

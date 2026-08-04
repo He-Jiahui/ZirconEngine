@@ -404,6 +404,7 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
             kind: UiImeInputEventKind::Preedit,
             ref text,
             cursor_range: Some(range),
+            preedit_clauses: Vec::new(),
             delete_surrounding: None,
             ..
         })) if text == "draft" && range.start_byte == 1 && range.end_byte == 4
@@ -414,6 +415,7 @@ fn runtime_event_adapter_maps_keyboard_ime_drag_gamepad_and_accessibility_inputs
             kind: UiImeInputEventKind::Cancel,
             ref text,
             cursor_range: None,
+            preedit_clauses: Vec::new(),
             delete_surrounding: None,
             ..
         })) if text.is_empty()
@@ -639,6 +641,7 @@ fn runtime_event_adapter_maps_manual_window_event_shapes() {
         UiWindowInputPumpEvent::Input(UiInputEvent::Ime(UiImeInputEvent {
             kind: UiImeInputEventKind::Preedit,
             cursor_range: Some(range),
+            preedit_clauses: Vec::new(),
             delete_surrounding: None,
             ..
         })) if range.start_byte == 2 && range.end_byte == 5
@@ -660,6 +663,7 @@ fn runtime_event_adapter_maps_manual_window_event_shapes() {
             kind: UiImeInputEventKind::DeleteSurrounding,
             ref text,
             cursor_range: None,
+            preedit_clauses: Vec::new(),
             delete_surrounding: Some(delete),
             ..
         })) if text.is_empty() && delete == UiImeDeleteSurrounding::new(3, 1)

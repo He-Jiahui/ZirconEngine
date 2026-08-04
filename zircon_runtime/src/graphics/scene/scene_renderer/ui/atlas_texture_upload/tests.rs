@@ -1,6 +1,5 @@
 use crate::core::math::UVec2;
 use crate::text::atlas::{
-    glyph_atlas_bitmap_render_submission_plan_with_padding, render_plan::GlyphAtlasScreenRect,
     GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
     GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapSource, GlyphAtlasBitmapStagedUpload,
     GlyphAtlasBitmapStagedUploadFailure, GlyphAtlasBitmapStagedUploadFailureReason,
@@ -9,23 +8,24 @@ use crate::text::atlas::{
     GlyphAtlasBitmapUploadStagingFailureReason, GlyphAtlasBitmapUploadStagingPlan,
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasRect,
     GlyphAtlasSamplingSemantics, GlyphAtlasSet, GlyphAtlasStorageFormat, GlyphAtlasUploadCommand,
-    GlyphAtlasUploadMode,
+    GlyphAtlasUploadMode, glyph_atlas_bitmap_render_submission_plan_with_padding,
+    render_plan::GlyphAtlasScreenRect,
 };
 
 use super::binding::{
-    glyph_atlas_bitmap_texture_upload_binding_plan,
     GlyphAtlasBitmapTextureUploadBindingFailureReason,
+    glyph_atlas_bitmap_texture_upload_binding_plan,
 };
 use super::resource::glyph_atlas_texture_array_spec;
 use super::write::glyph_atlas_texture_upload_write;
 use super::{
+    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
+    GlyphAtlasTextureArrayResources,
     glyph_atlas_bitmap_render_submission_texture_upload_frame_report,
     glyph_atlas_bitmap_texture_upload_frame_plan,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity,
     write_glyph_atlas_bitmap_texture_upload_frame_resources,
-    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
-    GlyphAtlasTextureArrayResources,
 };
 
 #[test]

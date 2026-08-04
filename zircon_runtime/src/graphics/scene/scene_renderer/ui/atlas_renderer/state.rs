@@ -26,6 +26,7 @@ pub(super) struct GlyphAtlasBitmapRendererDrawPass {
     pub(super) atlas_format: GlyphAtlasFormat,
     pub(super) instance_buffer: Option<wgpu::Buffer>,
     pub(super) instance_buffer_capacity_bytes: u64,
+    pub(super) instance_buffer_payload_hash: Option<[u8; 32]>,
     pub(super) draw_commands: Vec<GlyphAtlasGpuDrawCommand>,
 }
 
@@ -50,6 +51,8 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRender
     pub(super) draw_command_count: usize,
     pub(super) pipeline_count: usize,
     pub(super) requires_background_composite: bool,
+    pub(super) upload_plan_build_count: usize,
+    pub(super) upload_plan_skip_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) upload_request_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) upload_requeued_count: usize,
     pub(super) upload_missing_page_requeue_count: usize,
@@ -78,6 +81,8 @@ impl Default for GlyphAtlasBitmapRendererPrepareReport {
             draw_command_count: 0,
             pipeline_count: 0,
             requires_background_composite: false,
+            upload_plan_build_count: 0,
+            upload_plan_skip_count: 0,
             upload_request_count: 0,
             upload_requeued_count: 0,
             upload_missing_page_requeue_count: 0,
@@ -142,6 +147,7 @@ impl GlyphAtlasBitmapRendererDrawPass {
             atlas_format,
             instance_buffer: None,
             instance_buffer_capacity_bytes: 0,
+            instance_buffer_payload_hash: None,
             draw_commands: Vec::new(),
         }
     }

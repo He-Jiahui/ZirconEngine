@@ -1,4 +1,5 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
 
 mod frame;
@@ -28,7 +29,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
     if rect.width <= 0.0 || rect.height <= 0.0 {
         return true;
     }
+    let Some(clip) = intersect(&rect, clip) else {
+        return true;
+    };
 
-    push_shell_panel_surface(commands, node, kind, &rect, clip, order, opacity);
+    push_shell_panel_surface(commands, node, kind, &rect, &clip, order, opacity);
     true
 }

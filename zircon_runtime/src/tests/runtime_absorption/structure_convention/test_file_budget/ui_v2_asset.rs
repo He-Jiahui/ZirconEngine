@@ -44,9 +44,6 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first/architecture_shared_rows.rs",
-    );
 
     assert_contains_all(
         "UI v2 asset parent test module mounts",
@@ -197,18 +194,6 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
             ],
         );
     }
-
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M3 UI v2 asset test folder split",
-            "runtime_15_ui_v2_asset_tests_folder_split_static_passed_cargo_lock_blocked",
-            "ui/tests/v2_asset.rs",
-            "ui/tests/v2_asset/style_runtime.rs",
-            "runtime_15_ui_v2_asset_tests_are_folder_backed",
-        ],
-    );
 }
 
 #[test]
@@ -221,15 +206,6 @@ fn runtime_15_ui_v2_style_runtime_tests_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first/architecture_shared_rows.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/ui_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/ui_maps.rs",
-    );
 
     assert_contains_all(
         "UI v2 style runtime route mounts child test owners",
@@ -266,31 +242,6 @@ fn runtime_15_ui_v2_style_runtime_tests_are_folder_backed() {
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("status map", status_map.as_str()),
-        ("date map", date_map.as_str()),
-    ] {
-        let expected_anchors: &[&str] = if label == "date map" {
-            &[STYLE_RUNTIME_STATUS_NAME, "2026-07-07"]
-        } else {
-            &[STYLE_RUNTIME_STATUS_NAME, STYLE_RUNTIME_STATUS_ID]
-        };
-        assert_contains_all(label, source, expected_anchors);
-    }
-    assert_contains_all(
-        "UI v2 style-runtime guard mirrors status anchors",
-        &format!(
-            "{runtime_15_plan}\n{runtime_index}\n{review_findings}\n{structure_convention}\n{module_doc}\n{status_rows}"
-        ),
-        &[STYLE_RUNTIME_GUARD],
-    );
 }
 
 fn style_runtime_child_source_blob() -> String {

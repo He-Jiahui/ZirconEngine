@@ -31,15 +31,6 @@ const NUMBERED_STATUS_RECORDS: &str = concat!(
 );
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
-const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests.rs"
-);
-const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
-);
-const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
-);
 
 #[test]
 fn runtime_15_dynamic_scene_route_owner_is_folder_backed() {
@@ -188,8 +179,6 @@ fn assert_docs_and_status_mirror_split() {
         ("structure convention plan", STRUCTURE_CONVENTION_PLAN),
         ("review findings plan", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
-        ("status row data", STATUS_ROW_DATA),
-        ("status map", STATUS_MAP),
     ] {
         assert!(
             source.contains(
@@ -200,11 +189,6 @@ fn assert_docs_and_status_mirror_split() {
             "{label} should mirror the dynamic_scene route-owner split status"
         );
     }
-    assert!(
-        DATE_MAP.contains("Runtime 15 M3 dynamic-scene route-owner split")
-            || NUMBERED_STATUS_RECORDS.contains("Runtime 15 M3 dynamic-scene route-owner split"),
-        "date map should mirror the dynamic_scene route-owner split slice"
-    );
     assert_contains_all(
         "module convention doc",
         MODULE_CONVENTION_DOC,

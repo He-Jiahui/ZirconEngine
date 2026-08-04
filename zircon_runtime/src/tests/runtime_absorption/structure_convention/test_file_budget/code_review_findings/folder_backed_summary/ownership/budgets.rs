@@ -26,10 +26,6 @@ pub(super) fn assert_folder_backed_summary_child_ownership_children_line_budgets
             FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGETS_CHILD,
             read_runtime_src(FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGETS_CHILD),
         ),
-        (
-            FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD,
-            read_runtime_src(FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(

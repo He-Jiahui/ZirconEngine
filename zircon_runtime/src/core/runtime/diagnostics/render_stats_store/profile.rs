@@ -56,6 +56,13 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         profile.staging_total_bytes,
         &["render", "profile", "staging"],
     );
+    record_bytes(
+        store,
+        "render.profile.persistent_texture_resident_bytes",
+        frame_index,
+        profile.persistent_texture_resident_bytes,
+        &["render", "profile", "memory", "texture", "persistent"],
+    );
     record_bool(
         store,
         "render.profile.compiled_graph_cache_hit",

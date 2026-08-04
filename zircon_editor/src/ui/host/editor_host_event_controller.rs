@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use crate::core::commands::{EditorCommandPaletteMru, EditorCommandRegistryHandle, EditorKeymap};
+use crate::core::commands::{EditorCommandPaletteMru, EditorCommandRegistryHandle};
 use crate::core::context::EditorContext;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::gateway::{
@@ -18,9 +18,9 @@ use crate::core::runtime_event_consumer::{
 use crate::ui::workbench::shell_state::WorkbenchShellState;
 use crate::ui::workbench::state::EditorState;
 
+use super::EditorManager;
 use super::play_pending_decision::PlayPendingEditDecisionAdapter;
 use super::scene_inspection_publication::SceneInspectionPublication;
-use super::EditorManager;
 
 const FIRST_PLAY_SESSION_GENERATION: u64 = 1;
 
@@ -29,7 +29,6 @@ pub struct EditorHostEventController {
     context: Arc<EditorContext>,
     shell: Arc<WorkbenchShellState>,
     commands: EditorCommandRegistryHandle,
-    keymap: EditorKeymap,
     play_sessions: Arc<PlaySessionController>,
     play_pending_decisions: PlayPendingEditDecisionAdapter,
     pub(super) scene_inspection_publication: Mutex<SceneInspectionPublication>,
@@ -47,9 +46,8 @@ impl EditorHostEventController {
         ));
         let controller = Self {
             context: context.clone(),
-            shell: Arc::new(WorkbenchShellState::new(state, manager)),
+            shell: Arc::new(WorkbenchShellState::new(state, Arc::clone(&manager))),
             commands,
-            keymap: manager.keymap().clone(),
             play_sessions: play_sessions.clone(),
             play_pending_decisions: PlayPendingEditDecisionAdapter::default(),
             scene_inspection_publication: Mutex::new(SceneInspectionPublication::default()),
@@ -145,22 +143,53 @@ impl EditorHostEventController {
             if self.runtime_event_consumer_session_active() {
                 self.end_runtime_event_consumers()?;
             }
-            self.publish_pending_edit_decision(backend_transition.pending_edit_prompt.as_ref())
+            let pending_edit_decision_error = self
+                .publish_pending_edit_decision(backend_transition.pending_edit_prompt.as_ref())
                 .map_err(|message| EditorRuntimeEventConsumerError::Gateway {
                     consumer_id: "play.pending-edit-decision".to_string(),
                     message,
-                })?;
-            {
+                })
+                .err();
+            let editor_state_exit_error = {
                 let mut shell = self.shell.lock();
-                let _ = shell.state.exit_play_mode();
-                match backend_transition.cause {
-                    PlayTransitionCause::Crashed { exit_code } => shell.state.set_status_line(
-                        format!("Runtime preview exited unexpectedly (code {exit_code:?})"),
-                    ),
-                    _ => shell.state.set_status_line("Runtime preview stopped"),
+                match shell.state.exit_play_mode() {
+                    Ok(_) => {
+                        match backend_transition.cause {
+                            PlayTransitionCause::Crashed { exit_code } => {
+                                shell.state.set_status_line(format!(
+                                    "Runtime preview exited unexpectedly (code {exit_code:?})"
+                                ))
+                            }
+                            _ => shell.state.set_status_line("Runtime preview stopped"),
+                        }
+                        None
+                    }
+                    Err(error) => {
+                        shell.state.set_status_line(format!(
+                            "Runtime preview stopped, but editor state remains in play mode for retry: {error}"
+                        ));
+                        Some(error)
+                    }
                 }
-            }
+            };
             self.refresh_reflection();
+            if let Some(decision_error) = pending_edit_decision_error {
+                if let Some(exit_error) = editor_state_exit_error {
+                    return Err(EditorRuntimeEventConsumerError::Gateway {
+                        consumer_id: "play.stop.reconcile".to_string(),
+                        message: format!(
+                            "failed to publish pending play-edit decision: {decision_error}; failed to restore editor state after runtime stop: {exit_error}"
+                        ),
+                    });
+                }
+                return Err(decision_error);
+            }
+            if let Some(message) = editor_state_exit_error {
+                return Err(EditorRuntimeEventConsumerError::Gateway {
+                    consumer_id: "play.editor-state.exit".to_string(),
+                    message,
+                });
+            }
             return Ok(EditorRuntimeFrameDemand::OnDemand);
         }
         if self
@@ -214,12 +243,17 @@ impl EditorHostEventController {
         &self.shell
     }
 
+    pub(in crate::ui::host) fn play_pending_decisions(&self) -> &PlayPendingEditDecisionAdapter {
+        &self.play_pending_decisions
+    }
+
     pub(crate) fn commands(&self) -> &EditorCommandRegistryHandle {
         &self.commands
     }
 
-    pub(crate) fn keymap(&self) -> &EditorKeymap {
-        &self.keymap
+    /// Reads the current authority-derived keymap without retaining a controller copy.
+    pub(crate) fn keymap(&self) -> crate::core::commands::EditorKeymap {
+        self.shell.lock().manager.keymap()
     }
 
     pub(crate) fn command_palette_mru(&self) -> EditorCommandPaletteMru {

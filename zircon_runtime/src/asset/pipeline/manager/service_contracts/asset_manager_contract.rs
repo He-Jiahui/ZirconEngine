@@ -172,6 +172,7 @@ impl AssetManagerContract for ProjectAssetManager {
         let mut prepared_generation = candidate
             .prepare_targeted_generation(&uri, &source_path)
             .map_err(asset_error)?;
+        let ready_payloads = prepared_generation.take_ready_payloads();
         let prepared = self.prepare_targeted_project_resource_sync(
             &candidate,
             &uri,
@@ -179,7 +180,7 @@ impl AssetManagerContract for ProjectAssetManager {
             &previous_source_records,
             prepared_generation.imported(),
             prepared_generation.affected(),
-            prepared_generation.take_ready_payloads(),
+            ready_payloads,
         );
         let status = candidate
             .registry()

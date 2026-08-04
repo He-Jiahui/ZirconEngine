@@ -1,5 +1,7 @@
 use crate::graphics::shader::{hzb_build_dispatch_plan, hzb_build_msaa_dispatch_plan};
 
+const ZR_REDUCE_INCLUDE: &str = include_str!("../../../../../../shader/includes/zr_reduce.wgsl");
+
 pub(super) fn hzb_pipeline(
     device: &wgpu::Device,
     hzb_bind_group_layout: &wgpu::BindGroupLayout,
@@ -33,8 +35,9 @@ fn create_hzb_pipeline(
     hzb_bind_group_layout: &wgpu::BindGroupLayout,
     shader_label: &'static str,
     plan: &crate::core::framework::render::ComputeDispatchPlan,
-    shader_source: &'static str,
+    shader_source: &str,
 ) -> wgpu::ComputePipeline {
+    let shader_source = [ZR_REDUCE_INCLUDE, shader_source].concat();
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some(shader_label),
         source: wgpu::ShaderSource::Wgsl(shader_source.into()),
@@ -60,6 +63,8 @@ fn create_hzb_pipeline(
 mod tests {
     const HZB_BUILD_SHADER: &str = include_str!("../../../shaders/hzb_build.wgsl");
     const HZB_BUILD_MSAA_SHADER: &str = include_str!("../../../shaders/hzb_build_msaa.wgsl");
+    const ZR_REDUCE_INCLUDE: &str =
+        include_str!("../../../../../../shader/includes/zr_reduce.wgsl");
 
     #[test]
     fn hzb_shader_declares_reduce_entry_and_storage_target() {
@@ -72,12 +77,15 @@ mod tests {
     fn hzb_shader_preserves_furthest_and_closest_depth_per_mip() {
         for source in [HZB_BUILD_SHADER, HZB_BUILD_MSAA_SHADER] {
             assert!(source.contains("struct HzbDepthRange"));
-            assert!(source.contains("furthest_depth"));
-            assert!(source.contains("closest_depth"));
+            assert!(source.contains("zr_reduce_max_f32"));
+            assert!(source.contains("zr_reduce_min_f32"));
             assert!(source.contains("parent_range.y"));
             assert!(source.contains("depth_range.furthest"));
             assert!(source.contains("depth_range.closest"));
         }
+        assert!(ZR_REDUCE_INCLUDE.contains("fn zr_reduce_min_f32"));
+        assert!(ZR_REDUCE_INCLUDE.contains("fn zr_reduce_max_f32"));
+        assert!(ZR_REDUCE_INCLUDE.contains("fn zr_reduce_add_f32"));
         assert!(HZB_BUILD_MSAA_SHADER.contains("texture_depth_multisampled_2d"));
         assert!(HZB_BUILD_MSAA_SHADER.contains("textureNumSamples(scene_depth_tex)"));
     }

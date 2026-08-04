@@ -13,18 +13,14 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
 #[test]
-fn workbench_table_row_paints_muted_selected_fill_and_action_glyph() {
+fn workbench_table_row_paints_muted_selected_fill_teal_outline_and_action_glyph() {
     let bytes = paint_template_nodes_for_test(
         240,
         44,
         model_rc(vec![table_node("WorkbenchTableSelected", true)]),
     );
 
-    assert!(matching_pixel_count(&bytes, 240, 4, 4, 232, 28, PALETTE.border) > 400);
-    assert_eq!(
-        matching_pixel_count(&bytes, 240, 4, 4, 232, 28, PALETTE.accent),
-        0
-    );
+    assert!(matching_pixel_count(&bytes, 240, 4, 4, 232, 28, PALETTE.accent) > 400);
     assert!(matching_pixel_count(&bytes, 240, 8, 8, 120, 18, PALETTE.surface_pressed) > 1500);
     assert_eq!(
         matching_pixel_count(&bytes, 240, 8, 8, 120, 18, PALETTE.surface_selected),

@@ -4,8 +4,9 @@ use super::{
     RenderCameraTargetWritebackReport, RenderCapabilityClass, RenderCapabilityKind,
     RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderGraphExecutionCoverageReport,
     RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderQualityProfile,
+    normalize_texture_max_anisotropy,
 };
-use crate::core::framework::render::TaaQualityPreset;
+use crate::core::framework::render::{DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA, TaaQualityPreset};
 
 #[test]
 fn render_contract_root_exposes_graph_pass_profile_metrics() {
@@ -108,6 +109,54 @@ fn render_quality_profile_preserves_taa_quality_preset() {
 }
 
 #[test]
+fn render_quality_profile_exposes_viewport_texture_mip_bias() {
+    let profile = RenderQualityProfile::new("texture-budget").with_texture_mip_bias(2);
+
+    assert_eq!(profile.texture_mip_bias, 2);
+    assert_eq!(RenderQualityProfile::new("default").texture_mip_bias, 0);
+}
+
+#[test]
+fn render_quality_profile_clamps_texture_anisotropy_to_supported_tiers() {
+    let profile = RenderQualityProfile::new("texture-budget").with_texture_max_anisotropy(6);
+
+    assert_eq!(profile.texture_max_anisotropy, 4);
+    assert_eq!(
+        RenderQualityProfile::new("default").texture_max_anisotropy,
+        16
+    );
+    assert_eq!(normalize_texture_max_anisotropy(0), 1);
+    assert_eq!(normalize_texture_max_anisotropy(2), 2);
+    assert_eq!(normalize_texture_max_anisotropy(7), 4);
+    assert_eq!(normalize_texture_max_anisotropy(255), 16);
+}
+
+#[test]
+fn render_quality_profile_keeps_half_resolution_transparency_opt_in() {
+    let profile = RenderQualityProfile::new("bandwidth-limited")
+        .with_half_resolution_transparency(true)
+        .with_half_resolution_transparency_depth_sigma(144);
+
+    assert!(profile.features.half_resolution_transparency);
+    assert_eq!(profile.half_resolution_transparency_depth_sigma, 144);
+    assert!(
+        !RenderQualityProfile::new("default")
+            .features
+            .half_resolution_transparency
+    );
+    assert_eq!(
+        RenderQualityProfile::new("default").half_resolution_transparency_depth_sigma,
+        DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA
+    );
+    assert_eq!(
+        RenderQualityProfile::new("clamped")
+            .with_half_resolution_transparency_depth_sigma(0)
+            .half_resolution_transparency_depth_sigma,
+        1
+    );
+}
+
+#[test]
 fn capability_class_report_splits_default_advanced_and_experimental_requirements() {
     let capabilities = RenderCapabilitySummary {
         backend_name: "class-report-test".to_string(),
@@ -166,7 +215,85 @@ fn capability_class_report_splits_default_advanced_and_experimental_requirements
             RenderCapabilityMismatchDetail::new(RenderCapabilityKind::PartiallyBoundBindingArray,),
             RenderCapabilityMismatchDetail::new(RenderCapabilityKind::NeuralCompute),
             RenderCapabilityMismatchDetail::new(RenderCapabilityKind::SparseTexture),
+            RenderCapabilityMismatchDetail::new(RenderCapabilityKind::SubgroupOps),
+            RenderCapabilityMismatchDetail::new(RenderCapabilityKind::PipelineStatisticsQuery),
         ]
+    );
+}
+
+#[test]
+fn bindless_material_capability_requires_all_three_texture_array_features() {
+    let supported = RenderCapabilitySummary {
+        supports_texture_binding_array: true,
+        supports_partially_bound_binding_array: true,
+        supports_non_uniform_resource_indexing: true,
+        max_binding_array_elements_per_shader_stage: 2,
+        max_binding_array_sampler_elements_per_shader_stage: 2,
+        ..RenderCapabilitySummary::default()
+    };
+    assert!(supported.bindless_material_supported());
+
+    for capabilities in [
+        RenderCapabilitySummary {
+            supports_partially_bound_binding_array: true,
+            supports_non_uniform_resource_indexing: true,
+            max_binding_array_elements_per_shader_stage: 2,
+            max_binding_array_sampler_elements_per_shader_stage: 2,
+            ..RenderCapabilitySummary::default()
+        },
+        RenderCapabilitySummary {
+            supports_texture_binding_array: true,
+            supports_non_uniform_resource_indexing: true,
+            max_binding_array_elements_per_shader_stage: 2,
+            max_binding_array_sampler_elements_per_shader_stage: 2,
+            ..RenderCapabilitySummary::default()
+        },
+        RenderCapabilitySummary {
+            supports_texture_binding_array: true,
+            supports_partially_bound_binding_array: true,
+            max_binding_array_elements_per_shader_stage: 2,
+            max_binding_array_sampler_elements_per_shader_stage: 2,
+            ..RenderCapabilitySummary::default()
+        },
+    ] {
+        assert!(!capabilities.bindless_material_supported());
+    }
+}
+
+#[test]
+fn bindless_material_capability_requires_fallback_and_dynamic_slot_capacity() {
+    let insufficient = RenderCapabilitySummary {
+        supports_texture_binding_array: true,
+        supports_partially_bound_binding_array: true,
+        supports_non_uniform_resource_indexing: true,
+        max_binding_array_elements_per_shader_stage: 4,
+        max_binding_array_sampler_elements_per_shader_stage: 1,
+        ..RenderCapabilitySummary::default()
+    };
+
+    assert_eq!(insufficient.bindless_material_slot_capacity(), 1);
+    assert!(!insufficient.bindless_material_supported());
+}
+
+#[test]
+fn capability_class_report_includes_subgroup_and_pipeline_statistics_gates() {
+    let capabilities = RenderCapabilitySummary {
+        supports_subgroup: true,
+        supports_pipeline_statistics_query: true,
+        ..RenderCapabilitySummary::default()
+    };
+
+    let experimental = capabilities.capability_class_report(RenderCapabilityClass::Experimental);
+
+    assert!(
+        experimental
+            .satisfied
+            .contains(&RenderCapabilityKind::SubgroupOps)
+    );
+    assert!(
+        experimental
+            .satisfied
+            .contains(&RenderCapabilityKind::PipelineStatisticsQuery)
     );
 }
 
@@ -215,6 +342,36 @@ fn gpu_driven_submission_requires_indirect_multi_draw_and_first_instance() {
     ] {
         assert!(!capabilities.gpu_driven_submission_supported());
     }
+}
+
+#[test]
+fn gpu_driven_indirect_count_requires_the_optional_count_feature() {
+    let fixed_count_only = RenderCapabilitySummary {
+        supports_indirect_draw: true,
+        supports_multi_draw_indirect: true,
+        supports_indirect_first_instance: true,
+        ..RenderCapabilitySummary::default()
+    };
+    let count_enabled = RenderCapabilitySummary {
+        supports_multi_draw_indirect_count: true,
+        ..fixed_count_only.clone()
+    };
+
+    assert!(fixed_count_only.gpu_driven_submission_supported());
+    assert!(!fixed_count_only.gpu_driven_indirect_count_supported());
+    assert!(count_enabled.gpu_driven_indirect_count_supported());
+}
+
+#[test]
+fn indirect_draw_submission_is_available_without_the_multi_draw_upgrade() {
+    let per_draw = RenderCapabilitySummary {
+        supports_indirect_draw: true,
+        supports_indirect_first_instance: true,
+        ..RenderCapabilitySummary::default()
+    };
+
+    assert!(per_draw.indirect_draw_submission_supported());
+    assert!(!per_draw.gpu_driven_submission_supported());
 }
 
 #[test]

@@ -1,12 +1,13 @@
 use std::fs;
 
 use crate::core::settings::{
-    SettingsLoad, SettingsScope, SettingsStore, settings_registry_with_defaults,
+    settings_registry_with_defaults, SettingsLoad, SettingsScope, SettingsStore,
 };
 use zircon_runtime::asset::{
-    AssetReference, AssetRegistryDiagnostic, AssetUri, ReferenceResolutionError, SceneAsset,
-    SceneMobilityAsset, project::ProjectManager,
+    project::{ProjectManager, ProjectPaths}, AssetReference, AssetRegistryDiagnostic, AssetUri,
+    ReferenceResolutionError, SceneAsset, SceneMobilityAsset,
 };
+use zircon_runtime::core::resource::ResourceState;
 use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
 use zircon_runtime_interface::resource::ResourceScheme;
 
@@ -36,6 +37,7 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
         "assets/scenes/main.scene.toml",
         "assets/materials/default.zmaterial",
         "assets/models/cube.obj",
+        "assets/shaders/pbr_shader.zmeta",
         "assets/shaders/pbr_shader/pbr.zshader",
         "assets/shaders/pbr_shader/pbr.wgsl",
         ".gitignore",
@@ -125,12 +127,10 @@ fn renderable_empty_template_has_the_f2_camera_cube_and_sun_contract() {
         .as_ref()
         .expect("Sun must have a directional light");
     assert!(sun_light.intensity > 0.0);
-    assert!(
-        sun_light
-            .direction
-            .iter()
-            .any(|component| *component != 0.0)
-    );
+    assert!(sun_light
+        .direction
+        .iter()
+        .any(|component| *component != 0.0));
     let sun_direction_length = sun_light
         .direction
         .iter()
@@ -201,11 +201,35 @@ fn renderable_empty_template_scene_refs_match_the_project_registry_after_scan() 
     };
 
     let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let mut manager = ProjectManager::open(&created.root).unwrap();
+    let root = created.root.clone();
+    let mut manager = created.into_project();
     let imported = manager.scan_and_import().unwrap();
     assert!(!imported.is_empty());
 
-    let document = fs::read_to_string(created.root.join("assets/scenes/main.scene.toml")).unwrap();
+    for uri in [
+        "res://scenes/main.scene.toml",
+        "res://models/cube.obj",
+        "res://materials/default.zmaterial",
+        "res://shaders/pbr_shader",
+    ] {
+        let uri = AssetUri::parse(uri).expect("F2 template asset URI");
+        let record = manager
+            .registry()
+            .get_by_locator(&uri)
+            .unwrap_or_else(|| panic!("template scan must register asset {uri}"));
+        assert_eq!(
+            record.state,
+            ResourceState::Ready,
+            "template asset {uri} must import successfully: {}",
+            record.failure_reason().unwrap_or("no import diagnostic")
+        );
+        assert!(
+            record.artifact_locator().is_some(),
+            "template asset {uri} must retain an artifact locator"
+        );
+    }
+
+    let document = fs::read_to_string(root.join("assets/scenes/main.scene.toml")).unwrap();
     let scene = SceneAsset::from_project_toml_str(&document, |persisted_reference| {
         let runtime_reference = resolve_template_scene_reference(persisted_reference)?;
         let registry_entry = manager
@@ -243,7 +267,6 @@ fn renderable_empty_template_scene_refs_match_the_project_registry_after_scan() 
     }
 
     drop(manager);
-    drop(created);
     fs::remove_dir_all(location).unwrap();
 }
 
@@ -349,13 +372,17 @@ fn template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata(
             .uuid(),
         expected_cube_uuid
     );
-    assert!(reopened.asset_registry().diagnostics().iter().any(|diagnostic| {
-        matches!(
-            diagnostic,
-            AssetRegistryDiagnostic::CorruptPersistenceRebuilt { path, .. }
-                if path == &registry_path
-        )
-    }));
+    assert!(reopened
+        .asset_registry()
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| {
+            matches!(
+                diagnostic,
+                AssetRegistryDiagnostic::CorruptPersistenceRebuilt { path, .. }
+                    if path == &registry_path
+            )
+        }));
 
     drop(reopened);
     fs::remove_dir_all(location).unwrap();
@@ -392,7 +419,7 @@ fn template_creation_returns_the_canonical_published_root() {
     };
 
     let created = ProjectAuthority::default().create_project(&draft).unwrap();
-    let expected_root = fs::canonicalize(location.join(project_name)).unwrap();
+    let expected_root = ProjectPaths::resolve_existing_path(location.join(project_name)).unwrap();
 
     assert_eq!(created.root, expected_root);
     assert_eq!(created.project().paths().root(), expected_root.as_path());
@@ -441,7 +468,7 @@ fn template_creation_reopens_from_a_space_and_non_ascii_parent_path() {
     let created = ProjectAuthority::default().create_project(&draft).unwrap();
     assert_eq!(
         created.root,
-        fs::canonicalize(location.join("Path Safe Project")).unwrap()
+        ProjectPaths::resolve_existing_path(location.join("Path Safe Project")).unwrap()
     );
 
     let mut reopened = ProjectManager::open(&created.root).unwrap();
@@ -559,11 +586,9 @@ fn conflicting_rendered_entry_rolls_back_staging_and_leaves_no_project() {
         ],
     };
 
-    assert!(
-        ProjectAuthority::default()
-            .create_rendered_project(&target, rendered)
-            .is_err()
-    );
+    assert!(ProjectAuthority::default()
+        .create_rendered_project(&target, rendered)
+        .is_err());
     assert!(!target.exists());
     assert_eq!(staging_entries(&location), Vec::<String>::new());
     fs::remove_dir_all(location).unwrap();
@@ -621,7 +646,7 @@ fn rendered_template_with_corrupt_asset_metadata(
     project_name: &str,
 ) -> zircon_runtime_interface::project::RenderedProjectTemplate {
     use zircon_runtime_interface::project::{
-        RelPath, RenderedProjectTemplateEntry, render_project_template,
+        render_project_template, RelPath, RenderedProjectTemplateEntry,
     };
 
     let mut rendered =

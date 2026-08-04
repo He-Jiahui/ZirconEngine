@@ -21,7 +21,7 @@
     "bytes": 194197,
     "sha256": "626beaaa2585ac56814cf47509572e0902f7fb1e85bb2ef169443e0059121c97"
   },
-  "catalog_sha256": "c257012838863dbd77627601c57d1b3ae3ff9548c2a755649d53053fe42bbc32",
+  "catalog_sha256": "f4349aa828b6e6a1400b7889f76bf23421145f65326c2148d2cb519cdb00b230",
   "entries": [
     {
       "index": 0,
@@ -4057,6 +4057,791 @@
           }
         ],
         "description": "Accelerates the flow of time for your group or raid, increasing attack, casting, and channeling speed by 30% for 15 sec. Allies recently affected by Temporal Acceleration or Storm Chorus are too exhausted to benefit. (Chronomancy)"
+      }
+    },
+    {
+      "index": 93,
+      "id": "chain_heal",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.chain_heal",
+      "definition": {
+        "id": "chain_heal",
+        "name": "Chain Heal",
+        "class": "shaman",
+        "learnLevel": 10,
+        "cost": 60,
+        "castTime": 2.5,
+        "cooldown": 0,
+        "range": 30,
+        "school": "nature",
+        "requiresTarget": true,
+        "targetType": "friendly",
+        "effects": [
+          {
+            "type": "chainHeal",
+            "min": 120,
+            "max": 145,
+            "jumps": 2,
+            "falloff": 0.5,
+            "radius": 12
+          }
+        ],
+        "description": "Heals a friendly target for 120 to 145, then jumps to up to 2 additional nearby allies, healing for 50% less with each jump. (Restoration signature)"
+      }
+    },
+    {
+      "index": 94,
+      "id": "feral_charge",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.feral_charge",
+      "definition": {
+        "id": "feral_charge",
+        "name": "Primal Surge",
+        "class": "druid",
+        "learnLevel": 10,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 90,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "usableInForm": true,
+        "effects": [
+          {
+            "type": "feralCharge"
+          }
+        ],
+        "description": "Unleash a primal surge. In Wolf Form, Energy regeneration is increased by 100% for 10 sec. In Bruin Form, instantly generates 50 Rage. (Feral signature)"
+      }
+    },
+    {
+      "index": 95,
+      "id": "pummel",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.pummel",
+      "definition": {
+        "id": "pummel",
+        "name": "Jawcrack",
+        "class": "warrior",
+        "learnLevel": 8,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 10,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "interrupt",
+            "lockout": 4,
+            "rageOnInterrupt": 10
+          }
+        ],
+        "description": "Interrupts spellcasting, preventing any spell in that school from being cast for 4 sec. Generates 10 rage when it stops a cast."
+      }
+    },
+    {
+      "index": 96,
+      "id": "adrenaline_rush",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.adrenaline_rush",
+      "definition": {
+        "id": "adrenaline_rush",
+        "name": "Quickened Blood",
+        "class": "rogue",
+        "learnLevel": 20,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 180,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "gainResource",
+            "amount": 60
+          }
+        ],
+        "description": "Your blood runs hot, instantly restoring 60 energy."
+      }
+    },
+    {
+      "index": 97,
+      "id": "berserker_rage",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.berserker_rage",
+      "definition": {
+        "id": "berserker_rage",
+        "name": "Seething Fury",
+        "class": "warrior",
+        "learnLevel": 10,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 30,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "gainResource",
+            "amount": 20
+          }
+        ],
+        "description": "Enter a berserker rage, generating 20 rage. (Warrior talent)"
+      }
+    },
+    {
+      "index": 98,
+      "id": "exorcism",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.exorcism",
+      "definition": {
+        "id": "exorcism",
+        "name": "Rite of Expulsion",
+        "class": "paladin",
+        "learnLevel": 5,
+        "cost": 55,
+        "castTime": 0,
+        "cooldown": 15,
+        "range": 30,
+        "school": "holy",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 46,
+            "max": 56
+          }
+        ],
+        "description": "Banishes the wicked with Holy wrath, causing $d Holy damage."
+      }
+    },
+    {
+      "index": 99,
+      "id": "evasion",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.evasion",
+      "definition": {
+        "id": "evasion",
+        "name": "Ghostfoot",
+        "class": "rogue",
+        "learnLevel": 8,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 300,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_dodge",
+            "value": 0.5,
+            "duration": 15
+          }
+        ],
+        "description": "Increases your dodge chance by 50% for 15 sec."
+      }
+    },
+    {
+      "index": 100,
+      "id": "frost_armor",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.frost_armor",
+      "definition": {
+        "id": "frost_armor",
+        "name": "Hoarfrost Mantle",
+        "class": "mage",
+        "learnLevel": 1,
+        "excludeSpecs": [
+          "fire",
+          "arcane"
+        ],
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "frost",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_armor",
+            "value": 30,
+            "duration": 1800
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 10,
+            "cost": 30,
+            "effects": [
+              {
+                "type": "selfBuff",
+                "kind": "buff_armor",
+                "value": 50,
+                "duration": 1800
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 45,
+            "effects": [
+              {
+                "type": "selfBuff",
+                "kind": "buff_armor",
+                "value": 70,
+                "duration": 1800
+              }
+            ]
+          }
+        ],
+        "description": "Encases you in frost, increasing armor by $b for 30 min."
+      }
+    },
+    {
+      "index": 101,
+      "id": "aspect_of_the_hawk",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.aspect_of_the_hawk",
+      "definition": {
+        "id": "aspect_of_the_hawk",
+        "name": "Harrier's Guise",
+        "class": "hunter",
+        "learnLevel": 4,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "nature",
+        "requiresTarget": false,
+        "exclusiveGroup": "aspect",
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_ap",
+            "value": 20,
+            "duration": 1800
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 30,
+            "effects": [
+              {
+                "type": "selfBuff",
+                "kind": "buff_ap",
+                "value": 35,
+                "duration": 1800
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "selfBuff",
+                "kind": "buff_ap",
+                "value": 50,
+                "duration": 1800
+              }
+            ]
+          }
+        ],
+        "description": "Take on the aspect of the hawk, increasing attack power by $b for 30 min."
+      }
+    },
+    {
+      "index": 102,
+      "id": "aspect_of_the_monkey",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.aspect_of_the_monkey",
+      "definition": {
+        "id": "aspect_of_the_monkey",
+        "name": "Marten's Guise",
+        "class": "hunter",
+        "learnLevel": 5,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "nature",
+        "requiresTarget": false,
+        "exclusiveGroup": "aspect",
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_dodge",
+            "value": 0.08,
+            "duration": 1800
+          }
+        ],
+        "description": "Take on the aspect of the monkey, increasing your dodge chance by 8% for 30 min."
+      }
+    },
+    {
+      "index": 103,
+      "id": "aspect_of_the_cheetah",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.aspect_of_the_cheetah",
+      "definition": {
+        "id": "aspect_of_the_cheetah",
+        "name": "Courser's Guise",
+        "class": "hunter",
+        "learnLevel": 14,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "nature",
+        "requiresTarget": false,
+        "exclusiveGroup": "aspect",
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_speed",
+            "value": 1.3,
+            "duration": 1800
+          }
+        ],
+        "description": "Take on the aspect of the cheetah, increasing movement speed by 30% for 30 min."
+      }
+    },
+    {
+      "index": 104,
+      "id": "cold_blood",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.cold_blood",
+      "definition": {
+        "id": "cold_blood",
+        "name": "Killer's Calm",
+        "class": "rogue",
+        "learnLevel": 10,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 120,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "next_attack_crit",
+            "value": 1,
+            "duration": 60
+          }
+        ],
+        "description": "Focuses your killing intent so your next attack is a critical strike. (Assassination signature)"
+      }
+    },
+    {
+      "index": 105,
+      "id": "blade_flurry",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.blade_flurry",
+      "definition": {
+        "id": "blade_flurry",
+        "name": "Mirrored Blades",
+        "class": "rogue",
+        "learnLevel": 10,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 120,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_haste",
+            "value": 1.2,
+            "duration": 12
+          }
+        ],
+        "description": "Unleashes a flurry of blades, increasing attack speed by 20% for 12 sec. (Combat signature)"
+      }
+    },
+    {
+      "index": 106,
+      "id": "hemorrhage",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.hemorrhage",
+      "definition": {
+        "id": "hemorrhage",
+        "name": "Red Ribbon",
+        "class": "rogue",
+        "learnLevel": 10,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "awardsCombo": 1,
+        "effects": [
+          {
+            "type": "weaponStrike",
+            "bonus": 16
+          },
+          {
+            "type": "dot",
+            "total": 36,
+            "duration": 12,
+            "interval": 3
+          },
+          {
+            "type": "applyDebuff",
+            "kind": "bleed_vuln",
+            "value": 0.4,
+            "duration": 12
+          }
+        ],
+        "description": "Strikes the enemy for weapon damage plus $d, causes bleeding damage over 12 sec, and increases bleed damage taken by 40%. Awards 1 combo point. (Subtlety signature)"
+      }
+    },
+    {
+      "index": 107,
+      "id": "aimed_shot",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.aimed_shot",
+      "definition": {
+        "id": "aimed_shot",
+        "name": "Long Draw",
+        "class": "hunter",
+        "learnLevel": 11,
+        "cost": 50,
+        "castTime": 3,
+        "cooldown": 6,
+        "range": 35,
+        "minRange": 8,
+        "school": "physical",
+        "projectile": true,
+        "scalesWith": "ranged",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 50,
+            "max": 62
+          }
+        ],
+        "description": "A carefully aimed shot that deals $d damage."
+      }
+    },
+    {
+      "index": 108,
+      "id": "rapid_fire",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.rapid_fire",
+      "definition": {
+        "id": "rapid_fire",
+        "name": "Fevered Draw",
+        "class": "hunter",
+        "learnLevel": 20,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 300,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_haste",
+            "value": 1.4,
+            "duration": 15
+          }
+        ],
+        "description": "Increases your attack speed by 40% for 15 sec."
+      }
+    },
+    {
+      "index": 109,
+      "id": "arcane_shot",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_shot",
+      "definition": {
+        "id": "arcane_shot",
+        "name": "Fell Shot",
+        "class": "hunter",
+        "learnLevel": 5,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 6,
+        "range": 35,
+        "minRange": 8,
+        "school": "arcane",
+        "scalesWith": "ranged",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 13,
+            "max": 17
+          }
+        ],
+        "ranks": [
+          {
+            "rank": 2,
+            "level": 12,
+            "cost": 40,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 24,
+                "max": 30
+              }
+            ]
+          },
+          {
+            "rank": 3,
+            "level": 18,
+            "cost": 55,
+            "effects": [
+              {
+                "type": "directDamage",
+                "min": 38,
+                "max": 47
+              }
+            ]
+          }
+        ],
+        "description": "An instant shot that deals $d Arcane damage."
+      }
+    },
+    {
+      "index": 110,
+      "id": "wing_clip",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.wing_clip",
+      "definition": {
+        "id": "wing_clip",
+        "name": "Fettering Slash",
+        "class": "hunter",
+        "learnLevel": 10,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 0,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 3,
+            "max": 5
+          },
+          {
+            "type": "slow",
+            "mult": 0.6,
+            "duration": 10
+          }
+        ],
+        "description": "Inflicts a wound for $d damage, slowing the enemy by 40% for 10 sec."
+      }
+    },
+    {
+      "index": 111,
+      "id": "concussive_shot",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.concussive_shot",
+      "definition": {
+        "id": "concussive_shot",
+        "name": "Rattling Shot",
+        "class": "hunter",
+        "learnLevel": 8,
+        "cost": 20,
+        "castTime": 0,
+        "cooldown": 12,
+        "range": 35,
+        "minRange": 8,
+        "school": "physical",
+        "projectile": true,
+        "scalesWith": "ranged",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "directDamage",
+            "min": 4,
+            "max": 6
+          },
+          {
+            "type": "slow",
+            "mult": 0.5,
+            "duration": 4
+          }
+        ],
+        "description": "Dazes the target for $d damage, slowing movement by 50% for 4 sec."
+      }
+    },
+    {
+      "index": 112,
+      "id": "counter_shot",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.counter_shot",
+      "definition": {
+        "id": "counter_shot",
+        "name": "Hushing Shot",
+        "class": "hunter",
+        "learnLevel": 10,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 20,
+        "range": 35,
+        "minRange": 8,
+        "school": "physical",
+        "scalesWith": "ranged",
+        "requiresTarget": true,
+        "effects": [
+          {
+            "type": "interrupt",
+            "lockout": 4
+          }
+        ],
+        "description": "Interrupts spellcasting and prevents any spell in that school from being cast for 4 sec. (Hunter talent)"
+      }
+    },
+    {
+      "index": 113,
+      "id": "bladestorm",
+      "scenarios": [],
+      "source_owner": "src/sim/content/classes.ts#ABILITIES.bladestorm",
+      "definition": {
+        "id": "bladestorm",
+        "name": "Bladestorm",
+        "class": "warrior",
+        "learnLevel": 20,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 90,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "targetMode": "position",
+        "selfCentered": true,
+        "uninterruptible": true,
+        "castWhileMoving": true,
+        "channel": {
+          "duration": 4,
+          "ticks": 4
+        },
+        "effects": [
+          {
+            "type": "aoeDamage",
+            "min": 16,
+            "max": 22,
+            "radius": 6
+          }
+        ],
+        "description": "Become a whirling storm of steel, striking all enemies within 6 yards for $d every second for 4 sec."
+      }
+    },
+    {
+      "index": 114,
+      "id": "startle_shot",
+      "scenarios": [],
+      "source_owner": "src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A.startle_shot",
+      "definition": {
+        "id": "startle_shot",
+        "name": "Startle Shot",
+        "class": "hunter",
+        "learnLevel": 8,
+        "cost": 25,
+        "castTime": 0,
+        "cooldown": 20,
+        "range": 35,
+        "minRange": 8,
+        "school": "physical",
+        "scalesWith": "ranged",
+        "requiresTarget": true,
+        "targetType": "enemy",
+        "effects": [
+          {
+            "type": "incapacitate",
+            "duration": 4
+          }
+        ],
+        "description": "A wild shot that disorients the target for $t sec. Any damage breaks the effect."
+      }
+    },
+    {
+      "index": 115,
+      "id": "deterrence",
+      "scenarios": [],
+      "source_owner": "src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A.deterrence",
+      "definition": {
+        "id": "deterrence",
+        "name": "Bristleguard",
+        "class": "hunter",
+        "learnLevel": 10,
+        "cost": 0,
+        "castTime": 0,
+        "cooldown": 300,
+        "range": 0,
+        "school": "physical",
+        "requiresTarget": false,
+        "offGcd": true,
+        "effects": [
+          {
+            "type": "selfBuff",
+            "kind": "buff_dodge",
+            "value": 0.25,
+            "duration": 10
+          },
+          {
+            "type": "selfBuff",
+            "kind": "buff_dr",
+            "value": 0.3,
+            "duration": 10
+          }
+        ],
+        "description": "Increases your dodge chance by 25 percentage points and reduces all damage taken by 30% for 10 sec. (Hunter talent)"
+      }
+    },
+    {
+      "index": 116,
+      "id": "frost_trap",
+      "scenarios": [],
+      "source_owner": "src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A.frost_trap",
+      "definition": {
+        "id": "frost_trap",
+        "name": "Rime Snare",
+        "class": "hunter",
+        "learnLevel": 10,
+        "cost": 35,
+        "castTime": 0,
+        "cooldown": 30,
+        "range": 0,
+        "school": "frost",
+        "requiresTarget": false,
+        "effects": [
+          {
+            "type": "aoeRoot",
+            "duration": 3,
+            "radius": 3,
+            "min": 0,
+            "max": 0,
+            "stun": true,
+            "trap": {
+              "armTime": 1.5,
+              "lifetime": 60
+            }
+          }
+        ],
+        "description": "Places a frost trap at your feet that arms after 1.5 sec. The first enemy to touch it is frozen for 3 sec, unable to move or act. One trap at a time. Lasts 60 sec. (Hunter talent)"
       }
     }
   ]

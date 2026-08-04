@@ -37,6 +37,10 @@ impl<'a> MeshSceneDataBindHandle<'a> {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct MeshDrawReplayStats {
     pub(crate) draw_call_count: u32,
+    pub(crate) indirect_count_draw_call_count: u32,
+    pub(crate) fixed_multi_draw_call_count: u32,
+    pub(crate) per_draw_indirect_draw_call_count: u32,
+    pub(crate) direct_draw_call_count: u32,
     pub(crate) state_change_count: u32,
     pub(crate) bind_skip_count: u32,
 }
@@ -44,6 +48,10 @@ pub(crate) struct MeshDrawReplayStats {
 #[derive(Debug, Default)]
 pub(crate) struct MeshDrawReplayStatsAccumulator {
     draw_call_count: AtomicU32,
+    indirect_count_draw_call_count: AtomicU32,
+    fixed_multi_draw_call_count: AtomicU32,
+    per_draw_indirect_draw_call_count: AtomicU32,
+    direct_draw_call_count: AtomicU32,
     state_change_count: AtomicU32,
     bind_skip_count: AtomicU32,
 }
@@ -51,6 +59,19 @@ pub(crate) struct MeshDrawReplayStatsAccumulator {
 impl MeshDrawReplayStatsAccumulator {
     pub(crate) fn record(&self, stats: MeshDrawReplayStats) {
         saturating_add(&self.draw_call_count, stats.draw_call_count);
+        saturating_add(
+            &self.indirect_count_draw_call_count,
+            stats.indirect_count_draw_call_count,
+        );
+        saturating_add(
+            &self.fixed_multi_draw_call_count,
+            stats.fixed_multi_draw_call_count,
+        );
+        saturating_add(
+            &self.per_draw_indirect_draw_call_count,
+            stats.per_draw_indirect_draw_call_count,
+        );
+        saturating_add(&self.direct_draw_call_count, stats.direct_draw_call_count);
         saturating_add(&self.state_change_count, stats.state_change_count);
         saturating_add(&self.bind_skip_count, stats.bind_skip_count);
     }
@@ -58,6 +79,14 @@ impl MeshDrawReplayStatsAccumulator {
     pub(crate) fn stats(&self) -> MeshDrawReplayStats {
         MeshDrawReplayStats {
             draw_call_count: self.draw_call_count.load(Ordering::Relaxed),
+            indirect_count_draw_call_count: self
+                .indirect_count_draw_call_count
+                .load(Ordering::Relaxed),
+            fixed_multi_draw_call_count: self.fixed_multi_draw_call_count.load(Ordering::Relaxed),
+            per_draw_indirect_draw_call_count: self
+                .per_draw_indirect_draw_call_count
+                .load(Ordering::Relaxed),
+            direct_draw_call_count: self.direct_draw_call_count.load(Ordering::Relaxed),
             state_change_count: self.state_change_count.load(Ordering::Relaxed),
             bind_skip_count: self.bind_skip_count.load(Ordering::Relaxed),
         }
@@ -182,7 +211,8 @@ impl MeshDrawCommandReplayer {
         command: &'pass MeshDrawCommand,
     ) {
         command.record_indexed_draw(pass);
-        self.stats.draw_call_count += 1;
+        self.stats.draw_call_count = self.stats.draw_call_count.saturating_add(1);
+        self.stats.direct_draw_call_count = self.stats.direct_draw_call_count.saturating_add(1);
     }
 
     pub(crate) fn replay_command_stream<'pass>(
@@ -252,21 +282,52 @@ impl MeshDrawCommandReplayer {
             }
             let count_offset =
                 u64::from(batch.draw_count_index) * INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES;
-            pass.multi_draw_indexed_indirect_count(
-                execution
-                    .compaction_resources()
-                    .compacted_indirect_args_buffer(),
-                offset,
-                execution.compaction_resources().draw_count_buffer(),
-                count_offset,
-                batch.args_count,
-            );
-            self.stats.draw_call_count += 1;
+            if execution.indirect_count_supported() {
+                pass.multi_draw_indexed_indirect_count(
+                    execution
+                        .compaction_resources()
+                        .compacted_indirect_args_buffer(),
+                    offset,
+                    execution.compaction_resources().draw_count_buffer(),
+                    count_offset,
+                    batch.args_count,
+                );
+                self.record_indirect_count_draw_call();
+            } else if execution.multi_draw_indirect_supported() {
+                // Compaction clears the full args range before writing its dense prefix, so the
+                // fixed-count fallback safely consumes zero-instance tail entries.
+                pass.multi_draw_indexed_indirect(
+                    execution
+                        .compaction_resources()
+                        .compacted_indirect_args_buffer(),
+                    offset,
+                    batch.args_count,
+                );
+                self.record_fixed_multi_draw_call();
+            } else {
+                self.draw_indexed_indirect_range(
+                    pass,
+                    execution
+                        .compaction_resources()
+                        .compacted_indirect_args_buffer(),
+                    offset,
+                    batch.args_count,
+                );
+            }
             return;
         }
 
-        pass.multi_draw_indexed_indirect(execution.args_buffer(), offset, batch.args_count);
-        self.stats.draw_call_count += 1;
+        if execution.multi_draw_indirect_supported() {
+            pass.multi_draw_indexed_indirect(execution.args_buffer(), offset, batch.args_count);
+            self.record_fixed_multi_draw_call();
+        } else {
+            self.draw_indexed_indirect_range(
+                pass,
+                execution.args_buffer(),
+                offset,
+                batch.args_count,
+            );
+        }
     }
 
     pub(crate) const fn stats(&self) -> MeshDrawReplayStats {
@@ -280,6 +341,37 @@ impl MeshDrawCommandReplayer {
         handle: &'pass MeshBindHandle,
     ) {
         self.bind_raw_group_if_needed(pass, slot, handle.id(), handle.bind_group());
+    }
+
+    fn draw_indexed_indirect_range<'pass>(
+        &mut self,
+        pass: &mut wgpu::RenderPass<'pass>,
+        args_buffer: &'pass wgpu::Buffer,
+        first_offset: u64,
+        args_count: u32,
+    ) {
+        for argument_index in 0..args_count {
+            let offset = first_offset
+                .saturating_add(u64::from(argument_index) * INDEXED_INDIRECT_ARGS_STRIDE_BYTES);
+            pass.draw_indexed_indirect(args_buffer, offset);
+        }
+        self.stats.draw_call_count = self.stats.draw_call_count.saturating_add(args_count);
+        self.stats.per_draw_indirect_draw_call_count = self
+            .stats
+            .per_draw_indirect_draw_call_count
+            .saturating_add(args_count);
+    }
+
+    fn record_indirect_count_draw_call(&mut self) {
+        self.stats.draw_call_count = self.stats.draw_call_count.saturating_add(1);
+        self.stats.indirect_count_draw_call_count =
+            self.stats.indirect_count_draw_call_count.saturating_add(1);
+    }
+
+    fn record_fixed_multi_draw_call(&mut self) {
+        self.stats.draw_call_count = self.stats.draw_call_count.saturating_add(1);
+        self.stats.fixed_multi_draw_call_count =
+            self.stats.fixed_multi_draw_call_count.saturating_add(1);
     }
 
     fn bind_raw_group_if_needed<'pass>(
@@ -337,11 +429,19 @@ mod tests {
         let stats = MeshDrawReplayStatsAccumulator::default();
         stats.record(MeshDrawReplayStats {
             draw_call_count: u32::MAX,
+            indirect_count_draw_call_count: u32::MAX,
+            fixed_multi_draw_call_count: u32::MAX,
+            per_draw_indirect_draw_call_count: u32::MAX,
+            direct_draw_call_count: u32::MAX,
             state_change_count: 2,
             bind_skip_count: 3,
         });
         stats.record(MeshDrawReplayStats {
             draw_call_count: 1,
+            indirect_count_draw_call_count: 1,
+            fixed_multi_draw_call_count: 1,
+            per_draw_indirect_draw_call_count: 1,
+            direct_draw_call_count: 1,
             state_change_count: u32::MAX,
             bind_skip_count: u32::MAX,
         });
@@ -350,6 +450,10 @@ mod tests {
             stats.stats(),
             MeshDrawReplayStats {
                 draw_call_count: u32::MAX,
+                indirect_count_draw_call_count: u32::MAX,
+                fixed_multi_draw_call_count: u32::MAX,
+                per_draw_indirect_draw_call_count: u32::MAX,
+                direct_draw_call_count: u32::MAX,
                 state_change_count: u32::MAX,
                 bind_skip_count: u32::MAX,
             }
@@ -380,6 +484,10 @@ mod tests {
         assert!(replayer.should_set_pipeline(MeshPassPipelineKind::ShadowDepth, shadow_variant));
 
         assert_eq!(replayer.stats().draw_call_count, 0);
+        assert_eq!(replayer.stats().indirect_count_draw_call_count, 0);
+        assert_eq!(replayer.stats().fixed_multi_draw_call_count, 0);
+        assert_eq!(replayer.stats().per_draw_indirect_draw_call_count, 0);
+        assert_eq!(replayer.stats().direct_draw_call_count, 0);
         assert_eq!(replayer.stats().state_change_count, 2);
         assert_eq!(replayer.stats().bind_skip_count, 0);
     }
@@ -444,6 +552,13 @@ mod tests {
 
         assert!(source.contains("pass.multi_draw_indexed_indirect"));
         assert!(source.contains("pass.multi_draw_indexed_indirect_count"));
+        assert!(source.contains("execution.indirect_count_supported()"));
+        assert!(source.contains("execution.multi_draw_indirect_supported()"));
+        assert!(source.contains("record_indirect_count_draw_call"));
+        assert!(source.contains("record_fixed_multi_draw_call"));
+        assert!(source.contains("per_draw_indirect_draw_call_count"));
+        assert!(source.contains("direct_draw_call_count"));
+        assert!(source.contains("fn draw_indexed_indirect_range"));
         assert!(source.contains("compaction_ready_for_replay"));
         assert!(source.contains("visible_remap_scene_bind_group"));
         assert!(source.contains("batch.first_args"));

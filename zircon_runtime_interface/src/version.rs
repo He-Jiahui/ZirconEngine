@@ -5,4 +5,4 @@ pub const ZIRCON_RUNTIME_ABI_VERSION_V1: u32 = 1;
 pub const ZIRCON_RUNTIME_ABI_VERSION_V2: u32 = 2;
 
 /// Current runtime dynamic-library function-table version.
-pub const ZIRCON_RUNTIME_API_VERSION_V3: u32 = 3;
+pub const ZIRCON_RUNTIME_API_VERSION_V4: u32 = 4;

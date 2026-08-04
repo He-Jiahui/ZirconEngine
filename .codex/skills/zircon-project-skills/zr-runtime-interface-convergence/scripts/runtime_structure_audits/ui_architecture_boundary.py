@@ -53,7 +53,6 @@ SOURCE_FILES = (
     "zircon_runtime/src/ui/surface/surface/default_interactions.rs",
     "zircon_runtime/src/ui/accessibility/extract.rs",
     "zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/middle.rs",
     "docs/zircon_runtime/ui/architecture.md",
     "docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md",
     "docs/plans/zircon_runtime/runtime/index.md",
@@ -385,7 +384,6 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         / "zircon_runtime/src/tests/runtime_absorption/ui_architecture/legacy_renames.rs",
         root
         / "zircon_runtime/src/tests/runtime_absorption/ui_architecture/mirror_docs.rs",
-        root / "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/middle.rs",
     )
     guard_sources = tuple(_read_text(path) for path in guard_paths if path.exists())
 

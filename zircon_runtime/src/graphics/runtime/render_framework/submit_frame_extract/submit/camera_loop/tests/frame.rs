@@ -236,6 +236,8 @@ fn project_borrowed_frame_to_selected_camera(
         .with_selected_camera_descriptor(camera);
     let mut projected = ViewportRenderFrame::from_extract(extract, frame.viewport_size)
         .with_shader_quality(frame.shader_quality())
+        .with_texture_mip_bias(frame.texture_mip_bias())
+        .with_texture_max_anisotropy(frame.texture_max_anisotropy())
         .with_output_target(frame.output_target())
         .with_ui(frame.ui.clone())
         .with_previous_motion_vector_camera(frame.previous_motion_vector_camera().cloned())
@@ -257,6 +259,8 @@ fn project_owned_frame_to_selected_camera(
         extract,
         viewport_size,
         shader_quality,
+        texture_mip_bias,
+        texture_max_anisotropy,
         ui,
         output_target,
         previous_motion_vector_camera,
@@ -271,6 +275,8 @@ fn project_owned_frame_to_selected_camera(
         .with_selected_camera_descriptor(camera);
     let mut projected = ViewportRenderFrame::from_extract(extract, viewport_size)
         .with_shader_quality(shader_quality)
+        .with_texture_mip_bias(texture_mip_bias)
+        .with_texture_max_anisotropy(texture_max_anisotropy)
         .with_output_target(output_target)
         .with_ui(ui)
         .with_previous_motion_vector_camera(previous_motion_vector_camera)

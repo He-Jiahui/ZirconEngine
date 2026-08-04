@@ -46,11 +46,14 @@ impl World {
         ))
     }
 
-    pub(super) fn advance_scene_binding_generation_for_name(&mut self, entity: EntityId) {
+    pub(in crate::scene::world) fn advance_scene_binding_generation_for_name(
+        &mut self,
+        entity: EntityId,
+    ) {
         self.advance_scene_binding_generations(Some(entity));
     }
 
-    pub(super) fn advance_scene_binding_generations_for_reparent(
+    pub(in crate::scene::world) fn advance_scene_binding_generations_for_reparent(
         &mut self,
         entity: EntityId,
         previous_parent: Option<EntityId>,
@@ -64,7 +67,7 @@ impl World {
         self.scene_binding_generations.advance_roots(roots);
     }
 
-    pub(super) fn advance_scene_binding_generations_for_removal(
+    pub(in crate::scene::world) fn advance_scene_binding_generations_for_removal(
         &mut self,
         entity: EntityId,
         previous_parent: Option<EntityId>,
@@ -79,14 +82,14 @@ impl World {
         self.scene_binding_generations.advance_roots(roots);
     }
 
-    pub(super) fn advance_scene_binding_generations_for_new_descendant(
+    pub(in crate::scene::world) fn advance_scene_binding_generations_for_new_descendant(
         &mut self,
         entity: EntityId,
     ) {
         self.advance_scene_binding_generations(Some(entity));
     }
 
-    pub(super) fn invalidate_all_scene_binding_generations(&mut self) {
+    pub(in crate::scene::world) fn invalidate_all_scene_binding_generations(&mut self) {
         self.scene_binding_generations
             .advance_roots(self.entities.iter().copied());
     }

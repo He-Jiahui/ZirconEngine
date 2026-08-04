@@ -37,9 +37,99 @@ fn native_bitmap_atlas_handoff_routes_mixed_storage_to_renderer_submissions() {
 }
 
 #[test]
+fn native_bitmap_atlas_handoff_skips_glyphon_when_no_raster_glyph_is_visible() {
+    let report = NativeBitmapAtlasPrepareReport::default();
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::NoVisibleGlyphs
+    );
+    assert_eq!(
+        native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
+        None
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        None
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_handoff_does_not_report_offscreen_approximation_as_degradation() {
+    let report = NativeBitmapAtlasPrepareReport {
+        approximate_raster_image_count: 1,
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::NoVisibleGlyphs
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        None
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_handoff_skips_glyphon_for_retry_pressure_without_visible_work() {
+    let report = NativeBitmapAtlasPrepareReport {
+        retry_submission: GlyphAtlasBitmapRetryFrameSubmissionReport {
+            rejected_new_source_count: 1,
+            rejected_new_source_byte_count: 1024 * 1024 + 1,
+            ..GlyphAtlasBitmapRetryFrameSubmissionReport::default()
+        },
+        retry_state: GlyphAtlasBitmapRetryFrameStateReport {
+            queue_overflow_blocked_glyph_count: 1,
+            queue_overflow_blocked_source_byte_count: 64,
+            ..GlyphAtlasBitmapRetryFrameStateReport::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::NoVisibleGlyphs
+    );
+    assert_eq!(
+        native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
+        None
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        None
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_handoff_preserves_placeholder_work_without_visible_raster_glyphs() {
+    let report = NativeBitmapAtlasPrepareReport {
+        submission: GlyphAtlasBitmapRenderSubmissionReport {
+            visible_placeholder_count: 1,
+            ..GlyphAtlasBitmapRenderSubmissionReport::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::TransparentPlaceholder
+    );
+    assert_eq!(
+        native_bitmap_atlas_glyphon_fallback_reason_for_report(&report),
+        None
+    );
+    assert_eq!(
+        native_bitmap_atlas_first_frame_degradation_for_report(&report),
+        Some(NativeBitmapAtlasFirstFrameDegradation::TransparentPlaceholder)
+    );
+}
+
+#[test]
 fn native_bitmap_atlas_glyphon_fallback_reports_missing_raster_image_first() {
     let report = NativeBitmapAtlasPrepareReport {
         missing_raster_image_count: 1,
+        visible_missing_raster_image_count: 1,
         visible_raster_glyph_count: 0,
         source_image_count: 0,
         ..NativeBitmapAtlasPrepareReport::default()

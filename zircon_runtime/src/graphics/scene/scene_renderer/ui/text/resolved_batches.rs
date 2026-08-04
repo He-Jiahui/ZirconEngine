@@ -3,12 +3,12 @@ use std::collections::HashSet;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 use super::super::render::{
-    text_advances::refresh_screen_space_text_batch_glyphs, ScreenSpaceUiTextBatch,
+    ScreenSpaceUiTextBatch, text_advances::refresh_screen_space_text_batch_glyphs,
 };
-use super::font_assets::{effective_text_render_mode, ensure_font_asset_record, UiFontAssetCache};
+use super::font_assets::{UiFontAssetCache, effective_text_render_mode, ensure_font_asset_record};
 use crate::asset::ProjectAssetManager;
 use crate::text::raster::{
-    raster_path_for_request, GlyphRasterEffects, GlyphRasterPath, GlyphRasterPolicyRequest,
+    GlyphRasterEffects, GlyphRasterPath, GlyphRasterPolicyRequest, raster_path_for_request,
 };
 use crate::text::{TextLayoutFallbackReport, TextRenderState};
 

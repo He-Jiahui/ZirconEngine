@@ -22,8 +22,8 @@ fn tree_row_style_uses_shared_state_priority() {
     assert_eq!(selected_pressed.state, UiPainterResolvedState::Pressed);
     assert_eq!(selected_pressed.background, Some(PALETTE.surface_pressed));
     assert_ne!(selected_pressed.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected_pressed.border, Some(PALETTE.border));
-    assert_ne!(selected_pressed.border, Some(PALETTE.accent));
+    assert_eq!(selected_pressed.border, Some(PALETTE.accent));
+    assert_ne!(selected_pressed.border, Some(PALETTE.border));
     assert_eq!(selected_pressed.text, TREE_TEXT_SELECTED);
 
     node.selected = false;
@@ -57,7 +57,7 @@ fn tree_row_style_uses_shared_state_priority() {
 }
 
 #[test]
-fn tree_row_selected_state_uses_muted_fill_with_neutral_outline() {
+fn tree_row_selected_state_uses_muted_fill_with_teal_outline() {
     let mut node = tree_node(
         "WorkbenchScenePlayerItem",
         "TreeRow",
@@ -73,7 +73,7 @@ fn tree_row_selected_state_uses_muted_fill_with_neutral_outline() {
 
     assert_eq!(selected.background, Some(PALETTE.surface_pressed));
     assert_ne!(selected.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected.border, Some(PALETTE.border));
-    assert_ne!(selected.border, Some(PALETTE.accent));
+    assert_eq!(selected.border, Some(PALETTE.accent));
+    assert_ne!(selected.border, Some(PALETTE.border));
     assert_eq!(selected.text, TREE_TEXT_SELECTED);
 }

@@ -1,5 +1,7 @@
 use crate::core::framework::text::TextDirection;
-use crate::text::{BackendShapeRequest, ShapedGlyphRotation, VerticalMode};
+use crate::text::{
+    BackendShapeRequest, ShapedGlyphRotation, VerticalMode, TEXT_SHAPING_RUN_MAX_BYTES,
+};
 use crate::text::{TextRange, TextStyle};
 
 use super::{bidi::BidiParagraph, shape_horizontal_line, shape_text};
@@ -279,6 +281,45 @@ fn text_shape_ligature_source_range_covers_cluster() {
     assert!((advance_sum - line.measured_width).abs() < 0.1);
     assert_eq!(line.glyphs.first().expect("glyph").source_range.start, 10);
     assert_eq!(line.glyphs.last().expect("glyph").source_range.end, 12);
+}
+
+#[test]
+fn text_oversized_run_splits_at_cap() {
+    let text = "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
+    let shaped = shape_horizontal_line(
+        &text,
+        &test_style(),
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+    );
+
+    assert_eq!(shaped.lines.len(), 2);
+    assert_eq!(
+        shaped.lines[0].source_range,
+        TextRange {
+            start: 0,
+            end: TEXT_SHAPING_RUN_MAX_BYTES,
+        }
+    );
+    assert_eq!(
+        shaped.lines[1].source_range,
+        TextRange {
+            start: TEXT_SHAPING_RUN_MAX_BYTES,
+            end: text.len(),
+        }
+    );
+    assert!(shaped
+        .lines
+        .windows(2)
+        .all(|lines| lines[0].source_range.end == lines[1].source_range.start));
+    assert!(shaped
+        .lines
+        .iter()
+        .flat_map(|line| &line.glyphs)
+        .all(|glyph| !glyph.cluster_flags.virtual_glyph));
 }
 
 #[test]

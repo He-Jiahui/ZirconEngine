@@ -12,6 +12,7 @@ pub(crate) enum SdfGlyphGenerationError {
     GenerationBudgetDeferred,
     WorkerPanic,
     InvalidDimensions(UVec2),
+    InvalidChannelCount { expected: u8, actual: u8 },
     InvalidOutputLength { expected: usize, actual: usize },
 }
 
@@ -42,6 +43,10 @@ impl fmt::Display for SdfGlyphGenerationError {
                     size.x, size.y
                 )
             }
+            Self::InvalidChannelCount { expected, actual } => write!(
+                formatter,
+                "invalid distance-field channel count: expected {expected}, got {actual}"
+            ),
             Self::InvalidOutputLength { expected, actual } => write!(
                 formatter,
                 "invalid distance-field byte length: expected {expected}, got {actual}"

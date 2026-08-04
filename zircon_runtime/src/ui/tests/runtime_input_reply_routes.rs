@@ -323,6 +323,7 @@ fn ime_event(kind: UiImeInputEventKind, text: &str) -> UiInputEvent {
         kind,
         text: text.to_string(),
         cursor_range: None,
+        preedit_clauses: Vec::new(),
         delete_surrounding: None,
     })
 }

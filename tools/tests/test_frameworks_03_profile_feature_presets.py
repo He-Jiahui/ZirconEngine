@@ -19,6 +19,13 @@ CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 RUNTIME_PROFILE_MODULE = (
     REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile" / "feature_presets.rs"
 )
+RUNTIME_PROFILE_ROOT = REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile.rs"
+RUNTIME_PROFILE_DEFAULTS = (
+    REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile" / "defaults.rs"
+)
+RUNTIME_PROFILE_ASSEMBLY = (
+    REPO_ROOT / "zircon_runtime" / "src" / "plugin" / "runtime_profile" / "assembly_presets.rs"
+)
 APP_ENTRY_RUNNER_MODULE = REPO_ROOT / "zircon_app" / "src" / "entry" / "entry_runner" / "mod.rs"
 SCENE_PROJECT_IO_MODULE = (
     REPO_ROOT
@@ -29,6 +36,25 @@ SCENE_PROJECT_IO_MODULE = (
     / "level_manager_project_io.rs"
 )
 EXPECTED_PROFILE_IDS = ("minimal", "client2d", "client3d", "editor", "dev", "server")
+EXPECTED_BUILTIN_MODULES = (
+    {"id": "foundation", "rust_variant": "Foundation"},
+    {"id": "log", "rust_variant": "Log"},
+    {"id": "tasks", "rust_variant": "Tasks"},
+    {"id": "time", "rust_variant": "Time"},
+    {"id": "frame_count", "rust_variant": "FrameCount"},
+    {"id": "diagnostics_core", "rust_variant": "DiagnosticsCore"},
+    {"id": "platform", "rust_variant": "Platform"},
+    {"id": "input", "rust_variant": "Input"},
+    {"id": "asset", "rust_variant": "Asset"},
+    {"id": "scene", "rust_variant": "Scene"},
+    {"id": "graphics", "rust_variant": "Graphics", "required_feature": "graphics"},
+    {"id": "script", "rust_variant": "Script", "required_feature": "script"},
+)
+
+
+def profile_assembly(profile: dict[str, object]) -> dict[str, object]:
+    feature_fields = {"id", "rust_variant", "cargo_feature", "runtime_features", "app_features"}
+    return {key: value for key, value in profile.items() if key not in feature_fields}
 
 
 def cargo_features(path: Path) -> dict[str, list[str]]:
@@ -45,7 +71,192 @@ class Frameworks03ProfileFeaturePresetTests(unittest.TestCase):
         document = self.load_document()
         profiles = document["profiles"]
         self.assertEqual(tuple(profile["id"] for profile in profiles), EXPECTED_PROFILE_IDS)
-        self.assertEqual(document["schema_version"], 1)
+        self.assertEqual(document["schema_version"], 2)
+
+    def test_builtin_module_registry_declares_cfg_predicates(self) -> None:
+        document = self.load_document()
+
+        self.assertEqual(tuple(document["builtin_modules"]), EXPECTED_BUILTIN_MODULES)
+
+    def test_runtime_profile_assembly_fields_match_canonical_values(self) -> None:
+        profiles = {profile["id"]: profile for profile in self.load_document()["profiles"]}
+        server_modules = [
+            "foundation",
+            "log",
+            "tasks",
+            "time",
+            "frame_count",
+            "diagnostics_core",
+            "platform",
+            "input",
+            "asset",
+            "scene",
+        ]
+        client_modules = [*server_modules, "graphics", "script"]
+
+        self.assertEqual(
+            profile_assembly(profiles["minimal"]),
+            {
+                "descriptor_name": "minimal",
+                "target_mode": "client_runtime",
+                "builtin_modules": [
+                    "foundation",
+                    "tasks",
+                    "time",
+                    "frame_count",
+                    "diagnostics_core",
+                ],
+                "minimum_maturity": "core",
+                "default_plugins": [],
+                "optional_plugins": [],
+                "required_capabilities": [
+                    "runtime.core.lifecycle",
+                    "runtime.core.tasks",
+                    "runtime.core.time",
+                    "runtime.core.frame_count",
+                    "runtime.core.diagnostics",
+                ],
+                "allow_externalized_required_plugins": False,
+            },
+        )
+        self.assertEqual(
+            profile_assembly(profiles["client2d"]),
+            {
+                "descriptor_name": "client_2d",
+                "target_mode": "client_runtime",
+                "builtin_modules": client_modules,
+                "minimum_maturity": "beta",
+                "default_plugins": [
+                    {"id": "ui", "required": True},
+                    {"id": "sound", "required": True},
+                    {"id": "rendering", "required": True},
+                    {"id": "texture", "required": False},
+                ],
+                "optional_plugins": ["tilemap_2d", "particles", "animation"],
+                "required_capabilities": [
+                    "runtime.core.asset",
+                    "runtime.core.scene",
+                    "runtime.core.render.base",
+                    "runtime.plugin.sound",
+                    "runtime.plugin.rendering",
+                ],
+                "allow_externalized_required_plugins": False,
+            },
+        )
+        self.assertEqual(
+            profile_assembly(profiles["client3d"]),
+            {
+                "descriptor_name": "client_3d",
+                "target_mode": "client_runtime",
+                "builtin_modules": client_modules,
+                "minimum_maturity": "beta",
+                "default_plugins": [
+                    {"id": "ui", "required": True},
+                    {"id": "sound", "required": True},
+                    {"id": "rendering", "required": True},
+                    {"id": "texture", "required": False},
+                ],
+                "optional_plugins": [
+                    "animation",
+                    "ai",
+                    "navigation",
+                    "particles",
+                    "virtual_geometry",
+                    "hybrid_gi",
+                    "solari",
+                ],
+                "required_capabilities": [
+                    "runtime.core.asset",
+                    "runtime.core.scene",
+                    "runtime.core.render.base",
+                    "runtime.plugin.sound",
+                    "runtime.plugin.rendering",
+                ],
+                "allow_externalized_required_plugins": False,
+            },
+        )
+        self.assertEqual(
+            profile_assembly(profiles["editor"]),
+            {
+                "descriptor_name": "editor",
+                "target_mode": "editor_host",
+                "builtin_modules": client_modules,
+                "minimum_maturity": "beta",
+                "default_plugins": [
+                    {"id": "ui", "required": True},
+                    {"id": "sound", "required": True},
+                    {"id": "rendering", "required": True},
+                    {"id": "texture", "required": False},
+                ],
+                "optional_plugins": ["animation", "navigation", "particles", "net"],
+                "required_capabilities": [
+                    "editor.host.ui_shell",
+                    "editor.host.plugin_management",
+                ],
+                "allow_externalized_required_plugins": False,
+            },
+        )
+        self.assertEqual(
+            profile_assembly(profiles["dev"]),
+            {
+                "descriptor_name": "dev",
+                "target_mode": "editor_host",
+                "builtin_modules": client_modules,
+                "minimum_maturity": "experimental",
+                "default_plugins": [
+                    {"id": "ui", "required": True},
+                    {"id": "sound", "required": True},
+                    {"id": "rendering", "required": True},
+                    {"id": "texture", "required": False},
+                    {"id": "net", "required": False},
+                ],
+                "optional_plugins": [
+                    "ai",
+                    "animation",
+                    "navigation",
+                    "particles",
+                    "virtual_geometry",
+                    "hybrid_gi",
+                    "solari",
+                ],
+                "required_capabilities": [
+                    "runtime.core.diagnostics",
+                    "editor.host.plugin_management",
+                ],
+                "allow_externalized_required_plugins": False,
+            },
+        )
+        self.assertEqual(
+            profile_assembly(profiles["server"]),
+            {
+                "descriptor_name": "server",
+                "target_mode": "server_runtime",
+                "builtin_modules": server_modules,
+                "minimum_maturity": "beta",
+                "default_plugins": [{"id": "net", "required": False}],
+                "optional_plugins": ["ai", "physics", "animation", "navigation"],
+                "required_capabilities": ["runtime.core.lifecycle", "runtime.core.scene"],
+                "allow_externalized_required_plugins": False,
+            },
+        )
+
+    def test_runtime_profile_wiring_hard_cuts_handwritten_defaults(self) -> None:
+        runtime_profile_source = RUNTIME_PROFILE_ROOT.read_text(encoding="utf-8")
+
+        self.assertFalse(RUNTIME_PROFILE_DEFAULTS.exists())
+        self.assertNotIn("mod defaults;", runtime_profile_source)
+        self.assertIn("mod assembly_presets;", runtime_profile_source)
+        self.assertTrue(RUNTIME_PROFILE_ASSEMBLY.is_file())
+        assembly_source = RUNTIME_PROFILE_ASSEMBLY.read_text(encoding="utf-8")
+        self.assertIn(
+            "runtime_profile_assembly_presets_generated.rs",
+            assembly_source,
+        )
+        self.assertIn(
+            "generated_runtime_profile_assembly_preset_for(id)",
+            assembly_source,
+        )
+        self.assertNotIn(".find(|preset|", assembly_source)
 
     def test_profile_members_match_runtime_and_app_cargo_features(self) -> None:
         profiles = self.load_document()["profiles"]

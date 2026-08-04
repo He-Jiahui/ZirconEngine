@@ -53,7 +53,7 @@ fn forward_base_pbr_specializes_advanced_source_out_of_its_compilation_closure()
             "fn zr_pbr_smith_visibility(",
             "fn zr_pbr_isotropic_ggx(",
             "fn zr_standard_pbr_gpu_light_lighting(",
-            "zr_environment_pbr_indirect(",
+            "zr_environment_pbr_indirect_normalized(",
             "zr_gpu_light_shadow_visibility(",
         ] {
             assert!(

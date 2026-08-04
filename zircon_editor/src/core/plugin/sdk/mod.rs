@@ -21,9 +21,9 @@ pub use crate::core::editor_extension::{
 pub use crate::core::editor_operation::EditorOperationPath;
 pub use crate::core::extension::{InspectorCustomizationDescriptor, InspectorCustomizationSurface};
 pub use crate::core::plugin::{
-    EditorExtensionCatalogReport, EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor,
-    EditorPluginRegistrationReport,
+    EditorExtensionCatalogReport, EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport,
 };
+pub(crate) use crate::core::plugin::EditorPluginCatalog;
 pub use lifecycle::{
     EditorPluginLifecycleError, EditorPluginLifecycleEvent, EditorPluginLifecycleRecord,
     EditorPluginLifecycleReport, EditorPluginLifecycleStage,

@@ -17,6 +17,11 @@ pub(super) fn projected_value_text(
         .or_else(|| drag_overlay.value_text.clone())
         .or_else(|| projected_notification_center_value_text(component_role, attributes))
         .or_else(|| projected_badge_value_text(component_role, attributes))
+        .or_else(|| {
+            (component_role == "search-field")
+                .then(|| attributes.get("query").and_then(value_as_string))
+                .flatten()
+        })
         .or_else(|| attributes.get("value_text").and_then(value_as_string))
         .or_else(|| {
             attributes
@@ -27,4 +32,23 @@ pub(super) fn projected_value_text(
                 .map(|value| value.display_text())
         })
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use toml::Value;
+
+    use super::projected_value_text;
+
+    #[test]
+    fn search_field_projects_its_query_as_the_rendered_value() {
+        let attributes = BTreeMap::from([("query".to_string(), Value::String("strafe".into()))]);
+
+        assert_eq!(
+            projected_value_text("search-field", &attributes, &Default::default()),
+            "strafe"
+        );
+    }
 }

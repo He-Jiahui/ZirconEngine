@@ -38,12 +38,14 @@ fn derived_state_rebuilds_use_single_hierarchy_traversal_index() {
     assert!(
         active_rebuild.contains("let traversal = self.hierarchy_traversal_index();")
             && active_rebuild.contains("for root in traversal.roots()")
+            && !active_rebuild.contains("self.active_in_hierarchy.clear();")
             && !active_rebuild.contains("self.root_entities()"),
         "active hierarchy rebuild must build one traversal index instead of collecting roots separately"
     );
     assert!(
         world_rebuild.contains("let traversal = self.hierarchy_traversal_index();")
             && world_rebuild.contains("for root in traversal.roots()")
+            && !world_rebuild.contains("self.world_matrices.clear();")
             && !world_rebuild.contains("self.root_entities()"),
         "world matrix rebuild must build one traversal index instead of collecting roots separately"
     );

@@ -527,7 +527,7 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
             "secondary",
             196.0,
             204.0,
-            72.0,
+            78.0,
             24.0,
             "disabled",
         ),

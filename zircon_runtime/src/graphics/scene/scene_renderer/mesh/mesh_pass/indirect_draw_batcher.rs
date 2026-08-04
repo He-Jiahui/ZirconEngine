@@ -52,7 +52,7 @@ impl IndirectDrawBatcher {
         commands: &[MeshDrawCommand],
         capabilities: &RenderCapabilitySummary,
     ) -> Self {
-        if !capabilities.gpu_driven_submission_supported() {
+        if !capabilities.indirect_draw_submission_supported() {
             return Self {
                 fallback_draw_count: commands.len(),
                 ..Self::default()
@@ -223,23 +223,46 @@ mod tests {
     }
 
     #[test]
-    fn render_gpu_scene_indirect_batcher_falls_back_per_draw_without_multi_draw() {
+    fn render_gpu_scene_indirect_batcher_keeps_per_draw_indirect_without_multi_draw() {
         let commands = vec![command(10, 1, 2, 1), command(20, 2, 1, 1)];
 
-        let batcher = IndirectDrawBatcher::build(&commands, &RenderCapabilitySummary::default());
+        let batcher = IndirectDrawBatcher::build(
+            &commands,
+            &RenderCapabilitySummary {
+                supports_indirect_draw: true,
+                supports_indirect_first_instance: true,
+                ..RenderCapabilitySummary::default()
+            },
+        );
 
-        assert!(batcher.args_cpu().is_empty());
-        assert!(batcher.batches().is_empty());
-        assert_eq!(batcher.fallback_draw_count(), 2);
+        assert_eq!(batcher.args_cpu().len(), 2);
+        assert_eq!(batcher.batches().len(), 1);
+        assert_eq!(batcher.fallback_draw_count(), 0);
         assert_eq!(
             batcher.stats(),
             IndirectDrawBatcherStats {
-                batch_count: 0,
-                batched_draw_count: 0,
-                fallback_draw_count: 2,
-                indirect_args_count: 0,
+                batch_count: 1,
+                batched_draw_count: 2,
+                fallback_draw_count: 0,
+                indirect_args_count: 2,
             }
         );
+    }
+
+    #[test]
+    fn render_gpu_scene_indirect_batcher_uses_direct_draw_when_first_instance_is_unavailable() {
+        let commands = vec![command(10, 1, 2, 1)];
+        let batcher = IndirectDrawBatcher::build(
+            &commands,
+            &RenderCapabilitySummary {
+                supports_indirect_draw: true,
+                ..RenderCapabilitySummary::default()
+            },
+        );
+
+        assert!(batcher.args_cpu().is_empty());
+        assert!(batcher.batches().is_empty());
+        assert_eq!(batcher.fallback_draw_count(), 1);
     }
 
     #[test]

@@ -63,7 +63,10 @@ impl EditorManager {
             .enabled_for_target(status_target)
             .map(|selection| selection.id.clone())
             .collect::<HashSet<_>>();
-        let mut status_packages = status_runtime_catalog.package_manifests();
+        let mut status_packages = status_runtime_catalog
+            .package_manifests()
+            .cloned()
+            .collect::<Vec<_>>();
         status_packages.extend(native_packages.iter().cloned());
         let available_capabilities = available_capabilities_for_feature_status(
             &status_packages,

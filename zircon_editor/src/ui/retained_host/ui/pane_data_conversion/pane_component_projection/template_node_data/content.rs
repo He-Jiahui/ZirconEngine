@@ -34,6 +34,8 @@ pub(super) fn assign_content_fields(
     node.overflow = text_layout.overflow.into();
 
     node.value_text = value_media.value_text.into();
+    node.has_clear_action = value_media.has_clear_action;
+    node.layout_stepper = value_media.layout_stepper;
     node.value_number = value_media.value_number as f32;
     node.value_percent = value_media.value_percent;
     node.value_color = value_media.value_color;

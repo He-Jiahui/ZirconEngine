@@ -4,9 +4,10 @@ use zircon_editor::core::asset::{
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorUiTemplateDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
@@ -242,8 +243,8 @@ fn register_export_profile_authoring(
             .with_required_capabilities([CAPABILITY]),
         ),
     )?;
-    registry.register_component_drawer(
-        ComponentDrawerDescriptor::new(
+    registry.register_inspector_customization(
+        InspectorCustomizationDescriptor::new(
             EXPORT_PROFILE_COMPONENT,
             EXPORT_PROFILE_DRAWER_DOCUMENT,
             "editor.build_export_desktop.ExportProfileController",

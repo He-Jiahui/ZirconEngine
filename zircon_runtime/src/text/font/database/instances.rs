@@ -4,8 +4,8 @@ use crate::text::{FontFaceId, InstancedFaceId, VariationCoords};
 
 use super::{FontDatabase, FontDatabaseError};
 use crate::text::font::instance::{
-    EffectiveInstanceCacheKey, EffectiveInstanceCacheReport, EffectiveInstanceCacheValue,
-    FontInstance, font_instance_identity,
+    font_instance_identity, EffectiveInstanceCacheKey, EffectiveInstanceCacheReport,
+    EffectiveInstanceCacheValue, FontInstance,
 };
 
 impl FontDatabase {

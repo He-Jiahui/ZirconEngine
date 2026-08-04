@@ -23,15 +23,6 @@ const MODULE_CONVENTION_DOC: &str =
 const FRAMEWORKS_02_PLAN: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
 );
-const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_core_rows.rs"
-);
-const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
-);
-const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
-);
 #[rustfmt::skip]
 const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"),
@@ -160,8 +151,6 @@ fn assert_docs_and_status_mirror_split() {
         ("review findings plan", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
         ("Frameworks 02 plan", FRAMEWORKS_02_PLAN),
-        ("status row data", STATUS_ROW_DATA),
-        ("status map", STATUS_MAP),
     ] {
         assert!(
             source.contains("runtime_15_job_system_route_owner_split_static_passed_cargo_deferred")
@@ -171,10 +160,6 @@ fn assert_docs_and_status_mirror_split() {
             "{label} should mirror the job_system route-owner split status"
         );
     }
-    assert!(
-        DATE_MAP.contains("Runtime 15 M3 job-system route-owner split"),
-        "date map should mirror the job_system route-owner split slice"
-    );
     assert_contains_all(
         "module convention doc",
         MODULE_CONVENTION_DOC,

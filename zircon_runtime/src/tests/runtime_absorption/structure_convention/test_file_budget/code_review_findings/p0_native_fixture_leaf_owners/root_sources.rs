@@ -39,14 +39,3 @@ pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget:
     }
     source
 }
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn p0_native_fixture_status_row_source(
-) -> String {
-    format!(
-        "{}\n{}\n{}\n{}",
-        read_runtime_src(REVIEW_GUARD_ROWS),
-        read_runtime_src(REVIEW_GUARD_P0_ROWS),
-        read_runtime_src(STRUCTURE_GUARD_ROW_PARENT),
-        read_runtime_src(STRUCTURE_GUARD_ROWS),
-    )
-}

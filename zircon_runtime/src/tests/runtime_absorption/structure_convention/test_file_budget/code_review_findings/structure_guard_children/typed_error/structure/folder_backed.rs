@@ -30,7 +30,6 @@ pub(super) fn assert_structure_assertions_guard_is_folder_backed() {
             "assert_typed_error_structure_assertion_checks_are_current",
             "assert_structure_assertions_guard_is_folder_backed",
             "assert_structure_assertions_guard_child_budgets",
-            "assert_structure_assertions_guard_status_mirrors_are_current",
             STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_FOLDER_BACKED_GUARD,
         ],
     );

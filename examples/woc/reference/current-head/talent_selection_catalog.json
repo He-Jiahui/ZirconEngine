@@ -10,7 +10,7 @@
     "src/sim/content/warrior_rows.ts": "eb12fed341279999acc08463fc59c09bffd8ef5552ca345765e7ad36262baf6c",
     "src/sim/content/choice_rows_classic.ts": "2aa7f0d7372d51e326446c910b0a2980f18b49de77e233c0bf5a28ec421d060e"
   },
-  "known_ability_catalog_sha256": "a01579e27006975cd871520f478b33ebba2c17911ef202e43f0d3c2b4303a498",
+  "known_ability_catalog_sha256": "20e25cc3b59c328621f65eebc41cc89d77cf24ef401fc523c0cf076ba60c0ce9",
   "catalog_sha256": "412fcadf2705a9eb973237fdeaa44e7188a47f1f491558ea01124cb024f47c9a",
   "classes": [
     {

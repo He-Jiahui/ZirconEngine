@@ -39,15 +39,6 @@ fn runtime_15_root_entries_guard_child_owners_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/lock_poison.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/lock_poison.rs",
-    );
 
     assert_contains_all(
         "root_entries parent stays structural",
@@ -187,17 +178,4 @@ fn runtime_15_root_entries_guard_child_owners_are_folder_backed() {
             "root_entries_files",
         ],
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(label, source, &[SLICE, STATUS, GUARD]);
-    }
-    assert_contains_all("status map", &status_map, &[SLICE, STATUS]);
-    assert_contains_all("date map", &date_map, &[SLICE, "2026-06-24"]);
 }

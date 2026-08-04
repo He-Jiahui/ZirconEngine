@@ -1,4 +1,6 @@
-use crate::core::framework::input::{ImeCursorArea, ImeHostRequest, ImeSurroundingText};
+use crate::core::framework::input::{
+    ImeCursorArea, ImeCursorRange, ImeHostRequest, ImeSurroundingText,
+};
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchHostRequestKind, UiInputDispatchResult, UiInputMethodRequest,
@@ -59,9 +61,16 @@ fn ime_cursor_area(frame: UiFrame) -> ImeCursorArea {
 
 fn ime_surrounding_text(text: &UiInputMethodSurroundingText) -> Option<ImeSurroundingText> {
     text.validate().ok()?;
-    Some(ImeSurroundingText::new(
-        text.text.clone(),
-        text.cursor_byte as usize,
-        text.anchor_byte as usize,
-    ))
+    Some(
+        ImeSurroundingText::new(
+            text.text.clone(),
+            text.cursor_byte as usize,
+            text.anchor_byte as usize,
+        )
+        .with_composition_range(
+            text.composition_range.map(|range| {
+                ImeCursorRange::new(range.start_byte as usize, range.end_byte as usize)
+            }),
+        ),
+    )
 }

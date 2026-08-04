@@ -9,7 +9,7 @@ use zircon_runtime_interface::{
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
 };
 
-use super::{GatewayError, RuntimeCapabilities};
+use super::{EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities};
 
 pub(crate) trait EditorRuntimeFramePixels {
     fn rgba(&self) -> Result<&[u8], GatewayError>;
@@ -232,6 +232,15 @@ pub trait EditorRuntimeGateway: Send + Sync {
     ) -> Result<EditorRuntimeFrame, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.frame.capture",
+        })
+    }
+
+    fn submit_highlight_set(
+        &self,
+        _set: EditorRuntimeHighlightSet,
+    ) -> Result<(), GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.editor_overlay.highlight_set",
         })
     }
 

@@ -7,6 +7,10 @@ param(
     [int]$Port = 6518,
     [switch]$Json,
     [switch]$Automatic,
+    [Parameter(ValueFromPipeline = $true)]
+    [AllowNull()]
+    [AllowEmptyString()]
+    [string]$PipelineInput,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Arguments
 )
@@ -30,11 +34,30 @@ $moduleRoot = Split-Path -Parent $PSScriptRoot
 $python = (Get-Command python -ErrorAction Stop).Source
 
 function Invoke-CoordinatorModule {
-    param([string[]]$ModuleArguments)
+    param(
+        [string[]]$ModuleArguments,
+        [AllowNull()]
+        [string]$StandardInput
+    )
 
     Push-Location -LiteralPath $moduleRoot
     try {
-        & $python @ModuleArguments
+        if ($null -eq $StandardInput) {
+            & $python @ModuleArguments
+        }
+        else {
+            $previousOutputEncoding = $OutputEncoding
+            $previousPythonIoEncoding = $env:PYTHONIOENCODING
+            try {
+                $OutputEncoding = [Text.UTF8Encoding]::new($false)
+                $env:PYTHONIOENCODING = 'utf-8'
+                $StandardInput | & $python @ModuleArguments
+            }
+            finally {
+                $OutputEncoding = $previousOutputEncoding
+                $env:PYTHONIOENCODING = $previousPythonIoEncoding
+            }
+        }
     }
     finally {
         Pop-Location
@@ -47,6 +70,27 @@ function Get-BaseArguments {
         $base += "--json"
     }
     return $base
+}
+
+function ConvertTo-CoordinatorNativeArguments {
+    param([string[]]$SourceArguments)
+
+    $nativeArguments = [System.Collections.Generic.List[string]]::new()
+    for ($index = 0; $index -lt $SourceArguments.Count; $index++) {
+        $argument = [string]$SourceArguments[$index]
+        $nativeArguments.Add($argument) | Out-Null
+        if ($argument -ne '--compatibility-json') {
+            continue
+        }
+        if ($index + 1 -ge $SourceArguments.Count -or
+            [string]::IsNullOrWhiteSpace([string]$SourceArguments[$index + 1])) {
+            throw '--compatibility-json requires a non-empty JSON object value.'
+        }
+        $index++
+        $payload = [Text.Encoding]::UTF8.GetBytes([string]$SourceArguments[$index])
+        $nativeArguments.Add('base64:' + [Convert]::ToBase64String($payload)) | Out-Null
+    }
+    return $nativeArguments.ToArray()
 }
 
 function Get-RepositoryKey {
@@ -255,7 +299,12 @@ if ($Command -notin @("status", "stop")) {
 
 $moduleArguments = (Get-BaseArguments) + @($Command)
 if ($null -ne $Arguments) {
-    $moduleArguments += @($Arguments | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $filteredArguments = @($Arguments | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $moduleArguments += @(ConvertTo-CoordinatorNativeArguments -SourceArguments $filteredArguments)
 }
-Invoke-CoordinatorModule -ModuleArguments $moduleArguments
+$standardInput = $null
+if ($moduleArguments -contains '--source-manifest-stdin') {
+    $standardInput = $PipelineInput
+}
+Invoke-CoordinatorModule -ModuleArguments $moduleArguments -StandardInput $standardInput
 exit $LASTEXITCODE

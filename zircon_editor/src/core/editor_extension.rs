@@ -162,7 +162,7 @@ impl EditorExtensionRegistry {
     ) -> Result<(), EditorExtensionRegistryError> {
         insert_unique(
             &mut self.drawers,
-            descriptor.id.clone(),
+            descriptor.id().to_string(),
             descriptor,
             "drawer",
         )
@@ -175,7 +175,7 @@ impl EditorExtensionRegistry {
         validate_menu_item_path(&descriptor)?;
         insert_unique(
             &mut self.menu_items,
-            descriptor.path.clone(),
+            descriptor.path().to_string(),
             descriptor,
             "menu item",
         )
@@ -206,7 +206,7 @@ impl EditorExtensionRegistry {
         validate_asset_importer(&descriptor)?;
         insert_unique(
             &mut self.asset_importers,
-            descriptor.id.clone(),
+            descriptor.id().to_string(),
             descriptor,
             "asset importer",
         )

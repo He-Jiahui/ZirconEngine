@@ -141,6 +141,12 @@ fn material_keyboard_text_replaces_text_input_selection_and_updates_caret_state(
         .expect("TextField descriptor");
     assert!(text_field.supports_event(UiComponentEventKind::KeyboardText));
     assert!(text_field.prop("caret_offset").is_some());
+    assert_eq!(
+        text_field
+            .prop("caret_affinity")
+            .and_then(|prop| prop.default_value.as_ref()),
+        Some(&UiValue::String("downstream".to_string()))
+    );
     assert!(text_field.prop("selection_anchor").is_some());
     assert!(text_field.prop("selection_focus").is_some());
 

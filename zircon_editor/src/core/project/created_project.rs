@@ -13,6 +13,18 @@ pub struct CreatedProject {
 }
 
 impl CreatedProject {
+    pub(super) fn new(
+        root: PathBuf,
+        summary: ProjectManifestSummary,
+        project: ProjectManager,
+    ) -> Self {
+        Self {
+            root,
+            summary,
+            project,
+        }
+    }
+
     pub fn project(&self) -> &ProjectManager {
         &self.project
     }

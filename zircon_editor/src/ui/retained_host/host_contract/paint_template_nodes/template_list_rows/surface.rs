@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_row_metrics::{workbench_row_metrics, workbench_row_palette};
 use super::layers::selection_indicator_order;
@@ -13,6 +14,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     order: i32,
     opacity: f32,
 ) {
+    if intersect(rect, clip).is_none() {
+        return;
+    }
     let background = list_row_background(node);
     let border = list_row_border(node);
     if background.is_none() && border.is_none() {
@@ -31,8 +35,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     ));
     if is_selected_row(node) {
         let palette = workbench_row_palette();
+        let indicator = selection_indicator_rect(rect, metrics.selection_indicator_width);
+        if intersect(&indicator, clip).is_none() {
+            return;
+        }
         commands.push(HostPaintCommand::quad(
-            selection_indicator_rect(rect, metrics.selection_indicator_width),
+            indicator,
             Some(clip.clone()),
             selection_indicator_order(order),
             Some(palette.selection_indicator),

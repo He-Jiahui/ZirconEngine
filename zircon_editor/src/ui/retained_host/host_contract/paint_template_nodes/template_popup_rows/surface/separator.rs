@@ -20,10 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
 ) {
     let metrics = workbench_popup_row_metrics();
     let separator = popup_separator_rect(row_rect, &metrics);
-    if intersect(&separator, clip).is_none()
-        || !frame_is_within(row_rect, &separator)
-        || !frame_is_within(clip, &separator)
-    {
+    if intersect(&separator, clip).is_none() || !frame_is_within(row_rect, &separator) {
         return;
     }
     let style = popup_separator_style();

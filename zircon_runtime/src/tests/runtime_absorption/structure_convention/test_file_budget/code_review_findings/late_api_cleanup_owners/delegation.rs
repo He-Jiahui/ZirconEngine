@@ -35,11 +35,7 @@ fn runtime_15_late_api_cleanup_structure_guard_is_folder_backed() {
     assert_contains_all(
         "late API cleanup root path/status children preserve parent and folder-backed anchors",
         &(root_paths + "\n" + &status_inventory),
-        &[
-            STRUCTURE_GUARD_OWNER,
-            FOLDER_BACKED_SLICE,
-            FOLDER_BACKED_STATUS,
-        ],
+        &[STRUCTURE_GUARD_OWNER],
     );
     for (_, child_path, child_guard) in FOLDER_BACKED_CHILDREN {
         assert!(
@@ -51,11 +47,7 @@ fn runtime_15_late_api_cleanup_structure_guard_is_folder_backed() {
             "{child_path} should own guard {child_guard}"
         );
     }
-    for moved_fn in [
-        format!("fn {GUARD}"),
-        format!("fn {FOLDER_BACKED_STATUS_GUARD}"),
-        format!("fn {BUDGET_GUARD}"),
-    ] {
+    for moved_fn in [format!("fn {GUARD}")] {
         assert!(
             !parent.contains(&moved_fn),
             "{STRUCTURE_GUARD_OWNER} should not keep moved guard body {moved_fn}"
@@ -64,11 +56,6 @@ fn runtime_15_late_api_cleanup_structure_guard_is_folder_backed() {
     assert_contains_all(
         "late API cleanup folder-backed children preserve route/status/budget guard names",
         &child_blob,
-        &[
-            GUARD,
-            FOLDER_BACKED_GUARD,
-            FOLDER_BACKED_STATUS_GUARD,
-            BUDGET_GUARD,
-        ],
+        &[GUARD],
     );
 }

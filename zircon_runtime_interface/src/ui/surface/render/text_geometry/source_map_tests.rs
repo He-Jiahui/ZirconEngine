@@ -2,7 +2,10 @@ use super::source_map::*;
 use super::*;
 use crate::ui::{
     layout::UiFrame,
-    surface::{UiResolvedTextRun, UiTextDirection, UiTextRunKind},
+    surface::{
+        UiResolvedTextRun, UiTextByteRange, UiTextDirection, UiTextPaintDecorationKind,
+        UiTextPreeditClause, UiTextPreeditClauseKind, UiTextRunKind,
+    },
 };
 
 fn mixed_bidi_line() -> UiResolvedTextLine {
@@ -71,6 +74,296 @@ fn visual_advance_prefix_preserves_non_uniform_grapheme_boundaries() {
     assert_eq!(map.advance_to_visual_offset(1), 3.0);
     assert_eq!(map.advance_to_visual_offset(4), 10.0);
     assert_eq!(map.advance_to_visual_offset(7), 21.0);
+}
+
+#[test]
+fn text_ime_preedit_span_injected_with_real_metrics() {
+    let layout = UiResolvedTextLayout {
+        lines: vec![UiResolvedTextLine {
+            text: "ab".to_string(),
+            frame: UiFrame::new(10.0, 20.0, 20.0, 12.0),
+            source_range: UiTextRange { start: 0, end: 2 },
+            visual_range: UiTextRange { start: 0, end: 2 },
+            measured_width: 20.0,
+            glyph_advances: vec![10.0, 10.0],
+            baseline: 9.0,
+            direction: UiTextDirection::LeftToRight,
+            runs: vec![run("ab", 0, 2, 0, 2, UiTextDirection::LeftToRight)],
+            ellipsized: false,
+        }],
+        ..Default::default()
+    };
+    let editable = UiEditableTextState {
+        text: "ab".to_string(),
+        caret: UiTextCaret {
+            offset: 1,
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+        composition: Some(UiTextComposition {
+            range: UiTextRange { start: 0, end: 2 },
+            text: "ab".to_string(),
+            preedit_clauses: vec![
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(0, 1),
+                    UiTextPreeditClauseKind::Input,
+                ),
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(1, 2),
+                    UiTextPreeditClauseKind::TargetNotConverted,
+                ),
+            ],
+            restore_text: None,
+        }),
+        ..Default::default()
+    };
+
+    let decorations = editable_text_decorations(&layout, &editable);
+    let caret = decorations
+        .iter()
+        .find(|decoration| decoration.kind == UiTextPaintDecorationKind::Caret)
+        .expect("preedit span owns an in-span caret");
+    let highlights = decorations
+        .iter()
+        .filter(|decoration| {
+            matches!(
+                decoration.kind,
+                UiTextPaintDecorationKind::CompositionHighlight
+            )
+        })
+        .map(|decoration| {
+            (
+                decoration.range,
+                decoration.frame,
+                decoration.color.as_str(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let underlines = decorations
+        .iter()
+        .filter(|decoration| {
+            matches!(
+                decoration.kind,
+                UiTextPaintDecorationKind::CompositionUnderline
+            )
+        })
+        .map(|decoration| (decoration.range, decoration.color.as_str()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        highlights,
+        vec![(
+            UiTextRange { start: 0, end: 2 },
+            UiFrame::new(10.0, 20.0, 20.0, 12.0),
+            "#4d89ff24",
+        )]
+    );
+    assert_eq!(
+        underlines,
+        vec![
+            (UiTextRange { start: 0, end: 1 }, "#4d89ff"),
+            (UiTextRange { start: 1, end: 2 }, "#e05a5a"),
+        ]
+    );
+    assert_eq!(caret.frame, UiFrame::new(20.0, 20.0, 1.0, 12.0));
+}
+
+#[test]
+fn multiline_selection_and_preedit_clauses_preserve_paint_order() {
+    let layout = UiResolvedTextLayout {
+        lines: vec![
+            UiResolvedTextLine {
+                text: "ab".to_string(),
+                frame: UiFrame::new(10.0, 20.0, 20.0, 12.0),
+                source_range: UiTextRange { start: 0, end: 2 },
+                visual_range: UiTextRange { start: 0, end: 2 },
+                measured_width: 20.0,
+                glyph_advances: vec![10.0, 10.0],
+                baseline: 9.0,
+                direction: UiTextDirection::LeftToRight,
+                runs: vec![run("ab", 0, 2, 0, 2, UiTextDirection::LeftToRight)],
+                ellipsized: false,
+            },
+            UiResolvedTextLine {
+                text: "cd".to_string(),
+                frame: UiFrame::new(10.0, 32.0, 20.0, 12.0),
+                source_range: UiTextRange { start: 2, end: 4 },
+                visual_range: UiTextRange { start: 0, end: 2 },
+                measured_width: 20.0,
+                glyph_advances: vec![10.0, 10.0],
+                baseline: 9.0,
+                direction: UiTextDirection::LeftToRight,
+                runs: vec![run("cd", 2, 4, 0, 2, UiTextDirection::LeftToRight)],
+                ellipsized: false,
+            },
+        ],
+        ..Default::default()
+    };
+    let editable = UiEditableTextState {
+        text: "abcd".to_string(),
+        caret: UiTextCaret {
+            offset: 4,
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+        selection: Some(UiTextSelection {
+            anchor: 0,
+            focus: 4,
+        }),
+        composition: Some(UiTextComposition {
+            range: UiTextRange { start: 0, end: 4 },
+            text: "abcd".to_string(),
+            preedit_clauses: vec![
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(0, 1),
+                    UiTextPreeditClauseKind::Input,
+                ),
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(1, 3),
+                    UiTextPreeditClauseKind::Converted,
+                ),
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(3, 4),
+                    UiTextPreeditClauseKind::TargetConverted,
+                ),
+            ],
+            restore_text: None,
+        }),
+        ..Default::default()
+    };
+
+    let decorations = editable_text_decorations(&layout, &editable)
+        .into_iter()
+        .filter(|decoration| {
+            matches!(
+                decoration.kind,
+                UiTextPaintDecorationKind::Selection
+                    | UiTextPaintDecorationKind::CompositionHighlight
+                    | UiTextPaintDecorationKind::CompositionUnderline
+            )
+        })
+        .map(|decoration| {
+            (
+                decoration.kind,
+                decoration.range,
+                decoration.color,
+                decoration.frame,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        decorations,
+        vec![
+            (
+                UiTextPaintDecorationKind::CompositionHighlight,
+                UiTextRange { start: 0, end: 4 },
+                "#4d89ff24".to_string(),
+                UiFrame::new(10.0, 20.0, 20.0, 12.0),
+            ),
+            (
+                UiTextPaintDecorationKind::CompositionHighlight,
+                UiTextRange { start: 0, end: 4 },
+                "#4d89ff24".to_string(),
+                UiFrame::new(10.0, 32.0, 20.0, 12.0),
+            ),
+            (
+                UiTextPaintDecorationKind::Selection,
+                UiTextRange { start: 0, end: 4 },
+                "#4d89ff66".to_string(),
+                UiFrame::new(10.0, 20.0, 20.0, 12.0),
+            ),
+            (
+                UiTextPaintDecorationKind::Selection,
+                UiTextRange { start: 0, end: 4 },
+                "#4d89ff66".to_string(),
+                UiFrame::new(10.0, 32.0, 20.0, 12.0),
+            ),
+            (
+                UiTextPaintDecorationKind::CompositionUnderline,
+                UiTextRange { start: 0, end: 1 },
+                "#4d89ff".to_string(),
+                UiFrame::new(10.0, 30.0, 10.0, 2.0),
+            ),
+            (
+                UiTextPaintDecorationKind::CompositionUnderline,
+                UiTextRange { start: 1, end: 3 },
+                "#72b7f2".to_string(),
+                UiFrame::new(20.0, 30.0, 10.0, 2.0),
+            ),
+            (
+                UiTextPaintDecorationKind::CompositionUnderline,
+                UiTextRange { start: 1, end: 3 },
+                "#72b7f2".to_string(),
+                UiFrame::new(10.0, 42.0, 10.0, 2.0),
+            ),
+            (
+                UiTextPaintDecorationKind::CompositionUnderline,
+                UiTextRange { start: 3, end: 4 },
+                "#42bf77".to_string(),
+                UiFrame::new(20.0, 42.0, 10.0, 2.0),
+            ),
+        ]
+    );
+}
+
+#[test]
+fn preedit_clauses_preserve_multibyte_utf8_source_ranges() {
+    let layout = UiResolvedTextLayout {
+        lines: vec![UiResolvedTextLine {
+            text: "a\u{754c}b".to_string(),
+            frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),
+            source_range: UiTextRange { start: 0, end: 5 },
+            visual_range: UiTextRange { start: 0, end: 5 },
+            measured_width: 30.0,
+            glyph_advances: vec![10.0, 10.0, 10.0],
+            baseline: 9.0,
+            direction: UiTextDirection::LeftToRight,
+            runs: vec![run("a\u{754c}b", 0, 5, 0, 5, UiTextDirection::LeftToRight)],
+            ellipsized: false,
+        }],
+        ..Default::default()
+    };
+    let editable = UiEditableTextState {
+        text: "a\u{754c}b".to_string(),
+        caret: UiTextCaret {
+            offset: 5,
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+        composition: Some(UiTextComposition {
+            range: UiTextRange { start: 0, end: 5 },
+            text: "a\u{754c}b".to_string(),
+            preedit_clauses: vec![
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(1, 4),
+                    UiTextPreeditClauseKind::Converted,
+                ),
+                UiTextPreeditClause::new(
+                    UiTextByteRange::new(4, 5),
+                    UiTextPreeditClauseKind::TargetConverted,
+                ),
+            ],
+            restore_text: None,
+        }),
+        ..Default::default()
+    };
+
+    let underlines = editable_text_decorations(&layout, &editable)
+        .into_iter()
+        .filter(|decoration| {
+            matches!(
+                decoration.kind,
+                UiTextPaintDecorationKind::CompositionUnderline
+            )
+        })
+        .map(|decoration| (decoration.range, decoration.color))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        underlines,
+        vec![
+            (UiTextRange { start: 1, end: 4 }, "#72b7f2".to_string()),
+            (UiTextRange { start: 4, end: 5 }, "#42bf77".to_string()),
+        ]
+    );
 }
 
 #[test]

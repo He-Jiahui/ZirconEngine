@@ -71,7 +71,6 @@ fn runtime_15_typed_error_structure_assertions_children_are_child_owned() {
             "runtime_15_typed_error_structure_assertions_children_are_child_owned",
             "runtime_15_typed_error_native_plugin_loader_structure_is_child_owner",
             "runtime_15_typed_error_structure_moved_guard_absence_is_child_owner",
-            "runtime_15_typed_error_structure_assertions_guard_folder_backed_status_is_current",
         ],
     );
 

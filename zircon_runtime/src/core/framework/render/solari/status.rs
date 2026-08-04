@@ -268,11 +268,9 @@ mod tests {
                 RenderCapabilityKind::InlineRayQuery,
             ))
         );
-        assert!(
-            report
-                .degradation_reason_labels()
-                .contains(&"backend-capability-missing")
-        );
+        assert!(report
+            .degradation_reason_labels()
+            .contains(&"backend-capability-missing"));
     }
 
     #[test]

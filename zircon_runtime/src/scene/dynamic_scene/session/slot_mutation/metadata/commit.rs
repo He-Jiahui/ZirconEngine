@@ -15,5 +15,6 @@ pub(in crate::scene::dynamic_scene::session) fn update_slot_metadata(
         }
     })?;
     slot.metadata = report.metadata;
+    archive.rebuild_slot_indexes();
     Ok(())
 }

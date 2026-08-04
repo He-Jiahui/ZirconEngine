@@ -1,5 +1,6 @@
 mod animation_editor;
 mod asset_browser;
+mod asset_reference_rows;
 mod asset_surface_presentation;
 mod assets_activity;
 mod console;
@@ -15,7 +16,7 @@ mod welcome_presentation;
 
 pub(crate) use animation_editor::animation_editor_pane_nodes;
 pub(crate) use asset_browser::asset_browser_pane_nodes;
-pub(crate) use asset_surface_presentation::{asset_surface_presentation, AssetSurfacePresentation};
+pub(crate) use asset_surface_presentation::{AssetSurfacePresentation, asset_surface_presentation};
 pub(crate) use assets_activity::assets_activity_pane_data;
 pub(crate) use console::console_pane_nodes;
 pub(crate) use hierarchy::hierarchy_pane_nodes;

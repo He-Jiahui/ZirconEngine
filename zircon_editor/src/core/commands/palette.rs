@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::sync::Arc;
 
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use zircon_runtime_interface::ui::component::UiValue;
 
 use super::{CommandEvalCtx, EditorCommandDescriptor, WhenClause};

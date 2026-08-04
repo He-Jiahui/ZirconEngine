@@ -1,8 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/core/notifications/decision
+  - zircon_editor/src/core/notifications/presentation.rs
 tests:
   - zircon_editor/src/core/notifications/decision/tests.rs
+  - zircon_editor/src/core/notifications/presentation_tests.rs
   - tools/tests/test_editor17_decision_notification_center_contract.py
 doc_type: module-detail
 ---
@@ -21,6 +23,10 @@ A decision carries a builtin or plugin source, localization keys, at least two u
 
 `DecisionNotification` stores its validated immutable payload behind `Arc`; snapshots clone that shared payload instead of duplicating producer strings and option vectors. `publish` returns a ticket. `pending_snapshot` returns only unresolved entries, while `snapshot` also exposes retained resolved entries until their receipts leave bounded history. Both snapshots include the ticket required by `resolve` or `cancel`.
 
+## Presentation
+
+`notifications::present_decision` is the read-only localization edge for a decision snapshot. It captures one active locale before resolving the title, message, and option label keys through an explicit `EditorI18nService`; a concurrent locale change therefore cannot mix languages inside one immutable projection. The captured locale, ticket, option IDs, notification source, default/cancel option IDs, and any receipt remain available to consumers. Toast and Progress use equivalent read-only projections; expiry, severity, and the authoritative job snapshot remain unchanged. No localized projection is stored in the notification authority or accepted as an action input.
+
 ## Resolution
 
 Resolution is serialized by the center and produces one monotonic receipt. Repeating the same ticket and option returns that receipt with `newly_resolved = false`; requesting a different option returns `AlreadyResolved`. Window-close behavior must call `cancel`, which only succeeds when the producer declared a cancel option.
@@ -35,4 +41,4 @@ Evicting a receipt also retires its resolved entry. A later publication may reus
 
 ## Integration Boundary
 
-This module is the Editor17 M3.2 core Decision authority. It intentionally does not mount a retained UI adapter, bind job progress, or consume Editor04 Play callbacks. The Editor04 pending-edit failure remains open until a retained notification adapter publishes the prompt, routes apply/discard receipts through `PlaySessionController`, and passes the cross-plan integration gate.
+This module is the Editor17 M3.2 core Decision authority. It intentionally does not mount UI or invoke feature callbacks. The Editor04 pending-edit adapter publishes its prompt through this authority and routes apply/discard receipts to `PlaySessionController`; UI and headless consumers therefore act on the same ticket and receipt data. The cross-plan failure remains open only until the current-source managed integration gate is accepted.

@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::core::framework::render::{
     strip_wgsl_include_directives, wgsl_include_paths, GeometrySourceDescriptor,
     RenderShaderDefinitionValue, ShaderFeatureBits, ShaderPassType, ShadingModelDescriptor,
@@ -7,7 +9,7 @@ use crate::graphics::material::ShadingModelIncludeSourceSet;
 
 use super::material_surface::STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
 use super::module_registry::{
-    geometry_source_include_for, gpu_scene_include, scene_runtime_include,
+    bindless_material_include, geometry_source_include_for, gpu_scene_include, scene_runtime_include,
     shading_model_forward_include_for, shading_model_forward_include_token, surface_types_include,
     ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
     ShaderTemplateIncludeRegistry,
@@ -32,6 +34,7 @@ pub(crate) struct MaterialShaderTemplateRequest {
     pub(crate) generated_material_source: Option<String>,
     pub(crate) module_include_sources: Vec<ShaderTemplateInclude>,
     pub(crate) material_option_defines: Vec<RenderShaderDefinitionValue>,
+    pub(crate) bindless_material_slot_capacity: Option<NonZeroU32>,
     pub(crate) material_surface_source: String,
     pub(crate) material_surface_entry: String,
     pub(crate) material_surface_module_id: String,
@@ -53,6 +56,7 @@ impl MaterialShaderTemplateRequest {
             generated_material_source: None,
             module_include_sources: Vec::new(),
             material_option_defines: Vec::new(),
+            bindless_material_slot_capacity: None,
             material_surface_source: material_surface_source.into(),
             material_surface_entry: material_surface_entry.into(),
             material_surface_module_id: MATERIAL_SURFACE_MODULE_ID.to_string(),
@@ -117,6 +121,18 @@ impl MaterialShaderTemplateRequest {
         defines: impl IntoIterator<Item = RenderShaderDefinitionValue>,
     ) -> Self {
         self.material_option_defines.extend(defines);
+        self
+    }
+
+    /// Enables the fixed-capacity WGPU binding-array material ABI for this variant.
+    ///
+    /// The capacity is part of the WGSL binding-array type, so it must be carried by the shader
+    /// request instead of inferred later from a runtime bind group.
+    pub(crate) fn with_bindless_material_bindings(mut self, capacity: NonZeroU32) -> Self {
+        self.features = self
+            .features
+            .union(ShaderFeatureBits::new(ShaderFeatureBits::BINDLESS_MATERIAL));
+        self.bindless_material_slot_capacity = Some(capacity);
         self
     }
 
@@ -249,6 +265,8 @@ pub(crate) enum ShaderTemplateAssemblyError {
     UnknownModuleInclude {
         token: String,
     },
+    MissingBindlessMaterialSlotCapacity,
+    UnexpectedBindlessMaterialSlotCapacity,
     CircularModuleInclude {
         cycle: Vec<String>,
     },
@@ -257,6 +275,15 @@ pub(crate) enum ShaderTemplateAssemblyError {
 pub(crate) fn assemble_material_shader_template(
     request: MaterialShaderTemplateRequest,
 ) -> Result<MaterialShaderTemplateAssembly, ShaderTemplateAssemblyError> {
+    let bindless_material_requested = request
+        .features
+        .contains(ShaderFeatureBits::BINDLESS_MATERIAL);
+    if bindless_material_requested && request.bindless_material_slot_capacity.is_none() {
+        return Err(ShaderTemplateAssemblyError::MissingBindlessMaterialSlotCapacity);
+    }
+    if !bindless_material_requested && request.bindless_material_slot_capacity.is_some() {
+        return Err(ShaderTemplateAssemblyError::UnexpectedBindlessMaterialSlotCapacity);
+    }
     let uses_builtin_standard_pbr = request.shading_model_descriptor.is_none()
         && request.material_surface_entry == STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
     let pass_template = pass_template_for_shading_model(
@@ -274,12 +301,16 @@ pub(crate) fn assemble_material_shader_template(
             &request.geometry_source,
             request.features,
             &request.material_option_defines,
+            request.bindless_material_slot_capacity,
         ),
         0,
     );
 
     push_include_chunk(&mut registry, &mut builder, scene_runtime_include());
     push_include_chunk(&mut registry, &mut builder, gpu_scene_include());
+    if bindless_material_requested {
+        push_include_chunk(&mut registry, &mut builder, bindless_material_include());
+    }
     push_include_chunk(&mut registry, &mut builder, surface_types_include());
 
     let geometry_include =
@@ -425,8 +456,13 @@ pub(super) fn format_defines_header(
     geometry_source: &GeometrySourceDescriptor,
     features: ShaderFeatureBits,
     material_option_defines: &[RenderShaderDefinitionValue],
+    bindless_material_slot_capacity: Option<NonZeroU32>,
 ) -> String {
-    let mut lines = vec![
+    let mut lines = Vec::new();
+    if bindless_material_slot_capacity.is_some() {
+        lines.push("enable wgpu_binding_array;".to_string());
+    }
+    lines.extend([
         "// generated by zircon shader template assembler".to_string(),
         format!(
             "const ZR_GEOMETRY_SOURCE_TOKEN: u32 = {};",
@@ -468,7 +504,17 @@ pub(super) fn format_defines_header(
             "const ZR_FEATURE_ENVIRONMENT_ONLY_PBR: bool = {};",
             features.contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
         ),
-    ];
+        format!(
+            "const ZR_FEATURE_BINDLESS_MATERIAL: bool = {};",
+            features.contains(ShaderFeatureBits::BINDLESS_MATERIAL)
+        ),
+    ]);
+    if let Some(capacity) = bindless_material_slot_capacity {
+        lines.push(format!(
+            "const ZR_BINDLESS_MATERIAL_SLOT_CAPACITY: u32 = {}u;",
+            capacity.get()
+        ));
+    }
     for define in &geometry_source.shader_defines {
         lines.push(format_definition_value(define));
     }

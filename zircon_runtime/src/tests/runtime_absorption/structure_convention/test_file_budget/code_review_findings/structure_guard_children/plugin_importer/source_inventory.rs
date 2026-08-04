@@ -12,7 +12,6 @@ pub(super) fn assert_plugin_importer_dx_source_inventory_is_mounted() {
         "plugin-importer DX source inventory child keeps DX source-path checks",
         &plugin_importer_dx_source_inventory_child,
         &[
-            "fn runtime_15_plugin_importer_dx_source_inventory_is_child_owner",
             "const PLUGIN_IMPORTER_DX_SOURCE_PATHS",
             "tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs",
             "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs",

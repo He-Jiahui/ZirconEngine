@@ -68,8 +68,9 @@ fn spawn_node_reuses_copy_node_kind_without_spawn_path_clones() {
         spawn_node.contains("self.ordinal_for(kind)")
             && spawn_node.contains("self.kinds.insert(id, kind);")
             && spawn_node.contains("self.record_node_kind_added(kind);")
+            && spawn_node.contains("self.place_empty_entity_in_archetype(id);")
             && !spawn_node.contains("kind.clone()"),
-        "spawn_node must reuse Copy NodeKind values for ordinal lookup, cached count maintenance, storage insertion, and component-kind branching"
+        "spawn_node must reuse Copy NodeKind values for ordinal lookup, cached count maintenance, empty-archetype placement, storage insertion, and component-kind branching"
     );
     assert!(
         node_kind.contains("self.kinds.get(&entity).copied()") && !node_kind.contains(".cloned()"),

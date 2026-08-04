@@ -18,6 +18,8 @@ pub struct ViewportRenderFrame {
     pub extract: Arc<RenderFrameExtract>,
     pub viewport_size: UVec2,
     pub(crate) shader_quality: ShaderQualityTier,
+    pub(crate) texture_mip_bias: u8,
+    pub(crate) texture_max_anisotropy: u8,
     /// Screen-space runtime UI payload selected for this viewport target.
     pub ui: Option<UiRenderExtract>,
     pub(crate) output_target: super::ViewportRenderOutputTarget,
@@ -46,6 +48,14 @@ impl ViewportRenderFrame {
 
     pub(crate) fn shader_quality(&self) -> ShaderQualityTier {
         self.shader_quality
+    }
+
+    pub(crate) fn texture_mip_bias(&self) -> u8 {
+        self.texture_mip_bias
+    }
+
+    pub(crate) fn texture_max_anisotropy(&self) -> u8 {
+        self.texture_max_anisotropy
     }
 
     pub(crate) fn output_target(&self) -> super::ViewportRenderOutputTarget {

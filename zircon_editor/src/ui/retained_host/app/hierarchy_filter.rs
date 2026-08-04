@@ -51,10 +51,10 @@ fn hierarchy_entries_matching_query(
 
     // A single reverse pass preserves every matching entry's ancestry in O(N).
     for index in (0..entries.len()).rev() {
-        if included[index]
-            && let Some(parent_index) = parent_indices[index]
-        {
-            included[parent_index] = true;
+        if included[index] {
+            if let Some(parent_index) = parent_indices[index] {
+                included[parent_index] = true;
+            }
         }
     }
 

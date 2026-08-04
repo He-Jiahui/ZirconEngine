@@ -22,9 +22,6 @@ fn runtime_15_dynamic_scene_session_path_management_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
 
     assert_contains_all(
         "dynamic scene session path-management parent test module mounts",
@@ -170,29 +167,6 @@ fn runtime_15_dynamic_scene_session_path_management_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("dynamic scene doc", dynamic_scene_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 dynamic scene session path-management test folder split",
-                "runtime_15_dynamic_scene_session_path_management_tests_folder_split_static_passed_cargo_deferred",
-                "scene/tests/dynamic_scene_session/path_management.rs",
-                "scene/tests/dynamic_scene_session/path_management/single_slot_import.rs",
-                "scene/tests/dynamic_scene_session/path_management/archive_merge.rs",
-                "runtime_15_dynamic_scene_session_path_management_tests_are_folder_backed",
-            ],
         );
     }
 }

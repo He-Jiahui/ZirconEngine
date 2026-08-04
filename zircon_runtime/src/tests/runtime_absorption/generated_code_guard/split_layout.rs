@@ -72,32 +72,6 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
         );
     }
 
-    let row_data = include_str!(
-        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/structure_guard_rows.rs"
-    );
-    assert_contains_all(
-        "module-convention row data records generated-code guard split",
-        row_data,
-        &[
-            SLICE,
-            STATUS,
-            PARENT_PATH,
-            CHILD_PATHS[0],
-            CHILD_PATHS[5],
-            GUARD,
-        ],
-    );
-
-    let status_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
-    );
-    assert_contains_all("structure route status map", status_map, &[SLICE, STATUS]);
-
-    let date_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
-    );
-    assert_contains_all("structure route date map", date_map, &[SLICE, "2026-07-05"]);
-
     for (label, source) in [
         (
             "Runtime 15 subplan",

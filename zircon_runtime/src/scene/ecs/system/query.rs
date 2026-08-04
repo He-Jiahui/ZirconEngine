@@ -1,11 +1,11 @@
 use std::{array, marker::PhantomData};
 
 use crate::scene::ecs::{
-    CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, ChangeTickWindow,
-    QueryCombinationIter, QueryCombinationMutIter, QueryData, QueryEntityError, QueryEntityItem,
-    QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
+    single_from_iter, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter,
+    ChangeTickWindow, QueryCombinationIter, QueryCombinationMutIter, QueryData, QueryEntityError,
+    QueryEntityItem, QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
     QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError, QueryState,
-    UniqueEntityArray, single_from_iter,
+    UniqueEntityArray,
 };
 use crate::scene::{EntityId, World};
 

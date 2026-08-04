@@ -39,9 +39,6 @@ fn runtime_15_net_http_hyper_http1_client_policy_is_isolated() {
         manifest_root,
         "docs/engine-architecture/hard-cutover-migration-smells-m1.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "Net HTTP backend module wiring",
@@ -93,9 +90,6 @@ fn runtime_15_net_http_hyper_http1_client_policy_is_isolated() {
             "hard-cutover migration smells doc",
             hard_cutover_doc.as_str(),
         ),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

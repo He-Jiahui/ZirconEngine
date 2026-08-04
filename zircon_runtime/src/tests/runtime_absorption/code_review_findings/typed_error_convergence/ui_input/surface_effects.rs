@@ -52,15 +52,6 @@ fn review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_bo
     let module_doc =
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = include_str!("../../../../../../../docs/zircon_runtime/ui/platform_input.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "mod error;",
@@ -136,27 +127,5 @@ fn review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_bo
                 "{label} should not keep String-error transport `{forbidden}`"
             );
         }
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 UI surface input effect typed errors",
-        "runtime_15_ui_surface_input_effect_typed_errors_static_passed_cargo_deferred",
-        "review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_boundary",
-        "ui/surface/input/error.rs",
-        "UiSurfaceInputEffectError",
-        "UiSurfaceInputEffectResult",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || ui_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 UI input typed-error docs/status should record `{doc_anchor}`"
-        );
     }
 }

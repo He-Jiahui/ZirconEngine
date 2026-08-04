@@ -1,6 +1,6 @@
 use std::fmt;
-use std::mem::{MaybeUninit, align_of, size_of};
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::mem::{align_of, size_of, MaybeUninit};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
 use crate::scene::{EntityId, World};
 

@@ -1,5 +1,5 @@
 use super::super::*;
-use zircon_runtime::asset::{AssetImportContext, AssetUri, ImportedAsset};
+use zircon_runtime::asset::{AssetImportContext, AssetImportOutcome, AssetUri, ImportedAsset};
 
 pub(super) fn import_container_fixture(path: &str, bytes: Vec<u8>) -> ImportedAsset {
     import_container_fixture_with_settings(path, bytes, "")
@@ -10,6 +10,18 @@ pub(super) fn import_container_fixture_with_settings(
     bytes: Vec<u8>,
     settings: &str,
 ) -> ImportedAsset {
+    import_container_outcome_with_settings(path, bytes, settings)
+        .root_entry()
+        .expect("root texture asset entry")
+        .asset
+        .clone()
+}
+
+pub(super) fn import_container_outcome_with_settings(
+    path: &str,
+    bytes: Vec<u8>,
+    settings: &str,
+) -> AssetImportOutcome {
     let report = crate::plugin_registration();
     let importer = report
         .extensions
@@ -20,13 +32,7 @@ pub(super) fn import_container_fixture_with_settings(
     let settings = settings.parse().expect("valid texture import settings");
     let context =
         AssetImportContext::new(path.into(), AssetUri::parse(&uri).unwrap(), bytes, settings);
-    importer
-        .import(&context)
-        .unwrap()
-        .root_entry()
-        .expect("root texture asset entry")
-        .asset
-        .clone()
+    importer.import(&context).unwrap()
 }
 
 pub(super) fn import_container_error(path: &str, bytes: Vec<u8>) -> String {

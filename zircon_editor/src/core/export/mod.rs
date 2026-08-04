@@ -6,8 +6,8 @@ mod preset;
 mod stages;
 
 pub(crate) use inventory::{
-    file_metadata_identity, persist_bytes_atomically, ExportGenerationInventory,
-    FileMetadataIdentity,
+    ExportGenerationInventory, FileMetadataIdentity, file_metadata_identity,
+    persist_bytes_atomically,
 };
 pub use pipeline::{
     ExportPipelinePlan, ExportPipelinePlanError, ExportPipelineRunError, ExportStageExecutor,
@@ -15,10 +15,10 @@ pub use pipeline::{
 };
 pub use preset::{ExportPresetStore, ExportPresetStoreError};
 pub use stages::{
-    zircon_build_stage_plan, CompileHostStage, PlatformBundleLayout, PlatformBundleLayoutError,
+    CompileHostStage, PlatformBundleLayout, PlatformBundleLayoutError,
     SystemZirconBuildCommandRunner, ZirconBuildCommand, ZirconBuildCommandError,
     ZirconBuildCommandExecution, ZirconBuildCommandRunner, ZirconBuildStageExecutor,
-    ZirconBuildStageExecutorError,
+    ZirconBuildStageExecutorError, zircon_build_stage_plan,
 };
 
 #[cfg(test)]

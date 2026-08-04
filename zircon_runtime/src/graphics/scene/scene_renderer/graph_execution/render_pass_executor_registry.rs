@@ -26,9 +26,10 @@ use super::builtin_postprocess_executors::{
 };
 use super::builtin_scene_executors::{
     advanced_pbr_opaque_executor, deferred_gbuffer_executor, deferred_lighting_executor,
-    depth_prepass_executor, mesh_executor, overlay_gizmo_executor, particle_billboard_executor,
-    screen_space_ui_executor, shadow_atlas_executor, sprite_executor, transmission_mesh_executor,
-    transmission_scene_copy_executor,
+    depth_prepass_executor, half_resolution_transparency_composite_executor,
+    half_resolution_transparency_depth_downsample_executor, mesh_executor, overlay_gizmo_executor,
+    particle_billboard_executor, screen_space_ui_executor, shadow_atlas_executor, sprite_executor,
+    transmission_mesh_executor, transmission_scene_copy_executor,
 };
 use super::preview_sky_executor::preview_sky_scene_color_executor;
 use super::render_pass_executor_registration::{
@@ -110,10 +111,23 @@ impl RenderPassExecutorRegistry {
         registry.register_parallel_safe("sprite.alpha-mask".into(), sprite_executor);
         registry.register_parallel_safe("sprite.transparent".into(), sprite_executor);
         registry.register_parallel_safe("particle.transparent".into(), particle_billboard_executor);
+        registry.register_parallel_safe(
+            "particle.halfres-transparent".into(),
+            particle_billboard_executor,
+        );
         registry.register("mesh.depth-prepass".into(), depth_prepass_executor);
         registry.register("mesh.opaque".into(), mesh_executor);
         registry.register("mesh.alpha-mask".into(), mesh_executor);
         registry.register("mesh.transparent".into(), mesh_executor);
+        registry.register("mesh.halfres-transparent".into(), mesh_executor);
+        registry.register(
+            "transparency.halfres-depth-downsample".into(),
+            half_resolution_transparency_depth_downsample_executor,
+        );
+        registry.register(
+            "transparency.halfres-composite".into(),
+            half_resolution_transparency_composite_executor,
+        );
         registry.register(
             "mesh.advanced-pbr-opaque".into(),
             advanced_pbr_opaque_executor,

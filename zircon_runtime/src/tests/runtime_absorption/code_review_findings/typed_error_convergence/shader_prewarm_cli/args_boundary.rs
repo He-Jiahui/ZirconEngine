@@ -37,15 +37,6 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         include_str!("../../../../../../../docs/zircon_runtime/graphics/render-product-submit.md");
     let module_doc =
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     assert!(
         main.contains("mod error;"),
@@ -367,59 +358,6 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         assert!(
             !run.contains(forbidden),
             "shader prewarm resource registry export should not keep lossy String-error branch `{forbidden}`"
-        );
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 shader prewarm args typed errors",
-        "runtime_15_shader_prewarm_args_typed_errors_static_passed_cargo_deferred",
-        "Runtime 15 F5 shader prewarm manifest merge typed errors",
-        "runtime_15_shader_prewarm_manifest_merge_typed_errors_static_passed_cargo_deferred",
-        "Runtime 15 F5 shader prewarm manifest read typed errors",
-        "runtime_15_shader_prewarm_manifest_read_typed_errors_static_passed_cargo_deferred",
-        "Runtime 15 F5 shader prewarm report output typed errors",
-        "runtime_15_shader_prewarm_report_output_typed_errors_static_passed_cargo_deferred",
-        "Runtime 15 F5 shader prewarm permutation registry typed errors",
-        "runtime_15_shader_prewarm_permutation_registry_typed_errors_static_passed_cargo_deferred",
-        "Runtime 15 F5 shader prewarm resource registry typed errors",
-        "runtime_15_shader_prewarm_resource_registry_typed_errors_static_passed_cargo_deferred",
-        "Runtime 15 F5 shader prewarm asset-root scan typed errors",
-        "runtime_15_shader_prewarm_asset_root_scan_typed_errors_static_passed_cargo_deferred",
-        "review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary",
-        "bin/zircon_shader_prewarm/error.rs",
-        "bin/zircon_shader_prewarm/manifest.rs",
-        "bin/zircon_shader_prewarm/manifest/permutation_registry.rs",
-        "bin/zircon_shader_prewarm/manifest/resource_registry.rs",
-        "ShaderPrewarmAssetScanError::ParseZShader",
-        "ShaderPrewarmArgsError::Usage",
-        "ShaderPrewarmManifestError::Read",
-        "ShaderPrewarmManifestError::Parse",
-        "ShaderPrewarmManifestError::UnsupportedSchema",
-        "ShaderPrewarmReportError::CreateReportDirectory",
-        "ShaderPrewarmPermutationRegistryError::GeometrySourceIdBelowPluginRange",
-        "ShaderPrewarmResourceRegistryError::ReadRoot",
-        "shader_prewarm_report_write_reports_typed_directory_error",
-        "shader_prewarm_permutation_registry_reports_typed_geometry_id_range_error",
-        "shader_prewarm_resource_registry_read_reports_typed_decode_error",
-        "shader_prewarm_resource_registry_export_reports_typed_directory_error",
-        "shader_prewarm_asset_root_scan_reports_typed_empty_wgsl_error",
-        "shader_prewarm_asset_root_scan_reports_typed_zmaterial_parse_error",
-        "shader_prewarm_args_missing_value_reports_typed_usage_error",
-        "shader_prewarm_read_manifest_reports_typed_read_error",
-        "shader_prewarm_read_manifest_reports_typed_parse_error",
-        "shader_prewarm_merge_manifest_reports_typed_schema_error",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || render_doc.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 shader prewarm args docs/status should record `{doc_anchor}`"
         );
     }
 }

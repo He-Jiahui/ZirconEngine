@@ -1,10 +1,13 @@
 use crate::core::framework::render::{
     source_cubemap_face_mip_offset, source_cubemap_mip_size, SourceCubemapEnvironment,
-    SourceCubemapIrradianceCube, SourceCubemapUploadKey,
+    SourceCubemapIrradianceCube, SourceCubemapUploadKey, SourceCubemapUploadMip,
 };
 
 use super::half_float::push_f16_le_bytes;
 use super::SceneEnvironmentBrdfLut;
+use upload_batch::CubemapUploadStagingArena;
+
+mod upload_batch;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentCubemap {
     source_texture: wgpu::Texture,
@@ -20,6 +23,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneEnvironmentCube
     pmrem_mip_count: u32,
     irradiance_face_size: u32,
     upload_key: SourceCubemapUploadKey,
+    upload_staging: CubemapUploadStagingArena,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -88,6 +92,7 @@ impl SceneEnvironmentCubemap {
             pmrem_mip_count: 1,
             irradiance_face_size: 1,
             upload_key: SourceCubemapUploadKey::default(),
+            upload_staging: CubemapUploadStagingArena::default(),
         }
     }
 
@@ -271,7 +276,33 @@ impl SceneEnvironmentCubemap {
             return false;
         }
 
-        if changes.source {
+        let prepared_upload = environment.prepared_upload_artifact();
+        let source_mips = changes
+            .source
+            .then(|| prepared_upload.map(|artifact| artifact.source_mips()))
+            .flatten()
+            .filter(|mips| cubemap_upload_mips_match(mips, source_face_size, source_mip_count));
+        let pmrem_mips = changes
+            .specular
+            .then(|| prepared_upload.map(|artifact| artifact.pmrem_mips()))
+            .flatten()
+            .filter(|mips| cubemap_upload_mips_match(mips, pmrem_face_size, pmrem_mip_count));
+        let irradiance_mip = changes
+            .irradiance
+            .then(|| prepared_upload.and_then(|artifact| artifact.irradiance_mip()))
+            .flatten()
+            .filter(|mip| mip.face_size() == irradiance_face_size);
+
+        let prepared_uploads = [
+            source_mips.map(|mips| (&self.source_texture, mips)),
+            pmrem_mips.map(|mips| (&self.specular_texture, mips)),
+            irradiance_mip.map(|mip| (&self.irradiance_texture, std::slice::from_ref(mip))),
+        ];
+        let staged_prepared_uploads =
+            self.upload_staging
+                .upload(device, queue, &prepared_uploads);
+
+        if changes.source && (source_mips.is_none() || !staged_prepared_uploads) {
             upload_cubemap_texels(
                 queue,
                 &self.source_texture,
@@ -280,7 +311,7 @@ impl SceneEnvironmentCubemap {
                 environment.mip_chain.source_texels(),
             );
         }
-        if changes.specular {
+        if changes.specular && (pmrem_mips.is_none() || !staged_prepared_uploads) {
             upload_cubemap_texels(
                 queue,
                 &self.specular_texture,
@@ -289,7 +320,7 @@ impl SceneEnvironmentCubemap {
                 environment.mip_chain.pmrem_texels(),
             );
         }
-        if changes.irradiance {
+        if changes.irradiance && (irradiance_mip.is_none() || !staged_prepared_uploads) {
             if let Some(irradiance_cube) = environment.irradiance_cube() {
                 upload_irradiance_cube_texels(queue, &self.irradiance_texture, irradiance_cube);
             } else {
@@ -353,32 +384,42 @@ fn create_sampler(device: &wgpu::Device) -> wgpu::Sampler {
 }
 
 fn upload_single_rgba16_cubemap(queue: &wgpu::Queue, texture: &wgpu::Texture, texel: [f32; 4]) {
-    let byte_data = rgba16float_texels(&[texel]);
-    for face in 0..6 {
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: 0,
-                    y: 0,
-                    z: face,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            &byte_data,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(8),
-                rows_per_image: Some(1),
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        );
+    let texel_bytes = rgba16float_texels(&[texel]);
+    let mut byte_data = Vec::with_capacity(texel_bytes.len() * 6);
+    for _ in 0..6 {
+        byte_data.extend_from_slice(&texel_bytes);
     }
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        &byte_data,
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(8),
+            rows_per_image: Some(1),
+        },
+        wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 6,
+        },
+    );
+}
+
+fn cubemap_upload_mips_match(
+    mips: &[SourceCubemapUploadMip],
+    face_size: u32,
+    mip_count: u32,
+) -> bool {
+    mips.len() == mip_count as usize
+        && mips.iter().zip(0..mip_count).all(|(mip, mip_level)| {
+            mip.mip_level() == mip_level
+                && mip.face_size() == source_cubemap_mip_size(face_size, mip_level)
+        })
 }
 
 fn upload_cubemap_texels(
@@ -554,6 +595,19 @@ mod tests {
                 irradiance: true,
             }
         );
+    }
+
+    #[test]
+    fn prepared_cubemap_upload_batches_all_faces_for_each_mip() {
+        let source = include_str!("environment_cubemap.rs");
+        let product = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("product source precedes tests");
+
+        assert!(product.contains("CubemapUploadStagingArena"));
+        assert!(product.contains("staged_prepared_uploads"));
+        assert!(product.contains(".upload(device, queue, &prepared_uploads)"));
     }
 
     fn upload_key(

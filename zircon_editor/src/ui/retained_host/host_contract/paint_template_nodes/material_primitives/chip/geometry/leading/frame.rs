@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 
-use super::super::super::metrics::chip_bounded_extent;
+use super::super::metrics::chip_bounded_extent;
 use super::edge::{chip_avatar_edge, chip_icon_edge};
 use super::margin::chip_leading_margin;
 

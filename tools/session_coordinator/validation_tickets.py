@@ -31,7 +31,7 @@ class ValidationTicket:
     plan_path: str
     status: str
     source_manifest_hash: str
-    source_manifest: Mapping[str, str]
+    source_manifest: Mapping[str, str | None]
     command: tuple[str, ...]
     toolchain: Mapping[str, object]
     coverage: Mapping[str, object]
@@ -60,7 +60,7 @@ class ValidationTicketService:
         *,
         session_id: str,
         request_id: str,
-        source_manifest: Mapping[str, str],
+        source_manifest: Mapping[str, str | None],
         command: tuple[str, ...] | list[str],
         toolchain: Mapping[str, object],
         coverage: Mapping[str, object],
@@ -162,6 +162,7 @@ class ValidationTicketService:
         normalized_ticket = self._require_text("ticket_id", ticket_id)
         if status not in _NONTERMINAL | _TERMINAL:
             raise CoordinatorError("validation_ticket_status_invalid", f"Unsupported ticket status: {status}")
+        normalized_evidence = self._mapping("evidence", {} if evidence is None else evidence)
         now = utc_text()
         with self.database.transaction() as connection:
             ticket = self._get_in_connection(connection, normalized_ticket)
@@ -180,7 +181,7 @@ class ValidationTicketService:
                 connection,
                 normalized_ticket,
                 "validation.ticket_status_changed",
-                {"from": ticket.status, "to": status, "evidence": dict(evidence or {})},
+                {"from": ticket.status, "to": status, "evidence": normalized_evidence},
                 now,
             )
             return self._get_in_connection(connection, normalized_ticket)
@@ -262,10 +263,11 @@ class ValidationTicketService:
     ) -> None:
         normalized_ticket = self._require_text("ticket_id", ticket_id)
         normalized_event = self._require_text("event_type", event_type)
+        normalized_payload = self._mapping("payload", payload)
         now = utc_text()
         with self.database.transaction() as connection:
             self._get_in_connection(connection, normalized_ticket)
-            self._event(connection, normalized_ticket, normalized_event, payload, now)
+            self._event(connection, normalized_ticket, normalized_event, normalized_payload, now)
 
     def latest_worker_event(
         self, ticket_id: str, event_type: str
@@ -293,19 +295,27 @@ class ValidationTicketService:
             raise CoordinatorError("validation_ticket_input_invalid", f"{field} must be non-empty text")
         return value.strip()
 
-    def _manifest(self, value: Mapping[str, str]) -> dict[str, str]:
+    def _manifest(
+        self, value: Mapping[str, str | None]
+    ) -> dict[str, str | None]:
         if not isinstance(value, Mapping) or not value:
             raise CoordinatorError("validation_ticket_manifest_invalid", "source_manifest must be non-empty")
-        normalized: dict[str, str] = {}
+        normalized: dict[str, str | None] = {}
         for raw_path, raw_hash in value.items():
             if not isinstance(raw_path, str) or not _SAFE_PATH.fullmatch(raw_path.replace("\\", "/")):
                 raise CoordinatorError("validation_ticket_manifest_invalid", "source_manifest path is unsafe")
             path = raw_path.replace("\\", "/")
             if any(part in {"", ".", ".."} for part in path.split("/")):
                 raise CoordinatorError("validation_ticket_manifest_invalid", "source_manifest path is unsafe")
-            if not isinstance(raw_hash, str) or _SHA256.fullmatch(raw_hash.casefold()) is None:
-                raise CoordinatorError("validation_ticket_manifest_invalid", "source_manifest hashes must be SHA-256")
-            normalized[path] = raw_hash.casefold()
+            if raw_hash is None:
+                normalized[path] = None
+            elif isinstance(raw_hash, str) and _SHA256.fullmatch(raw_hash.casefold()):
+                normalized[path] = raw_hash.casefold()
+            else:
+                raise CoordinatorError(
+                    "validation_ticket_manifest_invalid",
+                    "source_manifest values must be SHA-256 or null deletion tombstones",
+                )
         return dict(sorted(normalized.items(), key=lambda item: item[0].casefold()))
 
     def _command(self, value: tuple[str, ...] | list[str]) -> tuple[str, ...]:
@@ -314,20 +324,64 @@ class ValidationTicketService:
         command = tuple(self._require_text("command", item) for item in value)
         return command
 
-    @staticmethod
-    def _mapping(field: str, value: Mapping[str, object]) -> dict[str, object]:
+    @classmethod
+    def _mapping(cls, field: str, value: Mapping[str, object]) -> dict[str, object]:
         if not isinstance(value, Mapping):
             raise CoordinatorError("validation_ticket_input_invalid", f"{field} must be an object")
-        result = {str(key): item for key, item in value.items()}
+        result = cls._json_value(field, value, set())
+        if not isinstance(result, dict):
+            raise AssertionError("mapping normalization must preserve object shape")
+        return result
+
+    @classmethod
+    def _json_value(cls, field: str, value: object, active: set[int]) -> object:
+        if isinstance(value, Mapping):
+            identity = id(value)
+            if identity in active:
+                raise CoordinatorError(
+                    "validation_ticket_input_invalid",
+                    f"{field} must not contain a circular JSON value",
+                )
+            active.add(identity)
+            try:
+                result: dict[str, object] = {}
+                for key, item in value.items():
+                    if not isinstance(key, str):
+                        raise CoordinatorError(
+                            "validation_ticket_input_invalid",
+                            f"{field} object keys must be strings",
+                        )
+                    result[key] = cls._json_value(field, item, active)
+                return result
+            finally:
+                active.remove(identity)
+        if isinstance(value, (list, tuple)):
+            identity = id(value)
+            if identity in active:
+                raise CoordinatorError(
+                    "validation_ticket_input_invalid",
+                    f"{field} must not contain a circular JSON value",
+                )
+            active.add(identity)
+            try:
+                return [cls._json_value(field, item, active) for item in value]
+            finally:
+                active.remove(identity)
         try:
-            json.dumps(result, sort_keys=True, separators=(",", ":"))
+            json.dumps(value, allow_nan=False)
         except (TypeError, ValueError) as error:
             raise CoordinatorError("validation_ticket_input_invalid", f"{field} must be JSON serializable") from error
-        return result
+        return value
 
     @staticmethod
     def _canonical(value: object) -> str:
-        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+            allow_nan=False,
+        )
 
     def _get_in_connection(self, connection, ticket_id: str) -> ValidationTicket:
         row = connection.execute("SELECT * FROM validation_tickets WHERE ticket_id=?", (ticket_id,)).fetchone()
@@ -347,10 +401,16 @@ class ValidationTicketService:
 
     @staticmethod
     def _event(connection, ticket_id: str, event_type: str, payload: Mapping[str, object], created_at: str) -> None:
+        normalized_payload = ValidationTicketService._mapping("event payload", payload)
         connection.execute(
             """
             INSERT INTO validation_ticket_events(ticket_id, event_type, payload_json, created_at)
             VALUES (?, ?, ?, ?)
             """,
-            (ticket_id, event_type, json.dumps(dict(payload), sort_keys=True), created_at),
+            (
+                ticket_id,
+                event_type,
+                ValidationTicketService._canonical(normalized_payload),
+                created_at,
+            ),
         )

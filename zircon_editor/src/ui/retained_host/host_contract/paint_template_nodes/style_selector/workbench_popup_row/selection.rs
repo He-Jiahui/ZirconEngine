@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     let hot = row.hot() || is_hot(state);
 
     WorkbenchPopupRowStyle {
-        background: popup_row_background(state, marked, hot),
+        background: popup_row_background(state, marked, row.pressed, hot),
         outline: popup_row_outline(state, marked),
         text: popup_row_text_color(row, state),
         shortcut: popup_row_shortcut_color(state),
@@ -23,11 +23,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     }
 }
 
-fn popup_row_background(state: UiPainterResolvedState, marked: bool, hot: bool) -> Option<[u8; 4]> {
+fn popup_row_background(
+    state: UiPainterResolvedState,
+    marked: bool,
+    pressed: bool,
+    hot: bool,
+) -> Option<[u8; 4]> {
     let palette = workbench_popup_row_palette();
     if is_unavailable(state) {
         None
-    } else if marked {
+    } else if marked || pressed {
         Some(palette.marked_background)
     } else if hot {
         Some(palette.hot_background)

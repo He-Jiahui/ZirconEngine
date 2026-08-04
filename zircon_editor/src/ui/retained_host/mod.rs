@@ -28,7 +28,6 @@ mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
 pub(crate) mod welcome_recent_geometry;
 pub(crate) mod welcome_recent_pointer;
-pub(crate) mod workbench_notifications;
 pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
 

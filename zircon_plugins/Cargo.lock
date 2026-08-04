@@ -7487,10 +7487,12 @@ dependencies = [
 name = "zircon_plugin_texture_importer_runtime"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "image",
  "psd",
  "serde",
  "toml",
+ "zstd",
  "zircon_plugin_sdk",
  "zircon_runtime",
 ]

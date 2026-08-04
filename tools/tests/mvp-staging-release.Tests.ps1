@@ -6,6 +6,8 @@ if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
     throw "MVP staging release module is missing: $modulePath"
 }
 Import-Module $modulePath -Force -ErrorAction Stop
+$resolverModule = Join-Path $PSScriptRoot '..\..\tools\WindowsPathResolver.psm1'
+Import-Module $resolverModule -Force -ErrorAction Stop
 
 function Assert-True {
     param(
@@ -24,6 +26,17 @@ Assert-True ($stagerSource -match "Import-Module .*MvpStagingRelease\.psm1") 'MV
 Assert-True (
     ([regex]::Matches($stagerSource, 'Test-MvpStagedProjectDirectoryReleased')).Count -eq 3
 ) 'MVP stager must probe project release after product, automation, and project-creation processes.'
+Assert-True (
+    $stagerSource -match '\$projectRootArgument = \(Resolve-ZirconWindowsPath -Path \$ProjectRoot\)\.DisplayPath'
+) 'MVP stager must pass a display path to the product CLI, which resolves the physical project identity.'
+
+$releaseSource = Get-Content -LiteralPath $modulePath -Raw
+Assert-True (
+    $releaseSource -match 'Resolve-ZirconWindowsPath -Path \$ProjectDirectory\)\.OperationalPath'
+) 'Project release probe must retain the resolved physical project path for filesystem operations.'
+Assert-True (
+    $releaseSource -match 'Move-ZirconWindowsPath -Source \$resolvedProject -Destination \$probe'
+) 'Project release probe must use the resolver-native move operation for physical paths.'
 
 $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) (
     'zircon_mvp_staging_release_' + [guid]::NewGuid().ToString('N')
@@ -74,6 +87,23 @@ try {
     Assert-True $conflictRejected 'Project release probe overwrote an existing probe path.'
     Assert-True (Test-Path -LiteralPath $projectRoot -PathType Container) 'Probe-path conflict changed the project directory.'
 
+    $physicalStageRoot = (Resolve-ZirconWindowsPath -Path $stageRoot).OperationalPath
+    $longProjectRoot = $physicalStageRoot
+    foreach ($segment in 1..12) {
+        $longProjectRoot = Join-ZirconWindowsPath -Path $longProjectRoot -ChildPath ('long-path-segment-' + ('x' * 16))
+        [IO.Directory]::CreateDirectory($longProjectRoot) | Out-Null
+    }
+    $longProjectRoot = Join-ZirconWindowsPath -Path $longProjectRoot -ChildPath 'Project'
+    [IO.Directory]::CreateDirectory($longProjectRoot) | Out-Null
+    Assert-True ($longProjectRoot.Length -gt 260) 'Long-path release fixture did not exceed MAX_PATH.'
+
+    Test-MvpStagedProjectDirectoryReleased `
+        -StageDirectory $physicalStageRoot `
+        -ProjectDirectory $longProjectRoot
+
+    Assert-True ([IO.Directory]::Exists($longProjectRoot)) 'Long-path release probe did not restore the project directory.'
+    Assert-True (-not [IO.Directory]::Exists("$longProjectRoot.release-probe")) 'Long-path release probe left its temporary rename target behind.'
+
     Write-Output 'MVP staged project release contract passed'
 }
 finally {
@@ -83,6 +113,6 @@ finally {
         if (-not $resolvedFixtureRoot.StartsWith($resolvedTempRoot, [StringComparison]::OrdinalIgnoreCase)) {
             throw "Refusing to remove staging release fixture outside the temp root: $resolvedFixtureRoot"
         }
-        Remove-Item -LiteralPath $resolvedFixtureRoot -Recurse -Force
+        [IO.Directory]::Delete((Resolve-ZirconWindowsPath -Path $resolvedFixtureRoot).OperationalPath, $true)
     }
 }

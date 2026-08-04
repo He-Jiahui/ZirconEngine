@@ -4,17 +4,23 @@ use crate::ui::layouts::views::view_projection::build_view_template_nodes;
 use crate::ui::layouts::windows::workbench_host_window::AssetsActivityPaneViewData;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
-    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
+    AssetContentPaintNodeInput, AssetContentSurface, asset_content_paint_metadata,
 };
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 mod content_layout;
 mod content_nodes;
+mod reference_nodes;
 mod responsive_layout;
+#[cfg(test)]
+mod responsive_layout_tests;
 
 use content_layout::apply_assets_activity_content_layout;
 use content_nodes::append_assets_activity_content_nodes;
+use reference_nodes::{
+    apply_assets_activity_reference_layout, sync_assets_activity_reference_nodes,
+};
 use responsive_layout::apply_assets_activity_responsive_layout;
 
 const ASSETS_ACTIVITY_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/assets_activity.zui";
@@ -117,22 +123,6 @@ pub(crate) fn assets_activity_pane_data(
         selection_diagnostics,
     );
     text_overrides.insert(
-        "AssetsActivityReferenceLeftEmptyText".to_string(),
-        if snapshot.selection.references.is_empty() {
-            "No direct references".to_string()
-        } else {
-            format!("{} direct references", snapshot.selection.references.len())
-        },
-    );
-    text_overrides.insert(
-        "AssetsActivityReferenceRightEmptyText".to_string(),
-        if snapshot.selection.used_by.is_empty() {
-            "No direct references".to_string()
-        } else {
-            format!("{} usages", snapshot.selection.used_by.len())
-        },
-    );
-    text_overrides.insert(
         "AssetsActivityViewModeListButton".to_string(),
         "List".to_string(),
     );
@@ -187,8 +177,14 @@ pub(crate) fn assets_activity_pane_data(
     )
     .unwrap_or_default();
     append_assets_activity_content_nodes(&mut nodes, snapshot);
+    if snapshot.utility_tab == AssetUtilityTab::References {
+        sync_assets_activity_reference_nodes(&mut nodes, snapshot);
+    }
     apply_assets_activity_visual_state(&mut nodes, snapshot);
     apply_assets_activity_responsive_layout(&mut nodes, snapshot, size);
+    if snapshot.utility_tab == AssetUtilityTab::References {
+        apply_assets_activity_reference_layout(&mut nodes);
+    }
     apply_assets_activity_content_layout(&mut nodes, snapshot);
 
     let metadata = asset_content_paint_metadata(
@@ -285,8 +281,6 @@ fn apply_assets_activity_visual_state(
         &[
             "AssetsActivityReferenceLeftPanel",
             "AssetsActivityReferenceRightPanel",
-            "AssetsActivityReferenceLeftRowPanel",
-            "AssetsActivityReferenceRightRowPanel",
         ],
         snapshot.utility_tab == AssetUtilityTab::References,
     );
@@ -312,7 +306,7 @@ fn mark_toggle_state(
 ) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.selected = active;
-        node.focused = active;
+        node.focused = false;
         node.surface_variant = if active { "inset".into() } else { "".into() };
         node.text_tone = if active {
             "default".into()
@@ -329,7 +323,7 @@ fn mark_panel_selected(
 ) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.selected = selected;
-        node.focused = selected;
+        node.focused = false;
     }
 }
 
@@ -351,12 +345,37 @@ fn mark_text_state(
     for control_id in control_ids {
         if let Some(node) = nodes.iter_mut().find(|node| node.control_id == *control_id) {
             node.selected = active;
-            node.focused = active;
+            node.focused = false;
             node.text_tone = if active {
                 "default".into()
             } else {
                 "muted".into()
             };
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{mark_panel_selected, mark_text_state, mark_toggle_state};
+    use crate::ui::layouts::views::ViewTemplateNodeData;
+
+    #[test]
+    fn visual_selection_state_does_not_impersonate_keyboard_focus() {
+        let mut nodes = vec![node("toggle"), node("panel"), node("label")];
+
+        mark_toggle_state(&mut nodes, "toggle", true);
+        mark_panel_selected(&mut nodes, "panel", true);
+        mark_text_state(&mut nodes, &["label"], true);
+
+        assert!(nodes.iter().all(|node| node.selected));
+        assert!(nodes.iter().all(|node| !node.focused));
+    }
+
+    fn node(control_id: &str) -> ViewTemplateNodeData {
+        ViewTemplateNodeData {
+            control_id: control_id.into(),
+            ..ViewTemplateNodeData::default()
         }
     }
 }

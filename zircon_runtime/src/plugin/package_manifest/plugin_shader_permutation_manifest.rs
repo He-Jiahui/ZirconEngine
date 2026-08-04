@@ -44,7 +44,7 @@ impl PluginShaderModuleManifest {
     pub fn new(import_path: impl Into<String>, source: impl Into<String>) -> Self {
         Self {
             import_path: import_path.into(),
-            source: source.into(),
+            source: source.into().into(),
         }
     }
 }

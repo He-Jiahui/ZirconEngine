@@ -18,7 +18,7 @@ use super::super::super::budget::BudgetDegradeSettings;
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::super::frame_submission_context::{
-    temporal_jitter_for_submission, FrameSubmissionContext, UiSubmissionStats,
+    FrameSubmissionContext, UiSubmissionStats, temporal_jitter_for_submission,
 };
 use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::compile_submission_pipeline_with_options;
@@ -333,6 +333,9 @@ fn build_frame_submission_context_from_source(
         .then_some(effective_virtual_geometry_extract)
         .flatten();
     let source_extract = Arc::clone(extract_source);
+    let quality_profile_texture_mip_bias = viewport_state.quality_profile_texture_mip_bias();
+    let quality_profile_texture_max_anisotropy =
+        viewport_state.quality_profile_texture_max_anisotropy();
     let quality_profile = viewport_state.take_quality_profile();
     let capabilities = viewport_state.take_capabilities();
     let previous_motion_vector_camera = viewport_state.take_previous_motion_vector_camera();
@@ -381,7 +384,11 @@ fn build_frame_submission_context_from_source(
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),
     )
-    .with_global_material_mip_bias(budget_degrade_settings.global_mip_bias as f32))
+    .with_global_material_mip_bias(
+        f32::from(quality_profile_texture_mip_bias)
+            + budget_degrade_settings.global_mip_bias as f32,
+    )
+    .with_texture_max_anisotropy(quality_profile_texture_max_anisotropy))
 }
 
 fn apply_budget_render_scale(extract: &mut RenderFrameExtract, settings: BudgetDegradeSettings) {

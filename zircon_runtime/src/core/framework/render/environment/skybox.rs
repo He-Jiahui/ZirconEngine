@@ -1,6 +1,7 @@
 use super::{
-    IblBakeArtifactContents, IblBakeArtifactRequest, SourceCubemapIrradianceCube,
-    SourceCubemapIrradianceSh9, SourceCubemapMipChain,
+    build_source_cubemap_upload_artifact, IblBakeArtifactContents, IblBakeArtifactRequest,
+    SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
+    SourceCubemapUploadArtifact,
 };
 use crate::core::math::{Real, Vec4};
 
@@ -176,7 +177,7 @@ impl SkyboxMode {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct SourceCubemapEnvironment {
     pub mip_chain: SourceCubemapMipChain,
     pub irradiance_sh9: SourceCubemapIrradianceSh9,
@@ -188,6 +189,22 @@ pub struct SourceCubemapEnvironment {
     pub rotation_radians: Real,
     pub source_revision: u64,
     pub source_hash: [u32; 4],
+    upload_artifact: Option<(SourceCubemapUploadKey, SourceCubemapUploadArtifact)>,
+}
+
+// Upload bytes are derived submission cache, not environment content identity.
+impl PartialEq for SourceCubemapEnvironment {
+    fn eq(&self, other: &Self) -> bool {
+        self.mip_chain == other.mip_chain
+            && self.irradiance_sh9 == other.irradiance_sh9
+            && self.irradiance_cube == other.irradiance_cube
+            && self.pmrem_hash == other.pmrem_hash
+            && self.bake_artifact_hash == other.bake_artifact_hash
+            && self.intensity == other.intensity
+            && self.rotation_radians == other.rotation_radians
+            && self.source_revision == other.source_revision
+            && self.source_hash == other.source_hash
+    }
 }
 
 impl SourceCubemapEnvironment {
@@ -207,12 +224,39 @@ impl SourceCubemapEnvironment {
             rotation_radians: 0.0,
             source_revision,
             source_hash,
+            upload_artifact: None,
         }
     }
 
     pub fn with_irradiance_cube(mut self, irradiance_cube: SourceCubemapIrradianceCube) -> Self {
+        let upload_key = self.texture_upload_key();
         self.irradiance_cube = Some(irradiance_cube);
+        if self.texture_upload_key() != upload_key {
+            // Drop outdated pre-encoded rows before a replacement artifact is built.
+            self.upload_artifact = None;
+        }
         self
+    }
+
+    /// Builds immutable, mip-major RGBA16F bytes before the render submission path consumes them.
+    pub fn with_prepared_upload_artifact(mut self) -> Self {
+        if self.prepared_upload_artifact().is_some() {
+            return self;
+        }
+        let upload_key = self.texture_upload_key();
+        let artifact =
+            build_source_cubemap_upload_artifact(&self.mip_chain, self.irradiance_cube.as_ref());
+        self.upload_artifact = Some((upload_key, artifact));
+        self
+    }
+
+    pub fn prepared_upload_artifact(&self) -> Option<&SourceCubemapUploadArtifact> {
+        let (upload_key, artifact) = self.upload_artifact.as_ref()?;
+        (*upload_key == self.texture_upload_key()).then_some(artifact)
+    }
+
+    pub(super) fn discard_prepared_upload_artifact(&mut self) {
+        self.upload_artifact = None;
     }
 
     /// Records artifact provenance without changing GPU texture content identity.
@@ -567,6 +611,79 @@ mod tests {
 
         assert_ne!(without_iem, first_iem);
         assert_ne!(first_iem, changed_iem);
+    }
+
+    #[test]
+    fn source_cubemap_prepared_upload_artifact_requires_current_upload_key() {
+        let environment = SourceCubemapEnvironment::new(
+            build_source_cubemap_from_equirect(1, |_, _| [0.25, 0.5, 0.75, 1.0]),
+            3,
+            [1, 2, 3, 4],
+        )
+        .with_prepared_upload_artifact();
+        assert!(environment.prepared_upload_artifact().is_some());
+
+        let changed_irradiance = environment.with_irradiance_cube(
+            SourceCubemapIrradianceCube::new(1, vec![[0.25, 0.5, 0.75]; 6]),
+        );
+        assert!(changed_irradiance.prepared_upload_artifact().is_none());
+        assert!(
+            changed_irradiance.upload_artifact.is_none(),
+            "changing irradiance must release the obsolete upload bytes before rebuilding"
+        );
+        assert!(
+            changed_irradiance
+                .with_prepared_upload_artifact()
+                .prepared_upload_artifact()
+                .is_some(),
+            "preparing after an upload-key change must replace the stale artifact"
+        );
+    }
+
+    #[test]
+    fn source_cubemap_reuses_prepared_upload_artifact_for_unchanged_irradiance() {
+        let irradiance = SourceCubemapIrradianceCube::new(1, vec![[0.25, 0.5, 0.75]; 6]);
+        let environment = SourceCubemapEnvironment::new(
+            build_source_cubemap_from_equirect(1, |_, _| [0.25, 0.5, 0.75, 1.0]),
+            3,
+            [1, 2, 3, 4],
+        )
+        .with_irradiance_cube(irradiance.clone())
+        .with_prepared_upload_artifact();
+
+        let unchanged_irradiance = environment.with_irradiance_cube(irradiance);
+
+        assert!(
+            unchanged_irradiance.upload_artifact.is_some(),
+            "unchanged irradiance content must retain its prepared upload artifact"
+        );
+    }
+
+    #[test]
+    fn source_cubemap_environment_equality_ignores_prepared_upload_cache() {
+        let environment = SourceCubemapEnvironment::new(
+            build_source_cubemap_from_equirect(1, |_, _| [0.25, 0.5, 0.75, 1.0]),
+            3,
+            [1, 2, 3, 4],
+        );
+        let prepared = environment.clone().with_prepared_upload_artifact();
+
+        assert_eq!(environment, prepared);
+    }
+
+    #[test]
+    fn source_cubemap_bake_replacement_discards_prepared_upload_cache() {
+        let mut environment = SourceCubemapEnvironment::new(
+            build_source_cubemap_from_equirect(1, |_, _| [0.25, 0.5, 0.75, 1.0]),
+            3,
+            [1, 2, 3, 4],
+        )
+        .with_prepared_upload_artifact();
+        let replacement = build_source_cubemap_from_equirect(1, |_, _| [0.75, 0.5, 0.25, 1.0]);
+
+        environment.replace_bake_artifact_content(replacement, [5, 6, 7, 8], [9, 10, 11, 12], None);
+
+        assert!(environment.upload_artifact.is_none());
     }
 
     #[test]

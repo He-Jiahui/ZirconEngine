@@ -17,15 +17,6 @@ fn review_f5_native_plugin_distribution_compat_uses_typed_error() {
         include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativeDistributionCompatibilityResult<T>",
@@ -74,28 +65,6 @@ fn review_f5_native_plugin_distribution_compat_uses_typed_error() {
         load_discovered.contains("native_distribution_compatibility_diagnostic"),
         "native plugin discovery should keep using the diagnostic boundary after typed-error conversion"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native plugin distribution compatibility typed errors",
-        "runtime_15_native_plugin_distribution_compat_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_plugin_distribution_compat_uses_typed_error",
-        "plugin/native_plugin_loader/compatibility.rs",
-        "NativeDistributionCompatibilityError::NonNumericVersionComponent",
-        "native_distribution_compatibility_diagnostic",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native plugin distribution compatibility docs/status should record `{doc_anchor}`"
-        );
-    }
 }
 
 #[test]
@@ -118,15 +87,6 @@ fn review_f5_native_plugin_registration_manifest_uses_typed_error() {
         include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativePluginRegistrationManifestResult<T>",
@@ -185,26 +145,4 @@ fn review_f5_native_plugin_registration_manifest_uses_typed_error() {
         !registration_replay.contains(".map_err(|error| format!(\"runtime plugin {plugin_id} {error}\"))?"),
         "native live-host replay should not keep the old lossy registration manifest String formatting branch"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native plugin registration manifest typed errors",
-        "runtime_15_native_plugin_registration_manifest_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_plugin_registration_manifest_uses_typed_error",
-        "plugin/native_plugin_loader/registration_manifest.rs",
-        "NativePluginRegistrationManifestError::UnsupportedSystemStage",
-        "native live-host registration replay keeps string diagnostics at public replay report boundaries",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native plugin registration manifest docs/status should record `{doc_anchor}`"
-        );
-    }
 }

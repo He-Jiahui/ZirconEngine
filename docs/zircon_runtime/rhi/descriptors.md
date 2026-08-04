@@ -1,54 +1,54 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi/capabilities.rs
-  - zircon_runtime/src/rhi/descriptors.rs
-  - zircon_runtime/src/rhi/descriptors/pipeline.rs
-  - zircon_runtime/src/rhi/device.rs
-  - zircon_runtime/src/rhi/device/handles.rs
-  - zircon_runtime/src/rhi/mod.rs
-  - zircon_runtime/src/rhi_wgpu/capabilities.rs
-  - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
-  - zircon_runtime/src/rhi_wgpu/device.rs
+  - zircon_runtime/crates/zr_rhi/src/capabilities.rs
+  - zircon_runtime/crates/zr_rhi/src/descriptors.rs
+  - zircon_runtime/crates/zr_rhi/src/descriptors/pipeline.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
+  - zircon_runtime/crates/zr_rhi/src/device/handles.rs
+  - zircon_runtime/crates/zr_rhi/src/lib.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/bind_group_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
-  - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
-  - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
-  - zircon_runtime/src/rhi_wgpu/resource_validation.rs
-  - zircon_runtime/src/rhi_wgpu/texture_copy.rs
-  - zircon_runtime/src/rhi/tests/boundary.rs
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/pipeline_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/render_pass_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/resource_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/texture_copy.rs
+  - zircon_runtime/crates/zr_rhi/src/tests/boundary.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/resource_lifecycle.rs
 implementation_files:
-  - zircon_runtime/src/rhi/capabilities.rs
-  - zircon_runtime/src/rhi/descriptors.rs
-  - zircon_runtime/src/rhi/descriptors/pipeline.rs
-  - zircon_runtime/src/rhi/device.rs
-  - zircon_runtime/src/rhi/device/handles.rs
-  - zircon_runtime/src/rhi/mod.rs
-  - zircon_runtime/src/rhi_wgpu/capabilities.rs
-  - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
-  - zircon_runtime/src/rhi_wgpu/device.rs
+  - zircon_runtime/crates/zr_rhi/src/capabilities.rs
+  - zircon_runtime/crates/zr_rhi/src/descriptors.rs
+  - zircon_runtime/crates/zr_rhi/src/descriptors/pipeline.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
+  - zircon_runtime/crates/zr_rhi/src/device/handles.rs
+  - zircon_runtime/crates/zr_rhi/src/lib.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/bind_group_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
-  - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
-  - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
-  - zircon_runtime/src/rhi_wgpu/resource_validation.rs
-  - zircon_runtime/src/rhi_wgpu/texture_copy.rs
-  - zircon_runtime/src/rhi/tests/descriptors.rs
-  - zircon_runtime/src/rhi/tests/command_list.rs
-  - zircon_runtime/src/rhi/tests/boundary.rs
-  - zircon_runtime/src/rhi/tests/debug_markers.rs
-  - zircon_runtime/src/rhi/tests/debug_status.rs
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs
-  - zircon_runtime/src/rhi/tests/render_pass_clear_values.rs
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs
-  - zircon_runtime/src/rhi/tests/device_contract.rs
-  - zircon_runtime/src/rhi/tests/pipeline.rs
-  - zircon_runtime/src/rhi/tests/texture_copy.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/pipeline_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/render_pass_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/resource_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/texture_copy.rs
+  - zircon_runtime/crates/zr_rhi/src/tests/descriptors.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/command_list.rs
+  - zircon_runtime/crates/zr_rhi/src/tests/boundary.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/debug_markers.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/debug_status.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_command_list.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_clear_values.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_resolve.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_state.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_views.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/resource_lifecycle.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/pipeline.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/texture_copy.rs
 plan_sources:
   - user: 2026-06-02 implement ZirconEngine WGPU render main-chain closure plan
   - .codex/plans/ZirconEngine WGPU 渲染主链闭环计划.md
@@ -56,91 +56,52 @@ plan_sources:
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/rhi/tests/descriptors.rs
-  - zircon_runtime/src/rhi/tests/descriptors.rs::texture_descriptors_mark_sparse_reservations_without_losing_virtual_size
-  - zircon_runtime/src/rhi/tests/descriptors.rs::texture_descriptors_report_mip_capacity_for_shape_validation
-  - zircon_runtime/src/rhi/tests/descriptors.rs::sampler_descriptors_cover_mips_lod_compare_and_anisotropy
-  - zircon_runtime/src/rhi/tests/descriptors.rs::bind_group_layout_descriptors_cover_material_texture_and_sampler_bindings
-  - zircon_runtime/src/rhi/tests/descriptors.rs::pipeline_descriptors_bind_shader_stages_to_pipeline_layouts
-  - zircon_runtime/src/rhi/tests/descriptors.rs::raster_pipeline_state_descriptors_cover_scene_ui_postprocess_and_depth_targets
-  - zircon_runtime/src/rhi/tests/command_list.rs
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_records_compute_dispatch_and_submit_validates_pipeline
-  - zircon_runtime/src/rhi/tests/boundary.rs
-  - zircon_runtime/src/rhi/tests/boundary.rs::app_editor_framework_and_interface_sources_do_not_import_wgpu_directly
-  - zircon_runtime/src/rhi/tests/boundary.rs::neutral_rhi_descriptor_sources_do_not_depend_on_upper_render_semantics
-  - zircon_runtime/src/rhi/tests/debug_markers.rs
-  - zircon_runtime/src/rhi/tests/debug_markers.rs::command_list_records_debug_markers_and_groups
-  - zircon_runtime/src/rhi/tests/debug_markers.rs::command_list_submit_validates_debug_marker_labels_and_group_lifetime
-  - zircon_runtime/src/rhi/tests/debug_markers.rs::command_list_submit_validates_render_pass_debug_group_scope
-  - zircon_runtime/src/rhi/tests/debug_status.rs
-  - zircon_runtime/src/rhi/tests/debug_status.rs::wgpu_rhi_reports_debug_instrumentation_status_at_device_boundary
-  - zircon_runtime/src/rhi/tests/debug_status.rs::wgpu_capability_mapping_keeps_debug_hooks_independent_from_surface_support
-  - zircon_runtime/src/rhi/tests/capabilities.rs::backend_debug_instrumentation_status_is_derived_from_caps
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs::wgpu_rhi_reports_live_transient_allocator_stats_for_buffers_and_textures
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs::wgpu_rhi_destroying_bound_resources_updates_stats_without_releasing_descriptors
-  - zircon_runtime/src/rhi/tests/resource_lifecycle.rs::wgpu_rhi_submit_rejects_bind_group_with_destroyed_resource
-  - zircon_runtime/src/rhi_wgpu/device.rs::tests::wgpu_render_device_state_accessors_recover_poisoned_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs::runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state
+  - zircon_runtime/crates/zr_rhi/src/tests/descriptors.rs
+  - zircon_runtime/crates/zr_rhi/src/tests/capabilities.rs
+  - zircon_runtime/crates/zr_rhi/src/tests/boundary.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/capabilities.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/command_list.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/command_list/basic_commands.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/command_list/bind_groups.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/command_list/raster_draws.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/command_list/vertex_index_state.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/debug_markers.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/debug_status.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/resource_lifecycle.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs::runtime_15_rhi_device_handles_are_child_owner
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_records_bind_groups_and_submit_validates_raster_pipeline_layout
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_submit_validates_compute_pipeline_bind_groups
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_submit_validates_bind_group_layout_compatibility
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_records_raster_draws_and_submit_validates_bound_buffers
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_allows_generated_vertex_draws_without_vertex_buffers
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_raster_draw_submit_validates_pipeline_queue_and_counts
-  - zircon_runtime/src/rhi/tests/command_list.rs::command_list_raster_draw_submit_validates_vertex_and_index_buffer_state
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs::command_list_records_render_pass_and_validates_raster_attachments
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs::command_list_render_pass_submit_validates_pass_lifetime_and_queue
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs::command_list_render_pass_submit_validates_attachment_usage_and_formats
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs::command_list_render_pass_submit_validates_depth_stencil_attachment_contract
-  - zircon_runtime/src/rhi/tests/render_pass_command_list.rs::command_list_render_pass_rejects_compute_and_copy_work_inside_pass
-  - zircon_runtime/src/rhi/tests/render_pass_clear_values.rs
-  - zircon_runtime/src/rhi/tests/render_pass_clear_values.rs::command_list_records_clear_values_for_color_depth_and_stencil
-  - zircon_runtime/src/rhi/tests/render_pass_clear_values.rs::command_list_render_pass_submit_validates_color_clear_values_are_finite
-  - zircon_runtime/src/rhi/tests/render_pass_clear_values.rs::command_list_render_pass_submit_validates_depth_clear_range
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs::command_list_records_msaa_resolve_target_and_validates_pipeline_sample_count
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs::command_list_render_pass_submit_validates_resolve_source_and_target_sample_counts
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs::command_list_render_pass_submit_validates_resolve_target_format_extent_and_usage
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs::command_list_render_pass_submit_rejects_duplicate_resolve_bindings
-  - zircon_runtime/src/rhi/tests/render_pass_resolve.rs::command_list_render_pass_submit_validates_pipeline_sample_count
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs::command_list_records_viewport_and_scissor_inside_render_pass
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs::command_list_viewport_and_scissor_require_active_render_pass
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs::command_list_viewport_submit_validates_shape_and_depth_range
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs::command_list_scissor_submit_validates_extent
-  - zircon_runtime/src/rhi/tests/render_pass_state.rs::command_list_render_pass_submit_validates_attachment_extent_and_sample_count
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs::command_list_records_render_pass_texture_views
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs::command_list_render_pass_submit_uses_mip_extent_for_view_compatibility
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs::command_list_render_pass_submit_validates_view_mip_and_array_layer_bounds
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs::command_list_render_pass_submit_allows_distinct_array_layer_attachments
-  - zircon_runtime/src/rhi/tests/render_pass_views.rs::command_list_render_pass_submit_validates_resolve_target_view_shape
-  - zircon_runtime/src/rhi/tests/device_contract.rs
-  - zircon_runtime/src/rhi/tests/device_contract.rs::wgpu_rhi_roundtrips_bind_group_layouts_and_bind_groups
-  - zircon_runtime/src/rhi/tests/device_contract.rs::wgpu_rhi_rejects_invalid_bind_group_layout_descriptors
-  - zircon_runtime/src/rhi/tests/device_contract.rs::wgpu_rhi_bind_group_validation_checks_layout_resource_types_and_usage
-  - zircon_runtime/src/rhi/tests/device_contract.rs::wgpu_rhi_rejects_invalid_resource_descriptors
-  - zircon_runtime/src/rhi/tests/device_contract.rs::wgpu_rhi_rejects_sparse_reserved_texture_without_backend_support
-  - zircon_runtime/src/rhi/tests/device_contract.rs::wgpu_rhi_roundtrips_shadow_and_trilinear_sampler_descriptors
-  - zircon_runtime/src/rhi/tests/pipeline.rs
-  - zircon_runtime/src/rhi/tests/pipeline.rs::wgpu_rhi_roundtrips_pipeline_layouts_and_shader_bound_pipelines
-  - zircon_runtime/src/rhi/tests/pipeline.rs::wgpu_rhi_rejects_invalid_shader_and_pipeline_descriptors
-  - zircon_runtime/src/rhi/tests/pipeline.rs::wgpu_rhi_roundtrips_raster_pipeline_state_for_color_depth_and_depth_only
-  - zircon_runtime/src/rhi/tests/pipeline.rs::wgpu_rhi_rejects_invalid_raster_pipeline_state_descriptors
-  - zircon_runtime/src/rhi/tests/texture_copy.rs
-  - zircon_runtime/src/rhi/tests/texture_copy.rs::wgpu_rhi_texture_copy_region_targets_mip_and_array_layer
-  - zircon_runtime/src/rhi/tests/texture_copy.rs::wgpu_rhi_texture_copy_region_targets_cube_face
-  - zircon_runtime/src/rhi_wgpu/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_rhi_wgpu_command_validation_state_is_child_owner
-  - cargo test -p zircon_runtime --lib --locked rhi --jobs 1 --message-format short --color never
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_command_list.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_clear_values.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_resolve.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_state.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_views.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/pipeline.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/texture_copy.rs
+  - cargo +1.94.1 test -p zr_rhi --lib --locked --jobs 1 -- --test-threads=1
+  - cargo +1.94.1 test -p zr_rhi_wgpu --lib --locked --jobs 1 -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib runtime_15_rhi_device_handles_are_child_owner --locked --jobs 1 -- --test-threads=1
+  - cargo +1.94.1 test -p zircon_runtime --lib runtime_15_rhi_wgpu --locked --jobs 1 -- --test-threads=1
 doc_type: module-detail
 ---
 
 # RHI Descriptors
+
+## Current Physical Ownership
+
+Since the 2026-08-03 Frameworks01 hard cut, `zircon_runtime/crates/zr_rhi` is the only owner of
+backend-neutral RHI declarations. Runtime always compiles this lightweight contract dependency
+because the always-on `RenderFramework` trait names its native surface target;
+`zircon_runtime/crates/zr_rhi_wgpu` remains graphics-optional, depends on `zr_rhi`, and owns the
+deterministic WGPU contract backend, validation modules, GPU timer/readback and concrete UI
+presenter. `zircon_runtime/src/rhi.rs` is a curated public facade, not a declaration owner or an
+internal compatibility layer. The former `zircon_runtime/src/rhi/` and
+`zircon_runtime/src/rhi_wgpu/` directories are deleted.
+
+Backend-dependent command-list, render-pass, resource-lifecycle, pipeline and texture-copy tests
+live under `zr_rhi_wgpu/src/tests/`; `zr_rhi/src/tests/` contains only neutral boundary,
+capabilities and descriptor coverage. The implementation is statically GREEN and awaiting managed
+Cargo acceptance, so this ownership statement does not claim Frameworks01 M2 completion.
 
 ## Purpose
 
@@ -180,7 +141,7 @@ Compute command submission requires a bound `PipelineKind::Compute`, non-zero wo
 
 Raster command lists can set a `RenderViewportDesc`, set a `RenderScissorRect`, bind vertex buffer slices, bind an index buffer with `IndexFormat::Uint16` or `Uint32`, and issue `Draw` or `DrawIndexed`. Viewport and scissor commands are pass-local state: submit validation requires an active render pass, finite non-empty viewport dimensions, a depth range inside `0.0..=1.0`, and viewport/scissor rectangles that fit the active pass extent. Submit validation for drawing requires a graphics queue, an active render pass, a bound `PipelineKind::Raster`, matching render-pass color attachment count and formats, matching render-pass and raster-pipeline sample counts, matching depth/stencil attachment presence and format, non-zero draw and instance counts, live vertex/index buffers with `VERTEX` or `INDEX` usage, non-empty buffer binding ranges, required bind groups matching the active pipeline layout, required vertex buffer slots matching the pipeline vertex input layout, vertex/instance draw ranges that fit the bound buffer strides, aligned index buffer ranges, and indexed draw ranges that fit the bound index slice. Pipelines with empty vertex input still support generated fullscreen/debug-style vertex draws without binding a vertex buffer. Copy commands cannot execute inside an active render pass. The WGPU test backend treats compute and raster submission as contract-level execution paths: it validates handles, pipeline kind, queue usage, pass attachment compatibility, viewport/scissor bounds, bind group layout compatibility, and bound ranges, then completes the fence without pretending to run an algorithm-specific shader.
 
-`TextureCopyRegion` is the neutral copy rectangle for buffer-to-texture and texture-to-buffer transfers. It carries mip level, x/y/z origin, width, and height instead of assuming a whole 2D base level. `rhi_wgpu::texture_copy` converts that rectangle into a dense byte layout for the headless WGPU test backend, including D2 array layers, cube faces, and mipped levels. Sparse reservations and multisampled textures reject copy regions at validation time because later residency/upload systems must own sparse page commitment and MSAA resolve semantics explicitly.
+`TextureCopyRegion` is the neutral copy rectangle for buffer-to-texture and texture-to-buffer transfers. It carries mip level, x/y/z origin, width, and height instead of assuming a whole 2D base level. `zr_rhi_wgpu::texture_copy` converts that rectangle into a dense byte layout for the headless WGPU test backend, including D2 array layers, cube faces, and mipped levels. Sparse reservations and multisampled textures reject copy regions at validation time because later residency/upload systems must own sparse page commitment and MSAA resolve semantics explicitly.
 
 ## Design And Rationale
 
@@ -196,15 +157,15 @@ Texture copy tests now live in `rhi/tests/texture_copy.rs` rather than the gener
 
 Pipeline and command-list tests now live in `rhi/tests/pipeline.rs` and `rhi/tests/command_list.rs`. This keeps shader/pipeline layout validation, raster state validation, compute dispatch validation, and queue command validation out of the general device contract module, which remains below the repository's large-file warning threshold. The remaining device contract tests import every public RHI handle through `crate::rhi`, so lib-test compilation catches facade export drift before upper UI or editor regressions are filtered.
 
-`rhi_wgpu::resource_validation` owns descriptor and usage validation for the headless WGPU test backend. Keeping those checks outside `device.rs` prevents the backend state and command execution file from becoming a catch-all as descriptor rules grow for sparse textures, cubemaps, array textures, samplers, and future residency/upload capabilities.
+`zr_rhi_wgpu::resource_validation` owns descriptor and usage validation for the headless WGPU test backend. Keeping those checks outside `device.rs` prevents the backend state and command execution file from becoming a catch-all as descriptor rules grow for sparse textures, cubemaps, array textures, samplers, and future residency/upload capabilities.
 
-`rhi_wgpu::bind_group_validation` owns bind group instance validation because that check needs both layout declarations and live resource handles. Splitting it out keeps `rhi_wgpu::device` focused on allocation, state storage, command validation, and command execution while still letting the test backend enforce material, postprocess, and compute resource-binding contracts before renderer caches are migrated to the neutral RHI surface.
+`zr_rhi_wgpu::bind_group_validation` owns bind group instance validation because that check needs both layout declarations and live resource handles. Splitting it out keeps `zr_rhi_wgpu::device` focused on allocation, state storage, command validation, and command execution while still letting the test backend enforce material, postprocess, and compute resource-binding contracts before renderer caches are migrated to the neutral RHI surface.
 
-`rhi_wgpu::pipeline_validation` owns shader module, pipeline layout, and pipeline descriptor validation. That module checks stage compatibility and layout/shader handle existence without mixing another responsibility into `rhi_wgpu::device`, which remains the stateful allocator and command executor.
+`zr_rhi_wgpu::pipeline_validation` owns shader module, pipeline layout, and pipeline descriptor validation. That module checks stage compatibility and layout/shader handle existence without mixing another responsibility into `zr_rhi_wgpu::device`, which remains the stateful allocator and command executor.
 
-`rhi_wgpu::command_validation` owns command-list submit validation and the headless copy execution path. The split keeps `rhi_wgpu::device` focused on resource allocation, descriptor storage, command-list construction, and fence bookkeeping while command validation grows to cover debug marker/group balancing, compute dispatches, bind group command binding, raster draws, vertex/index buffer binding ranges, and texture-copy execution.
+`zr_rhi_wgpu::command_validation` owns command-list submit validation and the headless copy execution path. The split keeps `zr_rhi_wgpu::device` focused on resource allocation, descriptor storage, command-list construction, and fence bookkeeping while command validation grows to cover debug marker/group balancing, compute dispatches, bind group command binding, raster draws, vertex/index buffer binding ranges, and texture-copy execution.
 
-`rhi_wgpu::DeterministicRhiContractDevice` is compiled only for RHI contract tests. Its host-memory resources and synchronous fence model make neutral descriptor/validation tests deterministic, but are not a product WGPU implementation. Product scene rendering owns real `wgpu::Device`, `wgpu::Queue`, GPU resources, and asynchronous readback through `graphics::backend::RenderBackend`; `rhi/tests/device_contract/framework_boundary.rs` rejects the deterministic device name from product graphics sources so the CPU mirror cannot enter a frame path.
+`zr_rhi_wgpu::DeterministicRhiContractDevice` is compiled only for RHI contract tests. Its host-memory resources and synchronous fence model make neutral descriptor/validation tests deterministic, but are not a product WGPU implementation. Product scene rendering owns real `wgpu::Device`, `wgpu::Queue`, GPU resources, and asynchronous readback through `graphics::backend::RenderBackend`; `rhi/tests/device_contract/framework_boundary.rs` rejects the deterministic device name from product graphics sources so the CPU mirror cannot enter a frame path.
 
 Runtime 15 M4 RHI device handle owner split is recorded as `runtime_15_rhi_device_handles_owner_split_static_passed_cargo_deferred`. `rhi/device.rs` remains the typed RHI device contract owner for `RhiError`, command/render-pass DTOs, `CommandList`, and `RenderDevice`; `rhi/device/handles.rs` now owns the neutral resource handle newtypes and their `new/raw` accessors. The parent re-exports the moved handles through `pub use self::handles::{...}`, so existing `rhi::device::*` and `rhi::*` paths stay unchanged. The structure guard `runtime_15_rhi_device_handles_are_child_owner` keeps the handles from returning to the parent, verifies `rhi/mod.rs` still exports the same handle names, and keeps both owners below the production-file budget.
 
@@ -214,7 +175,7 @@ Runtime 15 M4 RHI WGPU device command-list owner split is recorded as `runtime_1
 
 Runtime 15 M3 RHI WGPU render device lock poison recovery is recorded as `runtime_15_rhi_wgpu_render_device_lock_poison_recovery_static_passed_cargo_deferred`. `rhi_wgpu/device.rs` keeps owning the headless WGPU `RenderDevice` contract, but its `WgpuRenderDeviceState` mutex is now opened only through `WgpuRenderDevice::lock_state()`, which recovers poisoned locks instead of panicking through direct `.lock().unwrap()`. The helper covers resource allocation/destruction, descriptor snapshots, bind group and pipeline validation lookups, command submission, fence completion, transient allocator stats, staging buffer write/read, and texture readback without changing neutral RHI handles or descriptor semantics. The module-local `wgpu_render_device_state_accessors_recover_poisoned_lock` deliberately poisons the state lock and verifies transient stats, staging buffer creation, write, and read still recover. The structure guard `runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state` locks the helper/test/status anchors through `docs/zircon_runtime/rhi/descriptors.md` and rejects direct production lock unwraps in `rhi_wgpu/device.rs`.
 
-`rhi_wgpu::render_pass_validation` owns active render-pass attachment validation and pipeline/pass compatibility checks. Keeping that state in its own module prevents `command_validation` from becoming another descriptor catch-all while letting WGPU-style render-pass rules grow toward concrete attachment views, resolves, load/store actions, and depth/stencil operations.
+`zr_rhi_wgpu::render_pass_validation` owns active render-pass attachment validation and pipeline/pass compatibility checks. Keeping that state in its own module prevents `command_validation` from becoming another descriptor catch-all while letting WGPU-style render-pass rules grow toward concrete attachment views, resolves, load/store actions, and depth/stencil operations.
 
 Render-pass load operations are type-specific instead of a single shared clear flag. This matches WGPU's value-carrying attachment operations, Bevy's clear-color path, and Unity Graphics SRP command-buffer clears while keeping invalid role/value pairings out of the neutral RHI API. Zircon validates color-value finiteness and depth normalization at submit time because renderer features, cameras, postprocess passes, and UI passes will all produce attachment clears through the same command-list contract.
 
@@ -238,9 +199,9 @@ The 2026-06-04 raster pipeline-state slice passed `rustfmt --edition 2021 --chec
 
 The 2026-06-04 blend and vertex-input pipeline descriptor slice passed `rustfmt --edition 2021 --check` over the touched RHI files, path-scoped `git diff --check` with expected LF-to-CRLF warnings only, conflict-marker scanning, and a combined source scan proving `descriptors.rs` plus `descriptors/pipeline.rs` still avoid the forbidden upper-layer type names. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` passed with existing warnings only. The first focused `cargo test -p zircon_runtime --lib rhi::tests::pipeline ...` attempt failed because an unrelated active runtime-modules test split had a stale `RuntimeProfileId` import; after that other-session file changed, the same command passed 4 tests, 0 failed. The fresh generated binary `E:\cargo-targets\zircon-rhi-bind-group-0604\debug\deps\zircon_runtime-b34ee8d8fc52f1fd.exe rhi::tests --test-threads=1 --nocapture` then passed 41 tests, 0 failed.
 
-The 2026-06-04 BufferUsage helper unblock restored `BufferUsage::has_unknown_bits()` after a runtime lib-test compile reached `zircon_runtime/src/rhi/tests/descriptors.rs` and found the method missing while `BufferUsage::ALL` was already present. Static validation passed with `rustfmt --edition 2021 --check zircon_runtime/src/rhi/descriptors.rs` and path-scoped `git diff --check` over `zircon_runtime/src/rhi/descriptors.rs` plus this document. The refreshed runtime lib-test binary then passed `rhi::tests::descriptors::resource_descriptors_keep_stable_labels_and_usage` directly: 1 test, 0 failed, 2633 filtered out.
+The 2026-06-04 BufferUsage helper unblock restored `BufferUsage::has_unknown_bits()` after a runtime lib-test compile reached `zircon_runtime/crates/zr_rhi/src/tests/descriptors.rs` and found the method missing while `BufferUsage::ALL` was already present. Static validation passed with `rustfmt --edition 2021 --check zircon_runtime/crates/zr_rhi/src/descriptors.rs` and path-scoped `git diff --check` over `zircon_runtime/crates/zr_rhi/src/descriptors.rs` plus this document. The refreshed runtime lib-test binary then passed `rhi::tests::descriptors::resource_descriptors_keep_stable_labels_and_usage` directly: 1 test, 0 failed, 2633 filtered out.
 
-The 2026-06-04 raster command-list draw slice added neutral vertex/index buffer binding plus `Draw` and `DrawIndexed` commands, and split submit validation/execution into `rhi_wgpu::command_validation` so `device.rs` stays focused. Validation passed with `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` using existing warning noise only. The first focused Cargo test wrapper timed out while the Windows lib-test binary was still compiling; after the same lane produced a fresh `E:\cargo-targets\zircon-rhi-bind-group-0604\debug\deps\zircon_runtime-b34ee8d8fc52f1fd.exe` at 2026-06-04 14:19:43, direct execution with `rhi::tests::command_list --test-threads=1 --nocapture` passed 8 tests, 0 failed, 2631 filtered out. A later hot-cache wrapper run also passed: `cargo test -p zircon_runtime --lib rhi::tests::command_list --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never -- --test-threads=1 --nocapture` passed 8 tests, 0 failed, 2631 filtered out, with existing warnings only.
+The 2026-06-04 raster command-list draw slice added neutral vertex/index buffer binding plus `Draw` and `DrawIndexed` commands, and split submit validation/execution into `zr_rhi_wgpu::command_validation` so `device.rs` stays focused. Validation passed with `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` using existing warning noise only. The first focused Cargo test wrapper timed out while the Windows lib-test binary was still compiling; after the same lane produced a fresh `E:\cargo-targets\zircon-rhi-bind-group-0604\debug\deps\zircon_runtime-b34ee8d8fc52f1fd.exe` at 2026-06-04 14:19:43, direct execution with `rhi::tests::command_list --test-threads=1 --nocapture` passed 8 tests, 0 failed, 2631 filtered out. A later hot-cache wrapper run also passed: `cargo test -p zircon_runtime --lib rhi::tests::command_list --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never -- --test-threads=1 --nocapture` passed 8 tests, 0 failed, 2631 filtered out, with existing warnings only.
 
 The 2026-06-04 command-list bind group binding slice added neutral `SetBindGroup { slot, bind_group }` recording and submit-time pipeline-layout compatibility checks for compute dispatches, direct draws, and indexed draws. Validation passed with scoped `rustfmt --edition 2021 --check`, conflict-marker scanning, forbidden upper-layer semantic scanning over the touched RHI command files, and path-scoped `git diff --check` with expected LF-to-CRLF warnings only. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` passed with existing warnings only. The focused command-list suite passed through the Cargo wrapper: `cargo test -p zircon_runtime --lib rhi::tests::command_list --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never -- --test-threads=1 --nocapture` ran 11 tests, 0 failed, 2631 filtered out, covering the new raster bind group, compute bind group, missing binding, invalid slot, unknown handle, and layout mismatch cases.
 
@@ -256,8 +217,8 @@ The 2026-06-04 render-pass attachment subresource-view slice added neutral `Rend
 
 The 2026-06-04 scoped debug-group slice added neutral command-list `PushDebugGroup` and `PopDebugGroup` commands beside the existing insertion marker. Submit validation rejects empty labels, stray pop commands, groups left open at command-list end, render-pass-local groups left open at pass end, and scope mismatches where an encoder-level group is popped while a render pass is active. Validation passed with `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` using existing warnings only. The first focused `rhi::tests::debug_markers` wrapper timed out while compiling the Windows lib-test binary; after that process finished, the warmed wrapper passed 3 tests, 0 failed, 2669 filtered. Adjacent focused suites also passed on the warmed target: `rhi::tests::command_list` ran 11 tests, 0 failed, 2661 filtered, and `rhi::tests::render_pass_command_list` ran 5 tests, 0 failed, 2667 filtered. Final hygiene passed: scoped `rustfmt --edition 2021 --check`, path-scoped `git diff --check` with expected LF-to-CRLF warnings only, conflict-marker scanning, and an upper-layer semantic scan over touched RHI production files. During focused lib-test compilation, an unrelated scene test `unwrap_err()` assertion imposed a `Debug` bound on `QueryState`; the assertion was rewritten as an explicit match so the shared runtime test harness could compile without changing scene behavior.
 
-The 2026-06-04 RHI debug instrumentation status slice added `supports_debug_markers`, `supports_debug_groups`, and `supports_graphics_debugger_capture` to `RenderBackendCaps`, plus neutral `RenderDebugInstrumentationStatus` and `RenderDevice::debug_instrumentation_status()`. WGPU capability mapping now reports marker/group/capture API support independently from surface support, while the headless test device reports no active capture by default. Validation passed with `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` using existing warnings only. The first focused `rhi::tests::debug_status` wrapper timed out while compiling the Windows lib-test binary; after the same process finished, the warmed wrapper passed 2 tests, 0 failed, 2673 filtered. Follow-up focused suites passed on the warmed target: `rhi::tests::capabilities` ran 2 tests, 0 failed, 2673 filtered, and `rhi_wgpu::tests::wgpu_caps_fall_back_to_graphics_and_copy_without_rt` ran 1 test, 0 failed, 2674 filtered. Existing warnings remain in unrelated runtime/UI/render modules.
+The 2026-06-04 RHI debug instrumentation status slice added `supports_debug_markers`, `supports_debug_groups`, and `supports_graphics_debugger_capture` to `RenderBackendCaps`, plus neutral `RenderDebugInstrumentationStatus` and `RenderDevice::debug_instrumentation_status()`. WGPU capability mapping now reports marker/group/capture API support independently from surface support, while the headless test device reports no active capture by default. Validation passed with `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never` using existing warnings only. The first focused `rhi::tests::debug_status` wrapper timed out while compiling the Windows lib-test binary; after the same process finished, the warmed wrapper passed 2 tests, 0 failed, 2673 filtered. Follow-up focused suites passed on the warmed target: `rhi::tests::capabilities` ran 2 tests, 0 failed, 2673 filtered, and `zr_rhi_wgpu::tests::wgpu_caps_fall_back_to_graphics_and_copy_without_rt` ran 1 test, 0 failed, 2674 filtered. Existing warnings remain in unrelated runtime/UI/render modules.
 
 The 2026-06-04 RHI boundary guardrail slice added `rhi::tests::boundary` to keep M1 exposure rules executable. The first focused `cargo test -p zircon_runtime --lib rhi::tests::boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never -- --test-threads=1 --nocapture` wrapper timed out while compiling the Windows lib-test binary; the same runtime compile process was still active, then exited cleanly. The warmed rerun passed 2 tests, 0 failed, 2675 filtered, covering direct-WGPU source/dependency rejection for app/editor/framework/interface layers and neutral RHI upper-semantic source rejection for descriptor/device owners. Existing warnings remain in unrelated runtime/UI/render modules.
 
-The 2026-06-04 RHI resource lifecycle stats slice added `RenderDevice::transient_allocator_stats()` and the WGPU headless implementation backed by live buffer and texture storage. The first focused `cargo test -p zircon_runtime --lib rhi::tests::resource_lifecycle --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never -- --test-threads=1 --nocapture` wrapper timed out while compiling the Windows lib-test binary; process inspection showed the same runtime compile still active, and it produced a fresh binary. The warmed rerun passed 2 tests, 0 failed, 2677 filtered, covering live byte/allocation accounting and resource destruction updating stats without implicitly deleting descriptor-only bind group metadata. Follow-up submit-time liveness validation now revalidates bind group descriptors against live resources in `rhi_wgpu::command_validation`; the first wrapper again timed out during compile and then produced a fresh binary, and the warmed rerun passed 3 tests, 0 failed, 2677 filtered, including stale bind group resource rejection. Existing warnings remain in unrelated runtime/UI/render modules.
+The 2026-06-04 RHI resource lifecycle stats slice added `RenderDevice::transient_allocator_stats()` and the WGPU headless implementation backed by live buffer and texture storage. The first focused `cargo test -p zircon_runtime --lib rhi::tests::resource_lifecycle --locked --jobs 1 --target-dir E:\cargo-targets\zircon-rhi-bind-group-0604 --message-format short --color never -- --test-threads=1 --nocapture` wrapper timed out while compiling the Windows lib-test binary; process inspection showed the same runtime compile still active, and it produced a fresh binary. The warmed rerun passed 2 tests, 0 failed, 2677 filtered, covering live byte/allocation accounting and resource destruction updating stats without implicitly deleting descriptor-only bind group metadata. Follow-up submit-time liveness validation now revalidates bind group descriptors against live resources in `zr_rhi_wgpu::command_validation`; the first wrapper again timed out during compile and then produced a fresh binary, and the warmed rerun passed 3 tests, 0 failed, 2677 filtered, including stale bind group resource rejection. Existing warnings remain in unrelated runtime/UI/render modules.

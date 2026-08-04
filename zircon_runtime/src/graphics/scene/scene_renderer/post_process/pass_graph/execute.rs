@@ -117,11 +117,11 @@ mod tests {
     use crate::core::framework::render::{
         PostProcessEffectKind, PostProcessPassGraph, PostProcessPassNode,
     };
+    use crate::graphics::RenderPassStage;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphExecutionRecord, RenderGraphExecutionResources,
     };
-    use crate::graphics::RenderPassStage;
     use crate::render_graph::QueueLane;
 
     #[test]

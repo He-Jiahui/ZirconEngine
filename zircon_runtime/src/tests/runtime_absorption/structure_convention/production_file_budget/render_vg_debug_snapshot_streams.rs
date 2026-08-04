@@ -13,7 +13,9 @@ fn runtime_15_vg_debug_snapshot_stream_types_are_child_owner() {
         "core/framework/render/virtual_geometry_debug_snapshot_streams/metrics.rs",
     );
 
-    let plan_02 = read_repo("docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md");
+    let plan_02 = read_repo(
+        "docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

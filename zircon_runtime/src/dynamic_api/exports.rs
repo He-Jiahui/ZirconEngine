@@ -1,10 +1,11 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V3, ZrByteSlice, ZrHostApiV1,
-    ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV3,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V4, ZrByteSlice, ZrHostApiV1,
+    ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV4,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationHandle,
+    ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrStatus, ZrStatusCode,
 };
@@ -13,12 +14,12 @@ use super::session::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
     destroy_session, drain_host_requests, drain_plugin_events, handle_event, harvest_operation,
     poll_operation, present_viewport, profile_control, submit_operation, subscribe_plugin_event,
-    tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
+    submit_highlight_set, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
 };
 
-static RUNTIME_API_V3: ZrRuntimeApiV3 = ZrRuntimeApiV3 {
-    abi_version: ZIRCON_RUNTIME_API_VERSION_V3,
-    size_bytes: core::mem::size_of::<ZrRuntimeApiV3>(),
+static RUNTIME_API_V4: ZrRuntimeApiV4 = ZrRuntimeApiV4 {
+    abi_version: ZIRCON_RUNTIME_API_VERSION_V4,
+    size_bytes: core::mem::size_of::<ZrRuntimeApiV4>(),
     create_session: Some(create_session_ffi),
     destroy_session: Some(destroy_session_ffi),
     handle_event: Some(handle_event_ffi),
@@ -27,6 +28,7 @@ static RUNTIME_API_V3: ZrRuntimeApiV3 = ZrRuntimeApiV3 {
     bind_viewport_surface: Some(bind_viewport_surface_ffi),
     unbind_viewport_surface: Some(unbind_viewport_surface_ffi),
     present_viewport: Some(present_viewport_ffi),
+    submit_highlight_set: Some(submit_highlight_set_ffi),
     profile_control: Some(profile_control_ffi),
     tick_frame: Some(tick_frame_ffi),
     drain_host_requests: Some(drain_host_requests_ffi),
@@ -39,25 +41,25 @@ static RUNTIME_API_V3: ZrRuntimeApiV3 = ZrRuntimeApiV3 {
 };
 
 #[no_mangle]
-pub unsafe extern "C" fn zircon_runtime_get_api_v3(
+pub unsafe extern "C" fn zircon_runtime_get_api_v4(
     host: *const ZrHostApiV1,
-) -> *const ZrRuntimeApiV3 {
+) -> *const ZrRuntimeApiV4 {
     match catch_unwind(AssertUnwindSafe(|| unsafe {
-        zircon_runtime_get_api_v3_inner(host)
+        zircon_runtime_get_api_v4_inner(host)
     })) {
         Ok(api) => api,
         Err(_) => core::ptr::null(),
     }
 }
 
-unsafe fn zircon_runtime_get_api_v3_inner(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV3 {
+unsafe fn zircon_runtime_get_api_v4_inner(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV4 {
     #[cfg(feature = "profiling-tracy")]
     let _ = crate::core::diagnostics::profiling::initialize_tracy_sink();
 
     if !host_abi_is_supported(host) {
         return core::ptr::null();
     }
-    &RUNTIME_API_V3
+    &RUNTIME_API_V4
 }
 
 fn host_abi_is_supported(host: *const ZrHostApiV1) -> bool {
@@ -130,6 +132,13 @@ unsafe extern "C" fn present_viewport_ffi(
     request: ZrRuntimeFrameRequestV1,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { present_viewport(handle, request) })
+}
+
+unsafe extern "C" fn submit_highlight_set_ffi(
+    handle: ZrRuntimeSessionHandle,
+    request: ZrRuntimeHighlightSetV1,
+) -> ZrStatus {
+    catch_ffi_panic(|| unsafe { submit_highlight_set(handle, request) })
 }
 
 unsafe extern "C" fn profile_control_ffi(

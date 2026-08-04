@@ -240,7 +240,7 @@ impl PlayOutputPump {
     fn drain_limited(&self) -> Vec<String> {
         let deadline = Instant::now() + PLAY_OUTPUT_DRAIN_TIME_BUDGET;
         let mut diagnostics = Vec::with_capacity(PLAY_OUTPUT_DRAIN_LIMIT + 4);
-        let mut drained_bytes = 0;
+        let mut drained_bytes = 0usize;
         let mut oldest_age_ms = 0;
 
         while diagnostics.len() < PLAY_OUTPUT_DRAIN_LIMIT && Instant::now() < deadline {

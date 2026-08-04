@@ -33,9 +33,6 @@ fn runtime_15_render_shader_definition_uses_bare_flag_names() {
         manifest_root,
         "docs/zircon_runtime/asset/zmeta-shader-material.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "render shader definition bare flag serde branch",
@@ -58,9 +55,6 @@ fn runtime_15_render_shader_definition_uses_bare_flag_names() {
         ("module convention doc", module_doc.as_str()),
         ("render assets doc", render_assets_doc.as_str()),
         ("zmeta shader material doc", zmeta_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -104,9 +98,6 @@ fn runtime_15_frame_extract_snapshot_adapter_uses_current_names() {
     );
     let scene_render_extract_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/scene/render_extract.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "frame extract snapshot adapter source names",
@@ -132,9 +123,6 @@ fn runtime_15_frame_extract_snapshot_adapter_uses_current_names() {
             "scene render extract doc",
             scene_render_extract_doc.as_str(),
         ),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

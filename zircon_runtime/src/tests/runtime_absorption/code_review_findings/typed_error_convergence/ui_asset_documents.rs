@@ -25,15 +25,6 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     let module_doc =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
     let ui_asset_doc = include_str!("../../../../../../docs/zircon_runtime/asset/assets/ui.md");
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "pub type UiAssetDocumentResult<T>",
@@ -143,29 +134,6 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
                 || importer_tests.contains(required)
                 || ui_document_importer.contains(required),
             "UI asset typed-error behavior tests should contain `{required}`"
-        );
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 UI asset document typed errors",
-        "runtime_15_ui_asset_document_typed_errors_static_passed_cargo_deferred",
-        "review_f5_ui_asset_documents_use_typed_errors_before_import_boundary",
-        "asset/assets/ui.rs",
-        "asset/importer/ingest/import_ui_zui_asset.rs",
-        "UiIconAssetDocumentError::InvalidSourceUri",
-        "AssetImportError::UiIconDocument",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || ui_asset_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 UI asset document typed-error docs/status should record `{doc_anchor}`"
         );
     }
 }

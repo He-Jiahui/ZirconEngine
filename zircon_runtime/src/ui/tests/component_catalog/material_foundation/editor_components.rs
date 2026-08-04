@@ -55,9 +55,18 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
         "validation_message",
         "validation_dirty",
         "validation_touched",
+        "composition_clauses",
     ] {
         assert_has_prop(text_field, prop);
     }
+    let composition_clauses = text_field
+        .prop("composition_clauses")
+        .expect("TextField composition clauses state");
+    assert_eq!(composition_clauses.value_kind, UiValueKind::Array);
+    assert_eq!(
+        composition_clauses.default_value,
+        Some(UiValue::Array(Vec::new()))
+    );
     assert_eq!(
         text_field
             .default_props
@@ -98,6 +107,7 @@ fn material_editor_foundation_catalog_covers_editor_descriptor_contracts() {
         "validation_message",
         "validation_dirty",
         "validation_touched",
+        "composition_clauses",
     ] {
         assert_has_prop(textarea, prop);
     }

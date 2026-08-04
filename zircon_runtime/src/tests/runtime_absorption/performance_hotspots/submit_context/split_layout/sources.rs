@@ -18,10 +18,6 @@ pub(super) struct SplitLayoutSources {
     pub(super) module_doc: &'static str,
     pub(super) runtime_07_plan: &'static str,
     pub(super) hotspot_doc: &'static str,
-    pub(super) status_rows: &'static str,
-    pub(super) legacy_status_rows: &'static str,
-    pub(super) status_slice: &'static str,
-    pub(super) date_slice: &'static str,
     pub(super) runtime_07_archive: &'static str,
 }
 
@@ -62,18 +58,6 @@ impl SplitLayoutSources {
             ),
             hotspot_doc: include_str!(
                 "../../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md"
-            ),
-            status_rows: include_str!(
-                "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/runtime_07_performance/split_layout_rows.rs"
-            ),
-            legacy_status_rows: include_str!(
-                "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/runtime_07_performance/primary_guard_rows.rs"
-            ),
-            status_slice: include_str!(
-                "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_split_layout_maps.rs"
-            ),
-            date_slice: include_str!(
-                "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_split_layout_maps.rs"
             ),
             runtime_07_archive: include_str!(
                 "../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"

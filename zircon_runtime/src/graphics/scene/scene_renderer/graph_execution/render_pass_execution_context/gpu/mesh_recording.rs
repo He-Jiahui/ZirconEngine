@@ -17,6 +17,7 @@ use super::{RenderPassGpuExecutionContext, RenderPassMeshCommandLists};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum MeshStageCommandSource {
     Standard(RenderPassStage),
+    HalfResolutionTransparent,
     AdvancedPbrOpaque,
     TransmissionStep(usize),
 }
@@ -25,6 +26,7 @@ impl MeshStageCommandSource {
     fn stage(self) -> RenderPassStage {
         match self {
             Self::Standard(stage) => stage,
+            Self::HalfResolutionTransparent => RenderPassStage::Transparent3d,
             Self::AdvancedPbrOpaque => RenderPassStage::Transparent3d,
             Self::TransmissionStep(_) => RenderPassStage::Transparent3d,
         }
@@ -36,6 +38,7 @@ impl MeshStageCommandSource {
     ) -> MeshDrawCommandStream<'a> {
         match self {
             Self::Standard(stage) => mesh_draw_lists.stream_for_stage(stage),
+            Self::HalfResolutionTransparent => mesh_draw_lists.half_resolution_transparent_stream(),
             Self::AdvancedPbrOpaque => mesh_draw_lists.advanced_pbr_opaque_stream(),
             Self::TransmissionStep(step_index) => {
                 mesh_draw_lists.transmission_step_stream(step_index)
@@ -243,6 +246,22 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             attachment_ops,
             depth_attachment_ops,
             MeshStageCommandSource::AdvancedPbrOpaque,
+        )
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn record_half_resolution_transparent_mesh_to_resources(
+        &mut self,
+        color_resource_name: &str,
+        depth_resource_name: &str,
+        attachment_ops: RenderGraphAttachmentOps,
+        depth_attachment_ops: RenderGraphAttachmentOps,
+    ) -> Result<(), String> {
+        self.record_mesh_stage_selection_to_resources(
+            color_resource_name,
+            depth_resource_name,
+            attachment_ops,
+            depth_attachment_ops,
+            MeshStageCommandSource::HalfResolutionTransparent,
         )
     }
 

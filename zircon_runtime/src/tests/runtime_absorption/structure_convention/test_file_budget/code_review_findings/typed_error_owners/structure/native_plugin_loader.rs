@@ -12,12 +12,8 @@ mod metadata;
 mod routes;
 #[path = "native_plugin_loader/source_helper_ownership.rs"]
 mod source_helper_ownership;
-#[path = "native_plugin_loader/source_helper_status.rs"]
-mod source_helper_status;
 #[path = "native_plugin_loader/sources.rs"]
 mod sources;
-#[path = "native_plugin_loader/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) use child_inventory::*;
 pub(super) use metadata::*;

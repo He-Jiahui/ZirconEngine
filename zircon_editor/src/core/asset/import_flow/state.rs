@@ -166,7 +166,7 @@ impl ImportFlowState {
                 (active.mutex_group.clone(), None)
             }
             None => {
-                let mutex_group = self.allocate_mutex_group();
+                let mutex_group = self.allocate_mutex_group()?;
                 let token = self.allocate_uuid_lifecycle(key.uuid);
                 self.active_by_uuid.insert(
                     key.uuid,
@@ -371,18 +371,19 @@ impl ImportFlowState {
         }
     }
 
-    fn allocate_mutex_group(&mut self) -> MutexGroup {
+    fn allocate_mutex_group(&mut self) -> Result<MutexGroup, EditorAssetImportSubmitError> {
         loop {
             let value = self.next_mutex_group;
             self.next_mutex_group = self.next_mutex_group.wrapping_add(1);
-            let candidate = MutexGroup::parse(format!("asset_import_{value:016x}"))
-                .expect("generated asset import mutex groups are valid");
+            // Keep a future format change inside the submit error path instead of crashing the
+            // editor while starting an asset import.
+            let candidate = MutexGroup::parse(format!("asset_import_{value:016x}"))?;
             if self
                 .active_by_uuid
                 .values()
                 .all(|active| active.mutex_group != candidate)
             {
-                return candidate;
+                return Ok(candidate);
             }
         }
     }
@@ -504,5 +505,21 @@ fn remove_order_entry(
     });
     if remove_bucket {
         order.remove(&created_at);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn generated_mutex_groups_are_distinct_valid_submission_values() {
+        let mut state = ImportFlowState::default();
+        let first = state.allocate_mutex_group().unwrap();
+        let second = state.allocate_mutex_group().unwrap();
+
+        assert_eq!(first.as_str(), "asset_import_0000000000000000");
+        assert_eq!(second.as_str(), "asset_import_0000000000000001");
+        assert_ne!(first, second);
     }
 }

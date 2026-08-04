@@ -8,6 +8,7 @@ use super::super::options::{option_is_selected, selected_segment_value};
 use super::super::style::segmented_control_style;
 use super::divider::push_segment_divider;
 use super::selected::push_selected_segment;
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use crate::ui::retained_host::primitives::SharedString;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segmented_control(
@@ -21,6 +22,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
 ) {
     push_segmented_group_label(commands, node, rect, clip, order + 3, opacity);
     let body_rect = segmented_body_rect(node, rect);
+    if intersect(&body_rect, clip).is_none() {
+        return;
+    }
     let style = segmented_control_style(node);
     commands.push(HostPaintCommand::quad(
         body_rect.clone(),
@@ -36,6 +40,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     let selected = selected_segment_value(node);
     for (index, option) in options.iter().enumerate() {
         let segment = segment_rect(&body_rect, index, options.len());
+        if intersect(&segment, clip).is_none() {
+            continue;
+        }
         if index > 0 {
             push_segment_divider(commands, &segment, clip, order + 1, opacity);
         }

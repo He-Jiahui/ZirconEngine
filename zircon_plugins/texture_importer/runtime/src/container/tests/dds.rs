@@ -5,7 +5,8 @@ use crate::container::support::{
     DDS_DIMENSION_TEXTURE2D, DDS_RESOURCE_MISC_TEXTURECUBE,
 };
 use zircon_runtime::asset::{ImportedAsset, TexturePayload};
-use zircon_runtime::core::framework::render::RenderImageDimension;
+use zircon_runtime::core::framework::render::{RenderImageDimension, TextureMipPolicy};
+use zircon_runtime::core::resource::ResourceDiagnosticSeverity;
 
 #[test]
 fn dds_container_importer_preserves_compressed_payload() {
@@ -34,6 +35,29 @@ fn dds_container_importer_preserves_compressed_payload() {
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
+}
+
+#[test]
+fn dds_container_importer_preserves_source_mips_and_reports_offline_fallback() {
+    let outcome = import_container_outcome_with_settings(
+        "albedo.dds",
+        tiny_dds_bytes(),
+        r#"mip_policy = "generate_offline""#,
+    );
+    let entry = outcome.root_entry().expect("root texture asset entry");
+
+    match &entry.asset {
+        ImportedAsset::Texture(texture) => assert_eq!(
+            texture.render_image_descriptor().metadata.mip_policy,
+            TextureMipPolicy::FromSource
+        ),
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+    assert!(entry.diagnostics.iter().any(|diagnostic| {
+        diagnostic.severity == ResourceDiagnosticSeverity::Warning
+            && diagnostic.message
+                == "'res://textures/albedo.dds' already contains 3 mips; falling back to from_source"
+    }));
 }
 
 #[test]

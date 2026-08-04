@@ -1,9 +1,11 @@
 use super::common::*;
+use std::io::Write;
+
 use crate::container::support::{
     KTX2_HEADER_SIZE, KTX2_LEVEL_INDEX_ENTRY_SIZE, KTX2_SUPERCOMPRESSION_BASIS_LZ,
     KTX2_SUPERCOMPRESSION_NONE, KTX2_SUPERCOMPRESSION_ZLIB, KTX2_SUPERCOMPRESSION_ZSTANDARD,
 };
-use zircon_runtime::asset::{ImportedAsset, TexturePayload};
+use zircon_runtime::asset::{ImportedAsset, TexturePayload, TextureUploadSupport};
 use zircon_runtime::core::framework::render::RenderImageDimension;
 
 #[test]
@@ -47,9 +49,9 @@ fn ktx2_container_importer_accepts_known_supercompression_schemes() {
         ),
         (
             KTX2_SUPERCOMPRESSION_ZSTANDARD,
-            "ktx2/vk-37/supercompression-2",
+            "ktx2/vk-37/supercompression-0",
         ),
-        (KTX2_SUPERCOMPRESSION_ZLIB, "ktx2/vk-37/supercompression-3"),
+        (KTX2_SUPERCOMPRESSION_ZLIB, "ktx2/vk-37/supercompression-0"),
     ];
 
     for (scheme, expected_format) in cases {
@@ -78,6 +80,131 @@ fn ktx2_container_importer_accepts_known_supercompression_schemes() {
             other => panic!("unexpected imported asset: {other:?}"),
         }
     }
+}
+
+#[test]
+fn ktx2_container_importer_decodes_standard_supercompression_for_gpu_upload() {
+    let decoded_level = vec![0x6d; 128];
+    let cases = [
+        (
+            KTX2_SUPERCOMPRESSION_ZSTANDARD,
+            zstd::stream::encode_all(decoded_level.as_slice(), 0)
+                .expect("zstd fixture encoding should succeed"),
+        ),
+        (KTX2_SUPERCOMPRESSION_ZLIB, zlib_encode(&decoded_level)),
+    ];
+
+    for (scheme, compressed_level) in cases {
+        let source = ktx2_standard_supercompressed_bc1_bytes(
+            scheme,
+            compressed_level.as_slice(),
+            decoded_level.len(),
+        );
+        let source_len = source.len();
+        let imported = import_container_fixture("standard-supercompression.ktx2", source);
+
+        let ImportedAsset::Texture(texture) = imported else {
+            panic!("KTX2 importer should produce a texture asset");
+        };
+        let TexturePayload::Container { format, bytes, .. } = &texture.payload else {
+            panic!("KTX2 importer should preserve a container texture payload");
+        };
+        assert_eq!(format, "ktx2/vk-133/supercompression-0");
+        assert_eq!(&bytes[44..48], &0_u32.to_le_bytes());
+        assert!(
+            texture
+                .upload_readiness(TextureUploadSupport::all_compressed())
+                .is_ready(),
+            "decoded KTX2 payload should be ready for BC upload"
+        );
+        let level_offset = usize::try_from(read_u64(&bytes, KTX2_HEADER_SIZE))
+            .expect("decoded level offset should fit the host address space");
+        let level_length = usize::try_from(read_u64(&bytes, KTX2_HEADER_SIZE + 8))
+            .expect("decoded level length should fit the host address space");
+        assert_eq!(level_length, decoded_level.len());
+        assert_eq!(
+            &bytes[level_offset..level_offset + level_length],
+            decoded_level.as_slice()
+        );
+        assert!(
+            bytes.len() < source_len + decoded_level.len(),
+            "rewritten KTX2 container should not retain compressed and decoded payloads"
+        );
+    }
+}
+
+#[test]
+fn ktx2_container_importer_rejects_invalid_standard_supercompressed_payload() {
+    let decoded_level = vec![0x6d; 128];
+    let cases = [
+        (KTX2_SUPERCOMPRESSION_ZSTANDARD, vec![0x00, 0x01, 0x02]),
+        (KTX2_SUPERCOMPRESSION_ZLIB, vec![0x00, 0x01, 0x02]),
+    ];
+
+    for (scheme, compressed_level) in cases {
+        let source = ktx2_standard_supercompressed_bc1_bytes(
+            scheme,
+            compressed_level.as_slice(),
+            decoded_level.len(),
+        );
+        let error = import_container_error("invalid-standard-supercompression.ktx2", source);
+
+        assert!(
+            error.contains("decode KTX2"),
+            "invalid standard supercompressed payload should fail closed, got: {error}"
+        );
+    }
+}
+
+fn zlib_encode(bytes: &[u8]) -> Vec<u8> {
+    let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder
+        .write_all(bytes)
+        .expect("zlib fixture encoding should accept the level bytes");
+    encoder
+        .finish()
+        .expect("zlib fixture encoding should finish successfully")
+}
+
+fn ktx2_standard_supercompressed_bc1_bytes(
+    scheme: u32,
+    compressed_level: &[u8],
+    decoded_level_len: usize,
+) -> Vec<u8> {
+    let mut bytes = ktx2_layer_face_level_bytes(1, 1, 1);
+    write_u32(&mut bytes, 12, 133);
+    write_u32(&mut bytes, 44, scheme);
+    let payload_offset = bytes
+        .len()
+        .checked_add(7)
+        .map(|value| value & !7)
+        .expect("fixture payload alignment should fit usize");
+    bytes.resize(payload_offset, 0);
+    bytes.extend_from_slice(compressed_level);
+    write_u64(
+        &mut bytes,
+        KTX2_HEADER_SIZE,
+        u64::try_from(payload_offset).expect("fixture offset should fit u64"),
+    );
+    write_u64(
+        &mut bytes,
+        KTX2_HEADER_SIZE + 8,
+        u64::try_from(compressed_level.len()).expect("fixture compressed length should fit u64"),
+    );
+    write_u64(
+        &mut bytes,
+        KTX2_HEADER_SIZE + 16,
+        u64::try_from(decoded_level_len).expect("fixture decoded length should fit u64"),
+    );
+    bytes
+}
+
+fn read_u64(bytes: &[u8], offset: usize) -> u64 {
+    u64::from_le_bytes(
+        bytes[offset..offset + 8]
+            .try_into()
+            .expect("fixture range is valid"),
+    )
 }
 
 #[test]

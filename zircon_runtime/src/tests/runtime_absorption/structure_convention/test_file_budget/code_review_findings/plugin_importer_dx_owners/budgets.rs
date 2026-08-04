@@ -16,20 +16,12 @@ fn runtime_15_plugin_importer_dx_structure_guard_budgets_are_focused() {
             read_runtime_src(PLUGIN_IMPORTER_DX_TOP_LEVEL_CHILD_OWNERSHIP_CHILD),
         ),
         (
-            PLUGIN_IMPORTER_DX_TOP_LEVEL_STATUS_MIRRORS_CHILD,
-            read_runtime_src(PLUGIN_IMPORTER_DX_TOP_LEVEL_STATUS_MIRRORS_CHILD),
-        ),
-        (
             PLUGIN_IMPORTER_DX_TOP_LEVEL_BUDGETS_CHILD,
             read_runtime_src(PLUGIN_IMPORTER_DX_TOP_LEVEL_BUDGETS_CHILD),
         ),
         (
             PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD,
             read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD),
-        ),
-        (
-            PLUGIN_IMPORTER_DX_STATUS_DOCS_CHILD,
-            read_runtime_src(PLUGIN_IMPORTER_DX_STATUS_DOCS_CHILD),
         ),
         (
             PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD,
@@ -46,10 +38,6 @@ fn runtime_15_plugin_importer_dx_structure_guard_budgets_are_focused() {
         (
             PLUGIN_IMPORTER_DX_STRUCTURE_CHILD_OWNERSHIP_CHILD,
             read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD_OWNERSHIP_CHILD),
-        ),
-        (
-            PLUGIN_IMPORTER_DX_STRUCTURE_STATUS_MIRRORS_CHILD,
-            read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_STATUS_MIRRORS_CHILD),
         ),
         (
             PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD,

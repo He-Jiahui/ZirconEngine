@@ -38,25 +38,61 @@ fn migration_resolver_is_filesystem_free_after_generation_build() {
 }
 
 #[test]
-fn resolver_index_keeps_one_generation_for_one_to_one_hundred_thousand_lookups() {
-    let locator = AssetUri::parse("res://models/hero.glb").unwrap();
-    let index = MigrationResolverIndex::build(
-        [MigrationSourceProjection::new(
-            RelPath::parse("assets").unwrap(),
-            PathBuf::from("C:/project/assets"),
-            RelPath::parse("models/hero.glb").unwrap(),
-            PathBuf::from("C:/project/assets/models/hero.glb"),
-        )],
-        [],
-    )
-    .unwrap();
+fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_matrix() {
+    const MAX_REFERENCES: usize = 100_000;
 
-    for lookup_count in [1, 1_000, 100_000] {
-        for _ in 0..lookup_count {
+    for root_count in [1, 4] {
+        let expected = (0..MAX_REFERENCES)
+            .map(|reference_index| {
+                let root_index = reference_index % root_count;
+                let logical_root = format!("root-{root_index}");
+                let relative = format!("scale/reference-{reference_index:06}.asset");
+                let locator = AssetUri::parse(&format!("res://{relative}")).unwrap();
+                let hint = RelPath::parse(format!("{logical_root}/{relative}")).unwrap();
+                let projection = MigrationSourceProjection::new(
+                    RelPath::parse(&logical_root).unwrap(),
+                    PathBuf::from(format!("C:/project/{logical_root}")),
+                    RelPath::parse(&relative).unwrap(),
+                    PathBuf::from(format!("C:/project/{logical_root}/{relative}")),
+                );
+                (locator, hint, projection)
+            })
+            .collect::<Vec<_>>();
+        let index = MigrationResolverIndex::build(
+            expected.iter().map(|(_, _, projection)| projection.clone()),
+            [],
+        )
+        .unwrap();
+
+        for reference_count in [1, 1_000, MAX_REFERENCES] {
+            let forward = expected
+                .iter()
+                .take(reference_count)
+                .map(|(locator, _, _)| index.project_hint_for_locator(locator).unwrap())
+                .collect::<Vec<_>>();
+            let reverse = expected
+                .iter()
+                .take(reference_count)
+                .map(|(_, hint, _)| index.locator_for_project_hint(hint).unwrap().unwrap())
+                .collect::<Vec<_>>();
+
             assert_eq!(
-                index.project_hint_for_locator(&locator).unwrap(),
-                RelPath::parse("assets/models/hero.glb").unwrap()
+                forward,
+                expected
+                    .iter()
+                    .take(reference_count)
+                    .map(|(_, hint, _)| hint.clone())
+                    .collect::<Vec<_>>()
             );
+            assert_eq!(
+                reverse,
+                expected
+                    .iter()
+                    .take(reference_count)
+                    .map(|(locator, _, _)| locator.clone())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(forward.len() + reverse.len(), reference_count * 2);
         }
     }
 }
@@ -283,10 +319,9 @@ fn retired_compound_meta_toml_uses_the_published_zmeta_hint_in_the_same_transact
         Some("assets/shaders/legacy_redirect_surface.zmeta")
     );
     assert!(!retired_meta.exists());
-    assert!(
-        root.join("assets/shaders/legacy_redirect_surface.zmeta")
-            .is_file()
-    );
+    assert!(root
+        .join("assets/shaders/legacy_redirect_surface.zmeta")
+        .is_file());
     fs::remove_dir_all(root).unwrap();
 }
 

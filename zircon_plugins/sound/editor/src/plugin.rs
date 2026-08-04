@@ -3,8 +3,8 @@ use zircon_plugin_editor_support::{
 };
 
 use crate::authoring_bindings::{
-    register_sound_authoring_bindings, sound_audio_listener_drawer_descriptor,
-    sound_audio_source_drawer_descriptor, sound_audio_volume_drawer_descriptor,
+    register_sound_authoring_bindings, sound_audio_listener_inspector_customization,
+    sound_audio_source_inspector_customization, sound_audio_volume_inspector_customization,
 };
 use crate::capability::{PLUGIN_ID, SOUND_AUTHORING_CAPABILITY};
 use crate::extension_ids::{
@@ -59,11 +59,11 @@ impl zircon_editor::EditorPlugin for SoundEditorPlugin {
             },
         )?;
         register_sound_authoring_bindings(registry)?;
-        register_sound_component_drawers(registry)
+        register_sound_inspector_customizations(registry)
     }
 }
 
-fn register_sound_component_drawers(
+fn register_sound_inspector_customizations(
     registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
 ) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
     use zircon_editor::core::editor_extension::EditorUiTemplateDescriptor;
@@ -72,9 +72,9 @@ fn register_sound_component_drawers(
         SOUND_ACOUSTIC_DEBUG_TEMPLATE_ID,
         "plugins://sound/editor/acoustic_debug.zui",
     ))?;
-    registry.register_component_drawer(sound_audio_source_drawer_descriptor())?;
-    registry.register_component_drawer(sound_audio_listener_drawer_descriptor())?;
-    registry.register_component_drawer(sound_audio_volume_drawer_descriptor())
+    registry.register_inspector_customization(sound_audio_source_inspector_customization())?;
+    registry.register_inspector_customization(sound_audio_listener_inspector_customization())?;
+    registry.register_inspector_customization(sound_audio_volume_inspector_customization())
 }
 
 pub fn editor_plugin_descriptor() -> zircon_editor::EditorPluginDescriptor {

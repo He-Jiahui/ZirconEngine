@@ -6,9 +6,9 @@ use crate::core::math::Vec3;
 
 use super::super::resolved_stack::RenderResolvedPostProcessSettings;
 use super::{
-    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS, VolumeComponentApplyError, VolumeComponentDescriptor,
-    VolumeParamSchema, VolumeParamType, VolumeParamValue, interp_discrete, interp_float_lerp,
-    interp_vec3_lerp,
+    interp_discrete, interp_float_lerp, interp_vec3_lerp, VolumeComponentApplyError,
+    VolumeComponentDescriptor, VolumeParamSchema, VolumeParamType, VolumeParamValue,
+    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
 };
 
 const TEST_PARAMS: [VolumeParamSchema; 1] = [VolumeParamSchema::new(

@@ -17,7 +17,7 @@ struct IndexedShaderImports {
 }
 
 #[derive(Clone, Debug, Default)]
-pub(super) struct ShaderImportDependencyIndex {
+pub(in crate::asset::project::manager) struct ShaderImportDependencyIndex {
     shaders_by_id: HashMap<AssetId, IndexedShaderImports>,
     includes_by_path: HashMap<String, HashSet<AssetId>>,
     consumers_by_path: HashMap<String, HashSet<AssetId>>,

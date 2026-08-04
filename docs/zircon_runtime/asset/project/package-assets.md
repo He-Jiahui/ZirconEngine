@@ -16,7 +16,7 @@ tests:
 
 # Package Asset Roots
 
-`PackageAssetRegistry` maps canonical package ids to filesystem asset roots for `package://` resource resolution. Its input is the minimal asset projection: package id, declared relative asset roots, and package filesystem root. It validates exactly one contained relative root and stores the resulting path.
+`PackageAssetRegistry` maps canonical package ids to physical filesystem asset roots for `package://` resource resolution. Its input is the minimal asset projection: package id, declared relative asset roots, and package filesystem root. It validates exactly one contained relative root, resolves the deepest existing filesystem ancestor once, and stores that physical identity; junction, SUBST, and symlink aliases therefore stay below the resolver boundary.
 
 The registry no longer accepts `PluginPackageManifest`. Plugin/editor assembly reads `package_id()` and `asset_roots_or_default()` at its own boundary, then passes those values to `ProjectManager::register_package_asset_roots(...)`. This keeps package manifest ownership and validation in plugin while asset owns only filesystem/resource-locator policy.
 

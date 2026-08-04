@@ -28,18 +28,28 @@ fn render_volumetric_light_scatter_shader_reuses_light_grid_and_shadow_atlas_con
 
 #[test]
 fn render_volumetric_light_scatter_phase_uses_light_travel_and_camera_outgoing_angle() {
-    assert!(LIGHT_SCATTER_SHADER
-        .contains("henyey_greenstein(params.phase_and_ambient.x, dot(incoming, -view_direction))"));
-    assert!(!LIGHT_SCATTER_SHADER
-        .contains("henyey_greenstein(params.phase_and_ambient.x, dot(incoming, view_direction))"));
+    assert!(
+        LIGHT_SCATTER_SHADER.contains(
+            "henyey_greenstein(params.phase_and_ambient.x, dot(incoming, -view_direction))"
+        )
+    );
+    assert!(
+        !LIGHT_SCATTER_SHADER.contains(
+            "henyey_greenstein(params.phase_and_ambient.x, dot(incoming, view_direction))"
+        )
+    );
 }
 
 #[test]
 fn render_volumetric_light_scatter_keeps_authored_ambient_in_shadowed_froxels() {
     assert!(LIGHT_SCATTER_SHADER.contains("phase_and_ambient: vec4<f32>"));
-    assert!(LIGHT_SCATTER_SHADER
-        .contains("var lighting = max(params.phase_and_ambient.yzw, vec3<f32>(0.0));"));
-    assert!(LIGHT_SCATTER_SHADER.contains("let current = vec4<f32>(media.rgb * lighting, media.a)"));
+    assert!(
+        LIGHT_SCATTER_SHADER
+            .contains("var lighting = max(params.phase_and_ambient.yzw, vec3<f32>(0.0));")
+    );
+    assert!(
+        LIGHT_SCATTER_SHADER.contains("let current = vec4<f32>(media.rgb * lighting, media.a)")
+    );
 }
 
 #[test]

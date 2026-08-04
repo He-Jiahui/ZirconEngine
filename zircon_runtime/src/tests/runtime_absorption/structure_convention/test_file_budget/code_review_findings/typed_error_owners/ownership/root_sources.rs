@@ -29,8 +29,6 @@ pub(super) fn typed_error_child_ownership_sources() -> TypedErrorChildOwnershipS
     let moved_guard_absence_path_anchors_child =
         read_runtime_src(MOVED_GUARD_ABSENCE_PATH_ANCHORS_CHILD);
     let moved_guard_absence_budgets_child = read_runtime_src(MOVED_GUARD_ABSENCE_BUDGETS_CHILD);
-    let moved_guard_absence_status_mirrors_child =
-        read_runtime_src(MOVED_GUARD_ABSENCE_STATUS_MIRRORS_CHILD);
     let moved_guard_absence_root_sources_child =
         read_runtime_src(MOVED_GUARD_ABSENCE_ROOT_SOURCES_CHILD);
     let moved_guard_absence_child_tree = [
@@ -40,28 +38,9 @@ pub(super) fn typed_error_child_ownership_sources() -> TypedErrorChildOwnershipS
         moved_guard_absence_parent_backflow_child.as_str(),
         moved_guard_absence_path_anchors_child.as_str(),
         moved_guard_absence_budgets_child.as_str(),
-        moved_guard_absence_status_mirrors_child.as_str(),
         moved_guard_absence_root_sources_child.as_str(),
     ]
     .join("\n");
-
-    TypedErrorChildOwnershipSources {
-        parent: read_runtime_src(STRUCTURE_GUARD_PARENT),
-        child: read_runtime_src(TYPED_ERROR_STRUCTURE_CHILD),
-        child_ownership_child: read_runtime_src(TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD),
-        structure_assertions_child: read_runtime_src(TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD),
-        convergence_mounts_child: read_runtime_src(TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD),
-        delegation_child: read_runtime_src(TYPED_ERROR_STRUCTURE_DELEGATION_CHILD),
-        child_ownership_structure_child: read_runtime_src(
-            TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD,
-        ),
-        status_mirrors_child: read_runtime_src(TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD),
-        moved_guard_absence_child,
-        moved_guard_absence_child_tree,
-        native_plugin_loader_child: read_runtime_src(TYPED_ERROR_NATIVE_STRUCTURE_CHILD),
-        structure_guard_typed_error_child: read_runtime_src(STRUCTURE_GUARD_TYPED_ERROR_CHILD),
-        typed_error_sources: super::super::typed_error_children_source(),
-    }
 }
 
 pub(super) fn typed_error_structure_assertions_child_tree(
@@ -93,16 +72,4 @@ pub(super) fn typed_error_child_ownership_child_source_blob() -> String {
         blob.push('\n');
     }
     blob
-}
-
-pub(super) fn typed_error_child_ownership_status_row_source() -> String {
-    super::super::typed_error_structure_status_row_source()
-}
-
-pub(super) fn typed_error_child_ownership_status_map_source() -> String {
-    super::super::typed_error_structure_status_map_source()
-}
-
-pub(super) fn typed_error_child_ownership_date_map_source() -> String {
-    super::super::typed_error_structure_date_map_source()
 }

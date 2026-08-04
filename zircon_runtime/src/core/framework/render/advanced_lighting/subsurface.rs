@@ -162,11 +162,9 @@ mod tests {
         assert_eq!(table.active_profile_mask, u32::from(u16::MAX));
         assert_eq!(table.diagnostics.len(), 4);
         assert_eq!(table.diagnostics[0].profile_id, 16);
-        assert!(
-            table.diagnostics[0]
-                .message
-                .contains("16-profile GPU table")
-        );
+        assert!(table.diagnostics[0]
+            .message
+            .contains("16-profile GPU table"));
     }
 
     #[test]

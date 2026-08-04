@@ -95,26 +95,37 @@ fn text_justify_distributes_arabic_kashida_advances() {
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
     assert!((layout.lines[0].glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 
-    let natural_advances =
-        measured_grapheme_widths(layout.lines[0].text.as_str(), &text_style(&style));
-    assert_eq!(layout.lines[0].glyph_advances.len(), natural_advances.len());
-    assert!(
-        layout.lines[0]
-            .glyph_advances
-            .iter()
-            .zip(natural_advances.iter())
-            .any(|(adjusted, natural)| *adjusted > *natural + 0.1),
-        "Arabic joining opportunities should receive kashida-like justify advance"
-    );
-    assert!(
-        layout.lines[0]
-            .glyph_advances
-            .iter()
-            .zip(natural_advances.iter())
-            .any(|(adjusted, natural)| (*adjusted - *natural).abs() < 0.1),
-        "kashida justify should not scale every Arabic glyph advance"
-    );
+    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style));
+    assert!(layout.lines[0].text.contains('\u{0640}'));
+    assert!(layout.lines[0].glyph_advances.len() > natural_advances.len());
 
     let last_line_width = measure_text_size("ذ", &style).width;
     assert!((layout.lines[1].frame.width - last_line_width).abs() < 0.1);
+}
+
+#[test]
+fn text_justify_materializes_arabic_tatweel_without_source_range_drift() {
+    let mut style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    style.text_align = UiTextAlign::Justify;
+    style.text_direction = UiTextDirection::RightToLeft;
+    let source = "سلام";
+    let target_width = measure_text_size(source, &style).width + 18.0;
+
+    let layout = layout_text(
+        "سلام\nذ",
+        &style,
+        UiFrame::new(0.0, 0.0, target_width, 24.0),
+        None,
+    );
+
+    let line = &layout.lines[0];
+    assert!(line.text.contains('\u{0640}'));
+    assert_eq!(line.source_range.end, source.len());
+    assert!(
+        line.runs
+            .iter()
+            .any(|run| run.text == "ـ" && run.source_range.start == run.source_range.end)
+    );
+    assert!(line.glyph_advances.len() > source.chars().count());
+    assert!((line.glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 }

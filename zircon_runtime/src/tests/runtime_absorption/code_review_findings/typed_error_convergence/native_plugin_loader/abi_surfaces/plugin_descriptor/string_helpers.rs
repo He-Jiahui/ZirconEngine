@@ -22,15 +22,6 @@ fn review_f5_native_plugin_string_helpers_use_typed_error() {
     let module_convention = include_str!(
         "../../../../../../../../../docs/zircon_runtime/structure/module-convention.md"
     );
-    let status_rows = include_str!(
-        "../../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativeStringResult<T>",
@@ -83,26 +74,4 @@ fn review_f5_native_plugin_string_helpers_use_typed_error() {
             && bridge_method_abi.contains("source: source.to_string()"),
         "bridge method ABI should keep native string errors inside its typed ABI error"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native plugin string helper typed errors",
-        "runtime_15_native_plugin_string_helper_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_plugin_string_helpers_use_typed_error",
-        "plugin/native_plugin_loader/native_strings.rs",
-        "NativeStringError::InvalidPackageManifest",
-        "native string helpers keep string diagnostics at descriptor and entry loader-report boundaries",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native plugin string helper docs/status should record `{doc_anchor}`"
-        );
-    }
 }

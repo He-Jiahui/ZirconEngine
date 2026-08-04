@@ -100,6 +100,7 @@ pub(crate) fn assemble_taa_reactive_mask_shader_template(
             &request.geometry_source,
             request.features,
             &request.material_option_defines,
+            None,
         ),
         0,
     );

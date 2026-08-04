@@ -52,9 +52,6 @@ fn runtime_15_asset_texture_upload_readiness_container_fixtures_uses_owner_name(
     );
     let render_assets_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/asset/render-assets.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_common.exists(),
@@ -101,9 +98,6 @@ fn runtime_15_asset_texture_upload_readiness_container_fixtures_uses_owner_name(
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("render assets doc", render_assets_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -165,9 +159,6 @@ fn runtime_15_dds_upload_policy_uses_classic_container_names() {
     );
     let render_assets_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/asset/render-assets.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "DDS upload support owner",
@@ -238,9 +229,6 @@ fn runtime_15_dds_upload_policy_uses_classic_container_names() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("render assets doc", render_assets_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

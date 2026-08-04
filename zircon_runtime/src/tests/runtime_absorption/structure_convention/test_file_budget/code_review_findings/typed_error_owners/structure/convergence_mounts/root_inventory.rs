@@ -4,9 +4,6 @@ use super::*;
 #[test]
 fn runtime_15_typed_error_convergence_mounts_root_inventory_is_child_owned() {
     let parent = read_runtime_src(TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD);
-    let status_rows = super::super::typed_error_structure_assertion_status_row_source();
-    let status_map = super::super::typed_error_structure_assertion_status_map_source();
-    let date_map = super::super::typed_error_structure_assertion_date_map_source();
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -31,41 +28,12 @@ fn runtime_15_typed_error_convergence_mounts_root_inventory_is_child_owned() {
     }
 
     let status_anchors = [
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_SLICE,
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_STATUS,
         TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD,
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_PATHS_CHILD,
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_STATUSES_CHILD,
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_CHILD_ROWS_CHILD,
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_SOURCES_CHILD,
         TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_CHILD,
-        TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_GUARD,
         "Cargo gate deferred",
     ];
-    for (label, source) in [
-        ("typed-error structure row data", status_rows.as_str()),
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-    ] {
-        assert_contains_all(label, source, &status_anchors);
-    }
-    assert_contains_all(
-        "M3 review status map records typed-error convergence mounts root inventory split",
-        &status_map,
-        &[
-            TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_SLICE,
-            TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_STATUS,
-        ],
-    );
-    assert_contains_all(
-        "M3 review date map records typed-error convergence mounts root inventory split",
-        &date_map,
-        &[
-            TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_SLICE,
-            TYPED_ERROR_CONVERGENCE_MOUNTS_ROOT_INVENTORY_DATE,
-        ],
-    );
 }

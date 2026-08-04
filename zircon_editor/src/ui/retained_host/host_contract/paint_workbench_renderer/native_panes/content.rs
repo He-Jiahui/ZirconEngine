@@ -45,11 +45,16 @@ pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
                 clip,
                 interaction,
             );
-            hover || scrollbar || content_scrollbar
+            let reference_scrollbars = scrollbar::draw_activity_asset_reference_scrollbars(
+                frame,
+                pane,
+                body,
+                clip,
+                interaction,
+            );
+            hover || scrollbar || content_scrollbar || reference_scrollbars
         }
         "AssetBrowser" => {
-            let hover =
-                assets::draw_browser_asset_tree_hover_overlay(frame, pane, body, clip, interaction);
             let scrollbar =
                 scrollbar::draw_browser_asset_tree_scrollbar(frame, pane, body, clip, interaction);
             let content_scrollbar = scrollbar::draw_browser_asset_content_scrollbar(
@@ -59,7 +64,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
                 clip,
                 interaction,
             );
-            hover || scrollbar || content_scrollbar
+            let reference_scrollbars = scrollbar::draw_browser_asset_reference_scrollbars(
+                frame,
+                pane,
+                body,
+                clip,
+                interaction,
+            );
+            scrollbar || content_scrollbar || reference_scrollbars
         }
         _ => false,
     }

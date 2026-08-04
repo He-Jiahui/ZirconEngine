@@ -37,5 +37,4 @@ RUNTIME_03_GUARD_FILES = (
     "zircon_runtime/src/tests/time.rs",
     "zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop.rs",
     "zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
 )

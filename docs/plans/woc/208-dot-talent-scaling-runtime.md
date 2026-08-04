@@ -1,6 +1,6 @@
 ---
 title: WOS208 periodic-damage talent scaling runtime closure
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -73,3 +73,4 @@ acceptance remains owned by Plugins08.
 
 | Milestone | Scope | Status | Date | Evidence |
 |---|---|---|---|---|
+| WOS208 | Periodic-damage talent total, launch snapshot and WOS108 persistence | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `dot_talent_scaling_state.zr` owns physical/spell selection, periodic multiplier, flat ordering and the explicit `directPct` bypass. `state.zr` persists resolved totals and launch selection from WOS108, normalizes WOS107 rows conservatively, and validates restored values including Fireball/Pyroblast Overload transforms. The regression covers respec retention, tampering, WOS107 migration and RNG ownership. `wos208_dot_talent_scaling_runtime_static_guard.mjs` passed; the fixture declares `backend: "zr_vm:project"`. Canonical plugin execution remains unavailable, so no dynamic result is claimed. |

@@ -25,6 +25,8 @@ pub(super) fn resolve_viewport_record_state(
         viewport_generation,
         temporal_frame_index,
         quality_profile,
+        quality_profile_texture_mip_bias,
+        quality_profile_texture_max_anisotropy,
         shader_quality,
         quality_profile_taa_quality,
         previous_visibility,
@@ -80,6 +82,14 @@ pub(super) fn resolve_viewport_record_state(
             record.quality_profile().map(|profile| profile.name.clone()),
             record
                 .quality_profile()
+                .map(|profile| profile.texture_mip_bias)
+                .unwrap_or_default(),
+            record
+                .quality_profile()
+                .map(|profile| profile.texture_max_anisotropy)
+                .unwrap_or(16),
+            record
+                .quality_profile()
                 .map(|profile| profile.shader_quality)
                 .unwrap_or_default(),
             record.quality_profile().map(|profile| profile.taa_quality),
@@ -119,6 +129,8 @@ pub(super) fn resolve_viewport_record_state(
         viewport_generation,
         temporal_frame_index,
         quality_profile,
+        quality_profile_texture_mip_bias,
+        quality_profile_texture_max_anisotropy,
         shader_quality,
         quality_profile_taa_quality,
         previous_visibility,

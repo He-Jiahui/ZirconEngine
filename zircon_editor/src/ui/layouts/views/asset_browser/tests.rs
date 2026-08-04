@@ -1,10 +1,12 @@
 use super::*;
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::snapshot::{
-    AssetItemSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
+    AssetFolderSnapshot, AssetItemSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
+
+mod reference_lists;
 
 #[test]
 fn asset_browser_toolbar_uses_single_row_slate_compound_control_rhythm() {
@@ -172,6 +174,84 @@ fn asset_browser_utility_tabs_use_compact_slate_tab_strip_geometry() {
     );
     assert_eq!(divider.frame.y, row.frame.y + 26.0);
     assert_eq!(content.frame.y, row.frame.y + 28.0);
+}
+
+#[test]
+fn compact_asset_browser_keeps_scaled_navigation_content_and_details_regions() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        selected_folder_id: Some("materials".to_string()),
+        folder_tree: vec![
+            asset_folder("content", "Content", 0, false),
+            asset_folder("materials", "Materials", 1, false),
+        ],
+        visible_assets: (1..=8).map(|index| asset_item(index, index == 1)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let sources = find_node(&nodes, "AssetBrowserSourcesPanel");
+    let source_row = find_node(&nodes, "AssetBrowserSourcesRowPanel");
+    let selected_source_row = find_node(
+        &nodes,
+        "AssetBrowserSourcesTreeRow02/AssetBrowserSourcesRowPanel",
+    );
+    let content = find_node(&nodes, "AssetBrowserContentPanel");
+    let details = find_node(&nodes, "AssetBrowserDetailsPanel");
+
+    assert_eq!(sources.frame.width, 152.0);
+    assert_eq!(details.frame.width, 204.0);
+    assert!(
+        content.frame.width >= 520.0,
+        "the browser content region should remain the dominant width: {content:?}"
+    );
+    assert!(
+        sources.frame.x + sources.frame.width < content.frame.x
+            && content.frame.x + content.frame.width < details.frame.x,
+        "all compact browser regions should remain ordered without overlap: sources={:?}, content={:?}, details={:?}",
+        sources.frame,
+        content.frame,
+        details.frame
+    );
+    assert!(
+        source_row.frame.x >= sources.frame.x
+            && source_row.frame.x + source_row.frame.width <= sources.frame.x + sources.frame.width,
+        "source tree row must be constrained by its compact navigation region: row={:?}, sources={:?}",
+        source_row.frame,
+        sources.frame
+    );
+    assert_eq!(source_row.role, "TreeRow");
+    assert_eq!(source_row.text, "Content");
+    assert_eq!(selected_source_row.text, "Materials");
+    assert!(selected_source_row.selected);
+    assert_eq!(selected_source_row.tree_depth, 1);
+    assert_eq!(
+        selected_source_row.frame.y - source_row.frame.y,
+        32.0,
+        "tree rows should retain the pointer bridge's 28px row plus 4px gap rhythm"
+    );
+}
+
+#[test]
+fn narrow_asset_browser_width_uses_compact_columns_even_when_height_is_available() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        visible_assets: (1..=8).map(|index| asset_item(index, false)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 800.0));
+    let sources = find_node(&nodes, "AssetBrowserSourcesPanel");
+    let content = find_node(&nodes, "AssetBrowserContentPanel");
+    let details = find_node(&nodes, "AssetBrowserDetailsPanel");
+
+    assert_eq!(sources.frame.width, 152.0);
+    assert_eq!(details.frame.width, 204.0);
+    assert!(
+        content.frame.width >= 520.0,
+        "narrow windows should keep content usable regardless of height: {content:?}"
+    );
 }
 
 #[test]
@@ -866,6 +946,22 @@ fn asset_item(index: usize, selected: bool) -> AssetItemSnapshot {
         selected,
         resource_state: None,
         resource_revision: Some(index as u64),
+    }
+}
+
+fn asset_folder(
+    folder_id: &str,
+    display_name: &str,
+    depth: usize,
+    selected: bool,
+) -> AssetFolderSnapshot {
+    AssetFolderSnapshot {
+        folder_id: folder_id.to_string(),
+        parent_folder_id: None,
+        display_name: display_name.to_string(),
+        recursive_asset_count: 0,
+        depth,
+        selected,
     }
 }
 

@@ -8,7 +8,6 @@ pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_CHILD: &str = "tests/runtim
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/source_helper_ownership.rs";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_STATUS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/source_helper_status.rs";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/sources.rs";
-pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_STATUS_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/status_mirrors.rs";
 
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_FOLDER_BACKED_SLICE: &str =
     "Runtime 15 M3 typed-error native plugin loader structure guard folder-backed split";
@@ -16,18 +15,10 @@ pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_FOLDER_BACKED_STATUS: &str = "runt
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_FOLDER_BACKED_DATE: &str = "2026-07-04";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_FOLDER_BACKED_GUARD: &str =
     "runtime_15_typed_error_native_plugin_loader_structure_guard_is_folder_backed";
-pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_STATUS_GUARD: &str =
-    "runtime_15_typed_error_native_plugin_loader_structure_guard_folder_backed_status_is_current";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_SLICE: &str =
     "Runtime 15 M3 typed-error native plugin loader source helper child split";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_STATUS: &str = "runtime_15_typed_error_native_plugin_loader_source_helper_child_split_static_passed_cargo_deferred";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_DATE: &str = "2026-07-05";
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_OWNERSHIP_GUARD: &str =
     "runtime_15_typed_error_native_plugin_loader_source_helpers_are_child_backed";
-pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_STATUS_GUARD: &str =
-    "runtime_15_typed_error_native_plugin_loader_source_helper_status_is_current";
 pub(super) const TYPED_ERROR_CHILD_OWNER_LINE_BUDGET: usize = 800;
-
-pub(super) const REVIEW_GUARD_STATUS_ROWS_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/structure_assertions.rs";
-pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
-pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";

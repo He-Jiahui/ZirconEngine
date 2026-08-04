@@ -11,9 +11,6 @@ fn runtime_15_ui_layout_arrange_grid_masonry_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "layout arrange parent keeps entry, non-grid layout families, and child mount",
@@ -102,15 +99,4 @@ fn runtime_15_ui_layout_arrange_grid_masonry_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI layout arrange grid/masonry owner split",
-            "runtime_15_ui_layout_arrange_grid_masonry_owner_split_static_passed_cargo_deferred",
-            "ui/layout/pass/arrange.rs",
-            "ui/layout/pass/arrange/grid_masonry.rs",
-            "runtime_15_ui_layout_arrange_grid_masonry_is_child_owner",
-        ],
-    );
 }

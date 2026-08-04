@@ -15,7 +15,7 @@ fn render_probe_gpu_weight_matches_cpu_reference_for_box_and_sphere() {
         ),
         probe(
             ProbeInfluenceShape::sphere(4.0, 1.5).expect("sphere influence"),
-            Quat::IDENTITY,
+            Quat::from_rotation_y(0.85),
         ),
     ];
     let positions = [
@@ -32,6 +32,34 @@ fn render_probe_gpu_weight_matches_cpu_reference_for_box_and_sphere() {
                 reflection_probe_influence_weight(probe, position),
             );
         }
+    }
+}
+
+#[test]
+fn render_probe_upload_normalizes_finite_scaled_box_rotation() {
+    let scaled_rotation = Quat::from_rotation_y(0.45) * 2.75;
+    let probe = probe(
+        ProbeInfluenceShape::box_shape(Vec3::new(3.0, 2.0, 4.0), 1.0).expect("box influence"),
+        scaled_rotation,
+    );
+    let gpu = GpuReflectionProbe::from_probe(&probe, 0, 8);
+
+    assert_approx(probe.rotation().length(), 1.0);
+    assert_approx(Quat::from_array(gpu.rotation).length(), 1.0);
+    let expected_rotation = scaled_rotation.normalize();
+    assert!(
+        probe.rotation().dot(expected_rotation).abs() > 0.99999,
+        "probe construction must preserve the scaled input rotation"
+    );
+    assert!(
+        Quat::from_array(gpu.rotation).dot(expected_rotation).abs() > 0.99999,
+        "GPU upload must preserve the normalized input rotation"
+    );
+    for position in [Vec3::new(1.0, 0.5, -0.25), Vec3::new(2.8, 0.0, 0.0)] {
+        assert_approx(
+            gpu_equivalent_weight(gpu, position),
+            reflection_probe_influence_weight(&probe, position),
+        );
     }
 }
 
@@ -62,13 +90,14 @@ fn probe(shape: ProbeInfluenceShape, rotation: Quat) -> ReflectionProbeData {
 }
 
 fn gpu_equivalent_weight(probe: GpuReflectionProbe, world_position: Vec3) -> f32 {
-    let rotation = Quat::from_array(probe.rotation);
     let center = Vec3::from_array(probe.position_blend[..3].try_into().expect("center"));
-    let local = rotation.conjugate() * (world_position - center);
+    let position_delta = world_position - center;
     let half_extents = Vec3::from_array(probe.box_max[..3].try_into().expect("half extents"));
     let edge_distance = if probe.box_max[3] >= 0.5 {
-        half_extents.x - local.length()
+        half_extents.x - position_delta.length()
     } else {
+        let rotation = Quat::from_array(probe.rotation);
+        let local = rotation.conjugate() * position_delta;
         (half_extents - local.abs()).min_element()
     };
     if edge_distance <= 0.0 {

@@ -1,6 +1,6 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::paint_theme::{
-    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 use super::render_commands::HostPaintCommand;
 use super::visual_assets::load_existing_icon_asset_pixels_for_size;
@@ -8,8 +8,9 @@ use super::visual_assets::load_existing_icon_asset_pixels_for_size;
 mod geometry;
 mod preview_image;
 
-use self::geometry::{frame_is_within, has_paintable_thumbnail_extent, thumbnail_surface_rect};
+use self::geometry::{has_paintable_thumbnail_extent, thumbnail_surface_rect};
 use self::preview_image::push_thumbnail_preview_image_command;
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
 const VISUAL_SURFACE_INSET_RATIO: f32 = 0.12;
 const TYPED_THUMBNAIL_SURFACE_INSET_RATIO: f32 = 0.055;
@@ -106,7 +107,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
     if !is_asset_thumbnail_visual(node) {
         return;
     }
-    if !has_paintable_thumbnail_extent(rect) || !frame_is_within(clip, rect) {
+    if !has_paintable_thumbnail_extent(rect) || intersect(rect, clip).is_none() {
         return;
     }
 
@@ -115,6 +116,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
     let Some(inner_rect) = thumbnail_surface_rect(node, rect, metrics) else {
         return;
     };
+    if intersect(&inner_rect, clip).is_none() {
+        return;
+    }
 
     commands.push(HostPaintCommand::quad(
         inner_rect.clone(),
@@ -230,8 +234,12 @@ fn push_thumbnail_icon_command(
         return;
     };
 
+    let icon_rect = thumbnail_icon_rect(node, rect, edge);
+    if intersect(&icon_rect, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::image_pixels(
-        thumbnail_icon_rect(node, rect, edge),
+        icon_rect,
         Some(clip.clone()),
         order,
         image.resource_key,
@@ -265,8 +273,12 @@ fn push_typed_thumbnail_preview_commands(
         return;
     };
 
+    let icon_rect = typed_thumbnail_preview_icon_rect(rect, edge);
+    if intersect(&icon_rect, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::image_pixels(
-        typed_thumbnail_preview_icon_rect(rect, edge),
+        icon_rect,
         Some(clip.clone()),
         order,
         image.resource_key,
@@ -391,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn asset_thumbnail_visual_skips_collapsed_or_clip_escaping_roots() {
+    fn asset_thumbnail_visual_skips_collapsed_or_fully_clipped_roots() {
         let node = placeholder_node("asset-placeholder-visual");
         let clip = FrameRect {
             x: 0.0,
@@ -419,6 +431,7 @@ mod tests {
             &node,
             &placeholder_rect(),
             &FrameRect {
+                x: 88.0,
                 width: 32.0,
                 ..clip
             },
@@ -426,6 +439,32 @@ mod tests {
             1.0,
         );
         assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn asset_thumbnail_visual_partially_clipped_root_keeps_clipped_commands() {
+        let node = placeholder_node("asset-placeholder-visual");
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 32.0,
+            height: 64.0,
+        };
+        let mut commands = Vec::new();
+
+        push_asset_placeholder_visual_commands(
+            &mut commands,
+            &node,
+            &placeholder_rect(),
+            &clip,
+            0,
+            1.0,
+        );
+
+        assert!(!commands.is_empty());
+        assert!(commands
+            .iter()
+            .all(|command| command.clip_frame.as_ref() == Some(&clip)));
     }
 
     #[test]

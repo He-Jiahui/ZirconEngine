@@ -1,8 +1,9 @@
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 use super::super::super::super::paint_theme::METRICS;
+use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::{
-    WORKBENCH_TOOLTIP_BORDER, select_workbench_tooltip_style,
+    WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE, select_workbench_tooltip_style,
 };
 use super::super::metrics::tooltip_metrics_from_host;
 use super::support::tooltip_node;
@@ -27,7 +28,8 @@ fn workbench_tooltip_style_uses_shared_state_priority() {
     node.pressed = false;
     let focused = select_workbench_tooltip_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused.border, WORKBENCH_TOOLTIP_BORDER);
+    assert_eq!(focused.surface, WORKBENCH_TOOLTIP_SURFACE);
+    assert_eq!(focused.border, PALETTE.focus_ring);
 }
 
 #[test]

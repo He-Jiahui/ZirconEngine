@@ -4,8 +4,6 @@ use super::super::super::super::*;
 mod budgets;
 #[path = "moved_guard_absence/child_ownership.rs"]
 mod child_ownership;
-#[path = "moved_guard_absence/child_ownership_status.rs"]
-mod child_ownership_status;
 #[path = "moved_guard_absence/parent_backflow.rs"]
 mod parent_backflow;
 #[path = "moved_guard_absence/path_anchors.rs"]
@@ -20,10 +18,6 @@ mod root_inventory;
 mod root_paths;
 #[path = "moved_guard_absence/root_sources.rs"]
 mod root_sources;
-#[path = "moved_guard_absence/root_statuses.rs"]
-mod root_statuses;
-#[path = "moved_guard_absence/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;

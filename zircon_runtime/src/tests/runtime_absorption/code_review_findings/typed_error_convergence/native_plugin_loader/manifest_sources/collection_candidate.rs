@@ -17,15 +17,6 @@ fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
         include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativePluginManifestCollectionResult<T>",
@@ -68,28 +59,6 @@ fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
             && discovery_authority.contains("snapshot.diagnostics.push(error.to_string())"),
         "native plugin discovery authority should keep manifest collection string formatting at the load-report boundary"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native plugin manifest collection typed errors",
-        "runtime_15_native_plugin_manifest_collection_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_plugin_manifest_collection_uses_typed_error",
-        "plugin/native_plugin_loader/collect_manifests.rs",
-        "NativePluginManifestCollectionError::EnumerateRoot",
-        "manifest collection keeps string diagnostics at the load-report boundary",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native plugin manifest collection docs/status should record `{doc_anchor}`"
-        );
-    }
 }
 
 #[test]
@@ -109,15 +78,6 @@ fn review_f5_native_plugin_manifest_candidate_uses_typed_error() {
         include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativePluginManifestCandidateResult<T>",
@@ -160,26 +120,4 @@ fn review_f5_native_plugin_manifest_candidate_uses_typed_error() {
         candidate_from_manifest.contains("Err(error) => report.diagnostics.push(error.to_string())"),
         "native plugin manifest candidate should keep string formatting at the load-report boundary"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native plugin manifest candidate typed errors",
-        "runtime_15_native_plugin_manifest_candidate_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_plugin_manifest_candidate_uses_typed_error",
-        "plugin/native_plugin_loader/candidate_from_manifest.rs",
-        "NativePluginManifestCandidateError::MissingRuntimeOrEditorModule",
-        "manifest candidate keeps string diagnostics at the load-report boundary",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native plugin manifest candidate docs/status should record `{doc_anchor}`"
-        );
-    }
 }

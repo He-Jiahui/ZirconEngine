@@ -1,6 +1,6 @@
 ---
 title: WOS206 direct-heal talent scaling runtime closure
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -50,3 +50,4 @@ the existing Plugins08 runtime owner.
 
 | Milestone | Scope | Status | Date | Evidence |
 |---|---|---|---|---|
+| WOS206 | Direct-heal and heal-only consume-aura endpoint scaling | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `direct_heal_talent_scaling_state.zr` resolves source endpoint scaling, while `applyOfflineDirectHeal` retains the existing range and critical RNG ownership and replaces only the raw range term. The regression covers Holy `276..324`, endpoint-first rounding, spell power, a critical heal and Swiftmend. `wos206_direct_heal_talent_scaling_runtime_static_guard.mjs` passed; the fixture declares `backend: "zr_vm:project"`. Canonical plugin execution remains unavailable, so no dynamic result is claimed. |

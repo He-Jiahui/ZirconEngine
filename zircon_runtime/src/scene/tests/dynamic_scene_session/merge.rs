@@ -60,10 +60,12 @@ fn runtime_session_archive_merge_preview_and_keep_existing_commit_are_side_effec
     );
 
     let mut committed = target;
+    let revision_before_commit = committed.revision();
     let report = committed
         .merge_archive(&incoming, RuntimeSessionArchiveMergePolicy::KeepExisting)
         .expect("keep-existing merge should insert only non-conflicting slots");
     assert_eq!(report, preview);
+    assert_eq!(committed.revision(), revision_before_commit + 1);
     assert_eq!(
         committed.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "bonus", "manual"]
@@ -80,6 +82,130 @@ fn runtime_session_archive_merge_preview_and_keep_existing_commit_are_side_effec
     assert_eq!(
         incoming.slot_ids().collect::<Vec<_>>(),
         vec!["bonus", "manual"]
+    );
+}
+
+#[test]
+fn runtime_session_archive_reject_conflict_merge_preserves_target_before_publish() {
+    let target_manual =
+        slot_with_nodes("manual", "Target Manual", "target", 10, &[NodeKind::Camera]);
+    let incoming_manual = slot_with_nodes(
+        "manual",
+        "Incoming Manual",
+        "incoming",
+        80,
+        &[NodeKind::Mesh],
+    );
+    let incoming_bonus =
+        slot_with_nodes("bonus", "Incoming Bonus", "incoming", 30, &[NodeKind::Cube]);
+    let mut target = RuntimeSessionArchive::from_slots(vec![target_manual])
+        .expect("target archive should validate");
+    let incoming = RuntimeSessionArchive::from_slots(vec![incoming_manual, incoming_bonus])
+        .expect("incoming archive should validate");
+
+    let error = target
+        .merge_archive(&incoming, RuntimeSessionArchiveMergePolicy::RejectConflicts)
+        .expect_err("conflicting merge should reject before target publication");
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::DuplicateSlotId { slot_id } if slot_id == "manual"
+    ));
+    assert_eq!(target.slot_ids().collect::<Vec<_>>(), vec!["manual"]);
+    assert_eq!(
+        target
+            .slot("manual")
+            .expect("target slot should stay unchanged after rejected merge")
+            .metadata
+            .display_name
+            .as_deref(),
+        Some("Target Manual")
+    );
+    assert!(target.slot("bonus").is_none());
+}
+
+#[test]
+fn runtime_session_archive_merge_plan_rejects_a_stale_target_revision() {
+    let target_manual =
+        slot_with_nodes("manual", "Target Manual", "target", 10, &[NodeKind::Camera]);
+    let incoming_bonus =
+        slot_with_nodes("bonus", "Incoming Bonus", "incoming", 30, &[NodeKind::Cube]);
+    let mut target = RuntimeSessionArchive::from_slots(vec![target_manual])
+        .expect("target archive should validate");
+    let incoming = RuntimeSessionArchive::from_slots(vec![incoming_bonus])
+        .expect("incoming archive should validate");
+    let plan = target
+        .prepare_merge_archive(&incoming, RuntimeSessionArchiveMergePolicy::KeepExisting)
+        .expect("merge plan should prevalidate the target and incoming archives");
+    let planned_generation = plan.target_generation();
+    let planned_revision = plan.target_revision();
+
+    target
+        .push_slot(slot_with_nodes(
+            "intervening",
+            "Intervening Slot",
+            "target",
+            20,
+            &[NodeKind::Mesh],
+        ))
+        .expect("intervening mutation should advance the target revision");
+    let error = target
+        .commit_merge_plan(plan)
+        .expect_err("stale merge plan must not publish into a changed target");
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::StaleMergePlan {
+            expected_generation,
+            expected_revision,
+            current_generation,
+            current_revision,
+        } if expected_generation == planned_generation
+            && expected_revision == planned_revision
+            && current_generation == target.generation()
+            && current_revision == target.revision()
+    ));
+    assert_eq!(
+        target.slot_ids().collect::<Vec<_>>(),
+        vec!["intervening", "manual"]
+    );
+    assert!(target.slot("bonus").is_none());
+}
+
+#[test]
+fn runtime_session_archive_keep_existing_merge_with_only_conflicts_does_not_publish() {
+    let target_manual =
+        slot_with_nodes("manual", "Target Manual", "target", 10, &[NodeKind::Camera]);
+    let incoming_manual = slot_with_nodes(
+        "manual",
+        "Incoming Manual",
+        "incoming",
+        80,
+        &[NodeKind::Mesh],
+    );
+    let mut target = RuntimeSessionArchive::from_slots(vec![target_manual])
+        .expect("target archive should validate");
+    let incoming = RuntimeSessionArchive::from_slots(vec![incoming_manual])
+        .expect("incoming archive should validate");
+    let generation_before_commit = target.generation();
+    let revision_before_commit = target.revision();
+
+    let report = target
+        .merge_archive(&incoming, RuntimeSessionArchiveMergePolicy::KeepExisting)
+        .expect("all-conflict keep-existing merge should remain a no-op");
+
+    assert!(report.inserted_slot_ids.is_empty());
+    assert!(report.replaced_slot_ids.is_empty());
+    assert_eq!(report.skipped_slot_ids, vec!["manual"]);
+    assert_eq!(target.generation(), generation_before_commit);
+    assert_eq!(target.revision(), revision_before_commit);
+    assert_eq!(target.slot_ids().collect::<Vec<_>>(), vec!["manual"]);
+    assert_eq!(
+        target
+            .slot("manual")
+            .expect("kept slot must remain present")
+            .metadata
+            .display_name
+            .as_deref(),
+        Some("Target Manual")
     );
 }
 

@@ -22,14 +22,10 @@ fn component_storage_sparse_location_reads_value_and_ticks_from_single_entry() {
     assert!(get_with_ticks_at_location_body.contains("self.sparse_components"));
     assert!(get_with_ticks_at_location_body.contains(".get(&location.component_id)?"));
     assert!(get_with_ticks_at_location_body.contains(".get_with_ticks(location.entity)"));
-    assert!(
-        !get_with_ticks_at_location_body
-            .contains("let value = self.get::<T>(location.component_id, location.entity)?;")
-    );
-    assert!(
-        !get_with_ticks_at_location_body
-            .contains("let ticks = self.ticks(location.component_id, location.entity)?;")
-    );
+    assert!(!get_with_ticks_at_location_body
+        .contains("let value = self.get::<T>(location.component_id, location.entity)?;"));
+    assert!(!get_with_ticks_at_location_body
+        .contains("let ticks = self.ticks(location.component_id, location.entity)?;"));
 
     let sparse_get_with_ticks_start = sparse_source
         .find("impl SparseComponentStorage")
@@ -46,7 +42,7 @@ fn component_storage_sparse_location_reads_value_and_ticks_from_single_entry() {
     let sparse_get_with_ticks_body =
         &sparse_source[sparse_get_with_ticks_start..sparse_get_with_ticks_end];
 
-    assert!(sparse_get_with_ticks_body.contains("let entry = self.entries.get(&entity)?;"));
+    assert!(sparse_get_with_ticks_body.contains("let entry = self.entry(entity)?;"));
     assert!(sparse_get_with_ticks_body.contains("let value = entry.value.downcast_ref::<T>()?;"));
     assert!(sparse_get_with_ticks_body.contains("Some((value, entry.ticks))"));
 }
@@ -76,14 +72,10 @@ fn component_storage_get_mut_at_tick_uses_single_storage_dispatch() {
     let get_mut_at_tick_body = &store_source[get_mut_at_tick_start..get_mut_at_tick_end];
 
     assert!(get_mut_at_tick_body.contains("match self.storage_types.get(&component_id).copied()?"));
-    assert!(
-        get_mut_at_tick_body
-            .contains("let storage = self.table_components.get_mut(&component_id)?;")
-    );
-    assert!(
-        get_mut_at_tick_body
-            .contains("let storage = self.sparse_components.get_mut(&component_id)?;")
-    );
+    assert!(get_mut_at_tick_body
+        .contains("let storage = self.table_components.get_mut(&component_id)?;"));
+    assert!(get_mut_at_tick_body
+        .contains("let storage = self.sparse_components.get_mut(&component_id)?;"));
     assert!(get_mut_at_tick_body.contains("storage.get_mut_at_tick(entity, tick)"));
     assert!(!get_mut_at_tick_body.contains("self.mark_changed(component_id, entity, tick);"));
     assert!(!get_mut_at_tick_body.contains("self.get_mut(component_id, entity)"));
@@ -123,7 +115,7 @@ fn component_storage_get_mut_at_tick_uses_single_storage_dispatch() {
     let sparse_get_mut_at_tick_body =
         &sparse_source[sparse_get_mut_at_tick_start..sparse_get_mut_at_tick_end];
 
-    assert!(sparse_get_mut_at_tick_body.contains("let entry = self.entries.get_mut(&entity)?;"));
+    assert!(sparse_get_mut_at_tick_body.contains("let entry = self.entry_mut(entity)?;"));
     assert!(sparse_get_mut_at_tick_body.contains("entry.ticks.set_changed(tick);"));
     assert!(sparse_get_mut_at_tick_body.contains("entry.value.downcast_mut::<T>()"));
 }
@@ -139,6 +131,15 @@ fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
         manifest_root.join("src/scene/ecs/storage/component_storage/component_results.rs"),
     )
     .unwrap();
+    let remove_entity_components_start = store_source
+        .find("pub(crate) fn remove_entity_components")
+        .expect("targeted component removal body should exist");
+    let remove_entity_components_end = store_source[remove_entity_components_start..]
+        .find("\n    pub fn remove_entity")
+        .map(|offset| remove_entity_components_start + offset)
+        .expect("targeted component removal body should end before full removal");
+    let remove_entity_components_body =
+        &store_source[remove_entity_components_start..remove_entity_components_end];
     let remove_entity_start = store_source
         .find("pub fn remove_entity")
         .expect("component storage remove_entity body should exist");
@@ -159,15 +160,23 @@ fn component_storage_result_vectors_are_pre_sized_to_storage_count() {
 
     assert!(store_source.contains("fn component_storage_count(&self) -> usize"));
     assert!(store_source.contains("self.table_components.len() + self.sparse_components.len()"));
+    assert!(remove_entity_body
+        .contains("let mut removed = Vec::with_capacity(self.component_storage_count());"));
     assert!(
-        remove_entity_body
-            .contains("let mut removed = Vec::with_capacity(self.component_storage_count());")
+        remove_entity_components_body.contains("let mut removed = Vec::with_capacity(component_ids.len());")
+            && remove_entity_components_body.contains("for component_id in component_ids")
+            && remove_entity_components_body.contains("self.storage_types.get(component_id).copied()")
+            && remove_entity_components_body
+                .contains("let Some(storage) = self.table_components.get_mut(component_id) else")
+            && remove_entity_components_body
+                .contains("let Some(storage) = self.sparse_components.get_mut(component_id) else")
+            && !remove_entity_components_body.contains("self.component_storage_count()")
+            && !remove_entity_components_body.contains("sort_component_ids_if_needed")
+            && !remove_entity_components_body.contains(".and_then(|storage| storage.remove(entity))"),
+        "signature-directed entity removal must inspect only the supplied component ids and preserve their established order"
     );
-    assert!(
-        component_ids_body.contains(
-            "let mut component_ids = Vec::with_capacity(self.component_storage_count());"
-        )
-    );
+    assert!(component_ids_body
+        .contains("let mut component_ids = Vec::with_capacity(self.component_storage_count());"));
     assert!(remove_entity_body.contains("sort_component_ids_if_needed(&mut removed);"));
     assert!(component_ids_body.contains("sort_component_ids_if_needed(&mut component_ids);"));
     assert!(

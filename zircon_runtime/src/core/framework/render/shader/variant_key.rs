@@ -3,8 +3,8 @@ use zircon_runtime_interface::resource::ResourceId;
 
 use crate::core::framework::render::ShadingModelId;
 
-use super::RenderShaderDefinitionValue;
 use super::geometry_source::GeometrySourceId;
+use super::RenderShaderDefinitionValue;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RenderShaderVariantKey {
@@ -65,6 +65,8 @@ impl ShaderFeatureBits {
     pub const PBR_TRANSMISSION: u32 = 1 << 8;
     pub const VOLUMETRIC_FOG: u32 = 1 << 9;
     pub const ENVIRONMENT_ONLY_PBR: u32 = 1 << 10;
+    /// Uses the fixed-capacity group-2 texture/sampler arrays negotiated at device startup.
+    pub const BINDLESS_MATERIAL: u32 = 1 << 11;
 
     pub const fn new(bits: u32) -> Self {
         Self(bits)
@@ -170,8 +172,8 @@ mod tests {
     use zircon_runtime_interface::resource::ResourceId;
 
     use crate::core::framework::render::{
-        GeometrySourceId, SHADING_MODEL_ID_BLINN_PHONG, ShaderFeatureBits, ShaderPassType,
-        ShaderQualityTier, ShaderVariantKey,
+        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+        SHADING_MODEL_ID_BLINN_PHONG,
     };
 
     #[test]

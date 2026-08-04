@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use zircon_runtime::asset::{project::ProjectManifest, ProjectInfo};
 use zircon_runtime::scene::Scene;
 
+use crate::core::settings::SettingsProjectLayerLoad;
+
 use super::project_editor_workspace::ProjectEditorWorkspace;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -36,6 +38,20 @@ impl ProjectSettingsLoadState {
             Self::Persisted { .. } => "persisted",
             Self::Missing { .. } => "degraded-missing",
             Self::Invalid { .. } => "degraded-invalid",
+        }
+    }
+
+    pub(crate) fn from_authority_load(load: SettingsProjectLayerLoad) -> Self {
+        match load {
+            SettingsProjectLayerLoad::Persisted {
+                path,
+                schema_version,
+            } => Self::Persisted {
+                path,
+                schema_version,
+            },
+            SettingsProjectLayerLoad::Missing { path } => Self::Missing { path },
+            SettingsProjectLayerLoad::Invalid { path, message } => Self::Invalid { path, message },
         }
     }
 }

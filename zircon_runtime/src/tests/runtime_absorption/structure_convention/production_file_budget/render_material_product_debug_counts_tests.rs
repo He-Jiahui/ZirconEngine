@@ -7,7 +7,9 @@ fn runtime_15_render_material_product_debug_counts_tests_are_child_owner() {
         "graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs",
     );
 
-    let plan_08 = read_repo("docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

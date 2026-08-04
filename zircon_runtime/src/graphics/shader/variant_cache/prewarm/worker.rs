@@ -116,6 +116,7 @@ pub(super) fn prewarm_shader_variants_to_disk_inner(
         report.execution_budget.record_started_work(source_bytes);
         if let Err(error) = validate_source_once(&mut wgsl_validation_results, source, |source| {
             validate_shader_variant_prewarm_wgsl(&source.wgsl_source)
+                .map(|_| ())
                 .map_err(|error| format!("{error:?}"))
         }) {
             report.record_failure_request(

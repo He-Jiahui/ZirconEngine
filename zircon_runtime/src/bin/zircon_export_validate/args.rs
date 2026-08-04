@@ -1,6 +1,8 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
+use zircon_runtime::asset::project::ProjectPaths;
+
 use super::error::{ExportValidateError, ExportValidateResult};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -97,17 +99,7 @@ fn next_path(
 
 fn output_paths_alias(report: &Path, artifact: &Path) -> bool {
     same_file::is_same_file(report, artifact).unwrap_or(false)
-        || output_paths_equal(report, artifact)
-}
-
-#[cfg(windows)]
-fn output_paths_equal(left: &Path, right: &Path) -> bool {
-    left.to_string_lossy().to_lowercase() == right.to_string_lossy().to_lowercase()
-}
-
-#[cfg(not(windows))]
-fn output_paths_equal(left: &Path, right: &Path) -> bool {
-    left == right
+        || ProjectPaths::same_lexical_path(report, artifact).unwrap_or(false)
 }
 
 #[cfg(test)]
@@ -190,6 +182,24 @@ mod tests {
             OsString::from("out/REPORT.json"),
         ])
         .expect_err("Windows case aliases must not address both outputs");
+
+        assert!(error
+            .to_string()
+            .contains("--report and --contents-artifact must use different paths"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn export_validate_closeout_rejects_windows_verbatim_output_aliases() {
+        let error = parse([
+            OsString::from("--profile"),
+            OsString::from("client"),
+            OsString::from("--report"),
+            OsString::from(r"\\?\C:\ZirconBuilds\mvp\report.json"),
+            OsString::from("--contents-artifact"),
+            OsString::from(r"C:\ZirconBuilds\mvp\report.json"),
+        ])
+        .expect_err("Windows verbatim aliases must not address both outputs");
 
         assert!(error
             .to_string()

@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::actions::push_table_action;
 use super::cells::{push_table_cells, table_cells};
@@ -28,12 +29,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     if !has_paintable_table_row_extent(&rect) {
         return true;
     }
-    push_table_row_surface(commands, node, &rect, clip, order, opacity);
+    let Some(clip) = intersect(&rect, clip) else {
+        return true;
+    };
+    push_table_row_surface(commands, node, &rect, &clip, order, opacity);
     push_table_cells(
         commands,
         node,
         &rect,
-        clip,
+        &clip,
         cells_order(order),
         opacity,
         &cells,
@@ -42,7 +46,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         commands,
         node,
         &rect,
-        clip,
+        &clip,
         action_slot_order(order),
         opacity,
     );

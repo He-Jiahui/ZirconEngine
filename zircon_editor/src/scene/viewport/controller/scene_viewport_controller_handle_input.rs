@@ -175,12 +175,13 @@ impl SceneViewportController {
         let route = self.route_at_cursor(scene, position, true);
         feedback.hovered_axis = self.set_hover_route(route.as_ref());
 
-        if allow_handle_drag
-            && let Some(ViewportPointerRoute::HandleAxis { axis, .. }) = route.as_ref()
-            && self.begin_handle_drag(scene, position, *axis)
-        {
-            feedback.hovered_axis = Some(*axis);
-            return;
+        if allow_handle_drag {
+            if let Some(ViewportPointerRoute::HandleAxis { axis, .. }) = route.as_ref() {
+                if self.begin_handle_drag(scene, position, *axis) {
+                    feedback.hovered_axis = Some(*axis);
+                    return;
+                }
+            }
         }
 
         self.state.drag = Some(ViewportDragSession::PrimarySelection {

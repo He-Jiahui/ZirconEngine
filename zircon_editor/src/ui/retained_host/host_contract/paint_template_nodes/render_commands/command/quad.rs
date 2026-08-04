@@ -1,4 +1,5 @@
 use super::super::super::super::data::FrameRect;
+use super::super::super::super::paint_text::HostTextLayoutPolicy;
 use super::{kind::HostPaintCommandKind, model::HostPaintCommand};
 
 impl HostPaintCommand {
@@ -27,6 +28,7 @@ impl HostPaintCommand {
             font_size,
             line_height,
             text_style: Default::default(),
+            text_layout_policy: HostTextLayoutPolicy::SingleLineEllipsis,
             image_key: None,
             image_pixels: None,
             opacity,

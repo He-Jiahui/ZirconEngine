@@ -63,7 +63,11 @@ impl BudgetDegradeLadder {
     ) -> Self {
         Self {
             active: 0,
-            hysteresis_frames: hysteresis_frames.max(1),
+            hysteresis_frames: if hysteresis_frames == 0 {
+                1
+            } else {
+                hysteresis_frames
+            },
             frames_under_budget: 0,
         }
     }

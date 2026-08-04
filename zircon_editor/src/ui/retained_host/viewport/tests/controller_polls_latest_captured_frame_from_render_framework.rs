@@ -15,7 +15,7 @@ fn controller_polls_latest_captured_frame_from_render_framework() {
         .submit_extract(test_extract(), UVec2::new(160, 90))
         .unwrap();
 
-    let image = controller.poll_image();
+    let image = controller.poll_captured_frame();
 
     assert!(image.is_some());
     assert_eq!(framework.state.lock().unwrap().capture_requests, 1);
@@ -30,8 +30,8 @@ fn controller_does_not_republish_unchanged_captured_frame() {
         .submit_extract(test_extract(), UVec2::new(160, 90))
         .unwrap();
 
-    assert!(controller.poll_image().is_some());
-    assert!(controller.poll_image().is_none());
+    assert!(controller.poll_captured_frame().is_some());
+    assert!(controller.poll_captured_frame().is_none());
     assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
 }
 
@@ -44,10 +44,10 @@ fn controller_does_not_republish_cached_image_when_no_new_frame_is_available() {
         .submit_extract(test_extract(), UVec2::new(160, 90))
         .unwrap();
 
-    assert!(controller.poll_image().is_some());
+    assert!(controller.poll_captured_frame().is_some());
     framework.state.lock().unwrap().captures.clear();
 
-    assert!(controller.poll_image().is_none());
+    assert!(controller.poll_captured_frame().is_none());
     assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
 }
 
@@ -59,10 +59,10 @@ fn controller_does_not_republish_cached_image_when_capture_fails() {
     controller
         .submit_extract(test_extract(), UVec2::new(160, 90))
         .unwrap();
-    assert!(controller.poll_image().is_some());
+    assert!(controller.poll_captured_frame().is_some());
     framework.state.lock().unwrap().capture_error = Some("planned capture failure".to_string());
 
-    assert!(controller.poll_image().is_none());
+    assert!(controller.poll_captured_frame().is_none());
     assert!(
         controller
             .take_error()

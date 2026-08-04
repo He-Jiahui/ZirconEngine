@@ -1,7 +1,7 @@
 use crate::{
-    package_manifest, plugin_registration, runtime_capabilities, runtime_plugin_descriptor,
     MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY, TEXTURE_IMPORTER_DECLARATION,
-    TEXTURE_IMPORTER_DIST_CRATE_NAME, TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY,
+    TEXTURE_IMPORTER_DIST_CRATE_NAME, TEXTURE_IMPORTER_DIST_RUNTIME_ENTRY, package_manifest,
+    plugin_registration, runtime_capabilities, runtime_plugin_descriptor,
 };
 
 #[test]
@@ -9,21 +9,29 @@ fn package_declares_texture_importers() {
     let manifest = package_manifest();
 
     assert_eq!(manifest.id, PLUGIN_ID);
-    assert!(manifest
-        .capabilities
-        .contains(&RUNTIME_CAPABILITY.to_string()));
-    assert!(manifest
-        .asset_importers
-        .iter()
-        .any(|importer| importer.source_extensions.contains(&"ktx2".to_string())));
-    assert!(manifest
-        .asset_importers
-        .iter()
-        .any(|importer| importer.id == "texture_importer.cubemap"));
-    assert!(manifest
-        .asset_importers
-        .iter()
-        .any(|importer| importer.id == "texture_importer.array"));
+    assert!(
+        manifest
+            .capabilities
+            .contains(&RUNTIME_CAPABILITY.to_string())
+    );
+    assert!(
+        manifest
+            .asset_importers
+            .iter()
+            .any(|importer| importer.source_extensions.contains(&"ktx2".to_string()))
+    );
+    assert!(
+        manifest
+            .asset_importers
+            .iter()
+            .any(|importer| importer.id == "texture_importer.cubemap")
+    );
+    assert!(
+        manifest
+            .asset_importers
+            .iter()
+            .any(|importer| importer.id == "texture_importer.array")
+    );
 }
 
 #[test]
@@ -91,10 +99,12 @@ fn package_manifest_declares_texture_importer_dist_contract() {
         dist_module.kind,
         zircon_runtime::plugin::PluginModuleKind::Native
     );
-    assert!(manifest
-        .asset_importers
-        .iter()
-        .any(|importer| importer.id == "texture_importer.container"));
+    assert!(
+        manifest
+            .asset_importers
+            .iter()
+            .any(|importer| importer.id == "texture_importer.container")
+    );
 }
 
 #[test]
@@ -102,10 +112,12 @@ fn registration_contributes_module_and_importers() {
     let report = plugin_registration();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert!(report
-        .extensions
-        .modules()
-        .iter()
-        .any(|module| module.name == MODULE_NAME));
+    assert!(
+        report
+            .extensions
+            .modules()
+            .iter()
+            .any(|module| module.name == MODULE_NAME)
+    );
     assert_eq!(report.extensions.asset_importers().descriptors().len(), 6);
 }

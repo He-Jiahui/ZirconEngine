@@ -136,7 +136,8 @@ impl PreparedSceneCreation {
 
     fn remove_staging(&mut self) -> Result<(), ProjectAuthorityError> {
         match fs::remove_file(&self.staging_path) {
-            Ok(()) | Err(ref error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Ok(()) => Ok(()),
+            Err(ref error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
             Err(source) => Err(ProjectAuthorityError::io(
                 "remove scene staging file",
                 &self.staging_path,
@@ -183,7 +184,7 @@ impl ProjectAuthority {
         if let Err(catalog) = project.scan_and_import() {
             return match creation.rollback() {
                 Ok(()) => match project.scan_and_import() {
-                    Ok(()) => Err(ProjectAuthorityError::SceneCatalog { source: catalog }),
+                    Ok(_) => Err(ProjectAuthorityError::SceneCatalog { source: catalog }),
                     Err(reconcile) => {
                         Err(ProjectAuthorityError::SceneCatalogReconcile { catalog, reconcile })
                     }
@@ -222,7 +223,11 @@ impl ProjectAuthority {
         let world = Scene::default();
         let staging_uri = scene_staging_uri(request.scene_uri());
         let staging_path = project.primary_project_source_path_for_uri(&staging_uri)?;
-        let mut creation = PreparedSceneCreation {
+        if let Err(error) = world.save_scene_to_project(project, &staging_uri) {
+            let _ = fs::remove_file(&staging_path);
+            return Err(error.into());
+        }
+        Ok(PreparedSceneCreation {
             document: ProjectSceneDocument {
                 scene_uri: request.scene_uri,
                 source_path,
@@ -231,12 +236,7 @@ impl ProjectAuthority {
             staging_path,
             _path_guard: path_guard,
             published: false,
-        };
-        if let Err(error) = world.save_scene_to_project(project, &staging_uri) {
-            let _ = creation.remove_staging();
-            return Err(error.into());
-        }
-        Ok(creation)
+        })
     }
 }
 

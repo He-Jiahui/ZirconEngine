@@ -1,8 +1,7 @@
 use super::{
     IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey, LightProbeGridData,
-    LightmapConsumeContract, LightmapContractValidationError, ReflectionProbeData,
-    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT, SkyboxSettings,
-    SourceCubemapEnvironment,
+    LightmapConsumeContract, LightmapContractValidationError, ReflectionProbeData, SkyboxSettings,
+    SourceCubemapEnvironment, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,7 +33,7 @@ impl EnvironmentExtract {
 
     pub fn source_cubemap(source_cubemap: SourceCubemapEnvironment) -> Self {
         Self {
-            skybox: SkyboxSettings::source_cubemap(source_cubemap),
+            skybox: SkyboxSettings::source_cubemap(source_cubemap.with_prepared_upload_artifact()),
             probes: Vec::new(),
             baked_lighting: None,
             probe_grid: None,
@@ -142,6 +141,15 @@ mod tests {
         let request = environment
             .source_cubemap_ibl_bake_request(IblBakeArtifactContents::IEM)
             .expect("source cubemap environment should produce an IBL bake request");
+
+        assert!(
+            environment
+                .skybox
+                .source_cubemap_environment()
+                .and_then(SourceCubemapEnvironment::prepared_upload_artifact)
+                .is_some(),
+            "environment extraction must prepare uploads before render submission"
+        );
 
         assert_eq!(request.source_face_size(), 4);
         assert_eq!(request.source_mip_count(), 3);

@@ -38,7 +38,7 @@ fn artifact_store_roundtrips_physics_material_assets_in_artifact_cache() {
 }
 
 #[test]
-fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
+fn artifact_store_regenerates_shader_material_artifact_from_cache_schema() {
     let root = unique_temp_project_root("artifact_store_shader_toml_metadata");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths
@@ -58,7 +58,7 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
                 .unwrap(),
         ),
     );
-    let shader = ShaderAsset {
+    let mut shader = ShaderAsset {
         uri: AssetUri::parse("res://shaders/pbr.zshader").unwrap(),
         kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
@@ -134,6 +134,11 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
         pipeline_layout: Default::default(),
         validation_diagnostics: vec!["authoring note".to_string()],
     };
+    shader.regenerate_material_artifact();
+    let mut stale_cached_shader = shader.clone();
+    stale_cached_shader.material_property_layout = Default::default();
+    stale_cached_shader.material_option_table = Default::default();
+    stale_cached_shader.generated_material_wgsl.clear();
     let metadata = ResourceRecord::new(
         AssetId::new(),
         AssetKind::Shader,
@@ -142,7 +147,11 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
     let store = ArtifactStore::default();
 
     let artifact_uri = store
-        .write(&paths, &metadata, &ImportedAsset::Shader(shader.clone()))
+        .write(
+            &paths,
+            &metadata,
+            &ImportedAsset::Shader(stale_cached_shader),
+        )
         .unwrap();
     let loaded = store.read(&paths, &artifact_uri).unwrap();
 

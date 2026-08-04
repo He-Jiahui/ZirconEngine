@@ -30,6 +30,8 @@ pub(super) fn build_runtime_frame(
     );
     let mut frame = ViewportRenderFrame::from_shared_extract(extract, context.size())
         .with_shader_quality(context.shader_quality())
+        .with_texture_mip_bias(context.global_material_mip_bias().max(0.0).floor() as u8)
+        .with_texture_max_anisotropy(context.texture_max_anisotropy())
         .with_output_target(context.output_target())
         .with_camera_stack_output_policy(output_policy)
         .with_ui(ui)
@@ -489,6 +491,8 @@ mod tests {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            half_resolution_transparency_depth_sigma:
+                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph,
         })
     }

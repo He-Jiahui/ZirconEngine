@@ -35,9 +35,6 @@ pub(super) struct GuardSources {
     pub(super) scene_ecs_query_structure: String,
     pub(super) scene_ecs_systems: String,
     pub(super) shader_prewarm_manifest: String,
-    pub(super) status_output_expected_slices: String,
-    pub(super) status_output_row_data: String,
-    pub(super) status_output_row_data_runtime_15: String,
     pub(super) ui_shared_core: String,
     pub(super) ui_v2_asset: String,
 }
@@ -143,21 +140,6 @@ pub(super) fn read_guard_sources() -> GuardSources {
         shader_prewarm_manifest: read_runtime_src(
             "tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs",
         ),
-        status_output_expected_slices: read_runtime_src(
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices.rs",
-        ),
-        status_output_row_data: read_runtime_src(
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data.rs",
-        ),
-        status_output_row_data_runtime_15: [
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_row_data.rs",
-            ),
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_row_data/row_ownership.rs",
-            ),
-        ]
-        .join("\n"),
         ui_shared_core: read_runtime_src(
             "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core.rs",
         ),

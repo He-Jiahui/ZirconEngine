@@ -1,7 +1,7 @@
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{
-    resolve_subsurface_profile_table, SubsurfaceProfileData, ZR_SSS_MAX_PROFILES,
+    SubsurfaceProfileData, ZR_SSS_MAX_PROFILES, resolve_subsurface_profile_table,
 };
 use crate::core::math::{Mat4, UVec2};
 use crate::graphics::types::ViewportRenderRegion;

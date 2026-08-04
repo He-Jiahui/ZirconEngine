@@ -3,7 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::template_field_stepper::workbench_field_stepper_metrics;
 use super::geometry::{field_paint_rect, frame_is_within, has_paintable_field_extent};
 use super::identity::{is_stepper_field, is_workbench_field};
-use super::layers::{SEARCH_GLYPH_OFFSET, STEPPER_OFFSET, TEXT_OFFSET};
+use super::layers::{SEARCH_CLEAR_ACTION_OFFSET, SEARCH_GLYPH_OFFSET, STEPPER_OFFSET, TEXT_OFFSET};
 use super::style::{field_opacity, field_style};
 use super::surface::push_field_surface;
 use super::text::push_field_text;
@@ -37,6 +37,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         &rect,
         clip,
         order + SEARCH_GLYPH_OFFSET,
+        opacity,
+        style.text,
+    );
+    super::search::push_search_field_clear_glyph(
+        commands,
+        node,
+        &rect,
+        clip,
+        order + SEARCH_CLEAR_ACTION_OFFSET,
         opacity,
         style.text,
     );

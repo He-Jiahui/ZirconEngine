@@ -69,7 +69,6 @@ fn runtime_15_plugin_importer_dx_structure_assertions_children_are_child_owned()
             "runtime_15_plugin_importer_dx_structure_assertions_are_child_owner",
             "runtime_15_plugin_importer_dx_structure_assertions_children_are_child_owned",
             "runtime_15_plugin_importer_d13_sdk_structure_assertions_are_child_owner",
-            "runtime_15_plugin_importer_dx_structure_assertions_guard_folder_backed_status_is_current",
         ],
     );
 

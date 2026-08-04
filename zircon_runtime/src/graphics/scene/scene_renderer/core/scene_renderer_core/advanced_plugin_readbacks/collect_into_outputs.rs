@@ -13,8 +13,8 @@ impl SceneRendererAdvancedPluginReadbacks {
         Ok(())
     }
 
-    fn collect_neutral_outputs_into(self, outputs: &mut SceneRendererAdvancedPluginOutputs) {
-        outputs.store_plugin_renderer_outputs(self.outputs);
+    fn collect_neutral_outputs_into(mut self, outputs: &mut SceneRendererAdvancedPluginOutputs) {
+        outputs.store_plugin_renderer_outputs(std::mem::take(&mut self.outputs));
     }
 }
 

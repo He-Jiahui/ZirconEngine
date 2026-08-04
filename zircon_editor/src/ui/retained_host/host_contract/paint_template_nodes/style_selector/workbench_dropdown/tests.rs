@@ -1,7 +1,7 @@
 use super::palette::{workbench_dropdown_palette, workbench_dropdown_palette_from_host};
 use super::selection::select_workbench_dropdown_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
+use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
@@ -89,6 +89,60 @@ fn dropdown_dynamic_surfaces_ignore_a_normal_background_override() {
     assert_eq!(hovered_style.surface, palette.hover_surface);
     assert_eq!(open_style.surface, palette.open_surface);
     assert_eq!(pressed_style.surface, palette.open_surface);
+}
+
+#[test]
+fn dropdown_dynamic_borders_ignore_normal_border_overrides() {
+    let palette = workbench_dropdown_palette();
+    let override_color = UiStyleColor::Rgba(UiRgbaColor::from_u8(93, 97, 101, 255));
+
+    let mut normal = TemplatePaneNodeData::default();
+    normal.button_style.element.border_color = Some(override_color.clone());
+    let normal_style = select_workbench_dropdown_style(&normal, false);
+
+    let mut selected = TemplatePaneNodeData::default();
+    selected.selected = true;
+    selected.button_style.element.border_color = Some(override_color.clone());
+    let selected_style = select_workbench_dropdown_style(&selected, false);
+
+    let mut checked = TemplatePaneNodeData::default();
+    checked.checked = true;
+    checked.button_style.element.border_color = Some(override_color.clone());
+    let checked_style = select_workbench_dropdown_style(&checked, false);
+
+    let mut hovered = TemplatePaneNodeData::default();
+    hovered.hovered = true;
+    hovered.button_style.element.border_color = Some(override_color.clone());
+    let hovered_style = select_workbench_dropdown_style(&hovered, false);
+
+    let mut focused = TemplatePaneNodeData::default();
+    focused.focused = true;
+    focused.button_style.element.border_color = Some(override_color.clone());
+    let focused_style = select_workbench_dropdown_style(&focused, false);
+
+    let mut open = TemplatePaneNodeData::default();
+    open.popup_open = true;
+    open.button_style.element.border_color = Some(override_color.clone());
+    let open_style = select_workbench_dropdown_style(&open, false);
+
+    let mut pressed = TemplatePaneNodeData::default();
+    pressed.pressed = true;
+    pressed.button_style.element.border_color = Some(override_color.clone());
+    let pressed_style = select_workbench_dropdown_style(&pressed, false);
+
+    let mut invalid = TemplatePaneNodeData::default();
+    invalid.validation_level = "error".into();
+    invalid.button_style.element.border_color = Some(override_color);
+    let invalid_style = select_workbench_dropdown_style(&invalid, false);
+
+    assert_eq!(normal_style.border, [93, 97, 101, 255]);
+    assert_eq!(selected_style.border, [93, 97, 101, 255]);
+    assert_eq!(checked_style.border, [93, 97, 101, 255]);
+    assert_eq!(hovered_style.border, palette.hover_border);
+    assert_eq!(focused_style.border, palette.focus_border);
+    assert_eq!(open_style.border, palette.focus_border);
+    assert_eq!(pressed_style.border, palette.focus_border);
+    assert_eq!(invalid_style.border, palette.error_border);
 }
 
 #[test]

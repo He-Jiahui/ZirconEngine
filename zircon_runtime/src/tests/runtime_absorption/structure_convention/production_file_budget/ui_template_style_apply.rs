@@ -11,9 +11,6 @@ fn runtime_15_ui_template_style_slot_contract_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "style-apply parent keeps style planning, selector application, and shared helpers",
@@ -98,17 +95,6 @@ fn runtime_15_ui_template_style_slot_contract_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI template style slot-contract owner split",
-            "runtime_15_ui_template_style_slot_contract_owner_split_static_passed_cargo_timeout_no_result",
-            "ui/template/asset/compiler/style_apply.rs",
-            "ui/template/asset/compiler/style_apply/slot_contract.rs",
-            "runtime_15_ui_template_style_slot_contract_is_child_owner",
-        ],
-    );
 }
 
 #[test]
@@ -123,9 +109,6 @@ fn runtime_15_ui_template_mui_x_data_grid_classes_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "MUI X parent keeps component-family dispatch and shared helpers",
@@ -208,15 +191,4 @@ fn runtime_15_ui_template_mui_x_data_grid_classes_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI template MUI X DataGrid class owner split",
-            "runtime_15_ui_template_mui_x_data_grid_class_owner_split_static_passed_cargo_deferred",
-            "ui/template/asset/compiler/style_apply/mui_x_classes.rs",
-            "ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs",
-            "runtime_15_ui_template_mui_x_data_grid_classes_are_child_owner",
-        ],
-    );
 }

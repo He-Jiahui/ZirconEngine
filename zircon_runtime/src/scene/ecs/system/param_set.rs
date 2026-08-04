@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::scene::World;
 use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError};
+use crate::scene::World;
 
 pub struct ParamSet<P>
 where

@@ -6,18 +6,18 @@ pub class FormTransitionState {
     pub var activeFormAbilityCode: uint;
     // WOS29 resource codes: mana=1, rage=2, energy=3.
     pub var resourceKind: uint;
-    pub var resource: int;
-    pub var resourceMaximum: int;
-    pub var savedMana: int;
-    pub var savedManaMaximum: int;
+    pub var resource: float;
+    pub var resourceMaximum: float;
+    pub var savedMana: float;
+    pub var savedManaMaximum: float;
 
     pub @constructor() {
         this.activeFormAbilityCode = <uint>0;
         this.resourceKind = <uint>1;
-        this.resource = 0;
-        this.resourceMaximum = 0;
-        this.savedMana = 0;
-        this.savedManaMaximum = 0;
+        this.resource = 0.0;
+        this.resourceMaximum = 0.0;
+        this.savedMana = 0.0;
+        this.savedManaMaximum = 0.0;
     }
 }
 
@@ -169,5 +169,16 @@ pub contractTest(): int {
     var unaffordable = new FormTransitionState();
     unaffordable.resource = 29;
     unaffordable.resourceMaximum = 200;
-    return canBeginFormCast(unaffordable, bear) ? -7 : 1;
+    if (canBeginFormCast(unaffordable, bear)) { return -7; }
+
+    var fractional = new FormTransitionState();
+    fractional.resource = 41.5;
+    fractional.resourceMaximum = 100.0;
+    if (applyFormCast(fractional, bear) != 1 ||
+        fractional.savedMana != 11.5 ||
+        applyFormCast(fractional, bear) != 2 ||
+        fractional.resource != 11.5) {
+        return -8;
+    }
+    return 1;
 }

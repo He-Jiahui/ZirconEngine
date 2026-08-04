@@ -16,11 +16,6 @@ pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_GUARD_CHILDREN: &[(&str, &str, &st
         TYPED_ERROR_NATIVE_STRUCTURE_ROUTES_CHILD,
         "assert_typed_error_native_plugin_loader_routes_are_folder_backed",
     ),
-    (
-        "status_mirrors",
-        TYPED_ERROR_NATIVE_STRUCTURE_STATUS_MIRRORS_CHILD,
-        TYPED_ERROR_NATIVE_STRUCTURE_STATUS_GUARD,
-    ),
 ];
 
 pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_CHILDREN: &[(&str, &str, &str)] = &[
@@ -38,11 +33,6 @@ pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_CHILDREN: &[(&str, &
         "source_helper_ownership",
         TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_OWNERSHIP_CHILD,
         TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_OWNERSHIP_GUARD,
-    ),
-    (
-        "source_helper_status",
-        TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_STATUS_CHILD,
-        TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_STATUS_GUARD,
     ),
     (
         "sources",

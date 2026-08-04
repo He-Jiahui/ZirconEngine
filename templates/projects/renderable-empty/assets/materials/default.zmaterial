@@ -2,8 +2,9 @@ version = 2
 name = "Default"
 
 [shader]
-kind = "builtin"
-locator = "builtin://shader/pbr.wgsl"
+kind = "project"
+guid = "00000000-0000-0000-0000-000000000001"
+path_hint = "assets/shaders/pbr_shader.zmeta"
 
 [overrides]
 base_color = [0.85, 0.85, 0.85, 1.0]

@@ -10,9 +10,9 @@ use crate::core::editor_event::EditorEvent;
 use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
-    defaults::default_workbench_commands, menu::menu_bar_model, menu::menu_model,
     AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandAction, EditorCommandDescriptor,
     EditorCommandPaletteCatalog, EditorCommandPaletteQueryWindow,
+    defaults::default_workbench_commands, menu::menu_bar_model, menu::menu_model,
 };
 
 /// The only registry for editor command metadata, invocation, discovery, and extensions.
@@ -803,9 +803,11 @@ mod tests {
             .with_selection_count(1)
             .with_capabilities(["palette.execute"]);
 
-        assert!(registry
-            .command_palette_query_window(&selected, "palette", 0, 16)
-            .is_empty());
+        assert!(
+            registry
+                .command_palette_query_window(&selected, "palette", 0, 16)
+                .is_empty()
+        );
         assert_eq!(
             registry
                 .command_palette_query_window(

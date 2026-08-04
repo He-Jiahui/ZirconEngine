@@ -1,0 +1,21 @@
+[package]
+name = "zr_rhi_wgpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "WGPU implementation of Zircon RHI contracts."
+
+[features]
+default = []
+platform-winit = ["dep:winit", "zr_rhi/platform-winit"]
+
+[dependencies]
+bytemuck.workspace = true
+glyphon = "0.11.0"
+pollster.workspace = true
+thiserror.workspace = true
+wgpu.workspace = true
+winit = { workspace = true, default-features = false, optional = true }
+zircon_runtime_interface = { path = "../../../zircon_runtime_interface" }
+zr_rhi.workspace = true

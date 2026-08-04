@@ -1,9 +1,6 @@
 use std::path::Path;
 
-use super::super::support::{
-    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
-    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows, read_text,
-};
+use super::super::support::{assert_contains_all, read_repo_text, read_text};
 
 #[path = "asset_schema/material_asset_schema_v1.rs"]
 mod material_asset_schema_v1;
@@ -49,9 +46,6 @@ fn runtime_15_font_ui_asset_schema_names_use_current_policy_terms() {
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "font asset schema-v1 render mode helper",
@@ -101,9 +95,6 @@ fn runtime_15_font_ui_asset_schema_names_use_current_policy_terms() {
         ("module convention doc", module_doc.as_str()),
         ("UI assets doc", ui_assets_doc.as_str()),
         ("font assets doc", font_assets_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -155,9 +146,6 @@ fn runtime_15_font_render_mode_priority_fixture_uses_schema_v1_name() {
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let font_assets_doc = read_repo_text(manifest_root, "docs/zircon_runtime/asset/assets/font.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "renderer font asset schema-v1 priority fixture",
@@ -176,9 +164,6 @@ fn runtime_15_font_render_mode_priority_fixture_uses_schema_v1_name() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("font assets doc", font_assets_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

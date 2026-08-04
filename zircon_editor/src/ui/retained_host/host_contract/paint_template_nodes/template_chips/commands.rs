@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_chip_glyphs::{chip_has_chevron, push_chip_chevron};
 use super::geometry::{has_paintable_chip_extent, pixel_aligned_rect};
@@ -23,14 +24,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     if !has_paintable_chip_extent(&rect) {
         return true;
     }
+    let Some(clip) = intersect(&rect, clip) else {
+        return true;
+    };
 
-    push_chip_surface(commands, node, &rect, clip, order, opacity);
-    push_chip_label(commands, node, &rect, clip, label_order(order), opacity);
+    push_chip_surface(commands, node, &rect, &clip, order, opacity);
+    push_chip_label(commands, node, &rect, &clip, label_order(order), opacity);
     if chip_has_chevron(node) {
         push_chip_chevron(
             commands,
             &rect,
-            clip,
+            &clip,
             chevron_order(order),
             chip_glyph_color(node),
             opacity,

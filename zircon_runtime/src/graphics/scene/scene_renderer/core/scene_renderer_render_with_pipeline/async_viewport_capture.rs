@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crate::core::framework::render::RenderCaptureReport;
-use crate::rhi_wgpu::gpu_readback_queue::ReadbackError;
+use zr_rhi_wgpu::ReadbackError;
 
 pub(crate) struct AsyncViewportCaptureRequest {
     callback: Box<dyn FnOnce(Result<Vec<u8>, ReadbackError>) + Send + 'static>,

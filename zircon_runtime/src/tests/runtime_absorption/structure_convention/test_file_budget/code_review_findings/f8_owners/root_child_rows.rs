@@ -10,28 +10,8 @@ pub(super) const REVIEW_GUARDS: &[&str] = &[
     "review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending",
 ];
 
-pub(super) const FOLDER_BACKED_CHILDREN: &[(&str, &str, &str)] = &[
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/delegation.rs
-    ("delegation", F8_DELEGATION_CHILD, FOLDER_BACKED_GUARD),
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership.rs
-    ("route_ownership", F8_ROUTE_OWNERSHIP_CHILD, GUARD),
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/status_mirrors.rs
-    (
-        "status_mirrors",
-        F8_STATUS_MIRRORS_CHILD,
-        FOLDER_BACKED_STATUS_GUARD,
-    ),
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/budgets.rs
-    ("budgets", F8_BUDGETS_CHILD, BUDGET_GUARD),
-];
-
 pub(super) const F8_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
     ("root_paths", F8_ROOT_PATHS_CHILD, "F8_ROOT_PATHS_CHILD"),
-    (
-        "root_statuses",
-        F8_ROOT_STATUSES_CHILD,
-        F8_ROOT_INVENTORY_STATUS,
-    ),
     (
         "root_child_rows",
         F8_ROOT_CHILD_ROWS_CHILD,
@@ -41,10 +21,5 @@ pub(super) const F8_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
         "root_sources",
         F8_ROOT_SOURCES_CHILD,
         "read_f8_review_sources",
-    ),
-    (
-        "root_inventory",
-        F8_ROOT_INVENTORY_CHILD,
-        F8_ROOT_INVENTORY_GUARD,
     ),
 ];

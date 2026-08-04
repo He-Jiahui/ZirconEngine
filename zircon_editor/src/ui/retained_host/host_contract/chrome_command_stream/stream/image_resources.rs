@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use super::super::command::{ChromeCommand, ChromeCommandKind};
 use crate::ui::retained_host::host_contract::paint_template_nodes::copy_editor_sprite_atlas_rgba;
@@ -12,17 +12,92 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeImageResource {
     pub(in crate::ui::retained_host::host_contract) rgba: Vec<u8>,
 }
 
-pub(super) fn compact_image_resources(
-    commands: &mut [ChromeCommand],
-) -> HashMap<String, ChromeImageResource> {
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(in crate::ui::retained_host::host_contract) struct ChromeImageResources {
+    by_resource_key: HashMap<String, BTreeMap<u64, ChromeImageResource>>,
+}
+
+impl ChromeImageResources {
+    pub(in crate::ui::retained_host::host_contract) fn insert(
+        &mut self,
+        resource_key: String,
+        resource: ChromeImageResource,
+    ) {
+        self.by_resource_key
+            .entry(resource_key)
+            .or_default()
+            .insert(resource.generation, resource);
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn get(
+        &self,
+        resource_key: &str,
+        generation: u64,
+    ) -> Option<&ChromeImageResource> {
+        self.by_resource_key
+            .get(resource_key)
+            .and_then(|generations| generations.get(&generation))
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn is_empty(&self) -> bool {
+        self.by_resource_key.is_empty()
+    }
+
+    #[cfg(test)]
+    pub(in crate::ui::retained_host::host_contract) fn len(&self) -> usize {
+        self.by_resource_key.values().map(BTreeMap::len).sum()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn retain(
+        &mut self,
+        mut keep: impl FnMut(&str, u64, &ChromeImageResource) -> bool,
+    ) {
+        self.by_resource_key.retain(|resource_key, generations| {
+            generations.retain(|generation, resource| keep(resource_key, *generation, resource));
+            !generations.is_empty()
+        });
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn iter(
+        &self,
+    ) -> impl Iterator<Item = (&str, u64, &ChromeImageResource)> {
+        self.by_resource_key
+            .iter()
+            .flat_map(|(resource_key, generations)| {
+                generations.iter().map(move |(generation, resource)| {
+                    (resource_key.as_str(), *generation, resource)
+                })
+            })
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn into_entries(
+        self,
+    ) -> impl Iterator<Item = (String, ChromeImageResource)> {
+        self.by_resource_key
+            .into_iter()
+            .flat_map(|(resource_key, generations)| {
+                generations
+                    .into_values()
+                    .map(move |resource| (resource_key.clone(), resource))
+            })
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn extend(&mut self, resources: Self) {
+        for (resource_key, resource) in resources.into_entries() {
+            self.insert(resource_key, resource);
+        }
+    }
+}
+
+pub(super) fn compact_image_resources(commands: &mut [ChromeCommand]) -> ChromeImageResources {
     compact_image_resources_with_residency(commands, |_, _| false)
 }
 
 pub(super) fn compact_image_resources_with_residency(
     commands: &mut [ChromeCommand],
     mut is_resident: impl FnMut(&str, u64) -> bool,
-) -> HashMap<String, ChromeImageResource> {
-    let mut resources = HashMap::new();
+) -> ChromeImageResources {
+    let mut resources = ChromeImageResources::default();
     for command in commands {
         let ChromeCommandKind::Image { payload } = &mut command.kind else {
             continue;
@@ -31,13 +106,11 @@ pub(super) fn compact_image_resources_with_residency(
             payload.rgba = None;
             continue;
         }
-        let replace = resources
-            .get(&payload.resource_key)
-            .map_or(true, |resource: &ChromeImageResource| {
-                resource.generation < payload.resource_generation
-            });
+        let needs_resource = resources
+            .get(payload.resource_key.as_str(), payload.resource_generation)
+            .is_none();
         let rgba = payload.rgba.take().or_else(|| {
-            (replace && payload.atlas_uv.is_some()).then(|| {
+            (needs_resource && payload.atlas_uv.is_some()).then(|| {
                 copy_editor_sprite_atlas_rgba(
                     payload.resource_key.as_str(),
                     payload.resource_generation,
@@ -47,7 +120,7 @@ pub(super) fn compact_image_resources_with_residency(
         let Some(rgba) = rgba else {
             continue;
         };
-        if !replace {
+        if !needs_resource {
             continue;
         }
         resources.insert(
@@ -73,7 +146,7 @@ mod tests {
     use crate::ui::retained_host::host_contract::data::FrameRect;
 
     #[test]
-    fn shared_atlas_commands_move_pixels_into_one_stream_resource() {
+    fn same_generation_atlas_commands_move_pixels_into_one_stream_resource() {
         let command = |generation, rgba| ChromeCommand {
             layer: ChromeCommandLayer::Static,
             z_index: generation as i32,
@@ -87,7 +160,40 @@ mod tests {
                     height: 2,
                     upload_bytes: 16,
                     rgba: Some(rgba),
-                    resource_source_available: true,
+                    atlas_uv: None,
+                },
+            },
+        };
+
+        let mut commands = vec![command(5, vec![5; 16]), command(5, vec![5; 16])];
+        let resources = compact_image_resources(&mut commands);
+
+        let resource = resources
+            .get("atlas://editor/icons", 5)
+            .expect("shared atlas generation is canonical");
+        assert_eq!(resource.generation, 5);
+        assert_eq!(resource.rgba, vec![5; 16]);
+        assert!(commands.iter().all(|command| matches!(
+            &command.kind,
+            ChromeCommandKind::Image { payload } if payload.rgba.is_none()
+        )));
+    }
+
+    #[test]
+    fn distinct_atlas_generations_remain_separate_stream_resources() {
+        let command = |generation, rgba| ChromeCommand {
+            layer: ChromeCommandLayer::Static,
+            z_index: generation as i32,
+            frame: FrameRect::default(),
+            clip: None,
+            kind: ChromeCommandKind::Image {
+                payload: ChromeImagePayload {
+                    resource_key: "atlas://editor/icons".to_string(),
+                    resource_generation: generation,
+                    width: 2,
+                    height: 2,
+                    upload_bytes: 16,
+                    rgba: Some(rgba),
                     atlas_uv: None,
                 },
             },
@@ -96,15 +202,21 @@ mod tests {
         let mut commands = vec![command(4, vec![4; 16]), command(5, vec![5; 16])];
         let resources = compact_image_resources(&mut commands);
 
-        let resource = resources
-            .get("atlas://editor/icons")
-            .expect("newest atlas generation is canonical");
-        assert_eq!(resource.generation, 5);
-        assert_eq!(resource.rgba, vec![5; 16]);
-        assert!(commands.iter().all(|command| matches!(
-            &command.kind,
-            ChromeCommandKind::Image { payload } if payload.rgba.is_none()
-        )));
+        assert_eq!(resources.len(), 2);
+        assert_eq!(
+            resources
+                .get("atlas://editor/icons", 4)
+                .expect("older generation must remain available for its command")
+                .rgba,
+            vec![4; 16]
+        );
+        assert_eq!(
+            resources
+                .get("atlas://editor/icons", 5)
+                .expect("newer generation must remain available for its command")
+                .rgba,
+            vec![5; 16]
+        );
     }
 
     #[test]

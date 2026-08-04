@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import ctypes
 import json
 import os
@@ -31,6 +32,14 @@ from .server import (
 class _CoordinatorArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> None:
         raise CoordinatorError("cli_arguments_invalid", message)
+
+
+def _reject_nonstandard_json_constant(token: str) -> None:
+    raise ValueError(f"Non-standard JSON constant: {token}")
+
+
+def _strict_json_loads(value: str) -> Any:
+    return json.loads(value, parse_constant=_reject_nonstandard_json_constant)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -464,7 +473,9 @@ def _parser() -> argparse.ArgumentParser:
     validation_submit = validation_commands.add_parser("submit")
     validation_submit.add_argument("--session-id", required=True)
     validation_submit.add_argument("--request-id", required=True)
-    validation_submit.add_argument("--source-manifest-json", required=True)
+    validation_manifest = validation_submit.add_mutually_exclusive_group(required=True)
+    validation_manifest.add_argument("--source-manifest-json")
+    validation_manifest.add_argument("--source-manifest-stdin", action="store_true")
     validation_submit.add_argument("--command-json", required=True)
     validation_submit.add_argument("--toolchain-json", required=True)
     validation_submit.add_argument("--coverage-json", required=True)
@@ -511,6 +522,34 @@ def _parser() -> argparse.ArgumentParser:
 
 def _session_id(value: str | None) -> str:
     return value or os.environ.get("CODEX_THREAD_ID") or f"manual-{uuid.uuid4()}"
+
+
+def _compatibility_from_argument(value: str) -> dict[str, object]:
+    encoded_prefix = "base64:"
+    raw_value = value
+    if value.startswith(encoded_prefix):
+        try:
+            raw_value = base64.b64decode(
+                value[len(encoded_prefix) :], validate=True
+            ).decode("utf-8")
+        except (UnicodeDecodeError, ValueError) as error:
+            raise CoordinatorError(
+                "cli_arguments_invalid",
+                "Cargo compatibility JSON base64 payload is invalid",
+            ) from error
+    try:
+        compatibility = json.loads(raw_value)
+    except json.JSONDecodeError as error:
+        raise CoordinatorError(
+            "cli_arguments_invalid",
+            "Cargo compatibility JSON payload is invalid",
+        ) from error
+    if not isinstance(compatibility, dict):
+        raise CoordinatorError(
+            "cli_arguments_invalid",
+            "Cargo compatibility JSON payload must be an object",
+        )
+    return compatibility
 
 
 def _split_command(value: str) -> list[str]:
@@ -1199,7 +1238,7 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 command = command[1:]
             payload: dict[str, object] = {
                 "session_id": _session_id(arguments.session_id),
-                "compatibility": json.loads(arguments.compatibility_json),
+                "compatibility": _compatibility_from_argument(arguments.compatibility_json),
                 "target_dir": arguments.target_dir,
                 "ttl_seconds": arguments.ttl_seconds,
                 "command": command,
@@ -1222,7 +1261,7 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "cargo.reserve_gpu",
                 {
                     "session_id": _session_id(arguments.session_id),
-                    "compatibility": json.loads(arguments.compatibility_json),
+                    "compatibility": _compatibility_from_argument(arguments.compatibility_json),
                     "target_dir": arguments.target_dir,
                     "ttl_seconds": arguments.ttl_seconds,
                     "command": command,
@@ -1282,7 +1321,7 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "pid": arguments.pid,
                     "ephemeral": arguments.ephemeral,
                     "compatibility": (
-                        json.loads(arguments.compatibility_json)
+                        _compatibility_from_argument(arguments.compatibility_json)
                         if arguments.compatibility_json
                         else None
                     ),
@@ -1654,13 +1693,13 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             return client.command("validation.status", {"ticket_id": arguments.ticket_id})
         if arguments.validation_command == "record-result":
             try:
-                evidence = json.loads(arguments.evidence_json)
+                evidence = _strict_json_loads(arguments.evidence_json)
                 failure = (
-                    json.loads(arguments.failure_json)
+                    _strict_json_loads(arguments.failure_json)
                     if arguments.failure_json is not None
                     else None
                 )
-            except json.JSONDecodeError as error:
+            except ValueError as error:
                 raise CoordinatorError(
                     "validation_ticket_json_invalid",
                     "Validation result JSON arguments must be valid JSON",
@@ -1686,12 +1725,15 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "failure": failure,
                 },
             )
+        manifest_json = arguments.source_manifest_json
+        if arguments.source_manifest_stdin:
+            manifest_json = sys.stdin.read().removeprefix("\ufeff")
         try:
-            source_manifest = json.loads(arguments.source_manifest_json)
-            command = json.loads(arguments.command_json)
-            toolchain = json.loads(arguments.toolchain_json)
-            coverage = json.loads(arguments.coverage_json)
-        except json.JSONDecodeError as error:
+            source_manifest = _strict_json_loads(manifest_json)
+            command = _strict_json_loads(arguments.command_json)
+            toolchain = _strict_json_loads(arguments.toolchain_json)
+            coverage = _strict_json_loads(arguments.coverage_json)
+        except ValueError as error:
             raise CoordinatorError(
                 "validation_ticket_json_invalid",
                 "Validation submit JSON arguments must be valid JSON",

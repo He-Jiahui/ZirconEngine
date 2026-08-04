@@ -1,5 +1,8 @@
-use super::layout::command_palette_metrics_from_host;
+use super::layout::{command_palette_metrics, command_palette_metrics_from_host, empty_text_rect};
 use super::palette::command_palette_palette_from_host;
+use super::panel::push_command_palette_empty_message;
+use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_text::HostTextLayoutPolicy;
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
 #[test]
@@ -70,4 +73,42 @@ fn command_palette_palette_projects_from_host_palette() {
     assert_eq!(palette.empty_text, [60, 61, 62, 255]);
     assert_eq!(palette.match_indicator, [70, 71, 72, 255]);
     assert_eq!(palette.match_indicator_disabled, [80, 81, 82, 255]);
+}
+
+#[test]
+fn empty_message_uses_the_remaining_panel_content_band() {
+    let metrics = command_palette_metrics();
+    let panel = FrameRect {
+        x: 20.0,
+        y: 30.0,
+        width: 240.0,
+        height: metrics.empty_text_y + metrics.panel_padding_x + metrics.line_height * 3.0,
+    };
+
+    let text = empty_text_rect(&panel);
+
+    assert_eq!(text.x, panel.x + metrics.panel_padding_x);
+    assert_eq!(text.y, panel.y + metrics.empty_text_y);
+    assert_eq!(text.height, metrics.line_height * 3.0);
+    assert!(text.y + text.height <= panel.y + panel.height);
+}
+
+#[test]
+fn empty_message_uses_runtime_word_wrap() {
+    let panel = FrameRect {
+        x: 20.0,
+        y: 30.0,
+        width: 240.0,
+        height: 220.0,
+    };
+    let mut commands = Vec::new();
+
+    push_command_palette_empty_message(&mut commands, &panel, &panel, 10, 1.0);
+
+    assert_eq!(commands.len(), 1);
+    assert_eq!(
+        commands[0].text_layout_policy,
+        HostTextLayoutPolicy::WordWrap
+    );
+    assert!(commands[0].frame.height > commands[0].line_height);
 }

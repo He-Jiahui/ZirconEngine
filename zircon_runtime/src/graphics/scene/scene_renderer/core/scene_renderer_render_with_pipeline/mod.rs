@@ -2,5 +2,5 @@ mod async_viewport_capture;
 mod render_frame_with_pipeline;
 
 pub(crate) use async_viewport_capture::{
-    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
+    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission, capture_request_was_admitted,
 };

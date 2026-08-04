@@ -26,7 +26,9 @@ mod tests;
 #[path = "ui/workbench_window_projection.rs"]
 mod workbench_window_projection;
 
-pub(crate) use apply_presentation_impl::apply_presentation;
+pub(crate) use apply_presentation_impl::{
+    apply_presentation, apply_presentation_with_template_v2_data,
+};
 #[cfg(test)]
 pub(crate) use pane_data_conversion::refresh_runtime_diagnostics_debug_reflector_from_body_surface;
 #[cfg(test)]

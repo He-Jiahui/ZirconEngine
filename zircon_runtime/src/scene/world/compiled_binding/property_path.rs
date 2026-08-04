@@ -334,19 +334,19 @@ impl World {
                         ScenePropertyValue::Vec3(transform.translation.to_array())
                     }
                     CompiledTransformProperty::TranslationAxis(axis) => {
-                        ScenePropertyValue::Scalar(transform.translation[axis])
+                        ScenePropertyValue::Scalar(transform.translation[*axis])
                     }
                     CompiledTransformProperty::Rotation => {
                         ScenePropertyValue::Quaternion(transform.rotation.to_array())
                     }
                     CompiledTransformProperty::RotationAxis(axis) => {
-                        ScenePropertyValue::Scalar(transform.rotation.to_array()[axis])
+                        ScenePropertyValue::Scalar(transform.rotation.to_array()[*axis])
                     }
                     CompiledTransformProperty::Scale => {
                         ScenePropertyValue::Vec3(transform.scale.to_array())
                     }
                     CompiledTransformProperty::ScaleAxis(axis) => {
-                        ScenePropertyValue::Scalar(transform.scale[axis])
+                        ScenePropertyValue::Scalar(transform.scale[*axis])
                     }
                 })
             }
@@ -366,7 +366,7 @@ impl World {
                         ScenePropertyValue::Scalar(mesh.depth_bias)
                     }
                     CompiledMeshRendererProperty::MorphWeight(index) => {
-                        ScenePropertyValue::Scalar(*mesh.morph_weights.get(index)?)
+                        ScenePropertyValue::Scalar(*mesh.morph_weights.get(*index)?)
                     }
                     CompiledMeshRendererProperty::Tint => {
                         ScenePropertyValue::Vec4(mesh.tint.to_array())

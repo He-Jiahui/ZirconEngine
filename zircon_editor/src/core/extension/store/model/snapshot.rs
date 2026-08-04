@@ -79,7 +79,10 @@ pub struct ContributionSnapshot {
 
 macro_rules! snapshot_iter {
     ($name:ident, $field:ident, $value:ty) => {
-        pub fn $name(&self, capabilities: &CapabilitySet) -> impl Iterator<Item = &$value> {
+        pub fn $name<'a>(
+            &'a self,
+            capabilities: &'a CapabilitySet,
+        ) -> impl Iterator<Item = &'a $value> + 'a {
             self.$field
                 .values()
                 .filter(move |entry| entry.is_enabled_by(capabilities))
@@ -96,10 +99,10 @@ impl ContributionSnapshot {
     snapshot_iter!(views, views, ViewDescriptor);
     snapshot_iter!(drawers, drawers, DrawerDescriptor);
     snapshot_iter!(menu_items, menu_items, EditorMenuItemDescriptor);
-    pub fn inspector_customizations(
-        &self,
-        capabilities: &CapabilitySet,
-    ) -> impl Iterator<Item = Arc<dyn InspectorCustomization>> + '_ {
+    pub fn inspector_customizations<'a>(
+        &'a self,
+        capabilities: &'a CapabilitySet,
+    ) -> impl Iterator<Item = Arc<dyn InspectorCustomization>> + 'a {
         self.inspector_customizations
             .values()
             .filter(move |entry| entry.is_enabled_by(capabilities))
@@ -138,20 +141,20 @@ impl ContributionSnapshot {
         OperationCommandFactoryRegistration
     );
 
-    pub fn scene_mode_descriptors(
-        &self,
-        capabilities: &CapabilitySet,
-    ) -> impl Iterator<Item = &SceneModeDescriptor> {
+    pub fn scene_mode_descriptors<'a>(
+        &'a self,
+        capabilities: &'a CapabilitySet,
+    ) -> impl Iterator<Item = &'a SceneModeDescriptor> + 'a {
         self.scene_modes
             .values()
             .filter(move |entry| entry.is_enabled_by(capabilities))
             .map(|entry| entry.value.descriptor())
     }
 
-    pub fn scene_mode_registrations(
-        &self,
-        capabilities: &CapabilitySet,
-    ) -> impl Iterator<Item = &SceneModeRegistration> {
+    pub fn scene_mode_registrations<'a>(
+        &'a self,
+        capabilities: &'a CapabilitySet,
+    ) -> impl Iterator<Item = &'a SceneModeRegistration> + 'a {
         self.scene_modes
             .values()
             .filter(move |entry| entry.is_enabled_by(capabilities))
@@ -169,10 +172,10 @@ impl ContributionSnapshot {
             .map(|entry| Arc::clone(&entry.value))
     }
 
-    pub(crate) fn ui_template_pane_data_sources(
-        &self,
-        capabilities: &CapabilitySet,
-    ) -> impl Iterator<Item = (&str, Arc<dyn EditorUiTemplatePaneDataSource>)> {
+    pub(crate) fn ui_template_pane_data_sources<'a>(
+        &'a self,
+        capabilities: &'a CapabilitySet,
+    ) -> impl Iterator<Item = (&'a str, Arc<dyn EditorUiTemplatePaneDataSource>)> + 'a {
         self.ui_template_pane_data_sources
             .iter()
             .filter(move |(_, entry)| entry.is_enabled_by(capabilities))
@@ -197,20 +200,20 @@ impl ContributionSnapshot {
             .map(|entry| &entry.value)
     }
 
-    pub(crate) fn ui_templates_with_source(
-        &self,
-        capabilities: &CapabilitySet,
-    ) -> impl Iterator<Item = (&ContributionSource, &EditorUiTemplateDescriptor)> {
+    pub(crate) fn ui_templates_with_source<'a>(
+        &'a self,
+        capabilities: &'a CapabilitySet,
+    ) -> impl Iterator<Item = (&'a ContributionSource, &'a EditorUiTemplateDescriptor)> + 'a {
         self.ui_templates
             .values()
             .filter(move |entry| entry.is_enabled_by(capabilities))
             .map(|entry| (&entry.source, &entry.value))
     }
 
-    pub(crate) fn asset_type_contributions_with_source(
-        &self,
-        capabilities: &CapabilitySet,
-    ) -> impl Iterator<Item = (&ContributionSource, &AssetTypeContribution)> {
+    pub(crate) fn asset_type_contributions_with_source<'a>(
+        &'a self,
+        capabilities: &'a CapabilitySet,
+    ) -> impl Iterator<Item = (&'a ContributionSource, &'a AssetTypeContribution)> + 'a {
         self.asset_type_contributions
             .values()
             .filter(move |entry| entry.is_enabled_by(capabilities))

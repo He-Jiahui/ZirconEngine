@@ -1,6 +1,7 @@
 mod boundary;
 mod directory_transaction;
 mod recent_projects;
+mod root_resolution;
 mod scene_document;
 mod template_creation;
 

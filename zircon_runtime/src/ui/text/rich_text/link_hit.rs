@@ -25,7 +25,7 @@ pub(crate) fn link_at_layout_point(
         return None;
     }
     let parsed = resolve_compiled_rich_text_artifact(layout.rich_text_artifact.as_ref()?)?;
-    parsed.link_runs().find_map(|run| {
+    let link_hit = parsed.link_runs().find_map(|run| {
         let start = usize::try_from(run.byte_range.0).ok()?;
         let end = usize::try_from(run.byte_range.1).ok()?;
         let source_range = UiTextRange { start, end };
@@ -37,7 +37,8 @@ pub(crate) fn link_at_layout_point(
                 affinity: hit.affinity,
             },
         )
-    })
+    });
+    link_hit
 }
 
 fn range_contains_caret(range: UiTextRange, offset: usize, affinity: UiTextCaretAffinity) -> bool {

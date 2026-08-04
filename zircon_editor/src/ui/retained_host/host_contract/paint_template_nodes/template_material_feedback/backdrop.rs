@@ -3,6 +3,7 @@ use super::super::material_primitives::component_variant_contains;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_style_color::resolved_style_color;
 use super::palette::material_feedback_palette;
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_material_backdrop_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -19,6 +20,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ma
         return;
     }
     if component_variant_contains(node, "invisible") {
+        return;
+    }
+    if intersect(rect, clip).is_none() {
         return;
     }
     commands.push(HostPaintCommand::quad(

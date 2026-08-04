@@ -4,8 +4,6 @@ use super::super::super::*;
 mod budgets;
 #[path = "typed_error/delegation.rs"]
 mod delegation;
-#[path = "typed_error/status_mirrors.rs"]
-mod status_mirrors;
 #[path = "typed_error/structure_assertions.rs"]
 mod structure_assertions;
 #[path = "typed_error/top_level.rs"]
@@ -17,24 +15,18 @@ const STRUCTURE_GUARD_TYPED_ERROR_DELEGATION_CHILD_OWNER: &str = "tests/runtime_
 const STRUCTURE_GUARD_TYPED_ERROR_TOP_LEVEL_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/top_level.rs";
 const STRUCTURE_GUARD_TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions.rs";
 const STRUCTURE_GUARD_TYPED_ERROR_BUDGETS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/budgets.rs";
-const STRUCTURE_GUARD_TYPED_ERROR_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/status_mirrors.rs";
 
 const TYPED_ERROR_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs";
 const TYPED_ERROR_TOP_LEVEL_DELEGATION_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/delegation.rs";
 const TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/child_ownership.rs";
-const TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_mirrors.rs";
 const TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/budgets.rs";
 const TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs";
-const TYPED_ERROR_STATUS_DOCS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_docs.rs";
 const TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs";
 const TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts.rs";
 const TYPED_ERROR_STRUCTURE_DELEGATION_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/delegation.rs";
 const TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/child_ownership.rs";
-const TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/status_mirrors.rs";
 const TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence.rs";
 const TYPED_ERROR_NATIVE_STRUCTURE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader.rs";
-const REVIEW_GUARD_STATUS_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
-const REVIEW_GUARD_DATE_MAP_PATH: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 
 const TYPED_ERROR_FOLDER_BACKED_SLICE: &str =
     "Runtime 15 M3 typed-error structure guard folder-backed split";
@@ -64,11 +56,6 @@ const STRUCTURE_GUARD_TYPED_ERROR_CHILDREN: &[(&str, &str, &str)] = &[
         "budgets",
         STRUCTURE_GUARD_TYPED_ERROR_BUDGETS_CHILD_OWNER,
         "runtime_15_code_review_findings_structure_guard_typed_error_children_line_budgets_are_current",
-    ),
-    (
-        "status_mirrors",
-        STRUCTURE_GUARD_TYPED_ERROR_STATUS_MIRRORS_CHILD_OWNER,
-        "runtime_15_code_review_findings_structure_guard_typed_error_folder_backed_status_is_current",
     ),
 ];
 
@@ -100,18 +87,6 @@ pub(super) fn typed_error_structure_guard_child_source_blob() -> String {
     ));
     blob.push('\n');
     blob
-}
-
-fn review_guard_status_rows_source() -> String {
-    super::review_guard_status_rows_source()
-}
-
-fn review_guard_status_map_source() -> String {
-    super::structure_guard_status_map_source()
-}
-
-fn review_guard_date_map_source() -> String {
-    super::structure_guard_date_map_source()
 }
 
 #[test]

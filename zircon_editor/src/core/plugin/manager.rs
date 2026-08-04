@@ -464,15 +464,15 @@ fn discovery_index(
     for discovery in discoveries {
         if !package_ids.contains(discovery.package_id()) {
             return Err(EditorPluginDiscoveryError::UnknownPackage {
-                package_id: discovery.package_id,
+                package_id: discovery.package_id().to_string(),
             });
         }
         if result
-            .insert(discovery.package_id.clone(), discovery.clone())
+            .insert(discovery.package_id().to_string(), discovery.clone())
             .is_some()
         {
             return Err(EditorPluginDiscoveryError::DuplicateDiscovery {
-                package_id: discovery.package_id,
+                package_id: discovery.package_id().to_string(),
             });
         }
     }

@@ -19,15 +19,6 @@ fn review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi() {
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let module_doc =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "catch_unwind(AssertUnwindSafe(call))",
@@ -85,28 +76,6 @@ fn review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi() {
         );
     }
 
-    for doc_anchor in [
-        "Runtime 15 F1 native host callback panic guard",
-        "runtime_15_native_host_callback_panic_guard_static_passed_cargo_deferred",
-        "review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi",
-        "p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred",
-        "catch_native_host_api_panic",
-        "catch_native_plugin_host_callback_panic",
-        "ZIRCON_NATIVE_PLUGIN_STATUS_PANIC",
-    ] {
-        assert!(
-            native_loader_doc.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F1 native host callback panic guard docs/status should record `{doc_anchor}`"
-        );
-    }
     let f1_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F1 |"))

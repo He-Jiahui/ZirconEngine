@@ -124,10 +124,13 @@ fn layout_toolbar(
 
     let padding = density.gap_medium.min(width * 0.1);
     let inner_width = (width - padding * 2.0).max(0.0);
-    let browser_width =
-        measured_button_width(nodes, "OpenAssetBrowser", density, controls).min(inner_width);
-    let search_width = (inner_width - browser_width - density.gap_small).max(0.0);
-    let browser_x = x + padding + search_width + density.gap_small;
+    let (browser_width, search_width, search_gap) = fit_horizontal_pair(
+        inner_width,
+        measured_button_width(nodes, "OpenAssetBrowser", density, controls),
+        inner_width,
+        density.gap_small,
+    );
+    let browser_x = x + padding + search_width + search_gap;
     set_node_frame(
         nodes,
         "AssetsActivityToolbarSearchRow",
@@ -244,13 +247,17 @@ fn layout_utility(
     hide_nodes(nodes, &["AssetsActivitySelectionText"], x + width, y);
 
     let padding = density.gap_medium.min(width * 0.1);
-    let preview_width =
-        measured_button_width(nodes, "AssetsActivityPreviewTabButton", density, controls);
-    let references_width = measured_button_width(
-        nodes,
-        "AssetsActivityReferencesTabButton",
-        density,
-        controls,
+    let inner_width = (width - padding * 2.0).max(0.0);
+    let (preview_width, references_width, utility_tab_gap) = fit_horizontal_pair(
+        inner_width,
+        measured_button_width(nodes, "AssetsActivityPreviewTabButton", density, controls),
+        measured_button_width(
+            nodes,
+            "AssetsActivityReferencesTabButton",
+            density,
+            controls,
+        ),
+        density.gap_small,
     );
     set_node_frame(
         nodes,
@@ -263,7 +270,7 @@ fn layout_utility(
     set_node_frame(
         nodes,
         "AssetsActivityReferencesTabButton",
-        x + padding + preview_width + density.gap_small,
+        x + padding + preview_width + utility_tab_gap,
         y,
         references_width,
         row_height,
@@ -294,7 +301,6 @@ fn layout_utility(
         }
         AssetUtilityTab::References => {
             hide_nodes(nodes, PREVIEW_CONTROLS, x, content_y);
-            layout_references(nodes, x, content_y, width, content_height, density);
         }
         AssetUtilityTab::Metadata | AssetUtilityTab::Plugins => {
             hide_nodes(nodes, PREVIEW_CONTROLS, x, content_y);
@@ -345,60 +351,6 @@ fn layout_preview(
     );
 }
 
-fn layout_references(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    density: EditorDensityTokens,
-) {
-    hide_nodes(nodes, REFERENCE_RIGHT_CONTROLS, x + width, y);
-    hide_nodes(
-        nodes,
-        &[
-            "AssetsActivityReferenceLeftRowPanel",
-            "AssetsActivityReferenceLeftRowNameText",
-            "AssetsActivityReferenceLeftRowLocatorText",
-            "AssetsActivityReferenceLeftRowKindText",
-        ],
-        x,
-        y + height,
-    );
-    set_node_frame(
-        nodes,
-        "AssetsActivityReferenceLeftPanel",
-        x,
-        y,
-        width,
-        height,
-    );
-    set_node_frame(
-        nodes,
-        "AssetsActivityReferenceLeftTitleText",
-        x + density.gap_medium,
-        y,
-        (width - density.gap_medium * 2.0).max(0.0),
-        14.0,
-    );
-    set_node_frame(
-        nodes,
-        "AssetsActivityReferenceLeftScrollBody",
-        x + density.gap_medium,
-        y + 18.0,
-        (width - density.gap_medium * 2.0).max(0.0),
-        (height - 18.0).max(0.0),
-    );
-    set_node_frame(
-        nodes,
-        "AssetsActivityReferenceLeftEmptyText",
-        x + density.gap_medium,
-        y + 22.0,
-        (width - density.gap_medium * 2.0).max(0.0),
-        14.0,
-    );
-}
-
 fn selected_kind_control(kind: Option<ResourceKind>) -> Option<&'static str> {
     match kind {
         Some(ResourceKind::Texture) => Some("AssetsActivityKindTextureChip"),
@@ -426,6 +378,38 @@ fn measured_button_width(
     (measure_runtime_text_width(text, EditorTypographyTokens::WORKBENCH_BODY_SIZE)
         + density.gap_medium * 2.0)
         .max(controls.default_height)
+}
+
+fn fit_horizontal_pair(
+    available_width: f32,
+    primary_preferred_width: f32,
+    secondary_preferred_width: f32,
+    preferred_gap: f32,
+) -> (f32, f32, f32) {
+    let available_width = if available_width.is_finite() {
+        available_width.max(0.0)
+    } else {
+        0.0
+    };
+    let primary_width = if primary_preferred_width.is_finite() {
+        primary_preferred_width.max(0.0).min(available_width)
+    } else {
+        0.0
+    };
+    let secondary_preferred_width = if secondary_preferred_width.is_finite() {
+        secondary_preferred_width.max(0.0)
+    } else {
+        0.0
+    };
+    let remaining_width = (available_width - primary_width).max(0.0);
+    let gap = if primary_width > 0.0 && secondary_preferred_width > 0.0 {
+        preferred_gap.max(0.0).min(remaining_width)
+    } else {
+        0.0
+    };
+    let secondary_width = secondary_preferred_width.min((remaining_width - gap).max(0.0));
+
+    (primary_width, secondary_width, gap)
 }
 
 fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTemplateFrameData> {
@@ -494,17 +478,6 @@ const PREVIEW_CONTROLS: &[&str] = &[
     "AssetsActivityPreviewDiagnosticsText",
 ];
 
-const REFERENCE_RIGHT_CONTROLS: &[&str] = &[
-    "AssetsActivityReferenceRightPanel",
-    "AssetsActivityReferenceRightTitleText",
-    "AssetsActivityReferenceRightScrollBody",
-    "AssetsActivityReferenceRightEmptyText",
-    "AssetsActivityReferenceRightRowPanel",
-    "AssetsActivityReferenceRightRowNameText",
-    "AssetsActivityReferenceRightRowLocatorText",
-    "AssetsActivityReferenceRightRowKindText",
-];
-
 const REFERENCE_CONTROLS: &[&str] = &[
     "AssetsActivityReferenceLeftPanel",
     "AssetsActivityReferenceLeftTitleText",
@@ -523,3 +496,26 @@ const REFERENCE_CONTROLS: &[&str] = &[
     "AssetsActivityReferenceRightRowLocatorText",
     "AssetsActivityReferenceRightRowKindText",
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::fit_horizontal_pair;
+
+    #[test]
+    fn horizontal_pair_never_exceeds_an_ultra_narrow_budget() {
+        let (primary, secondary, gap) = fit_horizontal_pair(16.0, 28.0, 64.0, 4.0);
+
+        assert_eq!(primary, 16.0);
+        assert_eq!(secondary, 0.0);
+        assert_eq!(gap, 0.0);
+        assert!(primary + gap + secondary <= 16.0);
+    }
+
+    #[test]
+    fn horizontal_pair_keeps_preferred_controls_and_standard_gap_when_space_allows() {
+        let (primary, secondary, gap) = fit_horizontal_pair(120.0, 32.0, 40.0, 4.0);
+
+        assert_eq!((primary, secondary, gap), (32.0, 40.0, 4.0));
+        assert!(primary + gap + secondary <= 120.0);
+    }
+}

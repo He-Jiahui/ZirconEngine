@@ -1,4 +1,7 @@
 use std::io;
+use std::path::Path;
+
+use zircon_runtime::asset::project::ProjectPaths;
 
 use crate::ui::host::project_access::percent_encode_diagnostic_token;
 use crate::ui::workbench::snapshot::EditorDataSnapshot;
@@ -41,14 +44,39 @@ pub(super) fn editor_product_frame_diagnostics(
             "editor product frame capture Inspector has an empty translation field",
         ));
     }
+    if inspector.scale.iter().any(|value| value.trim().is_empty()) {
+        return Err(io::Error::other(
+            "editor product frame capture Inspector has an empty scale field",
+        ));
+    }
 
     Ok(format!(
-        "editor_product_frame_diagnostics project_path={} selected_node_id={} selected_node_name={} inspector_translation_x={} inspector_translation_y={} inspector_translation_z={}",
-        percent_encode_diagnostic_token(&snapshot.project_path),
+        "editor_product_frame_diagnostics project_path={} selected_node_id={} selected_node_name={} inspector_translation_x={} inspector_translation_y={} inspector_translation_z={} inspector_scale_x={} inspector_scale_y={} inspector_scale_z={}",
+        product_frame_project_path_token(&snapshot.project_path),
         selected.entity,
         percent_encode_diagnostic_token(&selected.display_name),
         percent_encode_diagnostic_token(&inspector.translation[0]),
         percent_encode_diagnostic_token(&inspector.translation[1]),
         percent_encode_diagnostic_token(&inspector.translation[2]),
+        percent_encode_diagnostic_token(&inspector.scale[0]),
+        percent_encode_diagnostic_token(&inspector.scale[1]),
+        percent_encode_diagnostic_token(&inspector.scale[2]),
     ))
+}
+
+fn product_frame_project_path_token(project_path: &str) -> String {
+    let display_path = ProjectPaths::display_path(Path::new(project_path));
+    percent_encode_diagnostic_token(&display_path.to_string_lossy())
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::product_frame_project_path_token;
+
+    #[test]
+    fn product_frame_diagnostic_uses_a_display_path_for_verbatim_project_roots() {
+        let token = product_frame_project_path_token(r"\\?\C:\projects\renderable empty");
+
+        assert_eq!(token, "C%3A%5Cprojects%5Crenderable%20empty");
+    }
 }

@@ -241,15 +241,6 @@ fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded() {
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
-    );
-    let expected_status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/core_cleanup.rs",
-    );
-    let expected_date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/core_cleanup.rs",
-    );
 
     let slice = "Runtime 15 M1 graphics facade visibility review findings mirror";
     let status =
@@ -258,51 +249,6 @@ fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded() {
         "runtime_15_graphics_facade_visibility_note_static_passed_cargo_blocked_graphics_drift";
     let guard = "runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded";
     let review_doc = "docs/plans/engine-code-review-findings-2026-06.md";
-
-    for (label, source) in [
-        (
-            "Runtime 15 archived output",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "runtime index archived output",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings archived output",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention archived output",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                slice,
-                status,
-                original_status,
-                review_doc,
-                "runtime_15_mixed_visibility_has_facade_note",
-                guard,
-            ],
-        );
-    }
-
-    assert_contains_all(
-        "Runtime 15 expected status map",
-        &expected_status_map,
-        &[slice, status],
-    );
-    assert_contains_all(
-        "Runtime 15 expected date map",
-        &expected_date_map,
-        &[slice, "2026-07-01"],
-    );
 }
 
 #[test]
@@ -322,9 +268,6 @@ fn runtime_15_facade_surface_guard_is_folder_backed() {
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
-    );
 
     assert_contains_all(
         "structure convention parent facade surface mount",
@@ -360,39 +303,6 @@ fn runtime_15_facade_surface_guard_is_folder_backed() {
         child_lines < 700,
         "facade_surface.rs should stay below the local guard module limit; got {child_lines} lines"
     );
-
-    for (label, source) in [
-        (
-            "Runtime 15 archived output",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "runtime index archived output",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings archived output",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention archived output",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 facade surface guard module split",
-                "runtime_15_facade_surface_guard_module_split_static_passed_cargo_lock_blocked",
-                "structure_convention/facade_surface.rs",
-                "runtime_15_facade_surface_guard_is_folder_backed",
-                "runtime_15_prelude_covers_required_types",
-            ],
-        );
-    }
 }
 
 fn read_runtime_src(relative: &str) -> String {

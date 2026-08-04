@@ -32,7 +32,11 @@ pub(super) fn tooltip_state_style_from_palette(
             style.title = palette.title;
             style
         }
-        UiPainterResolvedState::Focused => tooltip_normal_style_from_palette(state, palette),
+        UiPainterResolvedState::Focused => {
+            let mut style = tooltip_normal_style_from_palette(state, palette);
+            style.border = palette.focused_border;
+            style
+        }
         UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered

@@ -13,7 +13,7 @@ PRESET_PATH = REPO_ROOT / "zircon_runtime" / "runtime-feature-presets.toml"
 
 def load_profiles() -> list[dict[str, object]]:
     document = tomllib.loads(PRESET_PATH.read_text(encoding="utf-8"))
-    if document.get("schema_version") != 1:
+    if document.get("schema_version") != 2:
         raise ValueError(f"unsupported runtime feature preset schema in {PRESET_PATH}")
     profiles = document.get("profiles")
     if not isinstance(profiles, list) or not profiles:

@@ -30,6 +30,7 @@ fn runtime_session_archive_prunes_only_matching_tag_bucket() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual-new", "manual-old", "manual-protected"]
     );
+    let revision_before_prune = archive.revision();
 
     let report = archive
         .prune_slots_with_tag(
@@ -48,6 +49,7 @@ fn runtime_session_archive_prunes_only_matching_tag_bucket() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual-new", "manual-protected"]
     );
+    assert_eq!(archive.revision(), revision_before_prune + 1);
 }
 
 #[test]
@@ -58,6 +60,7 @@ fn runtime_session_archive_prune_tag_empty_query_is_noop() {
         tagged_slot(&source, "autosave", "autosave", 20),
     ])
     .expect("archive should accept tagged slots");
+    let revision_before_prune = archive.revision();
 
     let report = archive
         .prune_slots_with_tag("", RuntimeSessionArchiveRetentionPolicy::keep_latest(0))
@@ -69,6 +72,7 @@ fn runtime_session_archive_prune_tag_empty_query_is_noop() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual"]
     );
+    assert_eq!(archive.revision(), revision_before_prune);
 }
 
 #[test]
@@ -90,6 +94,7 @@ fn runtime_session_archive_previews_global_retention_without_mutation() {
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["slot-mid", "slot-new", "slot-old"]
     );
+    let revision_before_prune = archive.revision();
 
     let report = archive
         .prune_slots(RuntimeSessionArchiveRetentionPolicy::keep_latest(1))
@@ -97,10 +102,11 @@ fn runtime_session_archive_previews_global_retention_without_mutation() {
 
     assert_eq!(report, preview);
     assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["slot-new"]);
+    assert_eq!(archive.revision(), revision_before_prune + 1);
 }
 
 #[test]
-fn runtime_session_archive_preview_capture_retention_prunes_clone_without_mutating_archive() {
+fn runtime_session_archive_preview_capture_retention_projects_without_mutating_archive() {
     let empty = World::empty();
     let mut captured_world = World::empty();
     captured_world.spawn_node(NodeKind::Mesh);
@@ -121,7 +127,7 @@ fn runtime_session_archive_preview_capture_retention_prunes_clone_without_mutati
                 .with_updated_at_unix_millis(1),
             RuntimeSessionArchiveRetentionPolicy::keep_latest(1),
         )
-        .expect("capture-retention preview should prune cloned archive only");
+        .expect("capture-retention preview should project the staged archive only");
 
     assert_eq!(preview.capture.slot_id, "autosave-new");
     assert_eq!(preview.capture.entity_count, 1);
@@ -138,6 +144,38 @@ fn runtime_session_archive_preview_capture_retention_prunes_clone_without_mutati
 }
 
 #[test]
+fn runtime_session_archive_capture_empty_tag_retention_does_not_prune() {
+    let source = World::empty();
+    let mut archive =
+        RuntimeSessionArchive::from_slots(vec![tagged_slot(&source, "slot-new", "manual", 50)])
+            .expect("archive should accept empty-tag capture-retention slots");
+    let revision_before_capture = archive.revision();
+
+    let report = archive
+        .capture_world_slot_with_tag_retention(
+            "   ",
+            " quicksave ",
+            &source,
+            RuntimeSessionMetadata::default()
+                .with_tag(" quicksave ")
+                .with_updated_at_unix_millis(1),
+            RuntimeSessionArchiveRetentionPolicy::keep_latest(0),
+        )
+        .expect("empty tag capture retention should preserve the full archive");
+
+    assert!(report.prune.removed_slot_ids.is_empty());
+    assert_eq!(
+        report.manifest.slot_ids().collect::<Vec<_>>(),
+        vec!["quicksave", "slot-new"]
+    );
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["quicksave", "slot-new"]
+    );
+    assert_eq!(archive.revision(), revision_before_capture + 1);
+}
+
+#[test]
 fn runtime_session_archive_capture_retention_protects_captured_slot_before_pruning() {
     let empty = World::empty();
     let mut captured_world = World::empty();
@@ -147,6 +185,7 @@ fn runtime_session_archive_capture_retention_protects_captured_slot_before_pruni
         tagged_slot(&empty, "slot-old", "manual", 10),
     ])
     .expect("archive should accept capture-retention commit slots");
+    let revision_before_capture = archive.revision();
 
     let report = archive
         .capture_world_slot_with_retention(
@@ -167,6 +206,7 @@ fn runtime_session_archive_capture_retention_protects_captured_slot_before_pruni
         vec!["quicksave"]
     );
     assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["quicksave"]);
+    assert_eq!(archive.revision(), revision_before_capture + 1);
     assert_eq!(
         archive
             .slot("quicksave")

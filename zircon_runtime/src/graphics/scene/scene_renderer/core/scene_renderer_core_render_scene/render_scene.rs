@@ -48,11 +48,21 @@ impl SceneRendererCore {
             .transpose()
             .map_err(GraphicsError::Asset)?
             .flatten();
-        let shadow_frame_plan =
-            crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
+        let static_caster_revision = streamer
+            .with_ready_resource_revisions(|resource_revision| {
+                crate::graphics::scene::scene_renderer::shadow::
+                    static_shadow_caster_revision_from_meshes_with_resource_revisions(
+                        &frame.extract.geometry.meshes,
+                        |resource| resource_revision(resource),
+                    )
+            })
+            .flatten();
+        let shadow_frame_plan = crate::graphics::scene::scene_renderer::shadow::
+            build_shadow_frame_plan_with_static_caster_revision(
                 &mut self.shadow_atlas_allocator,
                 frame,
                 self.shadow_atlas_resources.config(),
+                static_caster_revision,
             );
         self.shadow_atlas_resources
             .upload_frame(

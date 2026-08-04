@@ -68,15 +68,17 @@ fn plugin_particle_extensions_still_require_explicit_registration_for_custom_exe
         "particle",
         Vec::new(),
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent3d,
-            "particle-plugin-gpu-simulation",
-            QueueLane::Graphics,
-        )
-        .with_executor_id("particle.plugin-gpu-simulation")
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
-        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-plugin-gpu-simulation",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.plugin-gpu-simulation")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
+        ],
     );
     let compiled = RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([descriptor.clone()])

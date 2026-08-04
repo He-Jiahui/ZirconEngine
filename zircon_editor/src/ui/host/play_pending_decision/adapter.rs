@@ -8,8 +8,8 @@ use crate::core::notifications::{
 use crate::core::play::PendingEditDecisionPrompt;
 
 use super::{
-    PlayPendingDecisionOption, PlayPendingDecisionSelection, PLAY_PENDING_EDITS_APPLY_OPTION,
-    PLAY_PENDING_EDITS_DISCARD_OPTION,
+    PLAY_PENDING_EDITS_APPLY_OPTION, PLAY_PENDING_EDITS_DISCARD_OPTION, PlayPendingDecisionOption,
+    PlayPendingDecisionSelection,
 };
 
 // Keep selection mappings for the same bounded horizon as core receipt replay.
@@ -17,7 +17,7 @@ const MAX_RETAINED_DECISIONS: usize = 256;
 const PLAY_PENDING_EDITS_NOTIFICATION_PREFIX: &str = "editor.play.pending_edits";
 
 #[derive(Default)]
-pub(super) struct PlayPendingEditDecisionAdapter {
+pub(crate) struct PlayPendingEditDecisionAdapter {
     state: Mutex<PlayPendingEditDecisionState>,
 }
 

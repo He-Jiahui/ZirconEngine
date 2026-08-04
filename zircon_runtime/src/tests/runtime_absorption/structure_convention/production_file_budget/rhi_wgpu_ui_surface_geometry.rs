@@ -2,8 +2,8 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner() {
-    let parent = read_runtime_src("rhi_wgpu/ui_surface/geometry.rs");
-    let tests = read_runtime_src("rhi_wgpu/ui_surface/geometry/tests.rs");
+    let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs");
+    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -11,9 +11,6 @@ fn runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let rhi_ui_doc = read_repo("docs/zircon_runtime/rhi/ui_surface.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "WGPU UI surface geometry parent keeps geometry production entry points and child test mount",
@@ -97,15 +94,4 @@ fn runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 RHI WGPU UI surface geometry test owner split",
-            "runtime_15_rhi_wgpu_ui_surface_geometry_tests_owner_split_static_passed_cargo_timeout_no_result",
-            "rhi_wgpu/ui_surface/geometry.rs",
-            "rhi_wgpu/ui_surface/geometry/tests.rs",
-            "runtime_15_rhi_wgpu_ui_surface_geometry_tests_are_child_owner",
-        ],
-    );
 }

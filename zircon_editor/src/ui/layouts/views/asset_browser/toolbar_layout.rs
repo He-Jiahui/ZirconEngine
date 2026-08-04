@@ -4,16 +4,16 @@ use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorDen
 const COMPACT_SEARCH_MIN_WIDTH: f32 = 160.0;
 const COMPACT_SEARCH_PREFERRED_RATIO: f32 = 0.38;
 const COMPACT_SEARCH_PREFERRED_MIN_WIDTH: f32 = 240.0;
+const COMPACT_IMPORT_BUTTON_MIN_WIDTH: f32 = 72.0;
 const COMPACT_IMPORT_PATH_MIN_WIDTH: f32 = 180.0;
 const COMPACT_IMPORT_PATH_MAX_WIDTH: f32 = 260.0;
 const COMPACT_IMPORT_PATH_VISIBLE_WIDTH: f32 = 1040.0;
-const COMPACT_VIEW_MODE_ICON_WIDTH: f32 = 30.0;
-const COMPACT_LOCATE_ICON_WIDTH: f32 = 30.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct AssetBrowserToolbarMetrics {
     toolbar_height: f32,
     control_height: f32,
+    compact_icon_width: f32,
     control_offset_y: f32,
     side_pad: f32,
     root_gap: f32,
@@ -89,20 +89,43 @@ fn layout_single_toolbar_row(
     let row_x = x + metrics.side_pad.min(width * 0.04);
     let row_y = y + metrics.control_offset_y;
     let row_width = (width - (row_x - x) * 2.0).max(0.0);
-    let import = compact_import_group(nodes, row_width, metrics);
-    let view = compact_view_group(nodes, metrics);
-    let locate_width = control_width(nodes, "LocateSelectedAsset", COMPACT_LOCATE_ICON_WIDTH);
-    let trailing_actions_width = view.width + metrics.group_gap + locate_width;
-    let view_x = row_x + row_width - import.width - import.leading_gap - trailing_actions_width;
-    let leading_span_width = (view_x - metrics.group_gap - row_x).max(0.0);
+    let mut import = compact_import_group(nodes, row_width, metrics);
+    let mut view = compact_view_group(nodes, metrics);
+    let locate_width = control_width(nodes, "LocateSelectedAsset", metrics.compact_icon_width);
+    let mut locate_visible = true;
+    collapse_trailing_actions_to_fit(
+        row_width,
+        &mut view,
+        &mut locate_visible,
+        &mut import,
+        locate_width,
+        metrics,
+    );
+    let trailing_width =
+        trailing_actions_width(&view, locate_visible, &import, locate_width, metrics);
+    let trailing_x = row_x + row_width - trailing_width;
+    let leading_gap = if trailing_width > 0.0 {
+        metrics.group_gap
+    } else {
+        0.0
+    };
+    let leading_span_width = (trailing_x - leading_gap - row_x).max(0.0);
     let all_chip_width = control_width(nodes, "AssetBrowserKindAllChip", 44.0);
-    let preferred_search_width = (row_width * COMPACT_SEARCH_PREFERRED_RATIO)
-        .max(COMPACT_SEARCH_PREFERRED_MIN_WIDTH)
-        .min((leading_span_width - all_chip_width - metrics.group_gap).max(0.0));
-    let search_width = preferred_search_width.max(COMPACT_SEARCH_MIN_WIDTH.min(leading_span_width));
-    let chip_x = row_x + search_width + metrics.group_gap;
-    let chip_width_limit = (view_x - metrics.group_gap - chip_x).max(0.0);
-    let import_x = row_x + row_width - import.width;
+    let search_width = if leading_span_width >= COMPACT_SEARCH_MIN_WIDTH {
+        let preferred_search_width = (row_width * COMPACT_SEARCH_PREFERRED_RATIO)
+            .max(COMPACT_SEARCH_PREFERRED_MIN_WIDTH)
+            .min((leading_span_width - all_chip_width - metrics.group_gap).max(0.0));
+        preferred_search_width.max(COMPACT_SEARCH_MIN_WIDTH)
+    } else {
+        0.0
+    };
+    let search_gap = if search_width > 0.0 {
+        metrics.group_gap
+    } else {
+        0.0
+    };
+    let chip_x = row_x + search_width + search_gap;
+    let chip_width_limit = (trailing_x - leading_gap - chip_x).max(0.0);
 
     set_node_frame(
         nodes,
@@ -121,34 +144,102 @@ fn layout_single_toolbar_row(
         metrics.control_height,
     );
     layout_kind_chips(nodes, chip_x, row_y, chip_width_limit, metrics);
-    set_node_frame(
-        nodes,
-        "AssetBrowserViewModeListButton",
-        view_x,
-        row_y,
-        view.list_width,
-        metrics.control_height,
-    );
-    set_node_frame(
-        nodes,
-        "AssetBrowserViewModeThumbButton",
-        view_x + view.list_width + metrics.view_button_gap,
-        row_y,
-        view.thumb_width,
-        metrics.control_height,
-    );
-    set_node_frame(
-        nodes,
-        "LocateSelectedAsset",
-        view_x + view.width + metrics.group_gap,
-        row_y,
-        locate_width,
-        metrics.control_height,
-    );
-    layout_filter_group_frame(nodes, chip_x, row_y, view_x, view, metrics);
+    let mut action_x = trailing_x;
+    if view.visible {
+        set_node_frame(
+            nodes,
+            "AssetBrowserViewModeListButton",
+            action_x,
+            row_y,
+            view.list_width,
+            metrics.control_height,
+        );
+        set_node_frame(
+            nodes,
+            "AssetBrowserViewModeThumbButton",
+            action_x + view.list_width + metrics.view_button_gap,
+            row_y,
+            view.thumb_width,
+            metrics.control_height,
+        );
+        action_x += view.width;
+    } else {
+        hide_node(nodes, "AssetBrowserViewModeListButton", action_x, row_y);
+        hide_node(nodes, "AssetBrowserViewModeThumbButton", action_x, row_y);
+    }
+    let filter_right_edge = if view.visible {
+        action_x
+    } else {
+        trailing_x - leading_gap
+    };
+    if view.visible && locate_visible {
+        action_x += metrics.group_gap;
+    }
+    if locate_visible {
+        set_node_frame(
+            nodes,
+            "LocateSelectedAsset",
+            action_x,
+            row_y,
+            locate_width,
+            metrics.control_height,
+        );
+        action_x += locate_width;
+    } else {
+        hide_node(nodes, "LocateSelectedAsset", action_x, row_y);
+    }
+    if locate_visible && import.visible {
+        action_x += metrics.group_gap;
+    }
+    layout_filter_group_frame(nodes, chip_x, row_y, filter_right_edge, metrics);
 
-    hide_node(nodes, "AssetBrowserImportLabel", import_x, row_y);
-    layout_import_group(nodes, import_x, row_y, import, metrics);
+    hide_node(nodes, "AssetBrowserImportLabel", action_x, row_y);
+    layout_import_group(nodes, action_x, row_y, import, metrics);
+}
+
+fn collapse_trailing_actions_to_fit(
+    row_width: f32,
+    view: &mut CompactViewGroup,
+    locate_visible: &mut bool,
+    import: &mut CompactImportGroup,
+    locate_width: f32,
+    metrics: AssetBrowserToolbarMetrics,
+) {
+    while trailing_actions_width(view, *locate_visible, import, locate_width, metrics) > row_width {
+        if view.visible {
+            view.visible = false;
+        } else if *locate_visible {
+            *locate_visible = false;
+        } else if import.visible {
+            import.visible = false;
+        } else {
+            break;
+        }
+    }
+}
+
+fn trailing_actions_width(
+    view: &CompactViewGroup,
+    locate_visible: bool,
+    import: &CompactImportGroup,
+    locate_width: f32,
+    metrics: AssetBrowserToolbarMetrics,
+) -> f32 {
+    let mut width = 0.0;
+    for action_width in [
+        view.visible.then_some(view.width),
+        locate_visible.then_some(locate_width),
+        import.visible.then_some(import.width),
+    ] {
+        let Some(action_width) = action_width else {
+            continue;
+        };
+        if width > 0.0 {
+            width += metrics.group_gap;
+        }
+        width += action_width;
+    }
+    width
 }
 
 fn layout_kind_chips(
@@ -257,12 +348,12 @@ fn compact_view_group(
     let list_width = control_width(
         nodes,
         "AssetBrowserViewModeListButton",
-        COMPACT_VIEW_MODE_ICON_WIDTH,
+        metrics.compact_icon_width,
     );
     let thumb_width = control_width(
         nodes,
         "AssetBrowserViewModeThumbButton",
-        COMPACT_VIEW_MODE_ICON_WIDTH,
+        metrics.compact_icon_width,
     );
     CompactViewGroup {
         visible: true,
@@ -278,10 +369,11 @@ fn compact_import_group(
     metrics: AssetBrowserToolbarMetrics,
 ) -> CompactImportGroup {
     let button_width = control_width(nodes, "ImportModel", 96.0)
-        .min((row_width * 0.14).max(72.0))
+        .min((row_width * 0.14).max(COMPACT_IMPORT_BUTTON_MIN_WIDTH))
         .min(row_width);
+    let visible = button_width >= COMPACT_IMPORT_BUTTON_MIN_WIDTH;
     let show_path = row_width >= COMPACT_IMPORT_PATH_VISIBLE_WIDTH;
-    let path_width = if show_path {
+    let path_width = if visible && show_path {
         (row_width * 0.26)
             .max(COMPACT_IMPORT_PATH_MIN_WIDTH)
             .min(COMPACT_IMPORT_PATH_MAX_WIDTH)
@@ -289,17 +381,19 @@ fn compact_import_group(
     } else {
         0.0
     };
-    let width = if path_width > 0.0 {
+    let width = if !visible {
+        0.0
+    } else if path_width > 0.0 {
         path_width + metrics.group_gap + button_width
     } else {
         button_width
     };
     CompactImportGroup {
+        visible,
         path_visible: path_width > 0.0,
         path_width,
         button_width,
         width,
-        leading_gap: metrics.group_gap,
     }
 }
 
@@ -310,7 +404,10 @@ fn layout_import_group(
     group: CompactImportGroup,
     metrics: AssetBrowserToolbarMetrics,
 ) {
-    if group.path_visible {
+    if !group.visible {
+        hide_node(nodes, "AssetBrowserImportPathField", x, y);
+        hide_node(nodes, "ImportModel", x, y);
+    } else if group.path_visible {
         set_node_frame(
             nodes,
             "AssetBrowserImportPathField",
@@ -344,11 +441,9 @@ fn layout_filter_group_frame(
     nodes: &mut [ViewTemplateNodeData],
     x: f32,
     y: f32,
-    view_x: f32,
-    view: CompactViewGroup,
+    right_edge: f32,
     metrics: AssetBrowserToolbarMetrics,
 ) {
-    let right_edge = view_x + view.width;
     let group_x = x - metrics.group_frame_pad;
     let group_y = y - metrics.control_offset_y;
     let group_width = (right_edge - x + metrics.group_frame_pad * 2.0).max(0.0);
@@ -378,6 +473,7 @@ fn asset_browser_toolbar_metrics_from_tokens(
     AssetBrowserToolbarMetrics {
         toolbar_height,
         control_height: (toolbar_height - controls.border_width * 2.0).max(controls.border_width),
+        compact_icon_width: controls.compact_height,
         control_offset_y,
         side_pad: density.gap_medium,
         root_gap: (density.gap_medium - controls.border_width * 2.0).max(0.0),
@@ -389,6 +485,7 @@ fn asset_browser_toolbar_metrics_from_tokens(
 }
 
 struct CompactViewGroup {
+    visible: bool,
     list_width: f32,
     thumb_width: f32,
     width: f32,
@@ -396,11 +493,11 @@ struct CompactViewGroup {
 
 #[derive(Clone, Copy)]
 struct CompactImportGroup {
+    visible: bool,
     path_visible: bool,
     path_width: f32,
     button_width: f32,
     width: f32,
-    leading_gap: f32,
 }
 
 fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTemplateFrameData> {
@@ -470,12 +567,14 @@ mod tests {
         density.gap_medium = 10.0;
         let mut controls = EditorControlTokens::workbench_dense();
         controls.border_width = 2.0;
+        controls.compact_height = 31.0;
 
         let metrics = asset_browser_toolbar_metrics_from_tokens(density, controls);
 
         assert_eq!(metrics.toolbar_height, 38.0);
         assert_eq!(metrics.control_height, 34.0);
         assert_eq!(metrics.control_offset_y, 2.0);
+        assert_eq!(metrics.compact_icon_width, 31.0);
         assert_eq!(metrics.side_pad, 10.0);
         assert_eq!(metrics.root_gap, 6.0);
         assert_eq!(metrics.group_gap, 10.0);

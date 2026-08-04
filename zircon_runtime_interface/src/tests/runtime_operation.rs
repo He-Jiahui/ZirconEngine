@@ -1,5 +1,5 @@
 use crate::{
-    ZrRuntimeApiV3, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
+    ZrRuntimeApiV4, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
     ZrRuntimeOperationOutcomeV1, ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1,
     ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
     ZIRCON_RUNTIME_ABI_VERSION_V2,
@@ -91,24 +91,24 @@ fn runtime_operation_status_v2_is_fixed_layout_and_result_keeps_terminal_outcome
 
 #[test]
 fn runtime_operation_function_pointers_are_v3_api_table_tail() {
-    let api = ZrRuntimeApiV3::empty();
+    let api = ZrRuntimeApiV4::empty();
 
     assert!(api.submit_operation.is_none());
     assert!(api.poll_operation.is_none());
     assert!(api.harvest_operation.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, submit_operation),
-        core::mem::offset_of!(ZrRuntimeApiV3, drain_plugin_events)
+        core::mem::offset_of!(ZrRuntimeApiV4, submit_operation),
+        core::mem::offset_of!(ZrRuntimeApiV4, drain_plugin_events)
             + core::mem::size_of_val(&api.drain_plugin_events)
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, poll_operation),
-        core::mem::offset_of!(ZrRuntimeApiV3, submit_operation)
+        core::mem::offset_of!(ZrRuntimeApiV4, poll_operation),
+        core::mem::offset_of!(ZrRuntimeApiV4, submit_operation)
             + core::mem::size_of_val(&api.submit_operation)
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, harvest_operation),
-        core::mem::offset_of!(ZrRuntimeApiV3, poll_operation)
+        core::mem::offset_of!(ZrRuntimeApiV4, harvest_operation),
+        core::mem::offset_of!(ZrRuntimeApiV4, poll_operation)
             + core::mem::size_of_val(&api.poll_operation)
     );
 }

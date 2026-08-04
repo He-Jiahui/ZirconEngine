@@ -4,7 +4,10 @@ use std::time::Instant;
 
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
-use crate::graphics::backend::{GpuPassTimer, DEFAULT_GPU_TIMER_MAX_PASSES};
+use crate::graphics::backend::{
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer,
+    GpuPipelineStatisticsTimer,
+};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
@@ -156,11 +159,19 @@ impl SceneRenderer {
             plugin_shader_module_sources,
         )?;
         let resource_streamer_initialization = resource_streamer_started.elapsed();
+        core.mesh_pipelines
+            .set_async_pipeline_compile_enabled(startup_options.async_pipeline_compile_enabled());
         let environment_only_pbr_base_prewarm =
             if startup_options.requires_environment_only_pbr_base_prewarm() {
                 Some(
                     core.mesh_pipelines
                         .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
+                        .into(),
+                )
+            } else if startup_options.queues_environment_only_pbr_base_prewarm() {
+                Some(
+                    core.mesh_pipelines
+                        .queue_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
                         .into(),
                 )
             } else {
@@ -176,6 +187,15 @@ impl SceneRenderer {
                 )
             })
             .flatten();
+        let gpu_pipeline_statistics_timer = startup_options
+            .allow_gpu_timing()
+            .then(|| {
+                GpuPipelineStatisticsTimer::try_new(
+                    &backend.device,
+                    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+                )
+            })
+            .flatten();
         Ok((
             Self {
                 backend,
@@ -186,7 +206,9 @@ impl SceneRenderer {
                 history_targets: HashMap::new(),
                 generation: 0,
                 gpu_pass_timer,
+                gpu_pipeline_statistics_timer,
                 last_gpu_timer_frame_result: None,
+                last_gpu_pipeline_statistics_frame_result: None,
                 render_pass_executors:
                     RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
                         render_features,

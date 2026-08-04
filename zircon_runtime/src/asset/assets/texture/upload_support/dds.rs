@@ -1,8 +1,8 @@
 use super::super::TextureAsset;
 use super::bytes::read_u32_le;
 use super::{
-    TextureUploadCompressionFamily, TextureUploadPlan, texture_descriptor_layer_count,
-    texture_descriptor_mip_count,
+    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadSubresource,
+    texture_descriptor_layer_count, texture_descriptor_mip_count,
 };
 
 const DDPF_FOURCC: u32 = 0x0000_0004;
@@ -87,6 +87,7 @@ pub(super) fn dds_upload_plan(
         }
         _ => return None,
     };
+    let subresources = dds_upload_subresources(texture, data_offset, 4, 4, bytes_per_block)?;
     Some(TextureUploadPlan {
         format: normalized,
         compression: TextureUploadCompressionFamily::Bc,
@@ -96,7 +97,67 @@ pub(super) fn dds_upload_plan(
         block_height: 4,
         block_depth: 1,
         bytes_per_block,
+        subresources,
     })
+}
+
+fn dds_upload_subresources(
+    texture: &TextureAsset,
+    data_offset: usize,
+    block_width: u32,
+    block_height: u32,
+    bytes_per_block: u32,
+) -> Option<Vec<TextureUploadSubresource>> {
+    let mip_count = texture_descriptor_mip_count(texture);
+    let layer_count = texture_descriptor_layer_count(texture);
+    let mut level_layouts = Vec::with_capacity(usize::try_from(mip_count).ok()?);
+    let mut bytes_per_layer = 0_usize;
+    for mip_level in 0..mip_count {
+        let width = mip_extent(texture.width.max(1), mip_level);
+        let height = mip_extent(texture.height.max(1), mip_level);
+        let block_columns = div_ceil(width, block_width);
+        let block_rows = div_ceil(height, block_height);
+        let bytes_per_row = block_columns.checked_mul(bytes_per_block)?;
+        let data_length =
+            usize::try_from(u64::from(bytes_per_row).checked_mul(u64::from(block_rows))?).ok()?;
+        bytes_per_layer = bytes_per_layer.checked_add(data_length)?;
+        level_layouts.push((mip_level, bytes_per_row, block_rows, data_length));
+    }
+
+    let capacity = usize::try_from(mip_count.checked_mul(layer_count)?).ok()?;
+    let mut subresources = Vec::with_capacity(capacity);
+    for array_layer in 0..layer_count {
+        let mut offset = data_offset.checked_add(
+            usize::try_from(array_layer)
+                .ok()?
+                .checked_mul(bytes_per_layer)?,
+        )?;
+        for (mip_level, bytes_per_row, block_rows, data_length) in &level_layouts {
+            subresources.push(TextureUploadSubresource {
+                mip_level: *mip_level,
+                array_layer,
+                data_offset: offset,
+                data_length: *data_length,
+                bytes_per_row: *bytes_per_row,
+                block_rows: *block_rows,
+            });
+            offset = offset.checked_add(*data_length)?;
+        }
+    }
+    Some(subresources)
+}
+
+fn div_ceil(value: u32, divisor: u32) -> u32 {
+    value.saturating_add(divisor.saturating_sub(1)) / divisor.max(1)
+}
+
+const fn mip_extent(value: u32, level: u32) -> u32 {
+    let shifted = if level >= u32::BITS {
+        0
+    } else {
+        value >> level
+    };
+    if shifted == 0 { 1 } else { shifted }
 }
 
 fn dds_classic_fourcc_upload_layout(

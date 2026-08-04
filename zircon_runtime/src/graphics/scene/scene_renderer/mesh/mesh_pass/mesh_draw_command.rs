@@ -206,6 +206,7 @@ pub(crate) struct MeshDrawCommand {
     pipeline_key: PipelineKey,
     pub(crate) pipeline_variant_id: MeshPipelineVariantId,
     pub(crate) sort_key: u64,
+    half_resolution_transparency: bool,
     pub(crate) instance_source: DrawInstanceSource,
     pub(crate) material_textures: Option<MeshBindHandle>,
     pub(crate) base_color_texture: Option<MeshBindHandle>,
@@ -236,6 +237,7 @@ impl MeshDrawCommand {
             pipeline_key,
             pipeline_variant_id,
             sort_key,
+            half_resolution_transparency: false,
             instance_source,
             material_textures: None,
             base_color_texture: None,
@@ -260,6 +262,15 @@ impl MeshDrawCommand {
     pub(crate) fn with_source_entity(mut self, source_entity: EntityId) -> Self {
         self.source_entity = source_entity;
         self
+    }
+
+    pub(crate) fn with_half_resolution_transparency(mut self, enabled: bool) -> Self {
+        self.half_resolution_transparency = enabled;
+        self
+    }
+
+    pub(crate) const fn uses_half_resolution_transparency(&self) -> bool {
+        self.half_resolution_transparency
     }
 
     pub(crate) fn with_material_textures(mut self, handle: MeshBindHandle) -> Self {

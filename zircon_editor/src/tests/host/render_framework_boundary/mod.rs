@@ -8,7 +8,18 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
         include_str!("../../../ui/retained_host/viewport/render_framework_resolve_job.rs");
     let viewport_submit_source =
         include_str!("../../../ui/retained_host/viewport/submit_extract.rs");
-    let viewport_poll_source = include_str!("../../../ui/retained_host/viewport/poll_image.rs");
+    let viewport_lifecycle_source =
+        include_str!("../../../ui/retained_host/viewport/viewport_lifecycle.rs");
+    let viewport_poll_source =
+        include_str!("../../../ui/retained_host/viewport/poll_captured_frame.rs");
+    let viewport_redraw_source =
+        include_str!("../../../ui/retained_host/app/viewport_image_redraw.rs");
+    let host_viewport_image_source =
+        include_str!("../../../ui/retained_host/host_contract/data/viewport_image.rs");
+    let host_viewport_image_production_source = host_viewport_image_source
+        .split("\n#[cfg(test)]")
+        .next()
+        .expect("viewport image source should have a production section");
     let startup_assembly_source = include_str!(
         "../../../ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs"
     );
@@ -37,9 +48,39 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
         "editor viewport controller should submit RenderFrameExtract through RenderFramework"
     );
     assert!(
+        viewport_submit_source.contains("let _operation = self.lock_viewport_lifecycle();")
+            && viewport_submit_source.contains("let Some((viewport, render_framework))")
+            && viewport_submit_source.contains("render_framework.submit_frame_extract_with_ui")
+            && viewport_submit_source
+                .contains("render_framework.query_visible_spatial_snapshot(viewport)")
+            && viewport_submit_source.contains("active.handle == viewport"),
+        "editor viewport controller should retain the viewport operation while submitting outside its state mutex"
+    );
+    assert!(
+        !viewport_lifecycle_source.contains("let _operation")
+            && viewport_lifecycle_source.contains("render_framework.destroy_viewport")
+            && viewport_lifecycle_source.contains("render_framework.create_viewport")
+            && viewport_lifecycle_source.contains("render_framework.set_quality_profile"),
+        "viewport recreation must be called under the controller operation gate"
+    );
+    assert!(
         viewport_poll_source.contains("poll_captured_frame_if_newer")
-            && viewport_poll_source.contains("shared.latest_generation"),
-        "editor viewport controller should poll completed async captures before copying RGBA"
+            && viewport_poll_source.contains("shared.latest_generation")
+            && !viewport_state_source.contains("latest_image")
+            && !viewport_poll_source.contains("SharedPixelBuffer")
+            && !viewport_poll_source.contains("Image::"),
+        "editor viewport fallback should transfer the captured RGBA owner after generation validation"
+    );
+    assert!(
+        viewport_redraw_source.contains("poll_captured_frame()")
+            && viewport_redraw_source.contains("set_viewport_capture(viewport, frame)")
+            && host_viewport_image_production_source.contains("rgba: frame.rgba")
+            && host_viewport_image_production_source
+                .contains("viewport_image_resource_key(viewport, generation)")
+            && !host_viewport_image_production_source.contains("DefaultHasher")
+            && !host_viewport_image_production_source.contains("to_rgba8")
+            && !host_viewport_image_production_source.contains("to_vec"),
+        "async viewport fallback must move the captured RGBA Vec into host presentation data without a content hash"
     );
     assert!(
         viewport_poll_source.contains("let poll_request = {")
@@ -63,6 +104,7 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
             !viewport_new_source.contains(forbidden)
                 && !viewport_state_source.contains(forbidden)
                 && !viewport_submit_source.contains(forbidden)
+                && !viewport_lifecycle_source.contains(forbidden)
                 && !viewport_poll_source.contains(forbidden),
             "editor viewport sources should not reference `{forbidden}` after RenderFramework migration"
         );

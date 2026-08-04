@@ -18,25 +18,25 @@ use super::super::super::mesh_draw::{
 };
 use super::super::super::mesh_pass::MeshPassCommandBuffers;
 use super::super::super::prepared_queue::{
-    summarize_prepared_mesh_queue_items, PreparedMeshQueueStats,
+    PreparedMeshQueueStats, summarize_prepared_mesh_queue_items,
 };
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
 use super::geometry_source_selection::{
-    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_geometry_source,
-    pending_mesh_source_selection, PendingMeshSourceSelection,
+    PendingMeshSourceSelection, pending_draw_has_enabled_skinned_gpu_source,
+    pending_mesh_draw_geometry_source, pending_mesh_source_selection,
 };
-use super::gpu_scene_sync::{sync_gpu_scene_pending_draws, SyncedGpuSceneEntry};
+use super::gpu_scene_sync::{SyncedGpuSceneEntry, sync_gpu_scene_pending_draws};
 use super::morph_payload_upload::upload_morph_payloads;
 use super::pending_command_cache_extract::{
-    extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
-    PendingMeshCommandCacheExtractionStats, PendingMeshDrawRemainder,
+    PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
+    PendingMeshDrawRemainder, extract_pending_static_mesh_command_cache_hits,
 };
 use super::pending_command_cache_plan::{
-    summarize_pending_mesh_command_cache_plan, PendingMeshCommandCachePlanStats,
-    PendingMeshCommandCacheVisibility,
+    PendingMeshCommandCachePlanStats, PendingMeshCommandCacheVisibility,
+    summarize_pending_mesh_command_cache_plan,
 };
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::phase_ordering::phase_ordered_meshes;
@@ -143,6 +143,9 @@ pub(crate) fn build_mesh_draws(
     }
     for pending_draw in &mut pending_draws {
         pending_draw.pipeline_key.volumetric_fog = volumetric_fog_enabled;
+        pending_draw
+            .material_textures
+            .set_max_anisotropy(frame.texture_max_anisotropy());
     }
     let indirect_plan = build_virtual_geometry_indirect_draw_plan(
         device,
@@ -368,6 +371,7 @@ pub(crate) fn build_mesh_draws(
                         pending_draw.common.as_ref(),
                         pending_draw.disabled_passes,
                         pending_draw.taa_reactive_mask_strength,
+                        pending_draw.half_resolution_transparency,
                         has_previous_velocity_transform,
                         pending_draw.mesh_lod,
                         pending_draw.skinned,
@@ -388,9 +392,7 @@ pub(crate) fn build_mesh_draws(
                         gpu_scene_instance_span.1,
                     )
                     .with_command_sort_input(pending_draw.command_sort_input);
-                    if let Some(visibility) =
-                        visibility_states.get(&stable_instance_key).copied()
-                    {
+                    if let Some(visibility) = visibility_states.get(&stable_instance_key).copied() {
                         mesh_draw = mesh_draw.with_visibility(
                             visibility.relevance,
                             visibility.main_view_visible,
@@ -545,11 +547,7 @@ fn material_uniform_override_signature(
         unsupported.reason.hash(&mut hasher);
     }
     let hash = hasher.finish();
-    if hash == 0 {
-        1
-    } else {
-        hash
-    }
+    if hash == 0 { 1 } else { hash }
 }
 
 fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDraw) -> usize {
@@ -667,20 +665,20 @@ fn submission_detail_from_draw_ref(
 
 #[cfg(test)]
 mod tests {
+    use crate::core::framework::render::render_mesh_stable_instance_key;
     use crate::core::framework::render::{
         CorePipelineKind, FallbackSkyboxKind, PreviewEnvironmentExtract, PrimitiveRelevance,
         RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
         RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
         ViewportCameraSnapshot,
     };
-    use crate::core::framework::render::render_mesh_stable_instance_key;
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{UVec2, Vec4};
+    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::visibility::{
         FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
         VisibilityViewKey,
     };
-    use crate::graphics::ViewportRenderFrame;
 
     #[test]
     fn mesh_visibility_states_keep_sibling_primitives_independent() {

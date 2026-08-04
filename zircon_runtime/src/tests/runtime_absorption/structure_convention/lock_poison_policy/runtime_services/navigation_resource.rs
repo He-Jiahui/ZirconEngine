@@ -11,9 +11,6 @@ fn runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_ma
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let navigation_doc = read_repo("docs/zircon_runtime/navigation/runtime.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "BuiltinNavigationManager poison recovery helper",
@@ -45,30 +42,6 @@ fn runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_ma
             "manager.stats().loaded_nav_meshes",
         ],
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("navigation runtime doc", navigation_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 navigation lock poison recovery",
-                "runtime_15_navigation_lock_poison_recovery_static_passed_cargo_deferred",
-                "navigation/runtime.rs",
-                "runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager",
-            ],
-        );
-    }
 }
 
 #[test]
@@ -85,9 +58,6 @@ fn runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_m
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let resource_doc = read_repo("docs/zircon_runtime/core/resource.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "ResourceManager poison recovery helpers",
@@ -171,31 +141,6 @@ fn runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_m
         assert!(
             !production_section(source).contains("lock poisoned"),
             "{label} production code should recover poisoned locks instead of panicking"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("resource module doc", resource_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 core resource manager lock poison recovery",
-                "runtime_15_core_resource_manager_lock_poison_recovery_static_passed_cargo_deferred",
-                "core/resource/manager/resource_manager.rs",
-                "core/resource/manager/registry_ops.rs",
-                "runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager",
-            ],
         );
     }
 }

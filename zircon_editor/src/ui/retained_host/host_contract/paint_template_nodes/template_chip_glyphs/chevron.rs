@@ -1,7 +1,8 @@
 use super::super::super::data::FrameRect;
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::metrics::{chip_glyph_chevron_right, chip_glyph_chevron_size};
-use super::segments::{ChipGlyphSegmentSpec, push_segments};
+use super::segments::{push_segments, ChipGlyphSegmentSpec};
 
 const CHIP_CHEVRON_SEGMENTS: &[ChipGlyphSegmentSpec] = &[
     ChipGlyphSegmentSpec::new(3, 4, 2, 2),
@@ -20,6 +21,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     let Some(chevron) = chip_chevron_rect(rect) else {
         return;
     };
+    if intersect(&chevron, clip).is_none() {
+        return;
+    }
     push_segments(
         commands,
         &chevron,

@@ -107,8 +107,8 @@ fn effect_lut_3d_rgba_data() -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::{
-        effect_lut_3d_rgba_data, effect_lut_rgba_data, EFFECT_LUT_3D_SIZE,
-        EFFECT_LUT_BYTES_PER_TEXEL, EFFECT_LUT_WIDTH,
+        EFFECT_LUT_3D_SIZE, EFFECT_LUT_BYTES_PER_TEXEL, EFFECT_LUT_WIDTH, effect_lut_3d_rgba_data,
+        effect_lut_rgba_data,
     };
 
     #[test]

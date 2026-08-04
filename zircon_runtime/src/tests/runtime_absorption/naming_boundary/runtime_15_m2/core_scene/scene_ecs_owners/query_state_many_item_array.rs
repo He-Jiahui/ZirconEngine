@@ -52,24 +52,6 @@ fn runtime_15_scene_ecs_query_state_many_item_array_uses_owner_name() {
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let scene_ecs_doc = read_repo_text(manifest_root, "docs/zircon_runtime/scene/ecs.md");
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m2/core_scene_asset_dynamic.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let expected_status = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary/scene_asset_runtime.rs",
-        ),
-        "Runtime 15 expected status map should be readable",
-    );
-    let expected_date = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary/scene_asset_runtime.rs",
-        ),
-        "Runtime 15 expected date map should be readable",
-    );
 
     assert!(
         !retired_helpers.exists(),
@@ -114,9 +96,6 @@ fn runtime_15_scene_ecs_query_state_many_item_array_uses_owner_name() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("scene ECS doc", scene_ecs_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

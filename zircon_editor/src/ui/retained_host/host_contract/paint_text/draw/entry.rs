@@ -4,6 +4,7 @@ use zircon_runtime_interface::ui::{
 
 use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::HostRgbaFrame;
+use super::super::layout_policy::HostTextLayoutPolicy;
 use super::draw_text_with_size_and_style_impl;
 
 pub(in crate::ui::retained_host::host_contract::paint_text) const DEFAULT_FONT_SIZE: f32 =
@@ -61,6 +62,30 @@ pub(in crate::ui::retained_host::host_contract) fn draw_text_with_size_and_style
     line_height: f32,
     style: UiTextRunPaintStyle,
 ) {
+    draw_text_with_size_and_style_and_layout_policy(
+        frame,
+        rect,
+        text,
+        clip,
+        color,
+        font_size,
+        line_height,
+        style,
+        HostTextLayoutPolicy::SingleLineEllipsis,
+    );
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_text_with_size_and_style_and_layout_policy(
+    frame: &mut HostRgbaFrame,
+    rect: FrameRect,
+    text: &str,
+    clip: Option<&FrameRect>,
+    color: [u8; 4],
+    font_size: f32,
+    line_height: f32,
+    style: UiTextRunPaintStyle,
+    layout_policy: HostTextLayoutPolicy,
+) {
     draw_text_with_size_and_style_impl(
         frame,
         rect,
@@ -70,5 +95,6 @@ pub(in crate::ui::retained_host::host_contract) fn draw_text_with_size_and_style
         font_size,
         line_height,
         style,
+        layout_policy,
     );
 }

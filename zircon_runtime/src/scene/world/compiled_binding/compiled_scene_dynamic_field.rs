@@ -16,7 +16,7 @@ pub(super) struct CompiledDynamicProperty {
 
 impl CompiledDynamicProperty {
     pub(super) fn compile(world: &World, property_path: &ComponentPropertyPath) -> Option<Self> {
-        if world.is_runtime_property_component(property_path) {
+        if World::is_runtime_property_component(property_path) {
             return None;
         }
         let (component_id, property) = property_path.as_str().rsplit_once('.')?;

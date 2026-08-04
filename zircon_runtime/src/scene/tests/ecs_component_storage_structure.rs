@@ -92,21 +92,37 @@ fn component_storage_public_hot_paths_use_direct_storage_branches() {
 }
 
 #[test]
-fn sparse_component_storage_entry_access_uses_direct_branches() {
+fn sparse_component_storage_keeps_dense_rows_and_a_single_entity_index() {
     let sparse_source = include_str!("../ecs/storage/component_storage/sparse.rs");
     let component_results_source =
         include_str!("../ecs/storage/component_storage/component_results.rs");
     let sparse_storage = sparse_source;
+    let remove = method_between(sparse_storage, "fn remove(", "fn contains(");
 
     assert!(
-        sparse_storage.contains("let entry = self.entries.get(&entity)?;")
-            && sparse_storage.contains("let entry = self.entries.get_mut(&entity)?;")
-            && sparse_storage.contains("let Some(entry) = self.entries.remove(&entity) else")
+        sparse_storage.contains("entities: Vec<InternalEntity>")
+            && sparse_storage.contains("entries: Vec<SparseEntry>")
+            && sparse_storage.contains("indices: HashMap<InternalEntity, usize>")
+            && sparse_storage.contains("let row = *self.indices.get(&entity)?;")
+            && sparse_storage.contains("self.entries.get(row)")
+            && sparse_storage.contains("self.entries.get_mut(row)")
+            && sparse_storage.contains("for entity in self.entities.iter().copied()")
             && sparse_storage.contains("Some(entry.ticks)")
+            && !sparse_storage.contains("HashMap<InternalEntity, SparseEntry>")
             && !sparse_storage.contains(".and_then(|entry|")
             && !sparse_storage.contains("remove(&entity).map(|entry|")
             && !sparse_storage.contains(".get(&entity).map(|entry| entry.ticks)"),
-        "sparse component storage must avoid Option adapter closures on entry access"
+        "sparse component storage must keep its values in dense rows and address them through one entity index"
+    );
+    assert!(
+        remove.contains("let row = self.indices.remove(&entity)?;")
+            && remove.contains("let last_row = self.entries.len() - 1;")
+            && remove.contains("let entry = self.entries.swap_remove(row);")
+            && remove.contains("let removed_entity = self.entities.swap_remove(row);")
+            && remove.contains("if row != last_row {")
+            && remove.contains("self.indices.insert(swapped_entity, row);")
+            && remove.contains("swapped_entity: None,"),
+        "sparse removal must swap dense rows together and repair the moved entity index without exposing a table row"
     );
     assert!(
         component_results_source.contains("fn downcast_component<T>")

@@ -10,13 +10,14 @@ mod options;
 mod surface;
 mod text;
 
-use geometry::{frame_is_within, has_paintable_popup_row_extent};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
+use geometry::has_paintable_popup_row_extent;
 use menu::push_menu_row_commands;
 use options::push_option_row_commands;
 
 #[cfg(test)]
 use super::template_popup_row_adornments::{
-    PopupRowAdornmentKind, menu_item_has_flag, menu_row_adornment_kind,
+    menu_item_has_flag, menu_row_adornment_kind, PopupRowAdornmentKind,
 };
 #[cfg(test)]
 use content::popup_row_content_style;
@@ -37,7 +38,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
     if !node.popup_open
         || !has_paintable_popup_row_extent(rect)
         || !has_paintable_popup_row_extent(clip)
-        || !frame_is_within(clip, rect)
+        || intersect(rect, clip).is_none()
     {
         return;
     }

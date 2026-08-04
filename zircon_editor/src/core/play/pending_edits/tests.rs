@@ -1,3 +1,4 @@
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
@@ -11,8 +12,8 @@ use crate::core::editor_message::DocumentId;
 use crate::core::editor_operation::EditorOperationInvocation;
 
 use super::super::{
-    PlayEditResolutionError, PlayEditRoute, PlayEditTarget, PlayKind, PlaySessionController,
-    PlaySessionError, PlayStartRequest,
+    PlayEditResolutionError, PlayEditRoute, PlayEditRouteError, PlayEditTarget, PlayKind,
+    PlaySessionController, PlaySessionError, PlayStartRequest,
 };
 use super::*;
 
@@ -204,9 +205,16 @@ fn bounded_retention_rejects_new_work_after_its_own_age_limit() {
         .unwrap();
     thread::sleep(Duration::from_millis(5));
 
+    let error = queue
+        .enqueue(PlayEditTarget::EditWorkspace, deferred(operation, policy()))
+        .unwrap_err();
     assert!(matches!(
-        queue.enqueue(PlayEditTarget::EditWorkspace, deferred(operation, policy()),),
-        Err(PendingEditQueueError::RetentionAgeExceeded { .. })
+        error,
+        PendingEditQueueError::RetentionAgeExceeded {
+            operation_id,
+            max_oldest_age,
+            ..
+        } if operation_id == "drag" && max_oldest_age == Duration::from_millis(1)
     ));
     assert_eq!(queue.summary().pending_count, 1);
 }
@@ -342,4 +350,235 @@ fn resolution_in_progress_blocks_play_start() {
     ));
     callback_release.wait();
     assert_eq!(worker.join().unwrap().applied.len(), 1);
+}
+
+#[test]
+fn concurrent_resolver_cannot_republish_a_prompt_while_the_queue_is_resolving() {
+    let controller = Arc::new(PlaySessionController::new());
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    controller
+        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .unwrap();
+    controller.request_stop().unwrap();
+
+    let callback_entered = Arc::new(Barrier::new(2));
+    let callback_release = Arc::new(Barrier::new(2));
+    let worker_controller = Arc::clone(&controller);
+    let worker_entered = Arc::clone(&callback_entered);
+    let worker_release = Arc::clone(&callback_release);
+    let worker = thread::spawn(move || {
+        worker_controller
+            .apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| {
+                worker_entered.wait();
+                worker_release.wait();
+                Ok::<(), ()>(())
+            })
+            .unwrap()
+    });
+
+    callback_entered.wait();
+    assert_eq!(
+        controller.apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(())),
+        Err(PlayEditResolutionError::ResolutionInProgress)
+    );
+    assert!(
+        controller.pending_edit_decision_prompt().is_none(),
+        "a rejected resolver must not republish a stale prompt while the owner can still clear it"
+    );
+
+    callback_release.wait();
+    assert_eq!(worker.join().unwrap().applied.len(), 1);
+    assert!(controller.pending_edit_decision_prompt().is_none());
+}
+
+#[test]
+fn concurrent_resolver_reveals_retry_prompt_after_owner_finishes_with_failure() {
+    let controller = Arc::new(PlaySessionController::new());
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    controller
+        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .unwrap();
+    controller.request_stop().unwrap();
+
+    let callback_entered = Arc::new(Barrier::new(2));
+    let callback_release = Arc::new(Barrier::new(2));
+    let worker_controller = Arc::clone(&controller);
+    let worker_entered = Arc::clone(&callback_entered);
+    let worker_release = Arc::clone(&callback_release);
+    let worker = thread::spawn(move || {
+        worker_controller
+            .apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| {
+                worker_entered.wait();
+                worker_release.wait();
+                Err::<(), _>("apply deliberately failed")
+            })
+            .unwrap()
+    });
+
+    callback_entered.wait();
+    assert_eq!(
+        controller.apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(())),
+        Err(PlayEditResolutionError::ResolutionInProgress)
+    );
+    assert_eq!(
+        controller.route_edit(PlayEditTarget::EditWorkspace, lossless("later")),
+        Err(PlayEditRouteError::PendingResolutionInProgress)
+    );
+    assert_eq!(
+        controller.request_play(PlayStartRequest::immediate(PlayKind::Play, None)),
+        Err(PlaySessionError::PendingEditResolutionInProgress)
+    );
+    assert!(controller.pending_edit_decision_prompt().is_none());
+
+    callback_release.wait();
+    assert_eq!(worker.join().unwrap().failures.len(), 1);
+    assert_eq!(
+        controller
+            .pending_edit_decision_prompt()
+            .expect("retry intent should become visible once the owner releases the barrier")
+            .pending_count,
+        1
+    );
+}
+
+#[test]
+fn decision_publication_blocks_a_new_resolver_until_the_current_prompt_is_published() {
+    let controller = Arc::new(PlaySessionController::new());
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    controller
+        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .unwrap();
+    controller.request_stop().unwrap();
+
+    let publish_entered = Arc::new(Barrier::new(2));
+    let publish_release = Arc::new(Barrier::new(2));
+    let worker_controller = Arc::clone(&controller);
+    let worker_entered = Arc::clone(&publish_entered);
+    let worker_release = Arc::clone(&publish_release);
+    let publisher = thread::spawn(move || {
+        worker_controller
+            .with_pending_edit_decision_prompt(|prompt| {
+                assert_eq!(prompt.pending_count, 1);
+                worker_entered.wait();
+                worker_release.wait();
+                Ok::<(), ()>(())
+            })
+            .unwrap()
+    });
+
+    publish_entered.wait();
+    assert_eq!(
+        controller.apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(())),
+        Err(PlayEditResolutionError::ResolutionInProgress)
+    );
+    assert_eq!(
+        controller.route_edit(PlayEditTarget::EditWorkspace, lossless("later")),
+        Err(PlayEditRouteError::PendingResolutionInProgress)
+    );
+    assert_eq!(
+        controller.request_play(PlayStartRequest::immediate(PlayKind::Play, None)),
+        Err(PlaySessionError::PendingEditResolutionInProgress)
+    );
+    assert!(controller.pending_edit_decision_prompt().is_none());
+
+    publish_release.wait();
+    assert!(publisher.join().unwrap());
+    assert_eq!(
+        controller
+            .pending_edit_decision_prompt()
+            .expect("prompt must remain available after its publication completes")
+            .pending_count,
+        1
+    );
+}
+
+#[test]
+fn failed_decision_publication_releases_the_fence_for_a_retry() {
+    let controller = PlaySessionController::new();
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    controller
+        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .unwrap();
+    controller.request_stop().unwrap();
+
+    assert_eq!(
+        controller.with_pending_edit_decision_prompt(|_| Err::<(), _>("center unavailable")),
+        Err("center unavailable")
+    );
+    assert_eq!(
+        controller
+            .pending_edit_decision_prompt()
+            .expect("failed publication must leave the pending prompt retryable")
+            .pending_count,
+        1
+    );
+    assert_eq!(
+        controller
+            .with_pending_edit_decision_prompt(|prompt| {
+                assert_eq!(prompt.pending_count, 1);
+                Ok::<(), ()>(())
+            })
+            .unwrap(),
+        true
+    );
+    assert!(!matches!(
+        controller.route_edit(PlayEditTarget::EditWorkspace, lossless("after-retry")),
+        Err(PlayEditRouteError::PendingResolutionInProgress)
+    ));
+    assert!(matches!(
+        controller.request_play(PlayStartRequest::immediate(PlayKind::Play, None)),
+        Err(PlaySessionError::PendingEditDecisionRequired { pending_count: 1 })
+    ));
+}
+
+#[test]
+fn panicking_decision_publication_releases_the_fence_for_a_retry() {
+    let controller = PlaySessionController::new();
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    controller
+        .route_edit(PlayEditTarget::EditWorkspace, lossless("queued"))
+        .unwrap();
+    controller.request_stop().unwrap();
+
+    let panic = catch_unwind(AssertUnwindSafe(|| {
+        let _ = controller.with_pending_edit_decision_prompt(|_| -> Result<(), ()> {
+            panic!("decision publication panicked")
+        });
+    }));
+    assert!(panic.is_err());
+    assert_eq!(
+        controller
+            .pending_edit_decision_prompt()
+            .expect("unwinding must release the publication fence")
+            .pending_count,
+        1
+    );
+    assert_eq!(
+        controller
+            .with_pending_edit_decision_prompt(|prompt| {
+                assert_eq!(prompt.pending_count, 1);
+                Ok::<(), ()>(())
+            })
+            .unwrap(),
+        true
+    );
+    assert!(matches!(
+        controller.apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(())),
+        Ok(report) if report.applied.len() == 1
+    ));
+    assert!(
+        controller
+            .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+            .is_ok()
+    );
 }

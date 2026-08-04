@@ -158,8 +158,8 @@ fn hash_field(hasher: &mut blake3::Hasher, field: &[u8]) {
 mod tests {
     use super::ShaderVariantPrewarmSource;
     use crate::core::framework::render::{
-        GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits,
-        ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+        ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+        GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::core::resource::ResourceId;
 

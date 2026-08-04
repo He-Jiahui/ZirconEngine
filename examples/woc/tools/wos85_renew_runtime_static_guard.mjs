@@ -47,10 +47,10 @@ requireText(
 const sourceGenerator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/WOC_RETAINED_ABILITY_IDS\s*=\s*\[[\s\S]*?'shadow_word_pain',[\s\S]*?'renew'/.test(sourceGenerator) ||
-!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 93")) {
+!sourceGenerator.includes("EXPECTED_ABILITY_COUNT = 96")) {
   throw new Error("M4 Renew projection scope is missing");
 }
-if (!zrGenerator.includes("document.entries.length === 93")) {
+if (!zrGenerator.includes("document.entries.length === 96")) {
   throw new Error("M4 Renew Zr projection count is missing");
 }
 const m4 = JSON.parse(read("contracts", "m4_abilities.json"));
@@ -79,13 +79,13 @@ requireText(world, /offlineHotTargetIds\[index\] == targetId[\s\S]*?offlineHotSo
 requireText(world, /pub renewCommandStateTest\(\): int[\s\S]*?renew/, "Renew state regression coverage is missing");
 
 const main = read("scripts", "woc_game", "src", "main.zr");
-if (!/\\"world_state\\":\\"WOS83\\"/.test(main)) {
-  throw new Error("package state identity must advance to WOS64");
+if (!/\\"world_state\\":\\"WOS112\\"/.test(main)) {
+  throw new Error("package state identity must advance to WOS112");
 }
 const protocol = read("native", "crates", "woc_protocol", "src", "lib.rs");
-if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS83"') ||
-    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 83")) {
-  throw new Error("native state identity must advance to WOS74");
+if (!protocol.includes('WORLD_STATE_FORMAT: &str = "WOS112"') ||
+    !protocol.includes("WORLD_STATE_SCHEMA_VERSION: u16 = 112")) {
+  throw new Error("native state identity must advance to WOS112");
 }
 
 process.stdout.write(`WOS85 Renew static guards passed (${SOURCE_COMMIT.slice(0, 15)})\n`);

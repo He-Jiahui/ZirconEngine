@@ -1,10 +1,18 @@
 mod column_budget;
+mod source_panel_layout;
+mod utility_layout;
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use self::column_budget::resolve_compact_column_budget;
+use self::column_budget::{CompactColumnBudget, resolve_compact_column_budget};
+pub(super) use self::source_panel_layout::apply_asset_browser_sources_layout;
+use self::source_panel_layout::apply_compact_sources_panel_layout;
+use self::utility_layout::{
+    COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD, apply_compact_utility_panel_layout,
+    compact_asset_browser_vertical_budget, compact_line_height, shift_asset_browser_utility_nodes,
+};
 use super::compact_table_layout::{
     apply_compact_table_layout, asset_table_row_count, collapse_compact_table_nodes,
     compact_table_stack_height,
@@ -13,25 +21,12 @@ use super::summary_layout::apply_compact_content_preview_summary_layout;
 use super::thumbnail_layout::{apply_compact_thumbnail_grid_layout, has_thumbnail_grid};
 
 const COMPACT_LAYOUT_HEIGHT_THRESHOLD: f32 = 760.0;
+const COMPACT_LAYOUT_WIDTH_THRESHOLD: f32 = 1200.0;
 const COMPACT_PANEL_GAP: f32 = 6.0;
 const COMPACT_CONTENT_GAP: f32 = 8.0;
 const COMPACT_CONTENT_HEADER_HEIGHT: f32 = 20.0;
 const COMPACT_HEADER_TABLE_GAP: f32 = 4.0;
 const COMPACT_HEADER_HORIZONTAL_PADDING: f32 = 8.0;
-const COMPACT_UTILITY_CONTENT_OFFSET_Y: f32 = 28.0;
-const COMPACT_UTILITY_HEIGHT: f32 = 104.0;
-const COMPACT_COLLAPSED_UTILITY_HEIGHT: f32 = 28.0;
-const COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD: f32 = 560.0;
-const COMPACT_UTILITY_TAB_HEIGHT: f32 = 22.0;
-const COMPACT_UTILITY_TAB_GAP: f32 = 6.0;
-const COMPACT_UTILITY_TAB_WIDTHS: [(&str, f32); 4] = [
-    ("AssetBrowserPreviewTabButton", 68.0),
-    ("AssetBrowserReferencesTabButton", 92.0),
-    ("AssetBrowserMetadataTabButton", 84.0),
-    ("AssetBrowserPluginsTabButton", 72.0),
-];
-const COMPACT_UTILITY_LOCATOR_GAP: f32 = 12.0;
-const COMPACT_UTILITY_LOCATOR_WIDTH: f32 = 156.0;
 const COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD: f32 = 300.0;
 const COMPACT_PREVIEW_CARD_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_HEADER_HEIGHT: f32 = 42.0;
@@ -41,6 +36,7 @@ const COMPACT_DETAILS_FIELD_HEIGHT: f32 = 42.0;
 const COMPACT_DETAILS_IDENTITY_HEIGHT: f32 = 50.0;
 const COMPACT_DETAILS_METADATA_HEIGHT: f32 = 52.0;
 const COMPACT_DETAILS_DIAGNOSTICS_HEIGHT: f32 = 54.0;
+const COMPACT_MINIMUM_DRAWABLE_EXTENT: f32 = f32::EPSILON;
 
 pub(super) fn apply_asset_browser_compact_layout(
     nodes: &mut [ViewTemplateNodeData],
@@ -48,7 +44,9 @@ pub(super) fn apply_asset_browser_compact_layout(
     view_mode: AssetViewMode,
     toolbar_main_y: Option<f32>,
 ) {
-    if size.height >= COMPACT_LAYOUT_HEIGHT_THRESHOLD {
+    let compact_width = !size.width.is_finite() || size.width < COMPACT_LAYOUT_WIDTH_THRESHOLD;
+    let compact_height = !size.height.is_finite() || size.height < COMPACT_LAYOUT_HEIGHT_THRESHOLD;
+    if !compact_width && !compact_height {
         return;
     }
 
@@ -62,41 +60,45 @@ pub(super) fn apply_asset_browser_compact_layout(
         return;
     };
 
-    let viewport_height = size.height.max(360.0);
-    let viewport_width = size.width.max(root.width);
+    let viewport_height = finite_non_negative(size.height);
+    let viewport_width = finite_non_negative(size.width);
+    let root_x = finite_coordinate(root.x);
+    let root_y = finite_coordinate(root.y);
+    if viewport_width <= COMPACT_MINIMUM_DRAWABLE_EXTENT
+        || viewport_height <= COMPACT_MINIMUM_DRAWABLE_EXTENT
+    {
+        collapse_asset_browser_nodes(nodes, root_x, root_y);
+        return;
+    }
     set_node_frame(
         nodes,
         "AssetBrowserRoot",
-        root.x,
-        root.y,
+        root_x,
+        root_y,
         viewport_width,
         viewport_height,
     );
 
-    let main_y = toolbar_main_y.unwrap_or(main.y);
-
-    let compact_utility_height = compact_asset_browser_utility_height_for_viewport(viewport_height);
-    let utility_y = (viewport_height - compact_utility_height)
-        .max(main_y + 152.0 + COMPACT_PANEL_GAP)
-        .min(viewport_height - 64.0);
-    let main_height = (utility_y - COMPACT_PANEL_GAP - main_y).max(152.0);
-    let utility_delta_y = utility_y - utility.y;
+    let main_y = finite_coordinate(toolbar_main_y.unwrap_or(main.y)).min(viewport_height);
+    let (main_height, utility_y, compact_utility_height) =
+        compact_asset_browser_vertical_budget(viewport_height, main_y, COMPACT_PANEL_GAP);
+    let utility_delta_y = utility_y - finite_coordinate(utility.y);
 
     shift_asset_browser_utility_nodes(nodes, utility_delta_y);
     set_node_frame(
         nodes,
         "AssetBrowserMainPanel",
-        main.x,
+        finite_coordinate(main.x),
         main_y,
-        main.width,
+        finite_non_negative(main.width).min(viewport_width),
         main_height,
     );
     set_node_frame(
         nodes,
         "AssetBrowserUtilityPanel",
-        utility.x,
+        finite_coordinate(utility.x),
         utility_y,
-        utility.width,
+        finite_non_negative(utility.width).min(viewport_width),
         compact_utility_height,
     );
 
@@ -115,104 +117,135 @@ pub(super) fn apply_asset_browser_compact_layout(
         COMPACT_PANEL_GAP,
         details_allowed_by_height,
     );
-    apply_compact_main_panel_layout(
-        nodes,
-        main_y,
-        main_height,
-        column_budget.collapse_sources,
-        column_budget.collapse_details,
-        view_mode,
-    );
+    apply_compact_main_panel_layout(nodes, main, main_y, main_height, column_budget, view_mode);
     apply_compact_utility_panel_layout(
         nodes,
-        utility.x,
+        finite_coordinate(utility.x),
         utility_y,
-        utility.width,
+        finite_non_negative(utility.width).min(viewport_width),
         compact_utility_height,
     );
 }
 
 fn apply_compact_main_panel_layout(
     nodes: &mut [ViewTemplateNodeData],
+    main: ViewTemplateFrameData,
     main_y: f32,
     main_height: f32,
-    collapse_sources: bool,
-    collapse_details: bool,
+    column_budget: CompactColumnBudget,
     view_mode: AssetViewMode,
 ) {
-    let sources_frame = node_frame(nodes, "AssetBrowserSourcesPanel");
-    if let Some(sources) = sources_frame.as_ref() {
-        if collapse_sources {
-            collapse_compact_sources_nodes(nodes, sources.x, main_y);
+    if main_height <= COMPACT_MINIMUM_DRAWABLE_EXTENT {
+        collapse_compact_main_nodes(nodes, 0.0, main_y);
+        return;
+    }
+    let main_x = finite_coordinate(main.x);
+    let main_right = main_x + finite_non_negative(main.width);
+    let sources_visible = !column_budget.collapse_sources
+        && column_budget.sources_width > COMPACT_MINIMUM_DRAWABLE_EXTENT;
+    let details_visible = !column_budget.collapse_details
+        && column_budget.details_width > COMPACT_MINIMUM_DRAWABLE_EXTENT;
+    let sources_width = if sources_visible {
+        column_budget.sources_width
+    } else {
+        0.0
+    };
+    let details_width = if details_visible {
+        column_budget.details_width
+    } else {
+        0.0
+    };
+    let source_x = main_x;
+    let content_x = source_x
+        + sources_width
+        + if sources_visible {
+            COMPACT_PANEL_GAP
         } else {
-            set_node_frame(
-                nodes,
-                "AssetBrowserSourcesPanel",
-                sources.x,
-                main_y,
-                sources.width,
-                main_height,
-            );
-            set_node_height(
-                nodes,
-                "AssetBrowserSourcesScrollBody",
-                (main_height - 49.0).max(24.0),
-            );
+            0.0
+        };
+    let details_x = main_right - details_width;
+    let content_right = details_x
+        - if details_visible {
+            COMPACT_PANEL_GAP
+        } else {
+            0.0
+        };
+    let content_width = finite_non_negative(content_right - content_x);
+
+    if node_frame(nodes, "AssetBrowserSourcesPanel").is_some() {
+        if sources_visible {
+            apply_compact_sources_panel_layout(nodes, source_x, main_y, sources_width, main_height);
+        } else {
+            collapse_compact_sources_nodes(nodes, source_x, main_y);
         }
     }
 
-    let details_frame = node_frame(nodes, "AssetBrowserDetailsPanel");
-    if let Some(content) = node_frame(nodes, "AssetBrowserContentPanel") {
-        let content_x = if collapse_sources {
-            sources_frame
-                .as_ref()
-                .map(|sources| sources.x)
-                .unwrap_or(content.x)
-        } else {
-            content.x
-        };
-        let content_right = if collapse_details {
-            details_frame
-                .as_ref()
-                .map(|details| details.x + details.width)
-                .unwrap_or(content.x + content.width)
-        } else {
-            content.x + content.width
-        };
-        let content_height = main_height;
-        let content_width = (content_right - content_x).max(content.width);
+    if node_frame(nodes, "AssetBrowserContentPanel").is_some() {
         set_node_frame(
             nodes,
             "AssetBrowserContentPanel",
             content_x,
             main_y,
             content_width,
-            content_height,
+            main_height,
         );
         apply_compact_content_panel_layout(
             nodes,
             content_x,
             main_y,
             content_width,
-            content_height,
+            main_height,
             view_mode,
         );
     }
 
-    if let Some(details) = details_frame {
-        if collapse_details {
-            collapse_compact_details_nodes(nodes, details.x, main_y);
-            return;
+    if node_frame(nodes, "AssetBrowserDetailsPanel").is_some() {
+        if details_visible {
+            set_node_frame(
+                nodes,
+                "AssetBrowserDetailsPanel",
+                details_x,
+                main_y,
+                details_width,
+                main_height,
+            );
+            apply_compact_details_panel_layout(
+                nodes,
+                details_x,
+                main_y,
+                details_width,
+                main_height,
+            );
+        } else {
+            collapse_compact_details_nodes(nodes, main_right, main_y);
         }
-        set_node_frame(
-            nodes,
-            "AssetBrowserDetailsPanel",
-            details.x,
-            main_y,
-            details.width,
-            main_height,
-        );
-        apply_compact_details_panel_layout(nodes, details.x, main_y, details.width, main_height);
+    }
+}
+
+fn collapse_asset_browser_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32) {
+    for node in nodes {
+        node.frame.x = x;
+        node.frame.y = y;
+        node.frame.width = 0.0;
+        node.frame.height = 0.0;
+    }
+}
+
+fn collapse_compact_main_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32) {
+    for node in nodes {
+        let control_id = node.control_id.as_str();
+        if control_id.starts_with("AssetBrowserSources")
+            || control_id.starts_with("AssetBrowserContent")
+            || control_id.starts_with("AssetBrowserDetails")
+            || control_id.starts_with("AssetBrowserTable")
+            || control_id.starts_with("AssetBrowserThumb")
+            || control_id.starts_with("WorkbenchAssetBrowser")
+        {
+            node.frame.x = x;
+            node.frame.y = y;
+            node.frame.width = 0.0;
+            node.frame.height = 0.0;
+        }
     }
 }
 
@@ -246,20 +279,23 @@ fn apply_compact_content_panel_layout(
     height: f32,
     view_mode: AssetViewMode,
 ) {
-    let header_height = COMPACT_CONTENT_HEADER_HEIGHT;
+    let width = finite_non_negative(width);
+    let height = finite_non_negative(height);
+    let header_height = COMPACT_CONTENT_HEADER_HEIGHT.min(height);
     let has_thumbnail_view = view_mode == AssetViewMode::Thumbnail && has_thumbnail_grid(nodes);
+    let table_available_height = finite_non_negative(
+        height - header_height - COMPACT_HEADER_TABLE_GAP - COMPACT_CONTENT_GAP,
+    );
     let preview_height = if has_thumbnail_view {
         0.0
     } else {
-        COMPACT_PREVIEW_CARD_HEIGHT.min((height * 0.28).max(42.0))
+        COMPACT_PREVIEW_CARD_HEIGHT.min(table_available_height)
     };
     let row_count = asset_table_row_count(nodes);
-    let table_height = compact_table_stack_height(
-        height - header_height - preview_height - COMPACT_HEADER_TABLE_GAP - COMPACT_CONTENT_GAP,
-        row_count,
-    );
+    let table_height =
+        compact_table_stack_height(table_available_height - preview_height, row_count);
     let table_y = y + header_height + COMPACT_HEADER_TABLE_GAP;
-    let preview_y = (y + height - preview_height).max(table_y + table_height + COMPACT_CONTENT_GAP);
+    let preview_y = y + height - preview_height;
 
     set_node_frame(
         nodes,
@@ -280,16 +316,39 @@ fn apply_compact_content_panel_layout(
     );
     if has_thumbnail_view {
         collapse_compact_table_nodes(nodes, x, table_y);
-        let grid_height = (height - header_height - COMPACT_HEADER_TABLE_GAP).max(0.0);
+        let grid_height = finite_non_negative(height - header_height - COMPACT_HEADER_TABLE_GAP);
         apply_compact_thumbnail_grid_layout(nodes, x, table_y, width, grid_height);
+    } else if table_height <= COMPACT_MINIMUM_DRAWABLE_EXTENT {
+        collapse_compact_table_nodes(nodes, x, table_y);
     } else {
-        apply_compact_table_layout(nodes, x, table_y, width, row_count);
-        apply_compact_content_preview_summary_layout(nodes, x, preview_y, width, preview_height);
+        apply_compact_table_layout(nodes, x, table_y, width, table_height, row_count);
+        if preview_height > COMPACT_MINIMUM_DRAWABLE_EXTENT {
+            apply_compact_content_preview_summary_layout(
+                nodes,
+                x,
+                preview_y,
+                width,
+                preview_height,
+            );
+        } else {
+            collapse_compact_content_preview_nodes(nodes, x, preview_y);
+        }
     }
     collapse_duplicate_compact_container_nodes(
         nodes,
         &["AssetBrowserContentPanel", "AssetBrowserAssetTablePanel"],
     );
+}
+
+fn collapse_compact_content_preview_nodes(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32) {
+    for node in nodes {
+        if node.control_id.starts_with("AssetBrowserContentPreview") {
+            node.frame.x = x;
+            node.frame.y = y;
+            node.frame.width = 0.0;
+            node.frame.height = 0.0;
+        }
+    }
 }
 
 fn apply_compact_content_header_layout(
@@ -299,11 +358,16 @@ fn apply_compact_content_header_layout(
     width: f32,
     height: f32,
 ) {
+    let width = finite_non_negative(width);
+    let height = finite_non_negative(height);
     let inner_x = x + COMPACT_HEADER_HORIZONTAL_PADDING;
-    let inner_width = (width - COMPACT_HEADER_HORIZONTAL_PADDING * 2.0).max(0.0);
-    let path_width = (inner_width * 0.32).min(220.0).max(96.0).min(inner_width);
-    let title_width = (inner_width - path_width - COMPACT_HEADER_HORIZONTAL_PADDING).max(0.0);
-    let text_y = y + ((height - 12.0) * 0.5).max(0.0);
+    let inner_width = finite_non_negative(width - COMPACT_HEADER_HORIZONTAL_PADDING * 2.0);
+    let path_width = (inner_width * 0.32).min(220.0);
+    let title_width =
+        finite_non_negative(inner_width - path_width - COMPACT_HEADER_HORIZONTAL_PADDING);
+    let title_height = 12.0_f32.min(height);
+    let path_height = 10.0_f32.min(height);
+    let text_y = y + finite_non_negative((height - title_height) * 0.5);
 
     set_node_frame(
         nodes,
@@ -311,15 +375,15 @@ fn apply_compact_content_header_layout(
         inner_x,
         text_y,
         title_width,
-        12.0,
+        title_height,
     );
     set_node_frame(
         nodes,
         "AssetBrowserContentHeaderPathText",
         x + width - COMPACT_HEADER_HORIZONTAL_PADDING - path_width,
-        text_y + 1.0,
+        y + finite_non_negative((height - path_height) * 0.5),
         path_width,
-        10.0,
+        path_height,
     );
 }
 
@@ -330,11 +394,15 @@ fn apply_compact_details_panel_layout(
     width: f32,
     height: f32,
 ) {
-    let scroll_y = y + COMPACT_DETAILS_HEADER_HEIGHT + COMPACT_DETAILS_DIVIDER_HEIGHT;
-    let scroll_height = (height - COMPACT_DETAILS_HEADER_HEIGHT - COMPACT_DETAILS_DIVIDER_HEIGHT)
-        .max(COMPACT_DETAILS_PREVIEW_HEIGHT);
+    let width = finite_non_negative(width);
+    let height = finite_non_negative(height);
+    let header_height = COMPACT_DETAILS_HEADER_HEIGHT.min(height);
+    let divider_height =
+        COMPACT_DETAILS_DIVIDER_HEIGHT.min(finite_non_negative(height - header_height));
+    let scroll_y = y + header_height + divider_height;
+    let scroll_height = finite_non_negative(height - header_height - divider_height);
     let content_x = x + 8.0;
-    let content_width = (width - 16.0).max(80.0);
+    let content_width = finite_non_negative(width - 16.0);
 
     set_node_frame(
         nodes,
@@ -342,15 +410,15 @@ fn apply_compact_details_panel_layout(
         x,
         y,
         width,
-        COMPACT_DETAILS_HEADER_HEIGHT,
+        header_height,
     );
     set_node_frame(
         nodes,
         "AssetBrowserDetailsDivider",
         x,
-        y + COMPACT_DETAILS_HEADER_HEIGHT,
+        y + header_height,
         width,
-        COMPACT_DETAILS_DIVIDER_HEIGHT,
+        divider_height,
     );
     set_node_frame(
         nodes,
@@ -370,8 +438,11 @@ fn apply_compact_details_panel_layout(
     );
 
     let mut field_y = scroll_y + 8.0;
-    apply_compact_details_preview_layout(nodes, content_x, field_y, content_width);
-    field_y += COMPACT_DETAILS_PREVIEW_HEIGHT + COMPACT_CONTENT_GAP;
+    let content_end = scroll_y + scroll_height;
+    let preview_height =
+        COMPACT_DETAILS_PREVIEW_HEIGHT.min(finite_non_negative(content_end - field_y));
+    apply_compact_details_preview_layout(nodes, content_x, field_y, content_width, preview_height);
+    field_y += preview_height + COMPACT_CONTENT_GAP;
     for (control_id, field_height) in [
         (
             "AssetBrowserDetailsLocatorPanel",
@@ -391,6 +462,7 @@ fn apply_compact_details_panel_layout(
             COMPACT_DETAILS_DIAGNOSTICS_HEIGHT,
         ),
     ] {
+        let field_height = field_height.min(finite_non_negative(content_end - field_y));
         set_node_frame(
             nodes,
             control_id,
@@ -421,7 +493,7 @@ fn apply_compact_details_field_layout(
 ) {
     let label_x = x + 10.0;
     let value_x = label_x;
-    let text_width = (width - 20.0).max(24.0);
+    let text_width = finite_non_negative(width - 20.0);
     match panel_control_id {
         "AssetBrowserDetailsLocatorPanel" => {
             layout_label_value_field(
@@ -432,6 +504,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y,
                 text_width,
+                height,
             );
         }
         "AssetBrowserDetailsTypePanel" => {
@@ -443,6 +516,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y,
                 text_width,
+                height,
             );
         }
         "AssetBrowserDetailsIdentityPanel" => {
@@ -452,7 +526,7 @@ fn apply_compact_details_field_layout(
                 label_x,
                 y + 6.0,
                 text_width,
-                10.0,
+                compact_line_height(height, 6.0, 10.0),
             );
             set_node_frame(
                 nodes,
@@ -460,7 +534,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y + 20.0,
                 text_width,
-                12.0,
+                compact_line_height(height, 20.0, 12.0),
             );
             set_node_frame(
                 nodes,
@@ -468,7 +542,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y + 34.0,
                 text_width,
-                10.0,
+                compact_line_height(height, 34.0, 10.0),
             );
         }
         "AssetBrowserDetailsMetadataPanel" => {
@@ -478,7 +552,7 @@ fn apply_compact_details_field_layout(
                 label_x,
                 y + 6.0,
                 text_width,
-                10.0,
+                compact_line_height(height, 6.0, 10.0),
             );
             set_node_frame(
                 nodes,
@@ -486,7 +560,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y + 20.0,
                 text_width,
-                12.0,
+                compact_line_height(height, 20.0, 12.0),
             );
             set_node_frame(
                 nodes,
@@ -494,7 +568,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y + 34.0,
                 text_width,
-                10.0,
+                compact_line_height(height, 34.0, 10.0),
             );
         }
         "AssetBrowserDetailsDiagnosticsPanel" => {
@@ -504,7 +578,7 @@ fn apply_compact_details_field_layout(
                 label_x,
                 y + 6.0,
                 text_width,
-                10.0,
+                compact_line_height(height, 6.0, 10.0),
             );
             set_node_frame(
                 nodes,
@@ -512,7 +586,7 @@ fn apply_compact_details_field_layout(
                 value_x,
                 y + 20.0,
                 text_width,
-                (height - 28.0).max(10.0),
+                compact_line_height(height, 20.0, finite_non_negative(height - 28.0)),
             );
         }
         _ => {}
@@ -527,9 +601,24 @@ fn layout_label_value_field(
     value_x: f32,
     y: f32,
     text_width: f32,
+    height: f32,
 ) {
-    set_node_frame(nodes, label_control_id, label_x, y + 6.0, text_width, 10.0);
-    set_node_frame(nodes, value_control_id, value_x, y + 20.0, text_width, 12.0);
+    set_node_frame(
+        nodes,
+        label_control_id,
+        label_x,
+        y + 6.0,
+        text_width,
+        compact_line_height(height, 6.0, 10.0),
+    );
+    set_node_frame(
+        nodes,
+        value_control_id,
+        value_x,
+        y + 20.0,
+        text_width,
+        compact_line_height(height, 20.0, 12.0),
+    );
 }
 
 fn apply_compact_details_preview_layout(
@@ -537,17 +626,20 @@ fn apply_compact_details_preview_layout(
     x: f32,
     y: f32,
     width: f32,
+    preview_height: f32,
 ) {
-    let visual_width = 48.0_f32.min((width * 0.34).max(36.0));
+    let width = finite_non_negative(width);
+    let preview_height = finite_non_negative(preview_height);
+    let visual_width = 48.0_f32.min(width * 0.34);
     let text_x = x + visual_width + 14.0;
-    let text_width = (x + width - text_x - 8.0).max(32.0);
+    let text_width = finite_non_negative(x + width - text_x - 8.0);
     set_node_frame(
         nodes,
         "AssetBrowserDetailsPreviewPanel",
         x,
         y,
         width,
-        COMPACT_DETAILS_PREVIEW_HEIGHT,
+        preview_height,
     );
     set_node_frame(
         nodes,
@@ -555,9 +647,9 @@ fn apply_compact_details_preview_layout(
         x + 8.0,
         y + 8.0,
         visual_width,
-        COMPACT_DETAILS_PREVIEW_HEIGHT - 16.0,
+        finite_non_negative(preview_height - 16.0),
     );
-    for (control_id, offset_y, height) in [
+    for (control_id, offset_y, line_height) in [
         ("AssetBrowserDetailsPreviewNameText", 10.0, 14.0),
         ("AssetBrowserDetailsPreviewLocatorText", 27.0, 12.0),
         ("AssetBrowserDetailsPreviewKindText", 42.0, 12.0),
@@ -566,177 +658,16 @@ fn apply_compact_details_preview_layout(
         ("AssetBrowserDetailsPreviewMetaPathText", 82.0, 10.0),
         ("AssetBrowserDetailsPreviewDiagnosticsText", 94.0, 10.0),
     ] {
-        set_node_frame(nodes, control_id, text_x, y + offset_y, text_width, height);
-    }
-}
-
-fn apply_compact_utility_panel_layout(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) {
-    let content_y = y + COMPACT_UTILITY_CONTENT_OFFSET_Y;
-    let content_height = (height - COMPACT_UTILITY_CONTENT_OFFSET_Y).max(0.0);
-    set_node_frame(
-        nodes,
-        "AssetBrowserUtilityTabsRow",
-        x,
-        y,
-        width,
-        COMPACT_UTILITY_TAB_HEIGHT,
-    );
-    let tabs_end = apply_compact_utility_tab_button_layout(nodes, x, y);
-    set_node_frame(nodes, "AssetBrowserUtilityDivider", x, y + 26.0, width, 1.0);
-    set_node_frame(
-        nodes,
-        "AssetBrowserUtilityContentPanel",
-        x,
-        content_y,
-        width,
-        content_height,
-    );
-    if content_height <= 1.0 {
-        collapse_compact_utility_content(nodes, x, content_y, width);
-        return;
-    }
-    if node_frame(nodes, "AssetBrowserPreviewPanel").is_some() {
-        apply_compact_preview_utility_layout(nodes, x, content_y, width, content_height);
-    }
-    apply_compact_utility_locator_layout(nodes, x, y, width, tabs_end);
-}
-
-fn apply_compact_utility_tab_button_layout(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-) -> f32 {
-    let mut cursor_x = x;
-    for (index, (control_id, width)) in COMPACT_UTILITY_TAB_WIDTHS.iter().enumerate() {
-        if index > 0 {
-            cursor_x += COMPACT_UTILITY_TAB_GAP;
-        }
+        let line_height = compact_line_height(preview_height, offset_y, line_height);
         set_node_frame(
             nodes,
             control_id,
-            cursor_x,
-            y,
-            *width,
-            COMPACT_UTILITY_TAB_HEIGHT,
+            text_x,
+            y + offset_y,
+            text_width,
+            line_height,
         );
-        cursor_x += *width;
     }
-    cursor_x
-}
-
-fn apply_compact_utility_locator_layout(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-    width: f32,
-    tabs_end: f32,
-) {
-    let row_right = x + width;
-    let locator_x =
-        (row_right - COMPACT_UTILITY_LOCATOR_WIDTH).max(tabs_end + COMPACT_UTILITY_LOCATOR_GAP);
-    let locator_width = (row_right - locator_x)
-        .max(0.0)
-        .min(COMPACT_UTILITY_LOCATOR_WIDTH);
-    set_node_frame(
-        nodes,
-        "AssetBrowserSelectionLocatorText",
-        locator_x,
-        y,
-        locator_width,
-        COMPACT_UTILITY_TAB_HEIGHT,
-    );
-}
-
-fn compact_asset_browser_utility_height_for_viewport(viewport_height: f32) -> f32 {
-    if viewport_height < COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD {
-        COMPACT_COLLAPSED_UTILITY_HEIGHT
-    } else {
-        COMPACT_UTILITY_HEIGHT.min(viewport_height * 0.24)
-    }
-}
-
-fn collapse_compact_utility_content(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-    width: f32,
-) {
-    for control_id in [
-        "AssetBrowserPreviewPanel",
-        "AssetBrowserPreviewVisualPanel",
-        "AssetBrowserPreviewNameText",
-        "AssetBrowserPreviewLocatorText",
-        "AssetBrowserPreviewKindText",
-        "AssetBrowserPreviewIdentityText",
-        "AssetBrowserPreviewToolkitText",
-        "AssetBrowserPreviewMetaPathText",
-        "AssetBrowserPreviewDiagnosticsText",
-    ] {
-        set_node_frame(nodes, control_id, x, y, width, 0.0);
-    }
-}
-
-fn apply_compact_preview_utility_layout(
-    nodes: &mut [ViewTemplateNodeData],
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) {
-    let visual_width = 64.0_f32.min((width * 0.16).max(48.0));
-    let text_x = x + visual_width + 22.0;
-    let text_width = (width - visual_width - 34.0).max(64.0);
-    set_node_frame(nodes, "AssetBrowserPreviewPanel", x, y, width, height);
-    set_node_frame(
-        nodes,
-        "AssetBrowserPreviewVisualPanel",
-        x + 8.0,
-        y + 8.0,
-        visual_width,
-        (height - 16.0).max(36.0),
-    );
-    for (control_id, offset_y, height) in [
-        ("AssetBrowserPreviewNameText", 10.0, 14.0),
-        ("AssetBrowserPreviewLocatorText", 27.0, 12.0),
-        ("AssetBrowserPreviewKindText", 42.0, 12.0),
-        ("AssetBrowserPreviewIdentityText", 56.0, 12.0),
-        ("AssetBrowserPreviewToolkitText", 69.0, 10.0),
-        ("AssetBrowserPreviewMetaPathText", 80.0, 10.0),
-        ("AssetBrowserPreviewDiagnosticsText", 91.0, 10.0),
-    ] {
-        set_node_frame(nodes, control_id, text_x, y + offset_y, text_width, height);
-    }
-}
-
-fn shift_asset_browser_utility_nodes(nodes: &mut [ViewTemplateNodeData], delta_y: f32) {
-    if delta_y.abs() <= f32::EPSILON {
-        return;
-    }
-    for node in nodes {
-        let control_id = node.control_id.as_str();
-        if is_asset_browser_utility_control(control_id) {
-            node.frame.y += delta_y;
-        }
-    }
-}
-
-fn is_asset_browser_utility_control(control_id: &str) -> bool {
-    control_id.starts_with("AssetBrowserUtility")
-        || control_id.starts_with("AssetBrowserPreview")
-        || control_id.starts_with("AssetBrowserReferences")
-        || control_id.starts_with("AssetBrowserMetadata")
-        || control_id.starts_with("AssetBrowserReference")
-        || control_id.starts_with("AssetBrowserMetaPath")
-        || control_id.starts_with("AssetBrowserToolkit")
-        || control_id.starts_with("AssetBrowserDiagnostics")
-        || control_id.starts_with("AssetBrowserPlugins")
-        || control_id == "AssetBrowserSelectionLocatorText"
 }
 
 fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTemplateFrameData> {
@@ -744,15 +675,6 @@ fn node_frame(nodes: &[ViewTemplateNodeData], control_id: &str) -> Option<ViewTe
         .iter()
         .find(|node| node.control_id == control_id)
         .map(|node| node.frame.clone())
-}
-
-fn set_node_height(nodes: &mut [ViewTemplateNodeData], control_id: &str, height: f32) {
-    for node in nodes
-        .iter_mut()
-        .filter(|node| node.control_id == control_id)
-    {
-        node.frame.height = height.max(0.0);
-    }
 }
 
 fn set_node_frame(
@@ -767,10 +689,53 @@ fn set_node_frame(
         .iter_mut()
         .filter(|node| node.control_id == control_id)
     {
-        node.frame.x = x;
-        node.frame.y = y;
-        node.frame.width = width.max(0.0);
-        node.frame.height = height.max(0.0);
+        node.frame.x = finite_coordinate(x);
+        node.frame.y = finite_coordinate(y);
+        node.frame.width = finite_non_negative(width);
+        node.frame.height = finite_non_negative(height);
+    }
+}
+
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn finite_coordinate(value: f32) -> f32 {
+    if value.is_finite() { value } else { 0.0 }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collapsed_vertical_budget_never_expands_a_short_viewport() {
+        let (main_height, utility_y, utility_height) =
+            compact_asset_browser_vertical_budget(120.0, 96.0);
+
+        assert_eq!(main_height, 0.0);
+        assert_eq!(utility_y, 96.0);
+        assert_eq!(utility_height, 24.0);
+    }
+
+    #[test]
+    fn invalid_viewport_values_collapse_to_zero_geometry() {
+        assert_eq!(
+            compact_asset_browser_utility_height_for_viewport(f32::NAN),
+            0.0
+        );
+        assert_eq!(finite_non_negative(f32::INFINITY), 0.0);
+        assert_eq!(finite_coordinate(f32::NEG_INFINITY), 0.0);
+    }
+
+    #[test]
+    fn compact_text_line_is_clipped_to_the_remaining_parent_height() {
+        assert_eq!(compact_line_height(18.0, 12.0, 10.0), 6.0);
+        assert_eq!(compact_line_height(8.0, 12.0, 10.0), 0.0);
     }
 }
 

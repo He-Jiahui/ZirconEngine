@@ -52,11 +52,11 @@ pub(super) fn projected_collection_rows(
                 source_index: i32::try_from(source_index).unwrap_or(i32::MAX),
                 row_identity_field: identity_field.into(),
                 identity_kind: identity_kind.into(),
-                identity_text: identity_text.into(),
+                identity_text: identity_text.clone().into(),
                 label: row
                     .get("label")
                     .and_then(Value::as_str)
-                    .unwrap_or(identity_text)
+                    .unwrap_or(identity_text.as_str())
                     .into(),
             })
         })

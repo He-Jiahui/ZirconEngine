@@ -1,4 +1,7 @@
-use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::{
+    data::{FrameRect, TemplatePaneNodeData},
+    paint_geometry::bounded_extent,
+};
 use super::super::metrics::AxisLabelMetrics;
 
 pub(super) struct ScaleLinkGeometry {
@@ -60,15 +63,24 @@ impl ScaleLinkDimensions {
 }
 
 fn scale_link_dimensions(rect: &FrameRect, metrics: &AxisLabelMetrics) -> ScaleLinkDimensions {
-    let total_width = metrics.link_lobe_width * 2.0 - metrics.link_overlap;
-    let scale = (rect.width.max(0.0) / total_width.max(1.0))
-        .min(rect.height.max(0.0) / metrics.link_lobe_height.max(1.0))
-        .min(1.0);
+    let lobe_width = bounded_extent(metrics.link_lobe_width);
+    let lobe_height = bounded_extent(metrics.link_lobe_height);
+    let overlap = bounded_extent(metrics.link_overlap).min(lobe_width * 2.0);
+    let total_width = bounded_extent(lobe_width * 2.0 - overlap);
+    let available_width = bounded_extent(rect.width);
+    let available_height = bounded_extent(rect.height);
+    let scale = if total_width <= 0.0 || lobe_height <= 0.0 {
+        0.0
+    } else {
+        (available_width / total_width)
+            .min(available_height / lobe_height)
+            .min(1.0)
+    };
     ScaleLinkDimensions {
-        lobe_width: metrics.link_lobe_width * scale,
-        lobe_height: metrics.link_lobe_height * scale,
-        overlap: metrics.link_overlap * scale,
-        connector_width: metrics.link_connector_width * scale,
+        lobe_width: lobe_width * scale,
+        lobe_height: lobe_height * scale,
+        overlap: overlap * scale,
+        connector_width: bounded_extent(metrics.link_connector_width) * scale,
     }
 }
 
@@ -77,9 +89,11 @@ fn scale_link_origin_for_dimensions(
     rect: &FrameRect,
     dimensions: ScaleLinkDimensions,
 ) -> (f32, f32) {
+    let available_width = bounded_extent(rect.width);
+    let available_height = bounded_extent(rect.height);
     (
-        rect.x + (rect.width - dimensions.total_width()).max(0.0) * 0.5 + node.layout_offset_x,
-        rect.y + (rect.height - dimensions.lobe_height).max(0.0) * 0.5 + node.layout_offset_y,
+        rect.x + (available_width - dimensions.total_width()).max(0.0) * 0.5 + node.layout_offset_x,
+        rect.y + (available_height - dimensions.lobe_height).max(0.0) * 0.5 + node.layout_offset_y,
     )
 }
 
@@ -136,6 +150,30 @@ mod tests {
             geometry.connector,
         ] {
             assert_contained(part, &rect);
+        }
+    }
+
+    #[test]
+    fn non_finite_slot_collapses_scale_link_without_non_finite_origins() {
+        let geometry = scale_link_geometry(
+            &TemplatePaneNodeData::default(),
+            &FrameRect {
+                x: 8.0,
+                y: 8.0,
+                width: f32::NAN,
+                height: f32::INFINITY,
+            },
+            &metrics(),
+        );
+
+        for part in [
+            geometry.lobes[0].clone(),
+            geometry.lobes[1].clone(),
+            geometry.connector,
+        ] {
+            assert!(part.x.is_finite());
+            assert!(part.y.is_finite());
+            assert_eq!((part.width, part.height), (0.0, 0.0));
         }
     }
 

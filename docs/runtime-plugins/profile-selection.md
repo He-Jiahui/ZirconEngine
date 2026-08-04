@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime/build.rs
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
+  - zircon_runtime/src/plugin/runtime_profile/assembly_presets.rs
   - zircon_runtime/src/plugin/runtime_profile/feature_presets.rs
   - zircon_runtime/src/plugin/core_profiles.rs
   - zircon_runtime/src/prelude.rs
@@ -85,6 +86,7 @@ related_code:
 implementation_files:
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/build.rs
+  - zircon_runtime/src/plugin/runtime_profile/assembly_presets.rs
   - zircon_runtime/src/plugin/runtime_profile/feature_presets.rs
   - tools/runtime-profile-feature-presets.py
   - tools/dev-fast-build.ps1
@@ -227,9 +229,11 @@ Profiles are exposed by `RuntimeProfileId`:
 
 Each descriptor carries target mode, typed `builtin_modules` membership, default plugins, optional plugins, required capabilities, minimum maturity, and whether required externalized plugins are allowed. Target assembly constructs one built-in candidate registry; profile selection filters that registry by `BuiltinRuntimeModuleId`, completes and validates the selected dependency closure, and then applies the descriptor sorter. Selection freezes each visited built-in descriptor, and the final sorter reuses that cache so a profile generation does not call `EngineModule::descriptor()` twice. Profiles decide membership only, while `ModuleDescriptor` remains the owner of ordering and dependencies. Stable/default-style profiles use `minimum_maturity = Beta` and do not allow required `Externalized` or `Stub` plugins.
 
-## Compile Feature Presets
+## Profile Preset Single Source
 
-M2 makes `zircon_runtime/runtime-feature-presets.toml` the machine-readable owner of all six logical profile compile presets. `zircon_runtime/build.rs` validates its schema and stable profile order, then generates `RuntimeProfileFeaturePreset` constants into `OUT_DIR`; no generated source is checked into the repository. Runtime profile selection still decides narrower module/plugin membership inside a compiled preset, so `Client2d` and `Client3d` intentionally share `target-client`, while `Editor` and `Dev` share `target-editor-host`.
+M2 makes schema v2 of `zircon_runtime/runtime-feature-presets.toml` the machine-readable owner of both compile presets and runtime assembly for all six logical profiles. `zircon_runtime/build.rs` parses and validates the document once, then writes separate feature and assembly Rust projections into `OUT_DIR`; no generated source is checked into the repository. `RuntimeProfileFeaturePreset` remains the public compile contract, while the private assembly projection supplies descriptor name, target mode, cfg-aware built-in modules, ordered default plugins with their required flags, optional plugins, capabilities, maturity, and externalized-plugin policy to `RuntimeProfileDescriptor::for_id`. There is no handwritten per-profile fallback table. `Client2d` and `Client3d` intentionally share `target-client`, while `Editor` and `Dev` share `target-editor-host`, but their generated runtime assembly remains distinct.
+
+The TOML built-in module registry maps stable module ids to Rust variants and records the `graphics`/`script` feature predicate where the enum variant itself is cfg-gated. Generated assembly applies those predicates at each selected module entry, so no-default and Server builds never reference a disabled variant. The generator rejects incomplete profile sets, unknown or duplicate modules, invalid target/maturity values, plugin overlap, duplicate or empty capabilities, and a cfg-gated module selected without its compile feature before writing either output.
 
 | Runtime profile | Cargo preset | Compile boundary |
 | --- | --- | --- |
@@ -238,7 +242,7 @@ M2 makes `zircon_runtime/runtime-feature-presets.toml` the machine-readable owne
 | `Client3d` | `target-client` | Same compiled client domains as `Client2d`; runtime profile data selects the 3D module/plugin set. |
 | `Editor` | `target-editor-host` | Client domains plus the editor-host target contract and the first-party advanced-render provider catalog required by the editor's default HGI render profile. Runtime selection still links HGI only; it does not implicitly activate Virtual Geometry or Solari. |
 | `Dev` | `target-editor-host` | Same compiled editor-host domains and provider catalog as `Editor`; runtime profile data selects development diagnostics and plugins. |
-| `Server` | `target-server` | `core-min`, `diagnostic-log`, and headless platform only; no graphics, UI, animation, navigation, script, AI, Net, or Sound domain is implied. |
+| `Server` | `target-server` | `core-min`, `diagnostic-log`, headless platform, and the direct `dep:naga` required by the always-available asset shader importer; no graphics, UI, animation, navigation, script, AI, Net, or Sound domain is implied. |
 
 `tools/runtime-profile-feature-presets.py` is the language-neutral reader used by `tools/dev-fast-build.ps1`, `tools/check-runtime-profile-features.ps1`, and the GitHub Actions matrix planner. The developer tool accepts the logical names `minimal`, `client2d`, `client3d`, `editor`, `dev`, and `server`; it no longer carries a private client/server/editor switch. The local matrix runner and CI both derive their six-entry profile matrix from the same TOML source and check `zircon_app` with default features disabled and the selected aggregate Cargo preset. A separate twelve-entry CI additive-domain matrix checks `core-min + one domain`, including each `*-contracts` purity combination. `tools/tests/test_frameworks_03_profile_feature_presets.py` compares every TOML member list against both Cargo manifests, rejects drift between logical profiles that share an aggregate preset, and locks the Rust/tool/CI consumption points. The plan's actual local-matrix/CI-green and portable `--all-features` acceptance evidence remains a testing-stage gate, not a property inferred from workflow source.
 
@@ -431,7 +435,7 @@ M10 makes profile selection maintainable. Bevy's matching practice is to treat f
 | Sync area | Bevy-derived behavior | Zircon source of truth | M10 gate |
 | --- | --- | --- | --- |
 | Profile vocabulary | Bevy exposes public feature/profile collections in `Cargo.toml` and checks generated feature docs for missing updates. | `RuntimeProfileId`, `RuntimeProfileDescriptor`, `core_profiles`, and this document's Built-In Profiles section. | Every profile id, target mode, required capability, optional plugin, and minimum maturity must appear here before a profile is promoted. |
-| Compile feature presets | Bevy keeps named feature collections machine-checkable instead of relying on prose-only combinations. | `zircon_runtime/runtime-feature-presets.toml`, generated `RuntimeProfileFeaturePreset` constants, Cargo target features, and `tools/runtime-profile-feature-presets.py`. | All six logical profiles must exist in stable order; shared aggregate presets must have identical member sets; Runtime/App Cargo members, developer tooling, and CI matrix entries must match the canonical source. |
+| Compile and assembly presets | Bevy keeps named feature collections and default plugin composition machine-checkable instead of relying on prose-only combinations. | `zircon_runtime/runtime-feature-presets.toml`, generated feature/assembly projections, Cargo target features, and `tools/runtime-profile-feature-presets.py`. | All six logical profiles must exist in stable order; shared aggregate presets must have identical member sets; Runtime/App Cargo members, cfg-aware module selection, descriptor fields, plugin required flags, developer tooling, and CI matrix entries must match the canonical source. |
 | Catalog and plugin manifests | Bevy feature documentation is synchronized with actual Cargo features rather than manually trusted. | `RuntimePluginDescriptor::builtin_catalog()`, `RuntimePluginId`, and `zircon_plugins/*/plugin.toml` maturity/capability rows. | Catalog additions, new first-party plugin TOML files, or changed capability statuses must update this document or the parity matrix in the same change. |
 | Availability categories | Bevy default plugin presence is concrete; missing/duplicate plugin edits fail at the API or CI boundary. | `RuntimePluginAvailabilityReport` buckets, `RuntimeModuleLoadReport` fatal diagnostics, and `ExportBuildPlan.runtime_plugin_availability`. | Stable/default profiles must keep required `Externalized`, `Stub`, below-minimum maturity, blocked-by-target, and missing-provider entries out of `missing_required`; optional failures must remain structured warnings. |
 | Provider feature gates | Bevy optional feature collections do not imply unrelated default plugins. | `zircon_first_party_runtime_catalog` feature groups, `zircon_app` provider feature forwarding, generated export providers, and profile bootstrap tests. | New linked/native providers must be selected by explicit profile/feature/export data. App features may provide implementations through catalog groups, but they must not silently widen `Client2d`, `Client3d`, `Editor`, `Dev`, or `Server` defaults. |

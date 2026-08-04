@@ -41,7 +41,8 @@ pub use lightmap_asset::{
 pub use payload::TexturePayload;
 pub use texture_asset::TextureAsset;
 pub use upload_support::{
-    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness, TextureUploadSupport,
+    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSubresource, TextureUploadSupport,
 };
 pub use zcube::{
     ZCUBE_SOURCE_CUBEMAP_FORMAT, ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,

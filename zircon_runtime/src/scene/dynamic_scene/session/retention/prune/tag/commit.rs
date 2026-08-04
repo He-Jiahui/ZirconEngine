@@ -1,6 +1,6 @@
 use super::super::super::super::{RuntimeSessionArchive, RuntimeSessionArchiveError};
 use super::super::super::{RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy};
-use super::super::planning::{apply_prune_report, preview_matching_slots_with_tag};
+use super::super::planning::preview_matching_slots_with_tag;
 
 pub(in crate::scene::dynamic_scene::session) fn prune_slots_with_tag(
     archive: &mut RuntimeSessionArchive,
@@ -8,7 +8,6 @@ pub(in crate::scene::dynamic_scene::session) fn prune_slots_with_tag(
     policy: RuntimeSessionArchiveRetentionPolicy,
 ) -> Result<RuntimeSessionArchivePruneReport, RuntimeSessionArchiveError> {
     archive.ensure_supported()?;
-    archive.sort_slots();
     let tag = tag.trim();
     let policy = policy.normalized();
     if tag.is_empty() {
@@ -18,6 +17,12 @@ pub(in crate::scene::dynamic_scene::session) fn prune_slots_with_tag(
         });
     }
     let report = preview_matching_slots_with_tag(archive, tag, policy)?;
-    apply_prune_report(archive, &report);
+    if !report.removed_slot_ids.is_empty() {
+        archive.commit_staged_slot_rows(
+            Vec::new(),
+            Vec::new(),
+            report.removed_slot_ids.iter().map(String::as_str),
+        );
+    }
     Ok(report)
 }

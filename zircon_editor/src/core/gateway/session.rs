@@ -5,13 +5,14 @@ use std::{mem::MaybeUninit, slice};
 use serde::de::DeserializeOwned;
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V4, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
-    ZrRuntimeApiV3, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeApiV4, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
     ZrRuntimeFrameV1, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
     ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeHighlightRenderAttributesV1, ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus,
@@ -19,14 +20,14 @@ use zircon_runtime_interface::{
 
 use super::{
     EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeFramePixels, EditorRuntimeGateway,
-    EditorRuntimePluginEventPage, GatewayError, RuntimeCapabilities,
+    EditorRuntimeHighlightSet, EditorRuntimePluginEventPage, GatewayError, RuntimeCapabilities,
 };
 
 const MAX_EDITOR_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
 
 pub struct SessionGateway {
     _runtime_owner: Arc<dyn Send + Sync>,
-    api: ZrRuntimeApiV3,
+    api: ZrRuntimeApiV4,
     session: ZrRuntimeSessionHandle,
     capabilities: Arc<RuntimeCapabilities>,
 }
@@ -149,17 +150,17 @@ impl SessionGateway {
     /// function pointer in `api` loaded until the gateway is dropped.
     pub unsafe fn new(
         runtime_owner: Arc<dyn Send + Sync>,
-        api: ZrRuntimeApiV3,
+        api: ZrRuntimeApiV4,
         session: ZrRuntimeSessionHandle,
         capabilities: RuntimeCapabilities,
     ) -> Result<Self, GatewayError> {
         if !session.is_valid() {
             return Err(GatewayError::SessionLost);
         }
-        if api.abi_version != ZIRCON_RUNTIME_API_VERSION_V3 {
+        if api.abi_version != ZIRCON_RUNTIME_API_VERSION_V4 {
             return Err(GatewayError::Protocol {
                 message: format!(
-                    "session gateway requires runtime API V3, received version {}",
+                    "session gateway requires runtime API V4, received version {}",
                     api.abi_version
                 ),
             });
@@ -230,7 +231,11 @@ impl SessionGateway {
                         .unwrap_or_else(|| operation.to_string())
                 ),
             }),
-            (None, None, Ok(())) => unreachable!("successful validated output returned above"),
+            (None, None, Ok(())) => Err(GatewayError::Protocol {
+                message: format!(
+                    "{operation} reached an inconsistent validated-output cleanup state"
+                ),
+            }),
         }
     }
 }
@@ -306,6 +311,44 @@ impl EditorRuntimeGateway for SessionGateway {
                 operation: "capture runtime frame",
             }),
         ))
+    }
+
+    fn submit_highlight_set(
+        &self,
+        set: EditorRuntimeHighlightSet,
+    ) -> Result<(), GatewayError> {
+        if !set.is_valid() {
+            return Err(GatewayError::Protocol {
+                message: "invalid runtime highlight set".to_owned(),
+            });
+        }
+        if !self
+            .capabilities
+            .core_capabilities()
+            .iter()
+            .any(|capability| capability == "runtime.editor_overlay.highlight_set")
+        {
+            return Err(GatewayError::CapabilityMissing {
+                capability: "runtime.editor_overlay.highlight_set",
+            });
+        }
+        let submit = Self::required(
+            self.api.submit_highlight_set,
+            "runtime.editor_overlay.highlight_set",
+        )?;
+        let request = ZrRuntimeHighlightSetV1::new(
+            set.viewport(),
+            set.generation(),
+            set.entities(),
+            ZrRuntimeHighlightRenderAttributesV1 {
+                outline_enabled: if set.outline_enabled() { 1 } else { 0 },
+                tint_rgba: set.tint_rgba(),
+            },
+        );
+        ensure_status(
+            unsafe { submit(self.session, request) },
+            "submit runtime highlight set",
+        )
     }
 
     fn profile_control(
@@ -573,7 +616,12 @@ fn frame_demand_from_runtime(
                 Duration::from_nanos(demand.delay_nanoseconds).min(MAX_EDITOR_RUNTIME_FRAME_DELAY),
             )),
             ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1 => Ok(EditorRuntimeFrameDemand::Continuous),
-            _ => unreachable!("known frame demand kind was validated above"),
+            _ => Err(GatewayError::Protocol {
+                message: format!(
+                    "runtime frame demand kind {} became unsupported after validation",
+                    demand.kind
+                ),
+            }),
         };
     }
     Err(GatewayError::Protocol {
@@ -666,6 +714,103 @@ fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), Gatewa
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use super::{GatewayError, SessionGateway, frame_demand_from_runtime};
+    use crate::core::gateway::{
+        EditorRuntimeGateway, EditorRuntimeHighlightSet, RuntimeCapabilities, SessionProfileKind,
+    };
+    use zircon_runtime_interface::{
+        ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeApiV4, ZrRuntimeHighlightSetV1,
+        ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus, ZrRuntimeFrameDemandV1,
+    };
+
+    static RECORDED_HIGHLIGHT_SETS: Mutex<Vec<(u64, u64, Vec<u64>, bool, [u32; 4])>> =
+        Mutex::new(Vec::new());
+
+    unsafe extern "C" fn record_highlight_set(
+        _session: ZrRuntimeSessionHandle,
+        request: ZrRuntimeHighlightSetV1,
+    ) -> ZrStatus {
+        let entities = unsafe { request.entities.as_slice() }.unwrap().to_vec();
+        RECORDED_HIGHLIGHT_SETS
+            .lock()
+            .unwrap()
+            .push((
+                request.viewport.raw(),
+                request.generation,
+                entities,
+                request.attributes.outline_enabled != 0,
+                request.attributes.tint_rgba.map(f32::to_bits),
+            ));
+        ZrStatus::ok()
+    }
+
+    #[test]
+    fn session_gateway_submits_the_canonical_abi_value() {
+        RECORDED_HIGHLIGHT_SETS.lock().unwrap().clear();
+        let mut api = ZrRuntimeApiV4::empty();
+        api.submit_highlight_set = Some(record_highlight_set);
+        let gateway = unsafe {
+            SessionGateway::new(
+                Arc::new(()),
+                api,
+                ZrRuntimeSessionHandle::new(9),
+                RuntimeCapabilities::editor_default(),
+            )
+        }
+        .unwrap();
+
+        gateway
+            .submit_highlight_set(EditorRuntimeHighlightSet::new(
+                ZrRuntimeViewportHandle::new(4),
+                12,
+                [9, 2, 9],
+                true,
+                [0.1, 0.4, 0.7, 1.0],
+            ))
+            .unwrap();
+
+        assert_eq!(
+            RECORDED_HIGHLIGHT_SETS.lock().unwrap().as_slice(),
+            &[(4, 12, vec![2, 9], true, [0.1f32.to_bits(), 0.4f32.to_bits(), 0.7f32.to_bits(), 1.0f32.to_bits()])]
+        );
+    }
+
+    #[test]
+    fn session_gateway_rejects_an_unreported_overlay_capability() {
+        let mut api = ZrRuntimeApiV4::empty();
+        api.submit_highlight_set = Some(record_highlight_set);
+        let gateway = unsafe {
+            SessionGateway::new(
+                Arc::new(()),
+                api,
+                ZrRuntimeSessionHandle::new(10),
+                RuntimeCapabilities::new(
+                    SessionProfileKind::Editor,
+                    Vec::<String>::new(),
+                    Vec::new(),
+                ),
+            )
+        }
+        .unwrap();
+
+        assert_eq!(
+            gateway
+                .submit_highlight_set(EditorRuntimeHighlightSet::new(
+                    ZrRuntimeViewportHandle::new(1),
+                    1,
+                    [],
+                    true,
+                    [0.2, 0.6, 0.9, 1.0],
+                ))
+                .unwrap_err(),
+            GatewayError::CapabilityMissing {
+                capability: "runtime.editor_overlay.highlight_set",
+            }
+        );
+    }
+
     #[test]
     fn owned_output_decode_validates_the_payload_once() {
         let source = include_str!("session.rs");
@@ -684,5 +829,33 @@ mod tests {
             .expect("session drain body should remain available");
         let explicit_validation = ["output.val", "idate(\"drain runtime plugin events\")"].concat();
         assert!(!drain_body.contains(&explicit_validation));
+    }
+
+    #[test]
+    fn unknown_runtime_frame_demand_kind_returns_a_protocol_error() {
+        let error = frame_demand_from_runtime(ZrRuntimeFrameDemandV1 {
+            abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+            kind: u32::MAX,
+            delay_nanoseconds: 0,
+        })
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            GatewayError::Protocol { message } if message.contains("unknown kind")
+        ));
+    }
+
+    #[test]
+    fn session_gateway_invariant_breaks_fail_closed() {
+        let source = include_str!("session.rs");
+        let validation_body = source
+            .split("fn validate_output_status")
+            .nth(1)
+            .and_then(|body| body.split("impl std::fmt::Debug for SessionGateway").next())
+            .expect("validate-output-status body should remain available");
+
+        assert!(validation_body.contains("inconsistent validated-output cleanup state"));
+        assert!(!validation_body.contains("unreachable!"));
     }
 }

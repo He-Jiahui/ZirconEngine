@@ -57,30 +57,65 @@ fn wrapping_source_has_no_production_growing_prefix_candidate() {
 
     assert!(!source.contains("should_wrap_before_chunk_with_provider"));
     assert!(!source.contains("candidate.push_str(current_text)"));
+    assert!(!source.contains("Vec<TextSegment"));
     assert!(source.contains("GraphemeAdvanceIndex::measured_with_provider"));
     assert!(source.contains("corrected_glyph_ranges_with_provider"));
+    assert!(source.contains("visit_source_segments_preserving_hard_lines"));
 }
 
 #[test]
 fn source_segmentation_preserves_all_mandatory_unicode_breaks() {
-    let segments = split_preserving_hard_lines("a\r\nb\u{2028}c", 10);
+    let mut segments = Vec::new();
+    visit_source_segments_preserving_hard_lines("a\r\nb\u{2028}c", 10, |segment| {
+        segments.push((
+            segment.text,
+            segment.range.start,
+            segment.range.end,
+            segment.hard_break,
+        ));
+    });
 
     assert_eq!(
-        segments
-            .iter()
-            .map(|segment| (
-                segment.text,
-                segment.range.start,
-                segment.range.end,
-                segment.hard_break
-            ))
-            .collect::<Vec<_>>(),
+        segments,
         vec![
             ("a", 10, 11, false),
             ("\r\n", 11, 13, true),
             ("b", 13, 14, false),
             ("\u{2028}", 14, 17, true),
             ("c", 17, 18, false),
+        ]
+    );
+}
+
+#[test]
+fn source_segment_visitor_emits_an_empty_segment_for_empty_source() {
+    let mut segments = Vec::new();
+    visit_source_segments_preserving_hard_lines("", 24, |segment| {
+        segments.push((
+            segment.text,
+            segment.range.start,
+            segment.range.end,
+            segment.hard_break,
+        ));
+    });
+
+    assert_eq!(segments, vec![("", 24, 24, false)]);
+}
+
+#[test]
+fn source_segment_visitor_preserves_the_shaping_run_cap_break() {
+    let text = "a".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES + 1);
+    let mut segments = Vec::new();
+    visit_source_segments_preserving_hard_lines(&text, 0, |segment| {
+        segments.push((segment.text.len(), segment.hard_break));
+    });
+
+    assert_eq!(
+        segments,
+        vec![
+            (crate::text::TEXT_SHAPING_RUN_MAX_BYTES, false),
+            (0, true),
+            (1, false),
         ]
     );
 }

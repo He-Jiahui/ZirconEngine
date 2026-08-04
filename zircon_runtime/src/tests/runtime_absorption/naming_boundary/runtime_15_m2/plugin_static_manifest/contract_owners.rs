@@ -147,9 +147,6 @@ fn runtime_15_plugin_static_manifest_contract_owners_use_domain_names() {
         manifest_root,
         "docs/zircon_runtime/plugin/package_manifest.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan),
@@ -158,9 +155,6 @@ fn runtime_15_plugin_static_manifest_contract_owners_use_domain_names() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("plugin extension doc", plugin_extension_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,

@@ -1,11 +1,16 @@
+import re
 import struct
 import tempfile
 import unittest
 import zlib
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest import mock
 
 from tools.zircon_validate_shader_pbr_viewer_evidence import (
+    _CURRENT_IBL_BAKE_ALGORITHM_VERSION,
+    main,
     validate_ready_frame_evidence,
 )
 
@@ -39,6 +44,205 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
             self.assertEqual("environment_only_pbr_preview", evidence.render_profile)
             self.assertEqual(4, evidence.distinct_rgba_colors)
             self.assertGreaterEqual(evidence.non_black_pixel_count, 1)
+
+    def test_v3_provenance_requires_startup_pipeline_ready_state(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            png_path = Path(temp_dir) / "pbr-ready.png"
+            _write_rgba_png(
+                png_path,
+                2,
+                2,
+                [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
+            )
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v3",
+                viewport="2x2",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "v3 provenance sidecar is missing"):
+                validate_ready_frame_evidence(png_path)
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v3",
+                environment_only_base_prewarm_pipeline_ready="false",
+                viewport="2x2",
+            )
+            evidence = validate_ready_frame_evidence(png_path)
+
+            self.assertEqual((2, 2), evidence.viewport)
+
+    def test_v7_provenance_requires_capture_time_base_pipeline_readiness_and_timing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            png_path = Path(temp_dir) / "pbr-ready.png"
+            _write_rgba_png(
+                png_path,
+                2,
+                2,
+                [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
+            )
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v7",
+                environment_only_base_prewarm_pipeline_ready="false",
+                environment_only_base_pipeline_ready_at_capture="false",
+                viewport="2x2",
+            )
+            with self.assertRaisesRegex(RuntimeError, "capture-time Base pipeline readiness"):
+                validate_ready_frame_evidence(png_path)
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v7",
+                environment_only_base_prewarm_pipeline_ready="false",
+                environment_only_base_pipeline_ready_at_capture="true",
+                viewport="2x2",
+            )
+            evidence = validate_ready_frame_evidence(png_path)
+
+            self.assertEqual((2, 2), evidence.viewport)
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v7",
+                environment_only_base_prewarm_pipeline_ready="false",
+                environment_only_base_pipeline_ready_at_capture="true",
+                scene_startup_total_ns="1",
+                viewport="2x2",
+            )
+            with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
+                validate_ready_frame_evidence(png_path)
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v7",
+                environment_only_base_prewarm_pipeline_ready="false",
+                environment_only_base_pipeline_ready_at_capture="true",
+                one_shot_base_pipeline_wait_elapsed_ns="-1",
+                viewport="2x2",
+            )
+            with self.assertRaisesRegex(RuntimeError, "duration is malformed"):
+                validate_ready_frame_evidence(png_path)
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v7",
+                environment_only_base_prewarm_pipeline_ready="false",
+                environment_only_base_pipeline_ready_at_capture="true",
+                viewer_scene_load_elapsed_ns="1",
+                viewport="2x2",
+            )
+            with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
+                validate_ready_frame_evidence(png_path)
+
+    def test_cli_requires_v8_schema_unless_legacy_read_is_explicit(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            png_path = Path(temp_dir) / "pbr-ready.png"
+            _write_rgba_png(
+                png_path,
+                2,
+                2,
+                [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
+            )
+            for legacy_schema_version in range(2, 8):
+                _write_sidecar(
+                    png_path,
+                    schema=(
+                        "zircon_shader_pbr_viewer_ready_frame_evidence_"
+                        f"v{legacy_schema_version}"
+                    ),
+                    environment_only_base_prewarm_pipeline_ready="true",
+                    environment_only_base_pipeline_ready_at_capture="true",
+                )
+
+                stderr = StringIO()
+                with (
+                    mock.patch("sys.argv", ["validator", str(png_path)]),
+                    redirect_stderr(stderr),
+                ):
+                    self.assertEqual(1, main())
+                self.assertIn(
+                    "requires schema=zircon_shader_pbr_viewer_ready_frame_evidence_v8",
+                    stderr.getvalue(),
+                )
+
+                with (
+                    mock.patch(
+                        "sys.argv",
+                        ["validator", "--allow-legacy-schema", str(png_path)],
+                    ),
+                    redirect_stdout(StringIO()),
+                ):
+                    self.assertEqual(0, main())
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v8",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+            )
+            with (
+                mock.patch("sys.argv", ["validator", str(png_path)]),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(0, main())
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v8",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+                ibl_bake_algorithm_version="202607310004",
+            )
+            stderr = StringIO()
+            with (
+                mock.patch("sys.argv", ["validator", str(png_path)]),
+                redirect_stderr(stderr),
+            ):
+                self.assertEqual(1, main())
+            self.assertIn(
+                "requires IBL bake algorithm version=202608020005", stderr.getvalue()
+            )
+
+            with (
+                mock.patch(
+                    "sys.argv", ["validator", "--allow-legacy-schema", str(png_path)]
+                ),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(0, main())
+
+    def test_v8_provenance_requires_ready_timing_to_cover_load_wait_and_render(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            png_path = Path(temp_dir) / "pbr-ready.png"
+            _write_rgba_png(
+                png_path,
+                2,
+                2,
+                [(32, 64, 96, 255), (64, 96, 128, 255)] * 2,
+            )
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v8",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+                viewer_ready_elapsed_ns="1340000000",
+            )
+            with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
+                validate_ready_frame_evidence(png_path)
+
+            _write_sidecar(
+                png_path,
+                schema="zircon_shader_pbr_viewer_ready_frame_evidence_v8",
+                environment_only_base_prewarm_pipeline_ready="true",
+                environment_only_base_pipeline_ready_at_capture="true",
+            )
+            evidence = validate_ready_frame_evidence(png_path)
+
+            self.assertEqual((2, 2), evidence.viewport)
 
     def test_rejects_viewport_mismatch_and_wrong_cache_scope(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -176,6 +380,21 @@ class ZirconValidateShaderPbrViewerEvidenceTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "duration hierarchy"):
                     validate_ready_frame_evidence(png_path)
 
+    def test_cli_bake_algorithm_version_matches_runtime_constant(self):
+        source_path = (
+            Path(__file__).resolve().parents[2]
+            / "zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs"
+        )
+        source = source_path.read_text(encoding="utf-8")
+        match = re.search(
+            r"IBL_BAKE_ALGORITHM_VERSION: u64 = ([0-9_]+);", source
+        )
+
+        self.assertIsNotNone(match)
+        self.assertEqual(
+            match.group(1).replace("_", ""), _CURRENT_IBL_BAKE_ALGORITHM_VERSION
+        )
+
 
 def _write_sidecar(png_path: Path, **overrides: str) -> None:
     metadata = {
@@ -204,6 +423,21 @@ def _write_sidecar(png_path: Path, **overrides: str) -> None:
         "ibl_staging_status": "Reused",
         "ibl_staging_elapsed_ns": "8000000",
         "ibl_total_elapsed_ns": "12000000",
+        "scene_startup_hdri_decode_ns": "21000000",
+        "scene_startup_project_assets_ns": "34000000",
+        "scene_startup_runtime_bootstrap_ns": "55000000",
+        "scene_startup_project_open_ns": "89000000",
+        "scene_startup_world_load_ns": "144000000",
+        "scene_startup_renderer_initialization_ns": "233000000",
+        "scene_startup_renderer_backend_initialization_ns": "34000000",
+        "scene_startup_renderer_deferred_initialization_ns": "89000000",
+        "scene_startup_renderer_deferred_standard_pipeline_ns": "55000000",
+        "scene_startup_resource_streamer_initialization_ns": "34000000",
+        "scene_startup_ibl_restore_ns": "610000000",
+        "scene_startup_total_ns": "1200000000",
+        "one_shot_base_pipeline_wait_elapsed_ns": "75000000",
+        "viewer_scene_load_elapsed_ns": "1250000000",
+        "viewer_ready_elapsed_ns": "1350000000",
         "ready_frame_render_elapsed_ns": "16000000",
         "ready_frame_extract_ns": "2000000",
         "ready_frame_renderer_call_ns": "11000000",

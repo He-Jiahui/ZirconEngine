@@ -38,5 +38,8 @@ pub(crate) use effect::{apply_dispatch_reply, apply_dispatch_reply_steps};
 pub use error::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult};
 pub use state::UiSurfaceInputState;
 pub(crate) use text_constraints::text_input_constraints_for_node;
+pub(in crate::ui::surface) use text_state::{
+    editable_text_input_is_secure, is_editable_text_input,
+};
 pub(crate) use validation::{is_valid_input_owner, require_valid_input_owner};
 pub(crate) use window_pump::dispatch_window_event;

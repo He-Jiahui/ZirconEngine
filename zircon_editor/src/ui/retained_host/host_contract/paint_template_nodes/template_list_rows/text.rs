@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
 use super::super::template_row_metrics::workbench_row_metrics;
@@ -27,9 +28,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     if text_frame.width <= 0.0 || text_frame.height <= 0.0 {
         return;
     }
+    let Some(text_clip) = intersect(&text_frame, clip) else {
+        return;
+    };
     commands.push(HostPaintCommand::text(
         text_frame,
-        Some(clip.clone()),
+        Some(text_clip),
         order,
         label,
         list_row_text_color(node),

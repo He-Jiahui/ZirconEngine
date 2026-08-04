@@ -17,6 +17,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextSdfFa
     pub(super) fallback_text_batch_count: usize,
     pub(super) whole_batch_fallback_text_batch_count: usize,
     pub(super) fallback_native_overlay_batch_count: usize,
+    pub(super) sdf_layout_fidelity_retained_text_batch_count: usize,
     pub(super) mixed_overlay_unsupported_text_batch_count: usize,
     pub(super) mixed_overlay_empty_span_text_batch_count: usize,
     pub(super) mixed_overlay_missing_advances_text_batch_count: usize,
@@ -40,6 +41,10 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextSdfFa
 impl ScreenSpaceUiTextSdfFallbackReport {
     pub(super) fn has_whole_batch_fallbacks(&self) -> bool {
         self.whole_batch_fallback_text_batch_count > 0
+    }
+
+    pub(super) fn needs_sdf_cpu_rebuild(&self) -> bool {
+        self.fallback_text_batch_count > 0
     }
 }
 
@@ -157,7 +162,21 @@ fn apply_sdf_atlas_fallbacks_internal<'a>(
 
         if run.has_failures() {
             let fallback_spans = fallback_spans_for_text_run(text.text.as_str(), run);
-            report.record_run_fallback(run, &fallback_spans);
+            report.record_run_failure(run, &fallback_spans);
+
+            // Native text shaping cannot consume the resolved glyph advances that forced this
+            // batch onto SDF. Keep the surviving SDF glyphs positioned exactly rather than
+            // silently changing line geometry.
+            if text.requires_sdf_layout_fidelity() {
+                report.sdf_layout_fidelity_retained_text_batch_count = report
+                    .sdf_layout_fidelity_retained_text_batch_count
+                    .saturating_add(1);
+                retained_sdf_texts.push(text);
+                retained_sdf_run_indices.push(index);
+                continue;
+            }
+
+            report.fallback_text_batch_count = report.fallback_text_batch_count.saturating_add(1);
 
             let glyph_advances = glyph_advances_for_run(index);
             match native_overlay_batches_for_failed_spans(&text, &fallback_spans, glyph_advances) {
@@ -196,12 +215,11 @@ fn apply_sdf_atlas_fallbacks_internal<'a>(
 }
 
 impl ScreenSpaceUiTextSdfFallbackReport {
-    fn record_run_fallback(
+    fn record_run_failure(
         &mut self,
         run: &SdfAtlasRun,
         fallback_spans: &[SdfAtlasGlyphFallbackSpan],
     ) {
-        self.fallback_text_batch_count = self.fallback_text_batch_count.saturating_add(1);
         self.fallback_glyph_count = self
             .fallback_glyph_count
             .saturating_add(run.allocation_failure_count)

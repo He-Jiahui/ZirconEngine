@@ -6,5 +6,3 @@ mod folder_backing;
 mod mounts;
 #[path = "split_layout/sources.rs"]
 mod sources;
-#[path = "split_layout/status_mirrors.rs"]
-mod status_mirrors;

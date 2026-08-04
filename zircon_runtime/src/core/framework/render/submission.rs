@@ -82,7 +82,7 @@ impl Default for RenderSubmissionConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_PARALLEL_RECORD_MIN_PASSES_PER_BUCKET, RenderSubmissionConfig};
+    use super::{RenderSubmissionConfig, DEFAULT_PARALLEL_RECORD_MIN_PASSES_PER_BUCKET};
 
     #[test]
     fn submission_defaults_preserve_synchronous_serial_recording() {

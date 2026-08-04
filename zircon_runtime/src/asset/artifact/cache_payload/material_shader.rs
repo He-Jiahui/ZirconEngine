@@ -17,8 +17,8 @@ use crate::core::framework::render::{
 };
 
 use super::toml_value::{
-    ArtifactCacheTomlTable, ArtifactCacheTomlValue, cache_table_like_to_toml, cache_table_to_toml,
-    toml_table_like_to_cache, toml_table_to_cache,
+    cache_table_like_to_toml, cache_table_to_toml, toml_table_like_to_cache, toml_table_to_cache,
+    ArtifactCacheTomlTable, ArtifactCacheTomlValue,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -211,7 +211,7 @@ impl From<&ShaderAsset> for ArtifactCacheShaderAsset {
 
 impl ArtifactCacheShaderAsset {
     pub(super) fn into_asset(self) -> Result<ShaderAsset, AssetImportError> {
-        Ok(ShaderAsset {
+        let mut asset = ShaderAsset {
             uri: self.uri,
             kind: self.kind,
             source_language: self.source_language,
@@ -249,7 +249,9 @@ impl ArtifactCacheShaderAsset {
             editor: cache_table_to_toml(self.editor)?,
             pipeline_layout: self.pipeline_layout,
             validation_diagnostics: self.validation_diagnostics,
-        })
+        };
+        asset.regenerate_material_artifact();
+        Ok(asset)
     }
 }
 

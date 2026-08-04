@@ -303,6 +303,8 @@ fn empty_pipeline() -> CompiledRenderPipeline {
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
         environment_ibl_bake_request: None,
+        half_resolution_transparency_depth_sigma:
+            crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
         graph,
     })
 }

@@ -413,6 +413,7 @@ fn ui_text_paint_carries_editable_caret_selection_and_composition() {
         }),
         composition: Some(UiTextComposition {
             range: UiTextRange { start: 2, end: 4 },
+            preedit_clauses: Vec::new(),
             text: "ll".to_string(),
             restore_text: None,
         }),
@@ -1156,6 +1157,7 @@ fn ui_text_decorations_use_vertical_rl_geometry() {
             }),
             composition: Some(UiTextComposition {
                 range: UiTextRange { start: 0, end: 6 },
+                preedit_clauses: Vec::new(),
                 text: "縦書".to_string(),
                 restore_text: None,
             }),
@@ -1255,6 +1257,7 @@ fn ui_text_decorations_snap_to_grapheme_cluster_edges() {
                     start: 1,
                     end: accent.len(),
                 },
+                preedit_clauses: Vec::new(),
                 text: "\u{0301}".to_string(),
                 restore_text: None,
             }),
@@ -1348,6 +1351,7 @@ fn ui_text_decorations_use_run_visual_ranges_for_non_isomorphic_source_ranges() 
             }),
             composition: Some(UiTextComposition {
                 range: UiTextRange { start: 3, end: 5 },
+                preedit_clauses: Vec::new(),
                 text: "-".to_string(),
                 restore_text: None,
             }),
@@ -1754,6 +1758,7 @@ fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
     paint.caret = Some(UiTextCaret::default());
     paint.composition = Some(UiTextComposition {
         range: UiTextRange { start: 2, end: 4 },
+        preedit_clauses: Vec::new(),
         text: "it".to_string(),
         restore_text: None,
     });

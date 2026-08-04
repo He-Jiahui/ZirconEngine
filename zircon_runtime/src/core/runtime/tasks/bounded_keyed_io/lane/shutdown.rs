@@ -16,6 +16,23 @@ impl BoundedKeyedIoShutdownGuard {
         shutdown_complete(&self.lane.lock())
     }
 
+    /// Waits for every shutdown-pinned entry and its worker handle to finish.
+    pub fn wait(&self) {
+        let mut state = self.lane.lock();
+        while !shutdown_complete(&state) {
+            state = self
+                .lane
+                .changed
+                .wait(state)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+        }
+        let handles = state.active_handles.clone();
+        drop(state);
+        for handle in handles {
+            handle.wait();
+        }
+    }
+
     pub fn wait_until(&self, deadline: Instant) -> bool {
         let mut state = self.lane.lock();
         while !shutdown_complete(&state) {
@@ -51,23 +68,11 @@ impl BoundedKeyedIoShutdownGuard {
 
 impl Drop for BoundedKeyedIoShutdownGuard {
     fn drop(&mut self) {
-        let mut state = self.lane.lock();
-        while !shutdown_complete(&state) {
-            state = self
-                .lane
-                .changed
-                .wait(state)
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-        }
-        let handles = state.active_handles.clone();
-        drop(state);
-        for handle in handles {
-            handle.wait();
-        }
+        self.wait();
     }
 }
 
-fn diagnostics_for_state(state: &LaneState) -> BoundedKeyedIoDiagnostics {
+pub(super) fn diagnostics_for_state(state: &LaneState) -> BoundedKeyedIoDiagnostics {
     let oldest_age = state
         .queue
         .iter()

@@ -5,7 +5,9 @@ use super::super::template_field_stepper::workbench_field_stepper_metrics;
 use super::super::template_node_labels::template_node_label;
 use super::geometry::frame_is_within;
 use super::metrics::workbench_field_metrics;
-use super::search::{search_field_label_is_placeholder, search_field_text_left};
+use super::search::{
+    search_field_clear_action_rect, search_field_label_is_placeholder, search_field_text_left,
+};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_text(
@@ -28,6 +30,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     } else {
         metrics.input_pad_right
     };
+    let right_reserve = search_field_clear_action_rect(node, rect)
+        .map(|action| rect.x + rect.width - action.x + metrics.input_pad_right)
+        .unwrap_or(right_reserve);
     let text_left = search_field_text_left(node);
     let text_rect = FrameRect {
         x: rect.x + text_left,

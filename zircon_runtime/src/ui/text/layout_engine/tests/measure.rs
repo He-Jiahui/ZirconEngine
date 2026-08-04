@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiRichTextFormat, UiTextOverflow, UiTextWrap, UiTextWritingMode},
 };
 
-use super::{layout_text, measure_text_size, test_style};
+use super::{layout_text, measure_text_size, measure_unwrapped_text_height, test_style};
 
 #[test]
 fn text_measurement_uses_backend_glyph_metrics() {
@@ -19,6 +19,30 @@ fn text_measurement_uses_backend_glyph_metrics() {
     );
     assert!(combined.width < wide.width);
     assert_eq!(combined.height, 12.0);
+}
+
+#[test]
+fn unwrapped_height_counts_unicode_breaks_and_a_trailing_empty_line() {
+    let style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+
+    let height = measure_unwrapped_text_height("a\r\nb\u{2028}", &style)
+        .expect("plain unwrapped text has a fixed line height");
+
+    assert_eq!(height, 36.0);
+}
+
+#[test]
+fn unwrapped_height_matches_complete_measurement_across_hard_line_boundaries() {
+    let style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
+    let capped = "a".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES + 1);
+
+    for text in ["a\r\nb\u{2028}", capped.as_str()] {
+        let shortcut = measure_unwrapped_text_height(text, &style)
+            .expect("plain unwrapped text has a fixed line height");
+        let complete = measure_text_size(text, &style).height;
+
+        assert!((shortcut - complete).abs() < 0.01, "text={text:?}");
+    }
 }
 
 #[test]

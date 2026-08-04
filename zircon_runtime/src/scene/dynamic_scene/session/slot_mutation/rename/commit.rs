@@ -11,14 +11,10 @@ pub(in crate::scene::dynamic_scene::session) fn rename_slot(
         .destination_slot_id
         .expect("rename slot preview always reports a destination slot id");
     let slot_index = archive
-        .slots
-        .iter()
-        .position(|slot| slot.slot_id == report.source_slot_id)
+        .indexed_slot_index(&report.source_slot_id)
         .ok_or_else(|| RuntimeSessionArchiveError::MissingSlot {
             slot_id: report.source_slot_id.clone(),
         })?;
 
-    archive.slots[slot_index].slot_id = new_slot_id;
-    archive.sort_slots();
-    Ok(())
+    archive.commit_slot_rename(&report.source_slot_id, slot_index, new_slot_id)
 }

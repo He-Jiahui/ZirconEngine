@@ -4,10 +4,11 @@ use crate::script::VmError;
 
 use super::SCRIPT_BINDINGS_COMPONENT;
 
-pub(super) type ScriptSceneHookResult<T> = std::result::Result<T, ScriptSceneHookError>;
+pub(in crate::script::vm) type ScriptSceneHookResult<T> =
+    std::result::Result<T, ScriptSceneHookError>;
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum ScriptSceneHookError {
+pub(in crate::script::vm) enum ScriptSceneHookError {
     #[error(transparent)]
     Core(#[from] CoreError),
     #[error("invalid {component} for entity {entity}: {source}")]

@@ -22,7 +22,7 @@ impl RetainedEditorHost {
             .resolve(self.asset_manager.clone())
     }
 
-    fn editor_asset_manager_at_use_point(
+    pub(in crate::ui::retained_host::app) fn editor_asset_manager_at_use_point(
         &self,
     ) -> Result<Arc<dyn EditorAssetManagerContract>, zircon_runtime::core::CoreError> {
         self.resource_manager_resolver

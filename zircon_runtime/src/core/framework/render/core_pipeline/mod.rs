@@ -14,8 +14,8 @@ mod render_queue;
 pub use packed_sort_key::packed_sort_key_u64;
 pub use phase_item::{RenderPhaseItem, RenderPhaseMeshSource};
 pub use phase_queue::{
-    MeshPhaseInput, RenderPhaseQueue, SpritePhaseInput, build_mesh_phase_queue,
-    build_sprite_phase_queue,
+    build_mesh_phase_queue, build_sprite_phase_queue, MeshPhaseInput, RenderPhaseQueue,
+    SpritePhaseInput,
 };
 pub use phase_queue_ordering_key::RenderPhaseQueueOrderingKey;
 pub use phase_queue_summary::{
@@ -27,5 +27,5 @@ pub use phase_sort_decision::RenderPhaseSortDecision;
 pub use phase_sort_decision_field::RenderPhaseSortDecisionField;
 pub use phase_sort_key_breakdown::RenderPhaseSortKeyBreakdown;
 pub use pipeline_kind::CorePipelineKind;
-pub use render_phase::{RENDER_PHASES_BY_QUEUE_ORDER, RenderPhase};
+pub use render_phase::{RenderPhase, RENDER_PHASES_BY_QUEUE_ORDER};
 pub use render_queue::RenderQueueValue;

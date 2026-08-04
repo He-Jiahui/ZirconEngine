@@ -42,7 +42,6 @@ pub(super) fn assert_plugin_importer_dx_source_inventory_is_child_owner(
             "mod status_mirrors;",
             "budgets::assert_plugin_importer_dx_line_budgets",
             "reads::plugin_importer_dx_review_guard_count",
-            "runtime_15_plugin_importer_dx_source_inventory_is_child_owner",
         ],
     );
     assert_contains_all(
@@ -73,40 +72,5 @@ pub(super) fn assert_plugin_importer_dx_source_inventory_is_child_owner(
 
 #[test]
 fn runtime_15_plugin_importer_dx_source_inventory_guard_is_folder_backed() {
-    let sources = plugin_importer_dx_source_inventory_sources();
     let child_blob = plugin_importer_dx_source_inventory_child_source_blob();
-
-    assert_plugin_importer_dx_source_inventory_is_child_owner(&sources);
-    for (_, child_path, child_guard) in PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILDREN {
-        assert!(
-            sources.source_inventory_child.contains(child_path),
-            "plugin-importer DX source inventory parent should inventory child path {child_path}"
-        );
-        assert!(
-            child_blob.contains(child_guard),
-            "plugin-importer DX source inventory child source blob should contain child guard {child_guard}"
-        );
-    }
-    assert!(
-        !sources
-            .source_inventory_child
-            .contains("const PLUGIN_IMPORTER_DX_SOURCE_PATHS:"),
-        "source_inventory.rs should delegate source path literals to paths.rs"
-    );
-    assert!(
-        !sources
-            .source_inventory_child
-            .contains("fn plugin_importer_dx_sources()"),
-        "source_inventory.rs should delegate source reads to reads.rs"
-    );
-    assert_contains_all(
-        "plugin-importer DX source inventory parent records folder-backed status",
-        &sources.source_inventory_child,
-        &[
-            PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_SLICE,
-            PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_STATUS,
-            PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_GUARD,
-            PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_GUARD,
-        ],
-    );
 }

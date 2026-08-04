@@ -1,15 +1,15 @@
 use std::array;
 
-use crate::scene::EntityId;
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, QueryCombinationIter, QueryData, QueryEntityError, QueryEntityItem,
     QueryFilter, QueryIter, QueryManyIter, QuerySingleError, UniqueEntityArray,
 };
+use crate::scene::EntityId;
+use crate::scene::World;
 
 use super::super::single_from_iter;
-use super::QueryState;
 use super::many_item_array::collect_many_query_items;
+use super::QueryState;
 
 impl<D, F> QueryState<D, F>
 where

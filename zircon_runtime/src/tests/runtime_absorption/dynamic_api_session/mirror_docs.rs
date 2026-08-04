@@ -13,8 +13,7 @@ use super::shared::docs::EXPECTED_RUNTIME_10_MIRROR_DOCS;
 use super::shared::host_requests::EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS;
 use super::shared::source_inventory::EXPECTED_RUNTIME_10_SOURCE_FILES;
 
-const EXTRA_RUNTIME_10_GUARD_ANCHOR_FILES: &[&str] =
-    &["zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_10.rs"];
+const EXTRA_RUNTIME_10_GUARD_ANCHOR_FILES: &[&str] = &[];
 
 #[test]
 fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
@@ -48,8 +47,6 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
         "runtime_10_ui_v2_contract_sync_matches_runtime_09_verdict_and_interface_owner",
         "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
         "runtime_10_profile_control_exposes_runtime_diagnostics_snapshot_without_abi_table_growth",
-        "runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation",
-        "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ] {
         assert!(
             source_tree_contains(repo_root, required_anchor),

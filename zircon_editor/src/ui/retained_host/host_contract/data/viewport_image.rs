@@ -1,6 +1,4 @@
-use crate::ui::retained_host::primitives::Image;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
 
 #[derive(Clone, Default)]
 pub(crate) struct HostViewportImageData {
@@ -11,14 +9,18 @@ pub(crate) struct HostViewportImageData {
 }
 
 impl HostViewportImageData {
-    pub(crate) fn from_image(image: &Image) -> Option<Self> {
-        let buffer = image.to_rgba8()?;
-        let rgba = buffer.as_bytes().to_vec();
+    pub(crate) fn from_captured_frame(
+        viewport: RenderViewportHandle,
+        frame: CapturedFrame,
+    ) -> Option<Self> {
+        let width = frame.width;
+        let height = frame.height;
+        let generation = frame.generation;
         let image = Self {
-            resource_key: viewport_image_resource_key(buffer.width(), buffer.height(), &rgba),
-            width: buffer.width(),
-            height: buffer.height(),
-            rgba,
+            resource_key: viewport_image_resource_key(viewport, generation),
+            width,
+            height,
+            rgba: frame.rgba,
         };
         image.is_valid().then_some(image)
     }
@@ -33,27 +35,22 @@ impl HostViewportImageData {
     }
 }
 
-fn viewport_image_resource_key(width: u32, height: u32, rgba: &[u8]) -> String {
-    let mut hasher = DefaultHasher::new();
-    width.hash(&mut hasher);
-    height.hash(&mut hasher);
-    rgba.hash(&mut hasher);
-    format!("viewport:{width}x{height}:{:016x}", hasher.finish())
+fn viewport_image_resource_key(viewport: RenderViewportHandle, generation: u64) -> String {
+    format!("viewport:{}:{generation}", viewport.raw())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui::retained_host::primitives::{Image, Rgba8Pixel, SharedPixelBuffer};
 
     #[test]
-    fn viewport_image_resource_key_tracks_same_size_content() {
-        let red = viewport_image(&[255, 0, 0, 255]);
-        let blue = viewport_image(&[0, 0, 255, 255]);
+    fn viewport_image_resource_key_tracks_viewport_generation() {
+        let red = viewport_image(3, 7, &[255, 0, 0, 255]);
+        let blue = viewport_image(3, 8, &[0, 0, 255, 255]);
 
         assert_ne!(red.resource_key, blue.resource_key);
-        assert!(red.resource_key.starts_with("viewport:1x1:"));
-        assert!(blue.resource_key.starts_with("viewport:1x1:"));
+        assert_eq!(red.resource_key, "viewport:3:7");
+        assert_eq!(blue.resource_key, "viewport:3:8");
     }
 
     #[test]
@@ -68,9 +65,11 @@ mod tests {
         assert!(!image.is_valid());
     }
 
-    fn viewport_image(rgba: &[u8]) -> HostViewportImageData {
-        let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(rgba, 1, 1);
-        let image = Image::from_rgba8(buffer);
-        HostViewportImageData::from_image(&image).expect("valid image should project")
+    fn viewport_image(viewport: u64, generation: u64, rgba: &[u8]) -> HostViewportImageData {
+        HostViewportImageData::from_captured_frame(
+            RenderViewportHandle::new(viewport),
+            CapturedFrame::new(1, 1, rgba.to_vec(), generation),
+        )
+        .expect("valid capture should transfer into host data")
     }
 }

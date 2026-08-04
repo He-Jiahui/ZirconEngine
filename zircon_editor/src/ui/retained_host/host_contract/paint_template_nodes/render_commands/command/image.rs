@@ -1,7 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_frame::HostPaintAtlasImage;
+use super::super::super::super::paint_text::HostTextLayoutPolicy;
 use super::super::super::super::paint_theme::{
-    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::{kind::HostPaintCommandKind, model::HostPaintCommand};
@@ -39,6 +40,7 @@ impl HostPaintCommand {
             font_size,
             line_height,
             text_style: Default::default(),
+            text_layout_policy: HostTextLayoutPolicy::SingleLineEllipsis,
             image_key: Some(image_key),
             image_pixels: None,
             opacity,
@@ -71,6 +73,7 @@ impl HostPaintCommand {
             font_size,
             line_height,
             text_style: Default::default(),
+            text_layout_policy: HostTextLayoutPolicy::SingleLineEllipsis,
             image_key: None,
             image_pixels: Some(HostPaintImagePixels {
                 resource_key,

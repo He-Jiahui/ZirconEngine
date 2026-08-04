@@ -222,15 +222,39 @@ fn blend_space_preview_timeline_uses_shared_typed_canvas_and_preserves_actions()
         );
     }
     for preserved_action in [
-        "route = \"workbench.extension.blend_space.output\"",
-        "route = \"workbench.extension.blend_space.sample.idle\"",
-        "route = \"workbench.extension.blend_space.sample.walk\"",
-        "route = \"workbench.extension.blend_space.sample.run\"",
-        "route = \"workbench.extension.blend_space.sample.diagonal\"",
+        "route = \"workbench.extension.blend_space.samples_tab.select\"",
+        "route = \"workbench.extension.blend_space.axes_tab.select\"",
+        "route = \"workbench.extension.blend_space.preview_tab.select\"",
+        "route = \"workbench.extension.blend_space.idle_run_row.select\"",
+        "route = \"workbench.extension.blend_space.strafe_row.select\"",
+        "route = \"workbench.extension.blend_space.sprint_row.select\"",
+        "route = \"workbench.extension.blend_space.output.select\"",
+        "route = \"workbench.extension.blend_space.preview.invoke\"",
+        "route = \"workbench.extension.blend_space.apply.invoke\"",
+        "route = \"workbench.extension.blend_space.idle_sample_table_row.select\"",
+        "route = \"workbench.extension.blend_space.walk_sample_table_row.select\"",
+        "route = \"workbench.extension.blend_space.run_sample_table_row.select\"",
+        "route = \"workbench.extension.blend_space.diagonal_sample_table_row.select\"",
     ] {
         assert!(
             source.contains(preserved_action) || details.contains(preserved_action),
             "timeline/sample refactor must preserve existing interaction route: {preserved_action}"
+        );
+    }
+    for deprecated_route in [
+        "route = \"workbench.extension.blend_space.samples\"",
+        "route = \"workbench.extension.blend_space.axes\"",
+        "route = \"workbench.extension.blend_space.preview_tab\"",
+        "route = \"workbench.extension.blend_space.asset.idle_run\"",
+        "route = \"workbench.extension.blend_space.asset.strafe\"",
+        "route = \"workbench.extension.blend_space.asset.sprint\"",
+        "route = \"workbench.extension.blend_space.output\"",
+        "route = \"workbench.extension.blend_space.preview\"",
+        "route = \"workbench.extension.blend_space.apply\"",
+    ] {
+        assert!(
+            !source.contains(deprecated_route),
+            "workspace must use its canonical binding action, not {deprecated_route}"
         );
     }
 }
@@ -278,10 +302,10 @@ fn blend_space_wide_details_include_dense_sample_rows() {
         );
     }
     for preserved_route in [
-        "workbench.extension.blend_space.sample.run",
-        "workbench.extension.blend_space.sample.walk",
-        "workbench.extension.blend_space.sample.diagonal",
-        "workbench.extension.blend_space.sample.idle",
+        "workbench.extension.blend_space.run_sample_table_row.select",
+        "workbench.extension.blend_space.walk_sample_table_row.select",
+        "workbench.extension.blend_space.diagonal_sample_table_row.select",
+        "workbench.extension.blend_space.idle_sample_table_row.select",
         "workbench.extension.blend_space.asset.edit",
         "workbench.extension.blend_space.asset.commit",
         "workbench.extension.blend_space.x_axis.edit",
@@ -292,6 +316,17 @@ fn blend_space_wide_details_include_dense_sample_rows() {
         assert!(
             details.contains(preserved_route),
             "Details extraction must preserve the authored route: {preserved_route}"
+        );
+    }
+    for deprecated_route in [
+        "workbench.extension.blend_space.sample.run",
+        "workbench.extension.blend_space.sample.walk",
+        "workbench.extension.blend_space.sample.diagonal",
+        "workbench.extension.blend_space.sample.idle",
+    ] {
+        assert!(
+            !details.contains(deprecated_route),
+            "Details extraction must use its canonical binding action, not {deprecated_route}"
         );
     }
     for forbidden in [

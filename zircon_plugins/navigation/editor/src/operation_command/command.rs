@@ -1,15 +1,18 @@
 use std::any::Any;
 
 use zircon_editor::core::editing::engine::{
-    CommandExecutionError, EditCommand, EditCommandError, EditContext, MergeOutcome,
+    CommandExecutionError, CommandJournalPayload, CommandJournalUnavailable, EditCommand,
+    EditCommandError, EditContext, MergeOutcome,
 };
-use zircon_editor::core::gateway::EditorRuntimeGateway;
 use zircon_runtime::core::framework::navigation::{
     NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
     NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
     NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION,
 };
-use zircon_runtime_interface::{ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
+use zircon_runtime_interface::{
+    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2,
+};
 
 use super::error::NavigationOperationCommandError;
 
@@ -47,7 +50,7 @@ impl NavigationOperationCommand {
             let progress = gateway
                 .poll_operation(handle)
                 .map_err(applied_gateway_error)?;
-            if progress.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+            if progress.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V2 {
                 return Err(applied_external_error(
                     NavigationOperationCommandError::Protocol {
                         message: format!(
@@ -64,7 +67,12 @@ impl NavigationOperationCommand {
                     },
                 ));
             }
-            if progress.phase.is_terminal() {
+            let phase = progress.phase().ok_or_else(|| {
+                applied_external_error(NavigationOperationCommandError::Protocol {
+                    message: format!("progress phase {} is unsupported", progress.phase),
+                })
+            })?;
+            if phase.is_terminal() {
                 terminal = true;
                 break;
             }
@@ -153,12 +161,18 @@ impl EditCommand for NavigationOperationCommand {
         MergeOutcome::Reject
     }
 
-    fn serialize_journal(&self) -> Option<serde_json::Value> {
-        Some(serde_json::json!({
-            "request": self.request,
-            "before": self.before,
-            "after": self.after,
-        }))
+    fn journal_payload(
+        &self,
+    ) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+        Ok(CommandJournalPayload::new(
+            "navigation.operation",
+            1,
+            serde_json::json!({
+                "request": self.request,
+                "before": self.before,
+                "after": self.after,
+            }),
+        ))
     }
 
     fn as_any(&self) -> &dyn Any {

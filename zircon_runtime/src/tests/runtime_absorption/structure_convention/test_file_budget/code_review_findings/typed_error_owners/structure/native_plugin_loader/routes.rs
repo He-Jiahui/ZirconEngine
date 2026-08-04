@@ -21,12 +21,8 @@ mod plugin_descriptor;
 mod replay_runtime;
 #[path = "routes/source_helper_ownership.rs"]
 mod source_helper_ownership;
-#[path = "routes/source_helper_status.rs"]
-mod source_helper_status;
 #[path = "routes/sources.rs"]
 mod sources;
-#[path = "routes/status_current.rs"]
-mod status_current;
 #[path = "routes/top_level.rs"]
 mod top_level;
 

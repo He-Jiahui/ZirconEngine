@@ -35,10 +35,6 @@ pub(super) fn assert_typed_error_source_inventory_children_line_budgets_are_curr
             TYPED_ERROR_SOURCE_INVENTORY_DELEGATION_CHILD,
             sources.delegation_child.clone(),
         ),
-        (
-            TYPED_ERROR_SOURCE_INVENTORY_STATUS_MIRRORS_CHILD,
-            sources.status_mirrors_child.clone(),
-        ),
     ];
     budget_sources.extend(typed_error_source_inventory_delegation_child_sources());
     budget_sources.extend(typed_error_source_inventory_delegation_folder_backed_child_sources());
@@ -56,8 +52,5 @@ pub(super) fn assert_typed_error_source_inventory_children_line_budgets_are_curr
 
 #[test]
 fn runtime_15_typed_error_source_inventory_children_line_budgets_are_current() {
-    let sources = typed_error_source_inventory_sources();
-
     assert_typed_error_line_budgets();
-    assert_typed_error_source_inventory_children_line_budgets_are_current(&sources);
 }

@@ -267,6 +267,9 @@ pub(super) fn update_base_stats(
         ui_text_report.raster_upload.source_image_count;
     state.stats.last_ui_text_missing_raster_image_count =
         ui_text_report.raster_upload.missing_raster_image_count;
+    state.stats.last_ui_text_visible_missing_raster_image_count = ui_text_report
+        .raster_upload
+        .visible_missing_raster_image_count;
     state.stats.last_ui_text_visible_raster_placeholder_count =
         ui_text_report.raster_upload.visible_placeholder_count;
     state.stats.last_ui_text_raster_worker_pending_count =

@@ -8,8 +8,10 @@ use crate::asset::{AssetImportError, AssetUri};
 use crate::core::resource::ResourceScheme;
 
 use super::super::{
-    collect_files::collect_files, meta_path_for_source::meta_path_for_source,
-    source_mtime_unix_ms::source_mtime_unix_ms, ProjectManager,
+    collect_files::{collect_files, collect_matching_files},
+    meta_path_for_source::meta_path_for_source,
+    source_mtime_unix_ms::source_mtime_unix_ms,
+    ProjectManager,
 };
 
 pub(super) struct AssetImportSource {
@@ -79,21 +81,18 @@ impl ProjectManager {
     ) -> Result<Vec<AssetUri>, AssetImportError> {
         match uri.scheme() {
             ResourceScheme::Res => {
-                let roots = self
-                    .package_assets
-                    .project_roots()
-                    .iter()
-                    .filter(|root| compound_root.starts_with(root))
-                    .collect::<Vec<_>>();
-                let [root] = roots.as_slice() else {
-                    return Err(targeted_full_scan(
-                        uri.clone(),
-                        "compound members do not belong to one unambiguous project root",
-                    ));
-                };
+                self.resolve_project_source_path(compound_root)
+                    .map_err(|error| {
+                        targeted_full_scan(
+                            uri.clone(),
+                            format!(
+                                "compound members do not belong to one unambiguous project root: {error}"
+                            ),
+                        )
+                    })?;
                 included_paths
                     .iter()
-                    .map(|path| self.source_uri_for_path(root, path))
+                    .map(|path| self.project_uri_for_source_path(path))
                     .collect()
             }
             ResourceScheme::Package => {
@@ -178,7 +177,11 @@ impl ProjectManager {
         package_id: Option<&str>,
     ) -> Result<Vec<AssetImportSource>, AssetImportError> {
         let mut meta_files = Vec::new();
-        collect_zmeta_files(root, &mut meta_files)?;
+        collect_matching_files(root, &mut meta_files, |path| {
+            path.file_name()
+                .and_then(|file_name| file_name.to_str())
+                .is_some_and(|file_name| file_name.ends_with(".zmeta"))
+        })?;
         let mut sources = Vec::new();
 
         for meta_path in meta_files {
@@ -230,7 +233,7 @@ impl ProjectManager {
         if let Some(package_id) = package_id {
             self.source_uri_for_package_path(package_id, root, path)
         } else {
-            self.source_uri_for_path(root, path)
+            self.project_uri_for_source_path(path)
         }
     }
 }
@@ -254,26 +257,6 @@ fn reject_duplicate_project_uris(sources: &[AssetImportSource]) -> Result<(), As
                 first: previous,
                 second: source.path.clone(),
             });
-        }
-    }
-    Ok(())
-}
-
-fn collect_zmeta_files(root: &Path, files: &mut Vec<PathBuf>) -> Result<(), std::io::Error> {
-    if !root.exists() {
-        return Ok(());
-    }
-    for entry in fs::read_dir(root)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            collect_zmeta_files(&path, files)?;
-        } else if path
-            .file_name()
-            .and_then(|file_name| file_name.to_str())
-            .is_some_and(|file_name| file_name.ends_with(".zmeta"))
-        {
-            files.push(path);
         }
     }
     Ok(())

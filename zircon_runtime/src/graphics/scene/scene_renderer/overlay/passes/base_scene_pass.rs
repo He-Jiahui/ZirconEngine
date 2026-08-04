@@ -9,17 +9,17 @@ use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommand, MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::sprite::{
-    build_sprite_vertices, SpriteRenderer, SpriteVertex,
+    SpriteRenderer, SpriteVertex, build_sprite_vertices,
 };
 use crate::graphics::scene::scene_renderer::transparent::{
-    build_transparent_submission_order, TransparentSubmissionSource,
+    TransparentSubmissionSource, build_transparent_submission_order,
 };
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -103,16 +103,14 @@ impl BaseScenePass {
                     .pipeline_uses_builtin_fallback_shader(streamer, command.pipeline_key());
                 if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                 {
-                    let pipeline = mesh_pipelines
-                        .ensure_pipeline_for_variant(device, streamer, command.pipeline_variant_id)
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "base mesh command must resolve a cache-backed pipeline variant: kind={:?}, variant_id={}, pipeline_key={:?}",
-                                command.pipeline_kind,
-                                command.pipeline_variant_id.value(),
-                                command.pipeline_key()
-                            )
-                        });
+                    let Some(pipeline) = mesh_pipelines.ensure_pipeline_for_variant(
+                        device,
+                        streamer,
+                        command.pipeline_variant_id,
+                    ) else {
+                        replayer.invalidate_state_after_external_pipeline();
+                        return false;
+                    };
                     pass.set_pipeline(pipeline);
                 }
                 replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
@@ -218,15 +216,14 @@ impl BaseScenePass {
                         if replayer
                             .should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                         {
-                            let pipeline = mesh_pipelines
-                                .ensure_pipeline_for_variant(
-                                    device,
-                                    streamer,
-                                    command.pipeline_variant_id,
-                                )
-                                .expect(
-                                    "base mesh command must resolve a cache-backed pipeline variant",
-                                );
+                            let Some(pipeline) = mesh_pipelines.ensure_pipeline_for_variant(
+                                device,
+                                streamer,
+                                command.pipeline_variant_id,
+                            ) else {
+                                replayer.invalidate_state_after_external_pipeline();
+                                return false;
+                            };
                             pass.set_pipeline(pipeline);
                         }
                         replayer.bind_gpu_scene_if_needed(
@@ -245,8 +242,8 @@ impl BaseScenePass {
                 }
                 TransparentSubmissionSource::Sprite { sprite_index } => {
                     let Some(sprite_draw) = transparent_sprites
-                        .iter()
-                        .find(|draw| draw.sprite_index == sprite_index)
+                        .get(sprite_index)
+                        .and_then(Option::as_ref)
                     else {
                         continue;
                     };
@@ -276,7 +273,6 @@ fn wire_only_load_store_can_skip(
 }
 
 struct PreparedTransparentSpriteDraw {
-    sprite_index: usize,
     texture: Arc<GpuTextureResource>,
     vertex_buffer: wgpu::Buffer,
     vertex_count: u32,
@@ -286,22 +282,26 @@ fn prepare_transparent_sprite_draws(
     device: &wgpu::Device,
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
-) -> Vec<PreparedTransparentSpriteDraw> {
-    build_sprite_vertices(frame, RenderPassStage::Transparent3d)
-        .into_iter()
-        .filter_map(|(sprite_index, vertices)| {
-            let vertex_count = u32::try_from(vertices.len()).ok()?;
-            let sprite = frame.sprites().get(sprite_index)?;
-            let texture = streamer.texture(Some(sprite.image.id()));
-            let vertex_buffer = create_sprite_vertex_buffer(device, &vertices);
-            Some(PreparedTransparentSpriteDraw {
-                sprite_index,
-                texture,
-                vertex_buffer,
-                vertex_count,
-            })
-        })
-        .collect()
+) -> Vec<Option<PreparedTransparentSpriteDraw>> {
+    let mut draws = Vec::with_capacity(frame.sprites().len());
+    draws.resize_with(frame.sprites().len(), || None);
+    for (sprite_index, vertices) in build_sprite_vertices(frame, RenderPassStage::Transparent3d) {
+        let Some(vertex_count) = u32::try_from(vertices.len()).ok() else {
+            continue;
+        };
+        let Some(sprite) = frame.sprites().get(sprite_index) else {
+            continue;
+        };
+        let Some(slot) = draws.get_mut(sprite_index) else {
+            continue;
+        };
+        *slot = Some(PreparedTransparentSpriteDraw {
+            texture: streamer.texture(Some(sprite.image.id())),
+            vertex_buffer: create_sprite_vertex_buffer(device, &vertices),
+            vertex_count,
+        });
+    }
+    draws
 }
 
 fn create_sprite_vertex_buffer(device: &wgpu::Device, vertices: &[SpriteVertex]) -> wgpu::Buffer {
@@ -368,6 +368,70 @@ mod tests {
                 < transparent
                     .find("build_transparent_submission_order")
                     .unwrap()
+        );
+    }
+
+    #[test]
+    fn async_base_pipeline_placeholder_skips_draws_without_retaining_stale_state() {
+        let source = include_str!("base_scene_pass.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("base scene implementation");
+
+        assert_eq!(
+            implementation
+                .matches("let Some(pipeline) = mesh_pipelines")
+                .count(),
+            2,
+            "opaque and transparent Base passes should explicitly consume a pending pipeline"
+        );
+        assert_eq!(
+            implementation
+                .matches("return false;")
+                .count(),
+            2,
+            "a pending Base pipeline must skip both opaque and transparent draws"
+        );
+        assert_eq!(
+            implementation
+                .matches("replayer.invalidate_state_after_external_pipeline();")
+                .count(),
+            3,
+            "both pending-pipeline branches must invalidate replay state before the next command"
+        );
+        assert!(
+            !implementation.contains("base mesh command must resolve a cache-backed pipeline variant"),
+            "a pending async Base pipeline must not panic the frame path"
+        );
+    }
+
+    #[test]
+    fn transparent_sprites_use_submission_indexed_preparation() {
+        let source = include_str!("base_scene_pass.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("base scene implementation");
+        let transparent = implementation
+            .split("pub(crate) fn record_transparent_mixed_with_attachment_ops")
+            .nth(1)
+            .expect("transparent base scene function")
+            .split("fn wire_only_load_store_can_skip")
+            .next()
+            .expect("transparent base scene body");
+
+        assert!(
+            transparent.contains("transparent_sprites\n                        .get(sprite_index)"),
+            "transparent sprite replay should resolve the extracted sprite directly by index"
+        );
+        assert!(
+            !transparent.contains("transparent_sprites.iter().find"),
+            "transparent sprite replay must not perform a linear lookup for every submission"
+        );
+        assert!(
+            implementation.contains("draws.resize_with(frame.sprites().len(), || None);"),
+            "sprite preparation should reserve stable slots for extracted sprite indices"
         );
     }
 }

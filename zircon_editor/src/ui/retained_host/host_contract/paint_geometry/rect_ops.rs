@@ -1,6 +1,9 @@
 use super::super::data::FrameRect;
 use super::frame::is_visible_frame;
 
+// Fragments at or below half a device pixel cannot produce stable retained paint coverage.
+const MIN_PAINTABLE_INTERSECTION_EXTENT: f32 = 0.5;
+
 pub(in crate::ui::retained_host::host_contract) fn translated(
     frame: &FrameRect,
     origin_x: f32,
@@ -28,12 +31,13 @@ pub(in crate::ui::retained_host::host_contract) fn intersect(
     let y1 = (left.y + left.height).min(right.y + right.height);
     let width = x1 - x0;
     let height = y1 - y0;
-    (width > 0.5 && height > 0.5).then_some(FrameRect {
-        x: x0,
-        y: y0,
-        width,
-        height,
-    })
+    (width > MIN_PAINTABLE_INTERSECTION_EXTENT && height > MIN_PAINTABLE_INTERSECTION_EXTENT)
+        .then_some(FrameRect {
+            x: x0,
+            y: y0,
+            width,
+            height,
+        })
 }
 
 pub(in crate::ui::retained_host::host_contract) fn inset(
@@ -111,6 +115,26 @@ mod tests {
         assert_eq!(bounded_extent(-1.0), 0.0);
         assert_eq!(bounded_extent(f32::NAN), 0.0);
         assert_eq!(bounded_extent(f32::INFINITY), 0.0);
+    }
+
+    #[test]
+    fn intersection_requires_more_than_half_a_pixel_of_coverage() {
+        let left = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 10.0,
+            height: 10.0,
+        };
+
+        assert!(intersect(
+            &left,
+            &FrameRect {
+                x: 9.5,
+                ..left.clone()
+            }
+        )
+        .is_none());
+        assert!(intersect(&left, &FrameRect { x: 9.49, ..left }).is_some());
     }
 
     #[test]

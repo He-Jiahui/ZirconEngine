@@ -1,11 +1,21 @@
-use super::super::{RIPPLE_DIAMETER_EXPANSION, TemplatePaneNodeData, ripple_diameter, ripple_rect};
+use super::super::{ripple_diameter, ripple_rect, TemplatePaneNodeData, RIPPLE_DIAMETER_EXPANSION};
 use super::support::frame;
 
 #[test]
-fn ripple_diameter_matches_slint_width_based_source_contract() {
+fn ripple_diameter_uses_the_larger_frame_axis_for_tall_controls() {
     let rect = frame(4.0, 8.0, 20.0, 80.0);
     let ripple = ripple_rect(&TemplatePaneNodeData::default(), &rect);
-    let expected = 20.0 * RIPPLE_DIAMETER_EXPANSION;
+    let expected = 80.0 * RIPPLE_DIAMETER_EXPANSION;
+
+    assert_eq!(ripple.width, expected);
+    assert_eq!(ripple.height, expected);
+}
+
+#[test]
+fn ripple_diameter_uses_the_larger_frame_axis_for_wide_controls() {
+    let rect = frame(4.0, 8.0, 120.0, 20.0);
+    let ripple = ripple_rect(&TemplatePaneNodeData::default(), &rect);
+    let expected = 120.0 * RIPPLE_DIAMETER_EXPANSION;
 
     assert_eq!(ripple.width, expected);
     assert_eq!(ripple.height, expected);

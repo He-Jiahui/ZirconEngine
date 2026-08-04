@@ -15,8 +15,6 @@ mod metadata;
 mod parent_paths;
 #[path = "parent_backflow/sources.rs"]
 mod sources;
-#[path = "parent_backflow/status_current.rs"]
-mod status_current;
 
 pub(super) use child_inventory::*;
 pub(super) use guard_body::*;

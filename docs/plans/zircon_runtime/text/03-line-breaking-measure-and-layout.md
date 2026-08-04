@@ -49,6 +49,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/shaped_advances.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
@@ -231,6 +233,10 @@ status: in_progress
 - `zircon_editor` retained-host Workbench Menu Bar runtime measure:2026-07-04 继续扫顶部菜单栏,确认 `chrome_template_projection/menu_chrome.rs` 与 `retained_host/menu_pointer/build_host_menu_pointer_layout.rs` 仍以 `label.chars().count() * 7.0 + 24.0` 估算 menu slot width。新增 `workbench/menu_bar/metrics.rs` 作为共享 owner,由 visual menu chrome 与 retained pointer hitbox 同时消费 `measure_runtime_text_width(..., WORKBENCH_MENU_SLOT_FONT_SIZE)` 后的宽度,使 `iiiiiiii` / `WWWWWWWW` 这类同字符数不同 glyph advance 的标签不再被分配同一槽宽。
 
 - `zircon_editor` retained-host Asset Browser file-name runtime compaction:2026-07-04 继续处理截图中 `editor base.zui`、`folder-open-line.svg` 这类文件名标签的左右间距观感。`asset_browser/name_compaction.rs` 新增为共享 file-like display-name compaction owner,由 `summary_nodes.rs`、`thumbnail_nodes.rs` 与 `table_nodes.rs` 消费 `measure_runtime_text_width(...)` 后决定是否保留完整名称或使用 `prefix...tail.ext`;旧 visible char limit/name char budget 不再决定紧凑文件名,同字符数的 `iiii...` 与 `WWWW...` 会按真实 glyph advance 分流。
+
+2026-08-03 状态校准：native/SDF paragraph parity 已不再是源码缺口。`graphics/scene/scene_renderer/ui/render/tests/parity.rs` 的 `text_paragraph_parity_native_vs_sdf_bbox_advance_linebreak` 覆盖 Latin/CJK/混排/RTL 和 bitmap/SDF 阈值两侧，逐项锁定 source range、行数、frame、glyph advance 与 render batch；`text_paragraph_parity_vertical_rl` 以同一合同覆盖 VerticalRl。两条路径共享 Text02/03 layout，只在 raster/render mode 分叉；overflow/shrink/clamp/tab、boundary correction、backend cluster artifact 与真实 tatweel 均已有当前 source owner，本计划当前状态为 `implementation_complete / resolving_failure / managed_validation_pending`。剩余工作是 coordinator receipt 后的受管 Cargo、真实 WGPU framebuffer/窗口级产品验收，而不是第二套 native/SDF layout。
+
+2026-08-03 Arabic justify 前向实现：`text/layout/align.rs` 现在暴露 logical Arabic joining-pair 插入点；`line_box.rs` 在 UAX#9 visual-order 前，以同一 shaping provider 有界估算并最多物化 32 个 U+0640 tatweel，随后仅将不足一个 tatweel 的余量分配给实际 tatweel advance。`candidate_line.rs` 将每个 tatweel 作为零长度 source-range virtual run 写入 rendered text，因此选择、IME 与 hit-test 仍锚定原始 UTF-8 source；非同构 rich source range 保守回退既有 advance-only justify，避免猜测 markup byte offset。没有一对一 source slice 的行会走可视文本回退；`sdf_render/shaped_advances.rs` 将 resolved layout advances 投影到已 shaping 的连字或虚拟字形，`vertices.rs` 只消费其结果，因此实际绘制宽度等于布局宽度。`text_justify_materializes_arabic_tatweel_without_source_range_drift`、`sdf_shaped_draw_plan_prefers_tatweel_layout_advances_for_parity` 与 `sdf_shaped_draw_plan_projects_ligature_layout_advances_for_parity` 分别锁定布局源映射、虚拟字形和连字的渲染 advance；限定 rustfmt/diff 静态检查已通过，受管 Cargo/WGPU 验收仍待协调器 receipt。
 
 ## 3. 参考代码
 
@@ -632,3 +638,66 @@ Coordinator handoff（2026-08-01）：首次 validation submit 因 Session 尚�
 `a6d7f08e10c24387be4c8b73611319e6` 提交；按 cross-session 规则不查询该 receipt，等待
 coordinator wakeup 后再提交 `boundary`、`rich_span_index`、`soft_hyphen`、ignored
 `boundary_scale_evidence_reports_p50_p95` 与 ignored exact WGPU product 命令。
+
+2026-08-03 Arabic justify/performance implementation update: justified non-final UI lines now
+materialize bounded real U+0640 at Arabic joining boundaries before visual ordering. Each
+virtual run has a zero-length source range, so selection, IME, hit testing, and glyph-artifact
+source projection retain the original text contract. Candidate fitting uses actual shaped width
+with at most five probes (four proportional corrections and a final one-tatweel fallback),
+instead of up to 32 full-line candidate shapes. The static secondary review found no actionable
+P0/P1/P2; source implementation remains `implementation_complete / resolving_failure /
+managed_validation_pending`. No managed Cargo or WGPU command was started, and no PNG was
+created; a future real-render proof may only be written under `docs/tests/runtime/text` after
+the coordinator supplies its execution receipt.
+
+2026-08-03 Arabic justify bounded-offset forward repair: because no line can materialize more
+than 32 tatweels, offset discovery now uses a two-pass streaming scan that first counts joining
+pairs and then retains at most 32 evenly distributed insertion offsets. This removes the prior
+O(joining-pairs) temporary allocation on long Arabic lines while keeping the materialization
+spread across the line. Pure regressions cover bounded long-line sampling and the zero-capacity
+case. The follow-up source review found no actionable P0/P1/P2; status remains
+`implementation_complete / resolving_failure / managed_validation_pending` pending a managed
+Cargo and real-WGPU receipt, and no PNG was created.
+
+2026-08-03 Arabic combining-mark forward repair: joining-pair detection now treats an Arabic
+base letter plus Unicode combining marks or an explicit ZWJ as one grapheme, so tashkeel and a
+forced join do not suppress valid virtual-tatweel insertion points; an explicit ZWNJ remains a
+hard non-joining boundary. Only an already materialized U+0640 (including a marked
+grapheme) may receive the residual justify advance; if even one real tatweel cannot fit, the
+layout keeps its natural Arabic glyph advances instead of synthesizing a width change that the
+Native renderer cannot reproduce. Pure regressions cover marked joining offsets, marked tatweel
+expansion, ZWJ/ZWNJ behavior, and the no-materialized-tatweel case. The targeted second source review and scoped
+rustfmt/diff checks found no remaining actionable source issue in this slice. Status remains
+`implementation_complete / resolving_failure / managed_validation_pending`: Cargo, real WGPU
+rendering, and a current product PNG remain coordinator-managed and no evidence file was created.
+
+2026-08-03 resolved-visual renderer forward repair: a resolved line whose visual text byte length
+differs from its source range (virtual tatweel or ellipsis) and carries explicit advances now routes
+to SDF even when the requested native mode would otherwise select glyphon. Native buffer shaping
+cannot consume per-glyph resolved advances; the SDF route does, including its existing ligature and
+cluster projection fallback. The normal source-isomorphic Native path is unchanged. A UI extract
+regression asserts that an explicit-Native Arabic virtual run retains its visual text and exact
+advances in the SDF batch. This remains non-acceptance work: no Cargo/WGPU run or PNG creation has
+occurred.
+
+2026-08-03 product-render proof preparation: the ignored Windows multilingual framebuffer fixture
+now replaces its simple Arabic row with a two-line `Native`-requested Arabic-justify command. Its
+first resolved line must contain a real U+0640 virtual run with a zero-length source range and
+advances summing to the full frame width; the renderer route then exercises the SDF exact-advance
+path and asserts real framebuffer deltas against the scene background before writing the existing
+authoritative PNG path under `docs/tests/runtime/text`. This is a real UI scene, not a strategy
+image, and its path guard rejects both repository and configured Cargo target directories. The
+fixture is ready for the coordinator-managed WGPU run, but no PNG has been created or inspected.
+
+2026-08-03 narrow-frame forward repair: horizontal and VerticalRl wrapping now use the shared
+`available_wrap_extent` constraint owner. Every non-negative finite main-axis extent, including a
+sub-glyph width, reaches the wrapping algorithm unchanged; positive infinity remains unbounded,
+while negative and NaN constraints fail closed at zero. The former `text_advance(font_size)` floor
+is deleted, and the identical effective extent feeds both ordinary and BBCode paragraph layout.
+Six layout-level regressions cover narrow horizontal/VerticalRl splitting, horizontal infinity,
+invalid horizontal input, and indented horizontal/vertical block paragraphs. Scoped Rust 2024
+`rustfmt --check`, tracked/untracked whitespace checks, and retired-symbol guards pass; independent
+secondary review reports no actionable P0/P1/P2. Status remains `implementation_complete /
+resolving_failure / managed_validation_pending`: coordinator-managed Cargo and real WGPU product
+framebuffer execution remain required before accepted closeout, and no PNG was created by this
+source repair.

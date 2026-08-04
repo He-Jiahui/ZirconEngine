@@ -60,6 +60,7 @@ graphics = [
     "text",
     "dep:pollster",
     "dep:raw-window-handle",
+    "dep:zr_rhi_wgpu",
 ]
 font-sdf-build-tool = ["graphics"]
 navigation = []
@@ -104,7 +105,12 @@ default-platform = [
     "gamepad-gilrs",
 ]
 platform-window = []
-platform-winit = ["platform-window", "dep:winit"]
+platform-winit = [
+    "platform-window",
+    "dep:winit",
+    "zr_rhi/platform-winit",
+    "zr_rhi_wgpu?/platform-winit",
+]
 platform-headless = []
 platform-x11 = ["platform-winit", "winit/x11"]
 platform-wayland = ["platform-winit", "winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita"]
@@ -215,6 +221,8 @@ zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-f
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zircon_reflect_derive.workspace = true
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
+zr_rhi.workspace = true
+zr_rhi_wgpu = { workspace = true, optional = true }
 
 [build-dependencies]
 serde.workspace = true

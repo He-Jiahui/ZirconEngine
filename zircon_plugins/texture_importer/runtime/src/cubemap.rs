@@ -1,15 +1,15 @@
-use image::{imageops, Rgba, RgbaImage};
+use image::{Rgba, RgbaImage, imageops};
 use serde::Deserialize;
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, CubemapAsset, CubemapSourceLayout,
-    ImportedAsset, TextureAsset, TextureAssetDescriptor, CUBEMAP_FACE_COUNT,
+    AssetImportContext, AssetImportError, AssetImportOutcome, CUBEMAP_FACE_COUNT, CubemapAsset,
+    CubemapSourceLayout, TextureAsset, TextureAssetDescriptor,
 };
 use zircon_runtime::core::framework::render::{
-    cubemap_texel_direction, equirect_uv_from_direction, CubemapFace, RenderImageDimension,
+    CubemapFace, RenderImageDimension, cubemap_texel_direction, equirect_uv_from_direction,
 };
 
-use crate::importers::apply_texture_import_settings;
-use crate::manifest_source::{decode_manifest_image, DecodedManifestImage};
+use crate::importers::{apply_texture_import_settings, texture_import_outcome};
+use crate::manifest_source::{DecodedManifestImage, decode_manifest_image};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -50,10 +50,11 @@ pub fn import_cubemap_manifest(
                 context.source_path.display()
             ))
         })?;
-    let texture = enforce_cube_descriptor(apply_texture_import_settings(context, texture)?);
-    Ok(AssetImportOutcome::new(
-        context.uri.clone(),
-        ImportedAsset::Texture(texture),
+    let (texture, diagnostics) = apply_texture_import_settings(context, texture)?;
+    Ok(texture_import_outcome(
+        context,
+        enforce_cube_descriptor(texture),
+        diagnostics,
     ))
 }
 

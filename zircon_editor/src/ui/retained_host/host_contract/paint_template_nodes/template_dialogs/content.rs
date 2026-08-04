@@ -38,17 +38,32 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
         layout::body_rect(rect, kind, action_top),
     ) {
         if layout::frame_is_within(clip, &body) {
-            commands.push(HostPaintCommand::text(
-                body,
-                Some(clip.clone()),
-                order + 3,
-                message.to_string(),
-                style::dialog_body_color(unavailable),
-                metrics.body_font_size,
-                metrics.body_line_height,
-                UiTextRunPaintStyle::default(),
-                opacity,
-            ));
+            let command = if matches!(kind, DialogKind::AlertDialog) {
+                HostPaintCommand::text(
+                    body,
+                    Some(clip.clone()),
+                    order + 3,
+                    message.to_string(),
+                    style::dialog_body_color(unavailable),
+                    metrics.body_font_size,
+                    metrics.body_line_height,
+                    UiTextRunPaintStyle::default(),
+                    opacity,
+                )
+            } else {
+                HostPaintCommand::wrapped_text(
+                    body,
+                    Some(clip.clone()),
+                    order + 3,
+                    message.to_string(),
+                    style::dialog_body_color(unavailable),
+                    metrics.body_font_size,
+                    metrics.body_line_height,
+                    UiTextRunPaintStyle::default(),
+                    opacity,
+                )
+            };
+            commands.push(command);
         }
     }
 }

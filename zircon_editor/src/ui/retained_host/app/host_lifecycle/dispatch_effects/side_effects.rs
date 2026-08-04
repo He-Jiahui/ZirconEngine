@@ -1,15 +1,16 @@
 use crate::ui::retained_host::app::RetainedEditorHost;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
-use crate::ui::retained_host::workbench_notifications::{
-    workbench_import_model_completed_notification, workbench_import_model_failed_notification,
+
+use super::super::super::workbench_notifications::{
+    import_model_completed_toast, import_model_failed_toast,
 };
 
 use super::super::super::scene_picker_session::ScenePickerMode;
 
 impl RetainedEditorHost {
     pub(super) fn apply_dispatch_side_effects(&mut self, effects: &UiHostEventEffects) {
-        if !effects.workbench_notifications.is_empty() {
-            self.publish_workbench_notifications(&effects.workbench_notifications);
+        if !effects.toast_notifications.is_empty() {
+            self.publish_activity_toasts(&effects.toast_notifications);
         }
         if effects.close_active_project {
             if let Err(error) = self.close_project_from_workbench() {
@@ -28,12 +29,14 @@ impl RetainedEditorHost {
         if effects.import_model_requested {
             match self.import_model_into_project() {
                 Ok(()) => {
-                    let notification = workbench_import_model_completed_notification();
-                    self.publish_workbench_notifications(std::slice::from_ref(&notification));
+                    if let Some(notification) = import_model_completed_toast() {
+                        self.publish_activity_toasts(std::slice::from_ref(&notification));
+                    }
                 }
                 Err(error) => {
-                    let notification = workbench_import_model_failed_notification(&error);
-                    self.publish_workbench_notifications(std::slice::from_ref(&notification));
+                    if let Some(notification) = import_model_failed_toast(&error) {
+                        self.publish_activity_toasts(std::slice::from_ref(&notification));
+                    }
                     self.set_status_line(error);
                 }
             }
@@ -55,5 +58,6 @@ impl RetainedEditorHost {
             }
         }
         self.sync_pending_play_decisions();
+        self.sync_activity_toasts();
     }
 }

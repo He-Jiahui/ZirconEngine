@@ -8,6 +8,10 @@ struct ZrGpuPrimitiveData {
     first_instance_index: u32,
     instance_count: u32,
     payload_slot: u32,
+    material_payload_slot: u32,
+    material_payload_padding_0: u32,
+    material_payload_padding_1: u32,
+    material_payload_padding_2: u32,
 };
 
 struct ZrGpuInstanceData {
@@ -173,6 +177,10 @@ fn zr_gpu_scene_shadow_params(instance_index: u32) -> vec4<f32> {
 
 fn zr_gpu_scene_motion_params(instance_index: u32) -> vec4<f32> {
     return zr_gpu_scene_primitive_for_instance(instance_index).motion_params;
+}
+
+fn zr_gpu_scene_material_payload_slot(instance_index: u32) -> u32 {
+    return zr_gpu_scene_primitive_for_instance(instance_index).material_payload_slot;
 }
 
 fn zr_gpu_scene_has_lightmap(instance_index: u32) -> bool {

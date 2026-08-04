@@ -313,6 +313,7 @@ fn input_method_lifecycle_event() -> UiInputEvent {
         kind: UiImeInputEventKind::Cancel,
         text: String::new(),
         cursor_range: None,
+        preedit_clauses: Vec::new(),
         delete_surrounding: None,
     })
 }

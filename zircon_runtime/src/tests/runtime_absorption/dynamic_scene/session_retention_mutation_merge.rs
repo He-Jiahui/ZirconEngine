@@ -3,7 +3,7 @@ use super::sources::*;
 #[test]
 fn runtime_05_dynamic_scene_session_retention_mutation_merge_anchors_stay_visible() {
     for anchor in [
-        "runtime_session_archive_preview_capture_retention_prunes_clone_without_mutating_archive",
+        "runtime_session_archive_preview_capture_retention_projects_without_mutating_archive",
         "preview_capture_world_slot_with_tag_retention(",
         "preview.prune.removed_slot_ids",
         "preview.manifest.slot_ids().collect::<Vec<_>>()",

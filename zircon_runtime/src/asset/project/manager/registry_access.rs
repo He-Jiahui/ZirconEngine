@@ -70,20 +70,7 @@ impl ProjectManager {
         &self,
         source_path: &Path,
     ) -> Result<&Path, AssetImportError> {
-        let roots = self
-            .project_asset_roots()
-            .iter()
-            .filter(|root| source_path.starts_with(root))
-            .collect::<Vec<_>>();
-        match roots.as_slice() {
-            [root] => Ok(root.as_path()),
-            [] => Err(AssetImportError::SourceOutsideProjectAssetRoots {
-                path: source_path.to_path_buf(),
-            }),
-            _ => Err(AssetImportError::AmbiguousProjectSourcePath {
-                path: source_path.to_path_buf(),
-                roots: roots.into_iter().cloned().collect(),
-            }),
-        }
+        self.resolve_project_source_path(source_path)
+            .map(|(root, _, _)| root)
     }
 }

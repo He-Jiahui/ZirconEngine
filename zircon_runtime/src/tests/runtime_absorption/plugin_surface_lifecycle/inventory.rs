@@ -10,7 +10,6 @@ pub(super) const EXPECTED_RUNTIME_06_SOURCE_FILES: &[&str] = &[
     "../zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
     "src/script/vm/tests.rs",
     "src/script/vm/tests/lifecycle_failures.rs",
-    "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
     "src/tests/runtime_absorption/plugin_surface_lifecycle.rs",
     "../zircon_plugins/native_dynamic_fixture/native/src/lib.rs",
 ];

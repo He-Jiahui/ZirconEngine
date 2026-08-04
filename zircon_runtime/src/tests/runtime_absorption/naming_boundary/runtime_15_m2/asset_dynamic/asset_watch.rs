@@ -34,9 +34,6 @@ fn runtime_15_asset_watcher_shutdown_on_drop_uses_owner_name() {
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let asset_watcher_doc = read_repo_text(manifest_root, "docs/zircon_runtime/asset/watcher.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_drop_impl.exists(),
@@ -69,9 +66,6 @@ fn runtime_15_asset_watcher_shutdown_on_drop_uses_owner_name() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("asset watcher doc", asset_watcher_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -124,9 +118,6 @@ fn runtime_15_asset_change_construction_uses_owner_name() {
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let asset_watcher_doc = read_repo_text(manifest_root, "docs/zircon_runtime/asset/watcher.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_asset_change_new.exists(),
@@ -165,9 +156,6 @@ fn runtime_15_asset_change_construction_uses_owner_name() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("asset watcher doc", asset_watcher_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

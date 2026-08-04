@@ -593,7 +593,8 @@ fn attach_hzb_occlusion_readback_stats(
         report
             .with_readback_stats(HzbOcclusionCullReadbackStats::default())
             .with_indirect_args_readback(HzbOcclusionIndirectArgsReadbackSummary::default())
-    } else if let Some((source_frame_index, readback_stats)) = culler.collect_last_readback_stats() {
+    } else if let Some((source_frame_index, readback_stats)) = culler.collect_last_readback_stats()
+    {
         report
             .with_readback_stats(readback_stats)
             .with_readback_stats_source_frame_index(source_frame_index)

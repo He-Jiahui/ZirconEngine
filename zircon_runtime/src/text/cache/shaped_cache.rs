@@ -128,7 +128,7 @@ impl ShapedRunCacheKey {
 }
 
 impl<'a> ShapedRunCacheLookupKey<'a> {
-    pub(crate) fn from_request(request: &BackendShapeRequest<'a>) -> Self {
+    pub(crate) fn from_request(request: &'a BackendShapeRequest<'a>) -> Self {
         debug_assert!(request.features_are_normalized());
         let font_size = request.style.font_size.max(1.0);
         let line_height = request.style.line_height.max(font_size);

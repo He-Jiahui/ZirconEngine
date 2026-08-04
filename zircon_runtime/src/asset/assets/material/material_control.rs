@@ -11,6 +11,7 @@ const RENDER_QUEUE_PROPERTY: &str = "render_queue";
 const MATERIAL_QUEUE_PROPERTY: &str = "material_queue";
 const DEPTH_BIAS_PROPERTY: &str = "depth_bias";
 const TAA_REACTIVE_MASK_STRENGTH_PROPERTY: &str = "taa_reactive_mask_strength";
+const SEPARATE_TRANSLUCENCY_PROPERTY: &str = "separate_translucency";
 const SUBSURFACE_PROFILE_PROPERTY: &str = "subsurface_profile";
 const SUBSURFACE_SCATTER_RADIUS_PROPERTY: &str = "subsurface_scatter_radius";
 const SUBSURFACE_FALLOFF_PROPERTY: &str = "subsurface_falloff";
@@ -50,6 +51,10 @@ pub(super) fn taa_reactive_mask_strength(values: &BTreeMap<String, toml::Value>)
         .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
 }
 
+pub(super) fn separate_translucency(values: &BTreeMap<String, toml::Value>) -> Option<bool> {
+    override_bool(values, SEPARATE_TRANSLUCENCY_PROPERTY)
+}
+
 pub(super) fn subsurface_profile_index(values: &BTreeMap<String, toml::Value>) -> Option<u32> {
     values
         .get(SUBSURFACE_PROFILE_PROPERTY)
@@ -83,6 +88,10 @@ pub(super) fn validation_errors(
     errors.extend(normalized_f32_override_validation_errors(
         values,
         TAA_REACTIVE_MASK_STRENGTH_PROPERTY,
+    ));
+    errors.extend(bool_override_validation_errors(
+        values,
+        SEPARATE_TRANSLUCENCY_PROPERTY,
     ));
     errors.extend(subsurface_profile_validation_errors(values));
     errors.extend(vec3_override_validation_errors(
@@ -144,6 +153,12 @@ pub(super) fn sync_material_control_overrides(
         taa_reactive_mask_strength(source_values),
         0.0,
     );
+    sync_default_false_bool_override(
+        overrides,
+        source_values,
+        SEPARATE_TRANSLUCENCY_PROPERTY,
+        separate_translucency(source_values),
+    );
 }
 
 pub(super) fn is_material_owned_property(name: &str) -> bool {
@@ -156,6 +171,7 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
             | MATERIAL_QUEUE_PROPERTY
             | DEPTH_BIAS_PROPERTY
             | TAA_REACTIVE_MASK_STRENGTH_PROPERTY
+            | SEPARATE_TRANSLUCENCY_PROPERTY
             | SUBSURFACE_PROFILE_PROPERTY
             | SUBSURFACE_SCATTER_RADIUS_PROPERTY
             | SUBSURFACE_FALLOFF_PROPERTY
@@ -354,6 +370,26 @@ fn sync_default_true_bool_override(
             values.insert(key.to_string(), toml::Value::Boolean(false));
         }
         Some(true) => {
+            values.remove(key);
+        }
+        None if !source_values.contains_key(key) => {
+            values.remove(key);
+        }
+        None => {}
+    }
+}
+
+fn sync_default_false_bool_override(
+    values: &mut BTreeMap<String, toml::Value>,
+    source_values: &BTreeMap<String, toml::Value>,
+    key: &str,
+    value: Option<bool>,
+) {
+    match value {
+        Some(true) => {
+            values.insert(key.to_string(), toml::Value::Boolean(true));
+        }
+        Some(false) => {
             values.remove(key);
         }
         None if !source_values.contains_key(key) => {

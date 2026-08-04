@@ -4,7 +4,6 @@ use super::*;
 fn runtime_15_f8_child_owner_structure_guard_is_folder_backed() {
     let parent = read_runtime_src(STRUCTURE_GUARD_OWNER);
     let child_inventory = read_runtime_src(F8_ROOT_CHILD_ROWS_CHILD);
-    let status_inventory = read_runtime_src(F8_ROOT_STATUSES_CHILD);
     let child_blob = folder_backed_child_source_blob();
 
     assert_contains_all(
@@ -31,11 +30,6 @@ fn runtime_15_f8_child_owner_structure_guard_is_folder_backed() {
             "mod root_inventory;",
         ],
     );
-    assert_contains_all(
-        "F8 root status child preserves folder-backed status anchors",
-        &status_inventory,
-        &[FOLDER_BACKED_SLICE, FOLDER_BACKED_STATUS],
-    );
     for (_, child_path, child_guard) in FOLDER_BACKED_CHILDREN {
         assert!(
             child_inventory.contains(child_path),
@@ -49,13 +43,5 @@ fn runtime_15_f8_child_owner_structure_guard_is_folder_backed() {
     assert!(
         !parent.contains(&format!("fn {GUARD}")),
         "historical F8 ownership guard should live in route_ownership child"
-    );
-    assert!(
-        !parent.contains(&format!("fn {FOLDER_BACKED_STATUS_GUARD}")),
-        "F8 status mirror guard should live in status_mirrors child"
-    );
-    assert!(
-        !parent.contains(&format!("fn {BUDGET_GUARD}")),
-        "F8 budget guard should live in budgets child"
     );
 }

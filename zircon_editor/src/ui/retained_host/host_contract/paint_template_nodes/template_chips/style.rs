@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchChipPalette {
@@ -17,8 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub focus_ring: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_palette()
--> WorkbenchChipPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_palette(
+) -> WorkbenchChipPalette {
     workbench_chip_palette_from_host(current_host_palette())
 }
 
@@ -71,11 +71,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_bo
     } else if node.hovered {
         palette.border
     } else {
-        // Starship's quiet/simple button state deliberately has no visible
-        // outline.  Keeping the border equal to the fill prevents a passive
-        // chip from reading as a text input while still preserving the
-        // rounded hit target and the explicit interactive-state outlines.
-        palette.surface
+        // Slate's compact toolbar controls remain visibly bounded at rest.
+        // The standard border keeps adjacent filter and viewport chips from
+        // collapsing into panel text while the hover, selection, and focus
+        // states above retain their stronger visual signals.
+        palette.border
     }
 }
 
@@ -144,6 +144,15 @@ mod tests {
         node.hovered = true;
 
         assert_eq!(chip_surface(&node), workbench_chip_palette().hover_surface);
+    }
+
+    #[test]
+    fn normal_chip_uses_the_standard_control_border() {
+        let node = TemplatePaneNodeData::default();
+        let palette = workbench_chip_palette();
+
+        assert_eq!(chip_border(&node), palette.border);
+        assert_ne!(chip_border(&node), chip_surface(&node));
     }
 
     #[test]

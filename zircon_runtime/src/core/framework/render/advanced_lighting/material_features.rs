@@ -114,15 +114,19 @@ fn normalized_nonnegative(value: f32, fallback: f32) -> f32 {
 }
 
 fn normalized_finite(value: f32, fallback: f32) -> f32 {
-    if value.is_finite() { value } else { fallback }
+    if value.is_finite() {
+        value
+    } else {
+        fallback
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS, STANDARD_PBR_DEFAULT_IOR,
-        STANDARD_PBR_NO_ATTENUATION_DISTANCE, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
-        StandardPbrMaterialFeatures,
+        StandardPbrMaterialFeatures, STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS,
+        STANDARD_PBR_DEFAULT_IOR, STANDARD_PBR_NO_ATTENUATION_DISTANCE,
+        STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
     };
     use crate::core::framework::render::{CorePipelineKind, RenderPhase, RenderQueueValue};
 

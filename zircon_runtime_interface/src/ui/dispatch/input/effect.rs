@@ -219,6 +219,9 @@ pub struct UiInputMethodSurroundingText {
     pub text: String,
     pub cursor_byte: u32,
     pub anchor_byte: u32,
+    /// Active composition in committed-text byte offsets, rebased to `text`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composition_range: Option<UiTextByteRange>,
 }
 
 impl UiInputMethodSurroundingText {
@@ -231,9 +234,19 @@ impl UiInputMethodSurroundingText {
             text: text.into(),
             cursor_byte,
             anchor_byte,
+            composition_range: None,
         };
         value.validate()?;
         Ok(value)
+    }
+
+    pub fn with_composition_range(
+        mut self,
+        composition_range: UiTextByteRange,
+    ) -> Result<Self, UiInputMethodSurroundingTextError> {
+        self.composition_range = Some(composition_range);
+        self.validate()?;
+        Ok(self)
     }
 
     pub fn selection_range(&self) -> UiTextByteRange {
@@ -258,6 +271,18 @@ impl UiInputMethodSurroundingText {
             return Err(UiInputMethodSurroundingTextError::AnchorBadPosition);
         }
 
+        if let Some(composition_range) = self.composition_range {
+            let start = composition_range.start_byte as usize;
+            let end = composition_range.end_byte as usize;
+            if start > end
+                || end > self.text.len()
+                || !self.text.is_char_boundary(start)
+                || !self.text.is_char_boundary(end)
+            {
+                return Err(UiInputMethodSurroundingTextError::CompositionBadPosition);
+            }
+        }
+
         Ok(())
     }
 }
@@ -267,6 +292,7 @@ pub enum UiInputMethodSurroundingTextError {
     TextTooLong,
     CursorBadPosition,
     AnchorBadPosition,
+    CompositionBadPosition,
 }
 
 impl fmt::Display for UiInputMethodSurroundingTextError {
@@ -275,6 +301,9 @@ impl fmt::Display for UiInputMethodSurroundingTextError {
             Self::TextTooLong => formatter.write_str("surrounding text exceeds byte limit"),
             Self::CursorBadPosition => formatter.write_str("cursor byte is not a UTF-8 boundary"),
             Self::AnchorBadPosition => formatter.write_str("anchor byte is not a UTF-8 boundary"),
+            Self::CompositionBadPosition => {
+                formatter.write_str("composition range is not a UTF-8 byte range")
+            }
         }
     }
 }

@@ -41,7 +41,7 @@ pub(super) fn push_sample_grid_text(
             FrameRect {
                 x: geometry.outer.x + 3.0,
                 y: y - TICK_LINE_HEIGHT * 0.5,
-                width: (geometry.plot.x - geometry.outer.x - 7.0).max(1.0),
+                width: (geometry.plot.x - geometry.outer.x - 7.0).max(0.0),
                 height: TICK_LINE_HEIGHT,
             },
             clip,
@@ -103,6 +103,16 @@ pub(super) fn push_text(
     line_height: f32,
     opacity: f32,
 ) {
+    if text.trim().is_empty()
+        || !frame.x.is_finite()
+        || !frame.y.is_finite()
+        || !frame.width.is_finite()
+        || !frame.height.is_finite()
+        || frame.width <= f32::EPSILON
+        || frame.height <= f32::EPSILON
+    {
+        return;
+    }
     commands.push(HostPaintCommand::text(
         frame,
         Some(clip.clone()),

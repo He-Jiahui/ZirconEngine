@@ -4,9 +4,13 @@ use std::time::Duration;
 use crate::core::framework::render::FrameHistoryHandle;
 
 use super::super::scene_renderer_core::SceneRendererCore;
-use crate::graphics::backend::{GpuPassTimer, GpuTimerFrameResult, OffscreenTarget, RenderBackend};
+use crate::graphics::backend::{
+    GpuPassTimer, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsTimer,
+    GpuTimerFrameResult, OffscreenTarget, RenderBackend,
+};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+use crate::graphics::types::GraphicsError;
 use crate::graphics::scene::scene_renderer::mesh::{
     EnvironmentOnlyPbrBasePipelinePrewarmReport, PreparedMeshQueueStats,
 };
@@ -28,8 +32,12 @@ pub struct SceneRenderer {
         HashMap<FrameHistoryHandle, SceneFrameHistoryTextures>,
     pub(in crate::graphics::scene::scene_renderer::core) generation: u64,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_pass_timer: Option<GpuPassTimer>,
+    pub(in crate::graphics::scene::scene_renderer::core) gpu_pipeline_statistics_timer:
+        Option<GpuPipelineStatisticsTimer>,
     pub(in crate::graphics::scene::scene_renderer::core) last_gpu_timer_frame_result:
         Option<GpuTimerFrameResult>,
+    pub(in crate::graphics::scene::scene_renderer::core) last_gpu_pipeline_statistics_frame_result:
+        Option<GpuPipelineStatisticsFrameResult>,
     pub(in crate::graphics::scene::scene_renderer::core) render_pass_executors:
         RenderPassExecutorRegistry,
     pub(in crate::graphics::scene::scene_renderer::core) last_render_graph_execution:
@@ -143,6 +151,7 @@ impl SceneRendererDeferredLightingProfile {
 pub struct SceneRendererStartupOptions {
     deferred_lighting_profile: SceneRendererDeferredLightingProfile,
     allow_gpu_timing: bool,
+    async_pipeline_compile: bool,
 }
 
 impl SceneRendererStartupOptions {
@@ -150,6 +159,7 @@ impl SceneRendererStartupOptions {
         Self {
             deferred_lighting_profile: SceneRendererDeferredLightingProfile::StandardPbrPreview,
             allow_gpu_timing: false,
+            async_pipeline_compile: false,
         }
     }
 
@@ -159,6 +169,7 @@ impl SceneRendererStartupOptions {
             deferred_lighting_profile:
                 SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview,
             allow_gpu_timing: false,
+            async_pipeline_compile: false,
         }
     }
 
@@ -168,22 +179,44 @@ impl SceneRendererStartupOptions {
         self
     }
 
+    /// Queues Base-pass PSO creation so an interactive host can present while it compiles.
+    pub const fn with_async_pipeline_compile(mut self) -> Self {
+        self.async_pipeline_compile = true;
+        self
+    }
+
     pub(in crate::graphics::scene::scene_renderer::core) const fn allow_gpu_timing(self) -> bool {
         self.allow_gpu_timing
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn async_pipeline_compile_enabled(
+        self,
+    ) -> bool {
+        self.async_pipeline_compile
     }
 
     pub const fn deferred_lighting_profile(self) -> SceneRendererDeferredLightingProfile {
         self.deferred_lighting_profile
     }
 
-    /// The environment-only viewer owns a synchronous warmup for its first Base PSO.
+    /// The environment-only viewer owns a synchronous warmup for its first Base PSO unless its
+    /// host selects asynchronous pipeline compilation.
     pub(in crate::graphics::scene::scene_renderer::core) const fn requires_environment_only_pbr_base_prewarm(
         self,
     ) -> bool {
         matches!(
             self.deferred_lighting_profile,
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
-        )
+        ) && !self.async_pipeline_compile
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) const fn queues_environment_only_pbr_base_prewarm(
+        self,
+    ) -> bool {
+        matches!(
+            self.deferred_lighting_profile,
+            SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
+        ) && self.async_pipeline_compile
     }
 }
 
@@ -198,9 +231,10 @@ pub struct SceneRendererStartupReport {
         Option<SceneRendererEnvironmentOnlyPbrBasePrewarmReport>,
 }
 
-/// Component timings for the environment-only viewer's synchronous Base PSO warmup.
+/// Component timings for the environment-only viewer's Base PSO warmup request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
+    pipeline_ready: bool,
     cache_hit: bool,
     shader_source_resolution: Duration,
     pipeline_creation: Duration,
@@ -212,6 +246,7 @@ impl From<EnvironmentOnlyPbrBasePipelinePrewarmReport>
 {
     fn from(report: EnvironmentOnlyPbrBasePipelinePrewarmReport) -> Self {
         Self {
+            pipeline_ready: report.pipeline_ready(),
             cache_hit: report.cache_hit(),
             shader_source_resolution: report.shader_source_resolution(),
             pipeline_creation: report.pipeline_creation(),
@@ -221,6 +256,11 @@ impl From<EnvironmentOnlyPbrBasePipelinePrewarmReport>
 }
 
 impl SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
+    /// Whether the Base PSO was ready before renderer construction returned.
+    pub const fn pipeline_ready(self) -> bool {
+        self.pipeline_ready
+    }
+
     pub const fn cache_hit(self) -> bool {
         self.cache_hit
     }
@@ -229,6 +269,8 @@ impl SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
         self.shader_source_resolution
     }
 
+    /// Synchronous creation time, or background queue-submission time when `pipeline_ready` is
+    /// false.
     pub const fn pipeline_creation(self) -> Duration {
         self.pipeline_creation
     }
@@ -283,7 +325,7 @@ impl SceneRendererStartupReport {
         self.resource_streamer_initialization
     }
 
-    /// The startup cost paid to prepare the exact environment-only PBR Base PSO.
+    /// The startup cost to prepare or queue the exact environment-only PBR Base PSO.
     pub const fn environment_only_pbr_base_prewarm(
         self,
     ) -> Option<SceneRendererEnvironmentOnlyPbrBasePrewarmReport> {
@@ -375,10 +417,24 @@ mod tests {
         assert!(
             !SceneRendererStartupOptions::default().requires_environment_only_pbr_base_prewarm()
         );
-        assert!(!SceneRendererStartupOptions::standard_pbr_preview()
-            .requires_environment_only_pbr_base_prewarm());
-        assert!(SceneRendererStartupOptions::environment_only_pbr_preview()
-            .requires_environment_only_pbr_base_prewarm());
+        assert!(
+            !SceneRendererStartupOptions::standard_pbr_preview()
+                .requires_environment_only_pbr_base_prewarm()
+        );
+        assert!(
+            SceneRendererStartupOptions::environment_only_pbr_preview()
+                .requires_environment_only_pbr_base_prewarm()
+        );
+    }
+
+    #[test]
+    fn environment_only_async_pipeline_startup_queues_base_instead_of_waiting_for_it() {
+        let options = SceneRendererStartupOptions::environment_only_pbr_preview()
+            .with_async_pipeline_compile();
+
+        assert!(options.async_pipeline_compile_enabled());
+        assert!(!options.requires_environment_only_pbr_base_prewarm());
+        assert!(options.queues_environment_only_pbr_base_prewarm());
     }
 
     #[test]
@@ -392,23 +448,31 @@ mod tests {
                 .uses_auxiliary_scene_effects()
         );
         assert!(SceneRendererDeferredLightingProfile::FullScene.uses_full_post_process_resources());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .uses_full_post_process_resources());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .uses_full_post_process_resources()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .uses_full_post_process_resources()
         );
         assert!(SceneRendererDeferredLightingProfile::FullScene.supports_compiled_scene_graph());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .supports_compiled_scene_graph());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .supports_compiled_scene_graph()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .supports_compiled_scene_graph()
         );
-        assert!(!SceneRendererDeferredLightingProfile::FullScene
-            .defers_local_reflection_provider_resources());
-        assert!(!SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .defers_local_reflection_provider_resources());
+        assert!(
+            !SceneRendererDeferredLightingProfile::FullScene
+                .defers_local_reflection_provider_resources()
+        );
+        assert!(
+            !SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .defers_local_reflection_provider_resources()
+        );
         assert!(
             SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .defers_local_reflection_provider_resources()
@@ -423,8 +487,10 @@ mod tests {
     #[test]
     fn environment_only_pbr_preview_uses_a_shadow_atlas_placeholder() {
         assert!(SceneRendererDeferredLightingProfile::FullScene.uses_full_shadow_atlas_resources());
-        assert!(SceneRendererDeferredLightingProfile::StandardPbrPreview
-            .uses_full_shadow_atlas_resources());
+        assert!(
+            SceneRendererDeferredLightingProfile::StandardPbrPreview
+                .uses_full_shadow_atlas_resources()
+        );
         assert!(
             !SceneRendererDeferredLightingProfile::EnvironmentOnlyPbrPreview
                 .uses_full_shadow_atlas_resources()
@@ -451,9 +517,11 @@ mod tests {
     #[test]
     fn gpu_timing_resources_require_an_explicit_startup_option() {
         assert!(!SceneRendererStartupOptions::default().allow_gpu_timing());
-        assert!(SceneRendererStartupOptions::default()
-            .with_gpu_timing()
-            .allow_gpu_timing());
+        assert!(
+            SceneRendererStartupOptions::default()
+                .with_gpu_timing()
+                .allow_gpu_timing()
+        );
     }
 }
 
@@ -472,6 +540,27 @@ impl SceneRenderer {
 
     pub fn last_frame_timing_report(&self) -> SceneRendererFrameTimingReport {
         self.last_frame_timing_report
+    }
+
+    /// Reports whether the environment-only viewer's queued Base PSO can draw.
+    ///
+    /// A `false` result means the host should keep its event loop responsive and
+    /// request another frame. A terminal background compilation error is returned
+    /// instead of silently capturing the `SkipDraw` placeholder.
+    pub fn environment_only_pbr_base_pipeline_ready(&mut self) -> Result<bool, GraphicsError> {
+        self.core
+            .mesh_pipelines
+            .environment_only_pbr_base_pipeline_ready()
+    }
+
+    /// Retries admission of the viewer's required Base PSO without blocking.
+    pub fn retry_environment_only_pbr_base_pipeline_admission(
+        &mut self,
+    ) -> Result<(), GraphicsError> {
+        self.core
+            .mesh_pipelines
+            .queue_environment_only_pbr_base_pipeline(&self.backend.device, &mut self.streamer)?;
+        Ok(())
     }
 
     pub(in crate::graphics) fn set_parallel_recording(

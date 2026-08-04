@@ -57,10 +57,12 @@ fn render_shadow_atlas_allocates_tiers_descending() {
     assert_eq!(frame.scale_factor, 1);
     assert_eq!(frame.allocations.len(), 4);
     assert!(frame.rejected.is_empty());
-    assert!(frame
-        .allocations
-        .iter()
-        .all(|allocation| allocation.allocated_tier == ShadowResolutionTier::T256));
+    assert!(
+        frame
+            .allocations
+            .iter()
+            .all(|allocation| allocation.allocated_tier == ShadowResolutionTier::T256)
+    );
     assert!(no_allocations_overlap(&frame.allocations));
 }
 
@@ -163,6 +165,41 @@ fn render_shadow_atlas_hysteresis_prevents_flapping() {
     assert_eq!(retained.rect, previous_rect);
     assert!(retained.reused_previous);
     assert!(second.allocation_for(key(2)).is_none());
+}
+
+#[test]
+fn render_shadow_atlas_slot_generation_survives_reuse_and_changes_after_reallocation() {
+    let mut allocator = ShadowAtlasAllocator::new(ShadowAtlasConfig::new_square(256));
+    let first = allocator.allocate_frame(&[request(
+        1,
+        ShadowResolutionTier::T256,
+        ShadowResolutionTier::T256,
+        1.0,
+    )]);
+    let first_generation = first
+        .slot_generation_for(key(1))
+        .expect("allocated slot has a generation");
+
+    let reused = allocator.allocate_frame(&[request(
+        1,
+        ShadowResolutionTier::T256,
+        ShadowResolutionTier::T256,
+        1.0,
+    )]);
+    assert_eq!(reused.slot_generation_for(key(1)), Some(first_generation));
+
+    allocator.allocate_frame(&[]);
+    let reallocated = allocator.allocate_frame(&[request(
+        1,
+        ShadowResolutionTier::T256,
+        ShadowResolutionTier::T256,
+        1.0,
+    )]);
+
+    assert_ne!(
+        reallocated.slot_generation_for(key(1)),
+        Some(first_generation)
+    );
 }
 
 #[test]

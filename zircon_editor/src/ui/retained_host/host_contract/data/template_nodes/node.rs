@@ -59,6 +59,8 @@ pub(crate) struct TemplatePaneNodeData {
     pub popup_anchor_y: f32,
     pub selection_state: SharedString,
     pub search_query: SharedString,
+    pub has_clear_action: bool,
+    pub layout_stepper: bool,
     pub selected: bool,
     pub tree_depth: i32,
     pub tree_indent_px: f32,

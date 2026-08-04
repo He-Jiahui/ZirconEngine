@@ -87,7 +87,6 @@ fn runtime_15_plugin_importer_dx_review_mounts_guard_is_folder_backed() {
             PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_SLICE,
             PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_STATUS,
             PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_GUARD,
-            PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_GUARD,
         ],
     );
 }

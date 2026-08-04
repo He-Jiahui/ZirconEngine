@@ -1,4 +1,5 @@
 use super::super::super::data::FrameRect;
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 
 const CHIP_SEGMENT_GRID_UNITS: f32 = 12.0;
@@ -39,6 +40,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     for segment in segments {
         let rect = segment_rect(origin, *segment);
         if rect.width <= 0.0 || rect.height <= 0.0 {
+            continue;
+        }
+        if intersect(&rect, clip).is_none() {
             continue;
         }
         commands.push(HostPaintCommand::quad(

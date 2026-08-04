@@ -9,6 +9,7 @@ mod execute_depth_of_field_prepare;
 mod execute_exposure;
 mod execute_fxaa;
 mod execute_hzb_build;
+mod execute_half_res_transparency;
 mod execute_motion_blur;
 mod execute_motion_vector_neighbor_max;
 mod execute_motion_vector_tile_max;

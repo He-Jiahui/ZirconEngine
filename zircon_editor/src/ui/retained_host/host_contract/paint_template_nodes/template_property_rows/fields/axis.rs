@@ -19,14 +19,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     let palette = workbench_row_palette();
 
     for (index, axis_value) in axis_values.iter().take(count).enumerate() {
-        commands.push(text_command(
+        if let Some(axis_label) = text_command(
             axis_label_rect(rect, count, index),
             clip,
             order,
             axis_value.axis.as_str(),
             palette.property_axis_label_text,
             opacity,
-        ));
+        ) {
+            commands.push(axis_label);
+        }
 
         let field_rect = axis_field_rect(rect, count, index);
         push_property_value_field_surface(
@@ -37,13 +39,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
             palette.property_field_border,
             opacity,
         );
-        commands.push(text_command(
+        if let Some(value_label) = text_command(
             value_text_rect(&field_rect),
             clip,
             field_text_order(order),
             axis_value.value.as_str(),
             palette.property_value_text,
             opacity,
-        ));
+        ) {
+            commands.push(value_label);
+        }
     }
 }

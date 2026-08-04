@@ -1,9 +1,9 @@
 use crate::core::math::Transform;
 
-use super::{SceneError, SceneResult, World, transform_validation::validate_transform_for_write};
-use crate::scene::EntityId;
+use super::{transform_validation::validate_transform_for_write, SceneError, SceneResult, World};
 use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
 use crate::scene::ecs::LifecycleEventKind;
+use crate::scene::EntityId;
 
 impl World {
     pub fn remove_entity(&mut self, entity: EntityId) -> bool {
@@ -20,12 +20,18 @@ impl World {
         let removed_kind = self.kinds.get(&entity).copied();
         let removed_parent = self.parent_of(entity);
         if let Some(internal) = self.internal_entity(entity) {
-            let component_ids = self.component_storage.component_ids_for_entity(internal);
-            for component_id in component_ids {
-                self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, component_id);
-                self.trigger_component_lifecycle(LifecycleEventKind::Despawn, entity, component_id);
+            let component_ids = self.entity_archetype_component_ids(entity);
+            for component_id in &component_ids {
+                self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, *component_id);
+                self.trigger_component_lifecycle(
+                    LifecycleEventKind::Despawn,
+                    entity,
+                    *component_id,
+                );
             }
-            let removed_components = self.component_storage.remove_entity(internal);
+            let removed_components = self
+                .component_storage
+                .remove_entity_components(internal, &component_ids);
             for component_id in removed_components {
                 if let Some((type_id, type_name)) =
                     self.component_registry.rust_type_for_id(component_id)
@@ -46,7 +52,6 @@ impl World {
         }
         self.hierarchy.remove(&entity);
         self.local_transforms.remove(&entity);
-        self.world_matrices.remove(&entity);
         self.cameras.remove(&entity);
         self.mesh_renderers.remove(&entity);
         self.sprite_2d.remove(&entity);
@@ -65,7 +70,6 @@ impl World {
         self.animation_graph_players.remove(&entity);
         self.animation_state_machine_players.remove(&entity);
         self.active_self.remove(&entity);
-        self.active_in_hierarchy.remove(&entity);
         self.render_layer_masks.remove(&entity);
         self.mobility.remove(&entity);
         if let Some(components) = self.dynamic_components.remove(&entity) {

@@ -8,6 +8,8 @@ use zircon_runtime_interface::ui::{
     widget::UiWidgetBehavior,
 };
 
+use crate::ui::editable_text_composition::composition_clauses_from_metadata;
+
 use super::super::surface::UiSurface;
 
 pub(super) fn editable_text_state_for_node(
@@ -44,6 +46,7 @@ pub(super) fn editable_text_state_for_node(
                 start: clamp_text_boundary(&text, start),
                 end: clamp_text_boundary(&text, end),
             },
+            preedit_clauses: composition_clauses_from_metadata(metadata, &composition_text),
             text: composition_text,
             restore_text: string_attribute(metadata, "composition_restore_text"),
         });
@@ -51,7 +54,7 @@ pub(super) fn editable_text_state_for_node(
     Some(UiEditableTextState {
         caret: UiTextCaret {
             offset: clamp_text_boundary(&text, caret_offset),
-            affinity: UiTextCaretAffinity::Downstream,
+            affinity: caret_affinity_from_metadata(metadata),
         },
         selection,
         composition,
@@ -64,7 +67,22 @@ pub(super) fn editable_text_state_for_node(
     })
 }
 
-pub(super) fn editable_text_input_is_secure(surface: &UiSurface, target: UiNodeId) -> bool {
+fn caret_affinity_from_metadata(
+    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
+) -> UiTextCaretAffinity {
+    metadata
+        .attributes
+        .get("caret_affinity")
+        .and_then(toml::Value::as_str)
+        .is_some_and(|value| value.eq_ignore_ascii_case("upstream"))
+        .then_some(UiTextCaretAffinity::Upstream)
+        .unwrap_or(UiTextCaretAffinity::Downstream)
+}
+
+pub(in crate::ui::surface) fn editable_text_input_is_secure(
+    surface: &UiSurface,
+    target: UiNodeId,
+) -> bool {
     let Some(metadata) = surface
         .tree
         .nodes
@@ -77,7 +95,7 @@ pub(super) fn editable_text_input_is_secure(surface: &UiSurface, target: UiNodeI
         && bool_attribute_any(metadata, &["secure", "secure_input", "secureInput"]).unwrap_or(false)
 }
 
-pub(super) fn is_editable_text_input(surface: &UiSurface, target: UiNodeId) -> bool {
+pub(in crate::ui::surface) fn is_editable_text_input(surface: &UiSurface, target: UiNodeId) -> bool {
     surface
         .tree
         .nodes

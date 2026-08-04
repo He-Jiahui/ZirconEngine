@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::Path;
 
+use crate::asset::project::ProjectPaths;
+
 pub(crate) fn is_safe_regular_file(root: &Path, path: &Path) -> std::io::Result<bool> {
     let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
@@ -10,7 +12,9 @@ pub(crate) fn is_safe_regular_file(root: &Path, path: &Path) -> std::io::Result<
     if !metadata.is_file() || is_link_or_reparse(&metadata) {
         return Ok(false);
     }
-    Ok(path.canonicalize()?.starts_with(root.canonicalize()?))
+    let physical_path = ProjectPaths::resolve_existing_path(path)?;
+    let physical_root = ProjectPaths::resolve_existing_path(root)?;
+    Ok(physical_path.starts_with(physical_root))
 }
 
 pub(crate) fn is_link_or_reparse(metadata: &fs::Metadata) -> bool {

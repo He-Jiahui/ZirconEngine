@@ -25,6 +25,34 @@ fn cloned_mip_chain_shares_immutable_texel_storage() {
 }
 
 #[test]
+fn bake_artifact_pmrem_replacement_reuses_source_texel_storage() {
+    let source = SourceCubemapMipChain::new(
+        1,
+        1,
+        vec![[0.25, 0.5, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+        1,
+        1,
+        vec![[0.5, 0.25, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+    );
+    let replacement = source.with_bake_artifact_pmrem(
+        1,
+        1,
+        vec![[0.75, 0.5, 0.25, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+        *source.irradiance_sh9(),
+    );
+
+    assert!(std::sync::Arc::ptr_eq(
+        &source.source_texels,
+        &replacement.source_texels
+    ));
+    assert!(!std::sync::Arc::ptr_eq(
+        &source.pmrem_texels,
+        &replacement.pmrem_texels
+    ));
+    assert_eq!(replacement.pmrem_texels()[0], [0.75, 0.5, 0.25, 1.0]);
+}
+
+#[test]
 fn source_cubemap_mip_layout_is_face_major() {
     assert_eq!(source_cubemap_mip_count(4), 3);
     assert_eq!(source_cubemap_sample_count(4, 3), 6 * (16 + 4 + 1));
@@ -269,19 +297,15 @@ fn captured_face_base_level_reuses_source_mips_pmrem_and_sh9() {
             [expected, expected * 0.5, expected * 0.25, 1.0],
         );
     }
-    assert!(
-        cubemap
-            .pmrem_texels()
-            .iter()
-            .all(|texel| texel.iter().all(|value| value.is_finite()))
-    );
-    assert!(
-        cubemap
-            .irradiance_sh9()
-            .iter()
-            .flatten()
-            .all(|value| value.is_finite())
-    );
+    assert!(cubemap
+        .pmrem_texels()
+        .iter()
+        .all(|texel| texel.iter().all(|value| value.is_finite())));
+    assert!(cubemap
+        .irradiance_sh9()
+        .iter()
+        .flatten()
+        .all(|value| value.is_finite()));
 }
 
 #[test]

@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpBuildSummaryProperty {
     param(
@@ -35,8 +35,8 @@ function Get-MvpBuildGateContract {
     if ($SummaryKind -eq 'profile-contract') {
         return @(
             [pscustomobject]@{ gate_id = 'zircon-app-target-server'; command = 'cargo check -p zircon_app --no-default-features --features target-server --locked' },
-            [pscustomobject]@{ gate_id = 'zircon-app-target-client-platform'; command = 'cargo check -p zircon_app --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
-            [pscustomobject]@{ gate_id = 'zircon-app-target-editor-host'; command = 'cargo check -p zircon_app --no-default-features --features target-editor-host --locked' },
+            [pscustomobject]@{ gate_id = 'zircon-app-target-client-platform'; command = 'cargo check -p zircon_app --bin zircon_runtime --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
+            [pscustomobject]@{ gate_id = 'zircon-app-target-editor-host'; command = 'cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked' },
             [pscustomobject]@{ gate_id = 'zircon-app-target-client-shader-pbr-viewer'; command = 'cargo check -p zircon_app --bin zircon_shader_pbr_viewer --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
             [pscustomobject]@{ gate_id = 'zircon-runtime-target-client'; command = 'cargo check -p zircon_runtime --no-default-features --features target-client --locked' },
             [pscustomobject]@{ gate_id = 'zircon-runtime-target-editor-host'; command = 'cargo check -p zircon_runtime --no-default-features --features target-editor-host --locked' },
@@ -219,19 +219,27 @@ function Assert-MvpBuildSummaryEvidence {
 function Write-MvpValidatedArtifact {
     param(
         [Parameter(Mandatory)]$Artifact,
-        [Parameter(Mandatory)][string]$EvidenceRoot
+        [Parameter(Mandatory)][string]$EvidenceRoot,
+        [string]$CompatibleWriteLeaseRoot
     )
 
-    $destinationPath = Join-Path $EvidenceRoot ([string]$Artifact.relative_path).Replace('/', '\')
-    $destinationDirectory = Split-Path -Parent $destinationPath
-    if ([string]::IsNullOrWhiteSpace($destinationDirectory)) {
-        throw "Published F5 build artifact '$($Artifact.relative_path)' has no destination directory."
+    $relativePath = ([string]$Artifact.relative_path).Replace('/', '\')
+    if ([IO.Path]::IsPathRooted($relativePath) -or $relativePath -match '(^|[\\/])\.\.([\\/]|$)') {
+        throw "Published F5 build artifact '$($Artifact.relative_path)' has an unsafe relative path."
+    }
+    $destinationPath = Join-Path $EvidenceRoot $relativePath
+    $relativeDirectory = Split-Path -Parent $relativePath
+    if (-not [string]::IsNullOrWhiteSpace($relativeDirectory)) {
+        Ensure-MvpAcceptanceDirectoryPathNoFollow `
+            -RootPath $EvidenceRoot `
+            -RelativePath $relativeDirectory `
+            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot | Out-Null
     }
 
-    New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
     $writtenBytes = Write-MvpAcceptanceNewFileNoFollow `
         -Path $destinationPath `
-        -ContentBytes ([byte[]]$Artifact.content_bytes)
+        -ContentBytes ([byte[]]$Artifact.content_bytes) `
+        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
     if ($writtenBytes.LongLength -ne [Int64]$Artifact.size_bytes -or
         -not (Get-MvpBytesSha256 -Bytes $writtenBytes).Equals([string]$Artifact.sha256, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Published F5 build artifact '$($Artifact.relative_path)' differs from its validated bytes."
@@ -241,12 +249,19 @@ function Write-MvpValidatedArtifact {
 function Copy-MvpBuildSummaryEvidence {
     param(
         [Parameter(Mandatory)]$Summary,
-        [Parameter(Mandatory)][string]$EvidenceRoot
+        [Parameter(Mandatory)][string]$EvidenceRoot,
+        [string]$CompatibleWriteLeaseRoot
     )
 
-    Write-MvpValidatedArtifact -Artifact $Summary -EvidenceRoot $EvidenceRoot
+    Write-MvpValidatedArtifact `
+        -Artifact $Summary `
+        -EvidenceRoot $EvidenceRoot `
+        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
     foreach ($artifact in @($Summary.gate_artifacts)) {
-        Write-MvpValidatedArtifact -Artifact $artifact -EvidenceRoot $EvidenceRoot
+        Write-MvpValidatedArtifact `
+            -Artifact $artifact `
+            -EvidenceRoot $EvidenceRoot `
+            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
     }
 }
 

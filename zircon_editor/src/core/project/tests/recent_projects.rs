@@ -1,10 +1,11 @@
 use std::fs;
+use std::path::PathBuf;
 
 use zircon_runtime_interface::project::ProjectManifestSummary;
 
 use super::super::{
     NewProjectDraft, NewProjectTemplate, ProjectAuthority, RecentProjectEntry,
-    RecentProjectValidation, StoredStartupSession,
+    RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
 };
 use super::temp_root;
 
@@ -41,6 +42,51 @@ fn remembering_same_path_refreshes_summary_and_keeps_newest_record() {
 }
 
 #[test]
+fn remembering_a_canonical_root_replaces_a_legacy_manifest_recent_entry() {
+    let (location, root_path, project_summary) = create_recent_test_project(
+        "remember-legacy-manifest-recent-entry",
+        "Remember Legacy Manifest Project",
+    );
+    let authority = ProjectAuthority::default();
+    let root = root_path.to_string_lossy().into_owned();
+    let manifest = root_path.join("zircon-project.toml");
+    let manifest_path = manifest.to_string_lossy().into_owned();
+    let mut stored = legacy_manifest_recent_entry(&manifest_path, project_summary.clone(), 1);
+
+    authority.remember_recent_project(&mut stored, &root, project_summary, 2);
+
+    assert_eq!(stored.recent_projects.len(), 1);
+    assert_eq!(stored.recent_projects[0].path, root);
+    assert_eq!(stored.recent_projects[0].last_opened_unix_ms, 2);
+    assert_eq!(stored.last_project_path.as_deref(), Some(root.as_str()));
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn remembering_a_manifest_path_persists_the_canonical_project_root() {
+    let (location, root_path, project_summary) = create_recent_test_project(
+        "remember-manifest-path-as-canonical-root",
+        "Manifest Root Project",
+    );
+    let authority = ProjectAuthority::default();
+    let root = root_path.to_string_lossy().into_owned();
+    let manifest = root_path.join("zircon-project.toml");
+    let mut stored = StoredStartupSession::default();
+
+    authority.remember_recent_project(
+        &mut stored,
+        manifest.to_string_lossy().as_ref(),
+        project_summary,
+        42,
+    );
+
+    assert_eq!(stored.recent_projects.len(), 1);
+    assert_eq!(stored.recent_projects[0].path, root);
+    assert_eq!(stored.last_project_path.as_deref(), Some(root.as_str()));
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
 fn recent_projection_uses_dynamic_validation_without_persisting_it() {
     let stored = StoredStartupSession {
         last_project_path: None,
@@ -63,17 +109,49 @@ fn recent_projection_uses_dynamic_validation_without_persisting_it() {
 }
 
 #[test]
-fn startup_session_migrates_legacy_recent_entry_from_its_project_manifest() {
-    let location = temp_root("legacy-recent-session");
+fn forgetting_a_manifest_path_removes_the_canonical_recent_project_root() {
+    let (location, root_path, project_summary) = create_recent_test_project(
+        "forget-recent-project-manifest-path",
+        "Forget Manifest Project",
+    );
     let authority = ProjectAuthority::default();
-    let created = authority
-        .create_project(&NewProjectDraft {
-            project_name: "Legacy Session Project".to_string(),
-            location: location.to_string_lossy().into_owned(),
-            template: NewProjectTemplate::RenderableEmpty,
-        })
-        .unwrap();
-    let path = created.root.to_string_lossy().into_owned();
+    let root = root_path.to_string_lossy().into_owned();
+    let manifest = root_path.join("zircon-project.toml");
+    let mut stored = StoredStartupSession::default();
+    authority.remember_recent_project(&mut stored, &root, project_summary, 42);
+
+    authority.forget_recent_project(&mut stored, manifest.to_string_lossy().as_ref());
+
+    assert!(stored.recent_projects.is_empty());
+    assert_eq!(stored.last_project_path, None);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn forgetting_a_canonical_root_removes_a_legacy_manifest_recent_entry() {
+    let (location, root_path, project_summary) = create_recent_test_project(
+        "forget-legacy-manifest-recent-entry",
+        "Forget Legacy Manifest Project",
+    );
+    let authority = ProjectAuthority::default();
+    let root = root_path.to_string_lossy().into_owned();
+    let manifest = root_path.join("zircon-project.toml");
+    let mut stored =
+        legacy_manifest_recent_entry(manifest.to_string_lossy().as_ref(), project_summary, 42);
+
+    authority.forget_recent_project(&mut stored, &root);
+
+    assert!(stored.recent_projects.is_empty());
+    assert_eq!(stored.last_project_path, None);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn startup_session_migrates_legacy_recent_entry_from_its_project_manifest() {
+    let (location, root_path, project_summary) =
+        create_recent_test_project("legacy-recent-session", "Legacy Session Project");
+    let authority = ProjectAuthority::default();
+    let path = root_path.to_string_lossy().into_owned();
     let legacy = serde_json::json!({
         "last_project_path": path,
         "recent_projects": [{
@@ -86,9 +164,39 @@ fn startup_session_migrates_legacy_recent_entry_from_its_project_manifest() {
 
     assert_eq!(session.last_project_path.as_deref(), Some(path.as_str()));
     assert_eq!(session.recent_projects.len(), 1);
-    assert_eq!(session.recent_projects[0].summary, created.summary);
+    assert_eq!(session.recent_projects[0].summary, project_summary);
     assert_eq!(session.recent_projects[0].last_opened_unix_ms, 42);
     fs::remove_dir_all(location).unwrap();
+}
+
+fn legacy_manifest_recent_entry(
+    manifest_path: &str,
+    summary: ProjectManifestSummary,
+    last_opened_unix_ms: u64,
+) -> StoredStartupSession {
+    StoredStartupSession {
+        last_project_path: Some(manifest_path.to_string()),
+        recent_projects: vec![StoredRecentProjectEntry {
+            summary,
+            path: manifest_path.to_string(),
+            last_opened_unix_ms,
+        }],
+    }
+}
+
+fn create_recent_test_project(
+    case_name: &str,
+    project_name: &str,
+) -> (PathBuf, PathBuf, ProjectManifestSummary) {
+    let location = temp_root(case_name);
+    let created = ProjectAuthority::default()
+        .create_project(&NewProjectDraft {
+            project_name: project_name.to_string(),
+            location: location.to_string_lossy().into_owned(),
+            template: NewProjectTemplate::RenderableEmpty,
+        })
+        .unwrap();
+    (location, created.root, created.summary)
 }
 
 fn summary(name: &str) -> ProjectManifestSummary {

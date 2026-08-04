@@ -2,10 +2,10 @@ use std::collections::{BTreeMap, HashSet};
 
 use super::transform_validation::validate_transform_for_write;
 use super::{SceneError, SceneResult, World};
-use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, NodeRecord, RenderLayerMask,
 };
+use crate::scene::EntityId;
 
 struct PreparedNodeRecordBatch {
     records: Vec<NodeRecord>,
@@ -95,7 +95,7 @@ impl World {
     ) -> SceneResult<(BTreeMap<EntityId, &'a NodeRecord>, EntityId)> {
         let mut records_by_id = BTreeMap::new();
         let mut next_id = self.next_id;
-        for record in &records {
+        for record in records {
             if self.contains_entity(record.id)
                 || self.entity_registry.contains_stable(record.id)
                 || records_by_id.insert(record.id, record).is_some()
@@ -124,13 +124,10 @@ impl World {
         let prior_staging = std::mem::replace(&mut self.record_staged_lifecycle_events, true);
         let lifecycle_start = self.staged_lifecycle_events.len();
         for record in records {
-            if let Err(error) = self.insert_prevalidated_node_record(record) {
-                self.staged_lifecycle_events.truncate(lifecycle_start);
-                self.record_staged_lifecycle_events = prior_staging;
-                return Err(error);
-            }
+            self.insert_prevalidated_node_record(record);
         }
         self.next_id = self.next_id.max(next_id);
+        self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
@@ -149,8 +146,14 @@ impl World {
         Ok(())
     }
 
-    fn insert_prevalidated_node_record(&mut self, record: NodeRecord) -> SceneResult<()> {
-        self.register_stable_entity(record.id)?;
+    fn insert_prevalidated_node_record(&mut self, record: NodeRecord) {
+        let entity = record.id;
+        self.insert_prevalidated_node_record_without_archetype(record);
+        self.rebuild_fixed_component_presence_into_final_archetype(entity);
+    }
+
+    pub(super) fn insert_prevalidated_node_record_without_archetype(&mut self, record: NodeRecord) {
+        self.register_prevalidated_stable_entity(record.id);
         self.entities.push(record.id);
         self.kinds.insert(record.id, record.kind);
         self.record_node_kind_added(record.kind);
@@ -231,9 +234,6 @@ impl World {
             self.animation_state_machine_players
                 .insert(record.id, animation_state_machine_player);
         }
-
-        self.rebuild_fixed_component_presence_for_entity(record.id);
-        Ok(())
     }
 
     fn validate_node_record_batch_mobility(
@@ -329,9 +329,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use crate::scene::{
-        NodeKind, World,
-        components::{Mobility, Name},
+        components::{ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, RenderLayerMask},
         ecs::LifecycleEventKind,
+        NodeKind, World,
     };
 
     fn node_record_with_id(id: u64) -> crate::scene::components::NodeRecord {
@@ -356,11 +356,18 @@ mod tests {
         let observed = Arc::new(Mutex::new(Vec::new()));
         let observed_for_callback = Arc::clone(&observed);
         let second_id = second.id;
+        let name_component_id = world.component_id::<Name>();
         world.observe_component_lifecycle::<Name>(LifecycleEventKind::Add, move |world, event| {
             observed_for_callback
                 .lock()
                 .expect("test observer lock")
-                .push((event.entity(), world.contains_entity(second_id)));
+                .push((
+                    event.entity(),
+                    world.contains_entity(second_id),
+                    world
+                        .entity_archetype_component_ids(second_id)
+                        .contains(&name_component_id),
+                ));
         });
 
         let generation_before = world.world_generation();
@@ -373,7 +380,35 @@ mod tests {
         assert_eq!(world.node_record(second.id), Some(second));
         let observed = observed.lock().expect("test observer lock");
         assert_eq!(observed.len(), 2);
-        assert!(observed.iter().all(|(_, second_visible)| *second_visible));
+        assert!(observed
+            .iter()
+            .all(|(_, second_visible, second_has_final_signature)| {
+                *second_visible && *second_has_final_signature
+            }));
+    }
+
+    #[test]
+    fn node_record_batch_assigns_the_complete_fixed_component_signature() {
+        let mut world = World::empty();
+        let record = node_record_with_id(41);
+
+        world
+            .insert_node_record(record.clone())
+            .expect("validated record must commit with its final signature");
+
+        let name = world.component_id::<Name>();
+        let hierarchy = world.component_id::<Hierarchy>();
+        let transform = world.component_id::<LocalTransform>();
+        let active = world.component_id::<ActiveSelf>();
+        let render_layer_mask = world.component_id::<RenderLayerMask>();
+        let mobility = world.component_id::<Mobility>();
+        let signature = world.entity_archetype_component_ids(record.id);
+        assert!(signature.contains(&name));
+        assert!(signature.contains(&hierarchy));
+        assert!(signature.contains(&transform));
+        assert!(signature.contains(&active));
+        assert!(signature.contains(&render_layer_mask));
+        assert!(signature.contains(&mobility));
     }
 
     #[test]

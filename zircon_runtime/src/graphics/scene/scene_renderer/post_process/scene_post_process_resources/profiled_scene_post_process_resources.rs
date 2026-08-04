@@ -8,7 +8,7 @@ pub(crate) enum ScenePostProcessResources {
 }
 
 impl ScenePostProcessResources {
-    pub(in crate::graphics::scene::scene_renderer::core) const fn has_full_resources(
+    pub(in crate::graphics::scene::scene_renderer) const fn has_full_resources(
         &self,
     ) -> bool {
         matches!(self, Self::Full(_))

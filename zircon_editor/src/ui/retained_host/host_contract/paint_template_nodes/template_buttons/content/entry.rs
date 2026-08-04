@@ -10,7 +10,9 @@ use super::glyph::{
     trailing_glyph_rect,
 };
 use super::layout::button_content_layout;
-use super::metrics::{button_label_font_size, button_label_paint_style, measured_label_ink_width};
+use super::metrics::{
+    button_label_font_size_for_slot, button_label_paint_style, measured_label_ink_width,
+};
 use super::style::button_content_style;
 use super::text::push_button_label;
 
@@ -33,8 +35,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     let glyph = button_glyph(node);
     let glyph_width = button_glyph_width(node, glyph, !label.trim().is_empty());
     let chevron_width = chevron_width(glyph);
-    let font_size = button_label_font_size(node, rect);
     let text_style = button_label_paint_style(node, kind);
+    let font_size =
+        button_label_font_size_for_slot(node, rect, &label, text_style, glyph_width, chevron_width);
     let label_ink_width = measured_label_ink_width(&label, font_size, text_style);
     let layout = button_content_layout(node, rect, glyph_width, chevron_width, label_ink_width);
     let mut x = layout.start_x;

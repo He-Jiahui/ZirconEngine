@@ -1,4 +1,5 @@
 use super::super::super::*;
+use std::collections::BTreeSet;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn sync_asset_catalog(&mut self) {

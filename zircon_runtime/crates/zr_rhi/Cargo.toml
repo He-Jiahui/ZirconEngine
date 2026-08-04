@@ -1,0 +1,19 @@
+[package]
+name = "zr_rhi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Backend-neutral Zircon render hardware interface contracts."
+
+[features]
+default = []
+platform-winit = ["dep:winit"]
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+winit = { workspace = true, default-features = false, optional = true }
+
+[dev-dependencies]
+serde_json = "1.0.149"

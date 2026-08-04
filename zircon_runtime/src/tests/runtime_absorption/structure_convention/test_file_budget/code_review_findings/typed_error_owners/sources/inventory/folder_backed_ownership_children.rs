@@ -25,9 +25,4 @@ pub(in super::super) const TYPED_ERROR_SOURCE_INVENTORY_DELEGATION_FOLDER_BACKED
         TYPED_ERROR_SOURCE_INVENTORY_DELEGATION_FOLDER_BACKED_OWNERSHIP_ROUTE_CHILD,
         "pub(super) fn assert_typed_error_source_inventory_delegation_folder_backed_ownership_is_child_backed",
     ),
-    (
-        "status_current",
-        TYPED_ERROR_SOURCE_INVENTORY_DELEGATION_FOLDER_BACKED_OWNERSHIP_STATUS_CHILD,
-        "pub(super) fn assert_typed_error_source_inventory_delegation_folder_backed_ownership_status_is_current",
-    ),
 ];

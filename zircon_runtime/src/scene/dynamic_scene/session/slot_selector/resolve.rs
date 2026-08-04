@@ -1,7 +1,7 @@
 use super::super::{
     RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
 };
-use super::report::RuntimeSessionSlotSelectionReport;
+use super::report::{RuntimeSessionSlotSelection, RuntimeSessionSlotSelectionReport};
 use super::selector::RuntimeSessionSlotSelector;
 
 impl RuntimeSessionSlotSelector {
@@ -35,7 +35,36 @@ impl RuntimeSessionSlotSelector {
         &self,
         archive: &RuntimeSessionArchive,
     ) -> Result<RuntimeSessionSlotSelectionReport, RuntimeSessionArchiveError> {
-        self.resolve_manifest(&archive.manifest()?)
+        let selection = self.resolve_slot(archive)?;
+        let slot = selection.slot();
+
+        Ok(RuntimeSessionSlotSelectionReport {
+            selector: self.clone(),
+            selected_slot_id: slot.slot_id.clone(),
+            summary: slot.summary(),
+        })
+    }
+
+    pub fn resolve_slot<'archive>(
+        &self,
+        archive: &'archive RuntimeSessionArchive,
+    ) -> Result<RuntimeSessionSlotSelection<'archive>, RuntimeSessionArchiveError> {
+        let slot = match self {
+            Self::SlotId { slot_id } => archive.slot(slot_id),
+            Self::LatestUpdated => archive.indexed_latest_slot(),
+            Self::OldestUpdated => archive.indexed_oldest_slot(),
+            Self::LatestUpdatedWithTag { tag } => archive.indexed_latest_tag_slot(tag.trim()),
+            Self::OldestUpdatedWithTag { tag } => archive.indexed_oldest_tag_slot(tag.trim()),
+        }
+        .ok_or_else(|| RuntimeSessionArchiveError::MissingSlot {
+            slot_id: self.missing_slot_label(),
+        })?;
+
+        Ok(RuntimeSessionSlotSelection::new(
+            archive.generation(),
+            archive.revision(),
+            slot,
+        ))
     }
 
     pub fn resolve_manifest(

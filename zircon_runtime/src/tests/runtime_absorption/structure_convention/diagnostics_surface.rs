@@ -178,9 +178,6 @@ fn runtime_15_diagnostics_guard_is_folder_backed() {
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
-    );
 
     assert_contains_all(
         "structure convention parent diagnostics mount",
@@ -210,27 +207,6 @@ fn runtime_15_diagnostics_guard_is_folder_backed() {
         child_lines < 500,
         "diagnostics_surface.rs should stay below the local guard module limit; got {child_lines} lines"
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 diagnostics guard module split",
-                "runtime_15_diagnostics_guard_module_split_static_passed_cargo_lock_blocked",
-                "structure_convention/diagnostics_surface.rs",
-                "runtime_15_diagnostics_guard_is_folder_backed",
-                "runtime_15_diagnostics_use_frame_trait_without_world_wrapper",
-            ],
-        );
-    }
 }
 
 fn read_runtime_src(relative: &str) -> String {

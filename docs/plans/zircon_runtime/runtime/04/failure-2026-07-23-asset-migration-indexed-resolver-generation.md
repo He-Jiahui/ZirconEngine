@@ -10,10 +10,14 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/reference_resolver.rs
+  - zircon_runtime/src/asset/migration/run.rs
+  - zircon_runtime/src/asset/migration/scan.rs
+  - zircon_runtime/src/asset/migration/sidecar.rs
   - zircon_runtime/src/asset/migration/resolver.rs
   - zircon_runtime/src/asset/migration/resolver_index.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/mod.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/resolver_index.rs
+  - zircon_runtime/src/asset/tests/migration/project_commandlet/source_boundary.rs
 tests:
   - cargo test -p zircon_runtime --lib asset::tests::migration::project_commandlet::resolver_index --locked --jobs 1 -- --nocapture --test-threads=1
 ---
@@ -51,7 +55,7 @@ resolver 没有消费 generation-owned physical identity index，仍把 filesyst
 
 ## 修复结果与回传
 
-Open state: `single-inventory predecessor 的后继接线已恢复到本 failure 的受管范围：scan 发布逻辑 root/physical root/root-relative projection，sidecar preflight 仅发布已验证 compound binding，run 每 generation 构建 ephemeral MigrationResolverIndex，shared reference resolver 消费 ProjectSourceLookup，migration resolver 删除 roots/PathBuf/persisted_source_path_for_locator 与所有 per-reference FS fallback。静态检查已确认格式与空白通过，resolver 和 index 不含禁止 filesystem API；没有 Cargo green claim。Runtime04 的两次受管 focused attempt 均在目标测试执行前被 shared native-plugin loader 编译错误阻断，故当前仍 open；待该 lower shared compile owner 修复后，以新的 source snapshot/FIFO reservation 运行 declared resolver-index gate 和 origin scale/upward gate。`
+Resolving state: `single-inventory predecessor 与 indexed-resolver 后继已在 current source 完成接线。scan generation 同时发布 canonical physical identity、logical/root-relative projection 与被拒绝的 link/reparse 路径；sidecar counterpart 与 mint 决策只消费该 generation，不再用 exists/read fallback 把外部 link 当作 authority。physical identity 与 rejected-path 查询都基于排序索引执行 O(logN) lookup。run 每 generation 只构建一个 ephemeral MigrationResolverIndex，resolver/index 的 per-reference filesystem API 计数为 0。测试覆盖 100k distinct references、1/4 roots、forward/reverse 结果顺序、compound/direct/ambiguous/missing/duplicate 优先级及 current/retired linked-sidecar 拒绝。独立二次复审 Critical/Important/Minor=0/0/0；rustfmt、diff-check 与源码 guard 通过。Snapshot 1493 的 Rust manifest hash=a587940bc1d0f00836e5b2977329773d2b4ce1ed8371e8442b87e9905fef0d55；Windows Rust 1.94.1 package-check ticket 5cc91e28c6f542e4b749f4c856054e4a 与 focused ticket 4cfb001e3f134b35bd1988efbdec0400 已受理。两者尚无 terminal receipt，故不宣称 Cargo GREEN、fixed 或 upward acceptance。`
 
 ## 2026-07-27 recovery status
 

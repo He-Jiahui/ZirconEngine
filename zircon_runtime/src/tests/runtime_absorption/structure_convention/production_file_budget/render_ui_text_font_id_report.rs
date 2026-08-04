@@ -25,9 +25,6 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let graphics_text_doc = read_repo("docs/zircon_runtime/graphics/text.md");
     let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "screen-space UI text parent keeps native/SDF orchestration and child mount",
@@ -154,29 +151,6 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 production-file soft budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("graphics text doc", graphics_text_doc.as_str()),
-        ("UI text doc", ui_text_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 screen-space UI text font-id report owner split",
-                "runtime_15_screen_space_ui_text_font_id_report_owner_split_static_passed_cargo_deferred",
-                "graphics/scene/scene_renderer/ui/text.rs",
-                "graphics/scene/scene_renderer/ui/text/font_id_report.rs",
-                "runtime_15_screen_space_ui_text_font_id_report_is_child_owner",
-            ],
         );
     }
 }

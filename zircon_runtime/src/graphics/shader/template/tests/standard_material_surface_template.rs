@@ -229,7 +229,7 @@ fn render_shader_template_assembles_standard_material_surface_source() {
         .contains("fn zr_standard_pbr_shade_blinn_phong_light_vector"));
     assert!(assembly
         .wgsl_source
-        .contains("let environment_lights = zr_environment_pbr_indirect("));
+        .contains("let environment_lights = zr_environment_pbr_indirect_normalized("));
     assert!(assembly
         .wgsl_source
         .contains("fn zr_scene_view_dir_ws(position_ws: vec3<f32>) -> vec3<f32>"));
@@ -410,12 +410,15 @@ fn render_shader_template_marks_standard_material_normal_texture_feature() {
     assert!(assembly
         .wgsl_source
         .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = true;"));
+    assert_include_token!(assembly, "zr_normal.wgsl");
     for required in [
         "@group(2) @binding(3) var standard_material_normal_tex",
         "@group(2) @binding(4) var standard_material_normal_sampler",
         "struct StandardMaterialTangentFrame",
         "fn standard_material_tangent_frame(",
         "fn standard_material_tangent_normal(",
+        "fn zr_reconstruct_bc5_normal(",
+        "ZR_NORMAL_CONVENTION_DX",
         "let normal_uv = standard_material_transform_uv_channel(",
         "surface.normal_ws = standard_material_sampled_normal(input, normal_uv);",
     ] {
@@ -424,6 +427,15 @@ fn render_shader_template_marks_standard_material_normal_texture_feature() {
             "normal-mapped Standard PBR must retain `{required}`"
         );
     }
+    assert!(assembly
+        .wgsl_source
+        .contains("let frame = standard_material_tangent_frame(input, input.normal_ws);"));
+    assert!(
+        !assembly
+            .wgsl_source
+            .contains("let geometric_normal = standard_material_normalize_or_fallback("),
+        "normal-mapped Standard PBR must normalize the interpolated geometric normal only in its tangent-frame helper"
+    );
     validate_material_shader_template_wgsl(&assembly.wgsl_source)
         .expect("normal-mapped Standard PBR WGSL should validate");
 }

@@ -11,6 +11,7 @@ mod extract_stats;
 mod ffi;
 mod hooks;
 mod host_requests;
+mod highlight_set;
 mod hud;
 mod input_events;
 mod linked_plugins;
@@ -43,7 +44,7 @@ pub(in crate::dynamic_api) use event_mirror::{
 pub(super) use ffi::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
     destroy_session, drain_host_requests, drain_plugin_events, handle_event, present_viewport,
-    profile_control, subscribe_plugin_event, tick_frame, unbind_viewport_surface,
+    profile_control, submit_highlight_set, subscribe_plugin_event, tick_frame, unbind_viewport_surface,
     unsubscribe_plugin_event,
 };
 use hooks::install_builtin_scene_runtime_hooks;

@@ -13,6 +13,8 @@ numberMin(): int { return 4; }
 numberMax(): int { return 5; }
 numberTotal(): int { return 6; }
 numberDirectPct(): int { return 7; }
+numberInterval(): int { return 8; }
+effectSlow(): int { return 2; }
 effectAoeRoot(): int { return 3; }
 effectAbsorb(): int { return 4; }
 effectDot(): int { return 5; }
@@ -53,6 +55,44 @@ pub effectString(list: TalentAddedEffectList, effectIndex: int, field: int): str
     if (effectIndex < 0 || field < 0 || field >= 2) return "";
     var offset = effectIndex * 2 + field;
     return offset < list.strings.length ? <string>list.strings[offset] : "";
+}
+
+// Typed accessors keep source DTO field ordinals inside this projection. World
+// reducers consume these instead of duplicating the generated numeric layout.
+pub isSlow(list: TalentAddedEffectList, effectIndex: int): bool {
+    return effectType(list, effectIndex) == effectSlow();
+}
+
+pub slowDuration(list: TalentAddedEffectList, effectIndex: int): float {
+    return effectNumber(list, effectIndex, numberDuration());
+}
+
+pub slowMult(list: TalentAddedEffectList, effectIndex: int): float {
+    return effectNumber(list, effectIndex, numberMult());
+}
+
+pub isDot(list: TalentAddedEffectList, effectIndex: int): bool {
+    return effectType(list, effectIndex) == effectDot();
+}
+
+pub dotDuration(list: TalentAddedEffectList, effectIndex: int): float {
+    return effectNumber(list, effectIndex, numberDuration());
+}
+
+pub dotInterval(list: TalentAddedEffectList, effectIndex: int): float {
+    return effectNumber(list, effectIndex, numberInterval());
+}
+
+pub dotTotal(list: TalentAddedEffectList, effectIndex: int): float {
+    return effectNumber(list, effectIndex, numberTotal());
+}
+
+pub dotDirectPct(list: TalentAddedEffectList, effectIndex: int): float {
+    return effectNumber(list, effectIndex, numberDirectPct());
+}
+
+pub dotSchool(list: TalentAddedEffectList, effectIndex: int): string {
+    return effectString(list, effectIndex, 0);
 }
 
 roundPositive(value: float): float {
@@ -139,6 +179,15 @@ pub contractTest(): int {
         effectNumber(effects, 0, numberDirectPct()) != 0.5 ||
         effectString(effects, 0, 0) != "nature") return -3;
 
+    var concussive = new modifiers.TalentModifierState();
+    concussive.playerLevel = 8;
+    modifiers.recompute(
+        concussive, <uint>0, <uint>0, <uint>42, <uint>0, <uint>0, <uint>0, <uint>0
+    );
+    resolveForAbility(concussive, "concussive_shot", true, effects);
+    if (effectCount(effects) != 1 || !isSlow(effects, 0) ||
+        slowDuration(effects, 0) != 4.0 || slowMult(effects, 0) != 0.3) return -4;
+
     resolveForAbility(venom, "aimed_shot", false, effects);
-    return effectCount(effects) == 0 ? 1 : -4;
+    return effectCount(effects) == 0 ? 1 : -5;
 }

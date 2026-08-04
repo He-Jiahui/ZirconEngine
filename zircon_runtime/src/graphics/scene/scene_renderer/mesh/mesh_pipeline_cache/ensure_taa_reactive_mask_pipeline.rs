@@ -5,8 +5,8 @@ use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::{
     create_taa_reactive_mask_mesh_pipeline, create_taa_reactive_material_mask_mesh_pipeline,
 };
-use super::MeshPipelineCache;
 use super::shader_source::mesh_pipeline_taa_reactive_mask_template_source_for_geometry_descriptor_with_streamer;
+use super::{MeshPipelineCache, PipelineCreationTarget};
 
 const TAA_REACTIVE_MASK_MESH_SHADER_KEY_PREFIX: &str = "zircon.builtin.taa-reactive-mask-mesh@1";
 
@@ -63,7 +63,13 @@ impl MeshPipelineCache {
             self.taa_reactive_mask_mesh_pipelines
                 .insert(variant_id, pipeline);
         }
-        self.track_pipeline_creation_error_scope(shader_variant_key, error_scope);
+        self.track_pipeline_creation_error_scope(
+            shader_variant_key,
+            PipelineCreationTarget::MeshPass(MeshPassPipelineKind::TaaReactiveMask),
+            variant_id,
+            shader_key,
+            error_scope,
+        );
         self.taa_reactive_mask_mesh_pipelines.get(&variant_id)
     }
 
@@ -162,7 +168,13 @@ impl MeshPipelineCache {
             self.taa_reactive_material_mask_mesh_pipelines
                 .insert(variant_id, pipeline);
         }
-        self.track_pipeline_creation_error_scope(shader_variant_key, error_scope);
+        self.track_pipeline_creation_error_scope(
+            shader_variant_key,
+            PipelineCreationTarget::MeshPass(MeshPassPipelineKind::TaaReactiveMaterialMask),
+            variant_id,
+            shader_key,
+            error_scope,
+        );
         self.taa_reactive_material_mask_mesh_pipelines
             .get(&variant_id)
     }

@@ -401,16 +401,12 @@ mod tests {
                 }),
         );
 
-        assert!(
-            overrides
-                .iter()
-                .any(|override_entry| override_entry.component_id == "post.bloom")
-        );
-        assert!(
-            overrides
-                .iter()
-                .any(|override_entry| override_entry.component_id == "post.color-grading")
-        );
+        assert!(overrides
+            .iter()
+            .any(|override_entry| override_entry.component_id == "post.bloom"));
+        assert!(overrides
+            .iter()
+            .any(|override_entry| override_entry.component_id == "post.color-grading"));
         let tonemap = overrides
             .iter()
             .find(|override_entry| override_entry.component_id == "post.tonemap")

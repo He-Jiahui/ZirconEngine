@@ -82,7 +82,11 @@ impl AdvancedLightingExtract {
             0
         } else {
             let copy_steps = self.transmission_scene_copy_step_count();
-            if copy_steps == 0 { 1 } else { copy_steps }
+            if copy_steps == 0 {
+                1
+            } else {
+                copy_steps
+            }
         }
     }
 }

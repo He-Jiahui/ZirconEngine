@@ -37,9 +37,19 @@ pub(super) fn glyph_atlas_bitmap_renderer_write_instance_buffer(
         }));
         draw_pass.instance_buffer_capacity_bytes = capacity_bytes;
     }
-    if let Some(instance_buffer) = draw_pass.instance_buffer.as_ref() {
-        // Draw commands bound later cap the instance range, so stale tail bytes stay unreachable.
-        queue.write_buffer(instance_buffer, 0, bytemuck::cast_slice(instances));
+    let instance_bytes = bytemuck::cast_slice(instances);
+    let payload_hash = *blake3::hash(instance_bytes).as_bytes();
+    let write_required = glyph_atlas_bitmap_renderer_instance_buffer_write_required(
+        requires_reallocation,
+        draw_pass.instance_buffer_payload_hash,
+        payload_hash,
+    );
+    if write_required {
+        if let Some(instance_buffer) = draw_pass.instance_buffer.as_ref() {
+            // Draw commands bound later cap the instance range, so stale tail bytes stay unreachable.
+            queue.write_buffer(instance_buffer, 0, instance_bytes);
+            draw_pass.instance_buffer_payload_hash = Some(payload_hash);
+        }
     }
     (
         glyph_atlas_bitmap_renderer_instance_buffer_capacity_byte_len(
@@ -68,6 +78,14 @@ pub(super) fn glyph_atlas_bitmap_renderer_instance_buffer_requires_reallocation(
     required_byte_len: usize,
 ) -> bool {
     required_byte_len > 0 && capacity_bytes < required_byte_len as u64
+}
+
+pub(super) fn glyph_atlas_bitmap_renderer_instance_buffer_write_required(
+    requires_reallocation: bool,
+    current_payload_hash: Option<[u8; 32]>,
+    next_payload_hash: [u8; 32],
+) -> bool {
+    requires_reallocation || current_payload_hash != Some(next_payload_hash)
 }
 
 fn glyph_atlas_bitmap_renderer_instance_buffer_capacity_byte_len(capacity_bytes: u64) -> usize {

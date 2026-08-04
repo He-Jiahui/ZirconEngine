@@ -55,9 +55,6 @@ fn runtime_15_render_layer_schema_v1_mask_api_uses_current_names() {
         manifest_root,
         "docs/zircon_runtime/graphics/render-product-submit.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "RenderLayerSet schema-v1 mask API",
@@ -114,9 +111,6 @@ fn runtime_15_render_layer_schema_v1_mask_api_uses_current_names() {
         ("module convention doc", module_doc),
         ("render camera doc", camera_doc),
         ("render product submit doc", render_product_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,

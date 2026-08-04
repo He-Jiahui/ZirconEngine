@@ -12,8 +12,8 @@ use crate::core::editor_message::{
     EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TOPIC_JOB,
 };
 use crate::core::jobs::{
-    test_job_system, test_job_system_with_bus, test_job_system_with_limits, EditorJobLimits,
-    JobCategory, JobError, JobEventKind, JobEventPumpBudget, JobSubmitError,
+    EditorJobLimits, JobCategory, JobError, JobEventKind, JobEventPumpBudget, JobSubmitError,
+    test_job_system, test_job_system_with_bus, test_job_system_with_limits,
 };
 
 #[path = "tests/concurrency.rs"]
@@ -170,14 +170,15 @@ fn failed_generation_can_be_submitted_again() {
     let index = index_for("res://textures/retry.png");
     let flow = EditorAssetImportFlow::with_backend(jobs, backend.clone(), index);
 
-    assert!(flow
-        .submit(EditorAssetImportRequest::new(
+    assert!(
+        flow.submit(EditorAssetImportRequest::new(
             target.clone(),
             EditorAssetImportReason::Watch,
         ))
         .unwrap()
         .wait()
-        .is_err());
+        .is_err()
+    );
     backend.fail.store(false, Ordering::SeqCst);
     flow.submit(EditorAssetImportRequest::new(
         target.clone(),
@@ -215,11 +216,13 @@ fn unknown_uri_is_rejected_before_job_submission() {
         error,
         EditorAssetImportSubmitError::AssetNotIndexed { uri: missing }
     );
-    assert!(backend
-        .calls
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-        .is_empty());
+    assert!(
+        backend
+            .calls
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_empty()
+    );
 }
 
 #[test]

@@ -5,6 +5,7 @@ use super::super::super::template_status_control_geometry::{
     frame_is_within, status_chip_text_rect, status_font_size, status_line_height,
     workbench_status_metrics,
 };
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(super) fn push_status_chip_text(
@@ -110,7 +111,7 @@ fn push_text(
     color: [u8; 4],
     opacity: f32,
 ) {
-    if !frame_is_within(base, &rect) {
+    if !frame_is_within(base, &rect) || intersect(&rect, clip).is_none() {
         return;
     }
     commands.push(HostPaintCommand::text(

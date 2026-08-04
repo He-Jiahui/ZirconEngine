@@ -78,19 +78,19 @@ fn net_editor_plugin_contributes_authoring_extensions() {
     );
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| drawer.component_type() == "net.ListenerConfig"));
+        .any(|customization| customization.target_type() == "net.ListenerConfig"));
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| drawer.component_type() == "net.HttpRouteConfig"));
+        .any(|customization| customization.target_type() == "net.HttpRouteConfig"));
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| drawer.component_type() == "net.ReplicationSchema"));
+        .any(|customization| customization.target_type() == "net.ReplicationSchema"));
     assert!(registration
         .extensions
         .asset_type_contributions()

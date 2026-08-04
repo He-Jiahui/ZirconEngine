@@ -3,7 +3,8 @@ use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::{ComponentDrawerDescriptor, EditorMenuItemDescriptor};
+use zircon_editor::core::editor_extension::EditorMenuItemDescriptor;
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -205,13 +206,13 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
             .with_required_capabilities([CAPABILITY]),
         ],
         graph_node_palettes: vec![animation_graph_palette(), animation_state_machine_palette()],
-        component_drawers: vec![
-            ComponentDrawerDescriptor::new(
+        inspector_customizations: vec![
+            InspectorCustomizationDescriptor::new(
                 "animation.Component.GraphPlayer",
                 "plugins://animation_graph/editor/graph_player.zui",
                 "animation_graph.editor.graph_player",
             ),
-            ComponentDrawerDescriptor::new(
+            InspectorCustomizationDescriptor::new(
                 "animation.Component.StateMachinePlayer",
                 "plugins://animation_graph/editor/state_machine_player.zui",
                 "animation_graph.editor.state_machine_player",

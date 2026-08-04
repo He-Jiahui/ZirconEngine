@@ -37,6 +37,7 @@ fn inspector_projection_maps_bootstrap_asset_into_mount_nodes() {
             name: "Camera".to_string(),
             parent: "Root".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
+            scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             plugin_components: Vec::new(),
         }),
         UiSize::new(360.0, 520.0),

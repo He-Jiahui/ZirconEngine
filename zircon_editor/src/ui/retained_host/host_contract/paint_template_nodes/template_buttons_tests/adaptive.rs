@@ -62,16 +62,12 @@ fn collapsed_button_content_omits_text_and_glyphs() {
 
     assert_eq!(commands.len(), 1, "only the button surface should remain");
     assert!(commands.iter().all(|command| command.text.is_none()));
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.image_pixels.is_none())
-    );
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.image_pixels.is_none()));
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -101,11 +97,9 @@ fn narrow_button_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -136,15 +130,13 @@ fn fractional_button_alignment_does_not_expand_its_logical_frame() {
     ));
 
     assert!(!commands.is_empty());
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
-fn offset_button_outside_its_clip_does_not_emit_paint_commands() {
+fn offset_button_overlapping_its_clip_keeps_paint_commands() {
     let rect = FrameRect {
         x: 8.0,
         y: 6.0,
@@ -168,6 +160,43 @@ fn offset_button_outside_its_clip_does_not_emit_paint_commands() {
         &button,
         &rect,
         &rect,
+        4,
+        1.0,
+    ));
+
+    assert!(!commands.is_empty());
+    assert!(commands
+        .iter()
+        .all(|command| command.clip_frame.as_ref() == Some(&rect)));
+}
+
+#[test]
+fn button_outside_its_clip_does_not_emit_paint_commands() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 80.0,
+        height: 28.0,
+    };
+    let clip = FrameRect {
+        x: 96.0,
+        ..rect.clone()
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_button_commands(
+        &mut commands,
+        &positioned_button_node(
+            "WorkbenchPrimaryButton",
+            "Save",
+            "filled",
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height,
+        ),
+        &rect,
+        &clip,
         4,
         1.0,
     ));
@@ -197,11 +226,9 @@ fn short_selected_tab_omits_text_without_expanding_its_indicator() {
     ));
 
     assert!(commands.iter().all(|command| command.text.is_none()));
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {

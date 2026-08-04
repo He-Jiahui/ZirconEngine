@@ -357,9 +357,7 @@ fn host_text_font_cache_key(
     request.hash(&mut hasher);
     runtime_family.hash(&mut hasher);
     collection_index.hash(&mut hasher);
-    bytes.len().hash(&mut hasher);
-    bytes.first().copied().unwrap_or_default().hash(&mut hasher);
-    bytes.last().copied().unwrap_or_default().hash(&mut hasher);
+    bytes.hash(&mut hasher);
     hasher.finish()
 }
 

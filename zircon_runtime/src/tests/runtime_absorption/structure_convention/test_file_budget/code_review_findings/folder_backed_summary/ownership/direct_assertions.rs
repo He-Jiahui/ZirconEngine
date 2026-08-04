@@ -41,7 +41,6 @@ pub(super) fn assert_folder_backed_direct_review_assertion_children_are_current(
         &[
             "fn runtime_15_code_review_findings_direct_assertions_are_child_owner",
             "fn runtime_15_code_review_findings_direct_assertions_children_are_child_owned",
-            "fn runtime_15_code_review_findings_direct_assertions_guard_folder_backed_status_is_current",
             "runtime_15_code_review_findings_f12_direct_assertions_are_child_owner",
             "runtime_15_code_review_findings_f8_direct_assertions_are_child_owner",
             "runtime_15_code_review_findings_p0_direct_assertions_are_child_owner",

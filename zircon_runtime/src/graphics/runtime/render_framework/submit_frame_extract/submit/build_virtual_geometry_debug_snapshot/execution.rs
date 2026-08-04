@@ -135,9 +135,9 @@ fn instance_index_for_draw_segment(
             cluster.entity == segment.entity
                 && stable_instance_key_for_cluster_array_index(
                     &extract.instances,
-                    cluster_array_index,
+                    *cluster_array_index,
                     cluster.entity,
-                ) == segment.stable_instance_key_or_legacy()
+                ) == segment.stable_instance_key
                 && cluster.cluster_id == segment.cluster_id
                 && cluster.page_id == segment.page_id
                 && cluster.lod_level == segment.lod_level

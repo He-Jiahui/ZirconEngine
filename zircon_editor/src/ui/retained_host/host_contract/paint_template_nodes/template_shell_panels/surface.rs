@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_chrome_style;
 use super::frame::{shell_panel_border_color, shell_panel_border_width, shell_panel_corner_radius};
@@ -14,6 +15,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sh
     order: i32,
     opacity: f32,
 ) {
+    if intersect(rect, clip).is_none() {
+        return;
+    }
     let style = select_workbench_chrome_style(node, kind);
     if let Some(fill) = style.fill {
         commands.push(HostPaintCommand::quad(

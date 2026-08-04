@@ -10,6 +10,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::construc
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) hzb_params_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) half_res_transparency_params_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) exposure_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) color_lut_bake_params_buffer:

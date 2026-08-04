@@ -38,58 +38,6 @@ fn runtime_15_no_oversized_test_files() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
-    );
-    let status_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/asset_budget_maps.rs",
-        ),
-    ]
-    .join("\n");
-    let date_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/asset_budget_maps.rs",
-        ),
-    ]
-    .join("\n");
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 no oversized test files global gate",
-                "runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred",
-                "structure_convention/test_file_budget/global_budget.rs",
-                "TEST_FILE_LINE_BUDGET",
-                "runtime_15_no_oversized_test_files",
-            ],
-        );
-    }
-
-    assert_contains_all(
-        "Runtime 15 status/date maps record no-oversized test files global gate",
-        &format!("{status_map}\n{date_map}"),
-        &[
-            "Runtime 15 M3 no oversized test files global gate",
-            "runtime_15_no_oversized_test_files_global_gate_static_passed_cargo_deferred",
-            "2026-06-27",
-        ],
-    );
 }
 
 fn runtime_src_root() -> PathBuf {

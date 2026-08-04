@@ -3,29 +3,19 @@ use super::*;
 
 #[path = "budgets/line_counts.rs"]
 mod line_counts;
-#[path = "budgets/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) const STRUCTURE_GUARD_CHILDREN_BUDGETS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/budgets.rs";
 pub(super) const STRUCTURE_GUARD_CHILDREN_LINE_COUNTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/budgets/line_counts.rs";
-pub(super) const STRUCTURE_GUARD_CHILDREN_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/budgets/status_mirrors.rs";
 
 const STRUCTURE_GUARD_CHILDREN_BUDGET_STATUS_SPLIT_NAME: &str =
     "Runtime 15 M3 code review findings structure guard children budget-status child split";
 const STRUCTURE_GUARD_CHILDREN_BUDGET_STATUS_SPLIT_ID: &str = "runtime_15_code_review_findings_structure_guard_children_budget_status_child_split_static_passed_cargo_deferred";
 
-const STRUCTURE_GUARD_CHILDREN_BUDGET_CHILDREN: &[(&str, &str, &str)] = &[
-    (
-        "line_counts",
-        STRUCTURE_GUARD_CHILDREN_LINE_COUNTS_CHILD_OWNER,
-        "runtime_15_code_review_findings_structure_guard_children_line_budgets_are_child_owned",
-    ),
-    (
-        "status_mirrors",
-        STRUCTURE_GUARD_CHILDREN_STATUS_MIRRORS_CHILD_OWNER,
-        "runtime_15_code_review_findings_structure_guard_children_budget_status_child_split_status_is_current",
-    ),
-];
+const STRUCTURE_GUARD_CHILDREN_BUDGET_CHILDREN: &[(&str, &str, &str)] = &[(
+    "line_counts",
+    STRUCTURE_GUARD_CHILDREN_LINE_COUNTS_CHILD_OWNER,
+    "runtime_15_code_review_findings_structure_guard_children_line_budgets_are_child_owned",
+)];
 
 pub(super) fn assert_structure_guard_children_line_budgets() {
     line_counts::assert_structure_guard_children_line_budgets();

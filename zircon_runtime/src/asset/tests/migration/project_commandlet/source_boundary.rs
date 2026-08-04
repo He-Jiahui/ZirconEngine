@@ -9,7 +9,7 @@ fn migration_run_has_one_inventory_walk_owner() {
     const SCAN_SOURCE: &str = include_str!("../../../migration/scan.rs");
     const SIDECAR_SOURCE: &str = include_str!("../../../migration/sidecar.rs");
 
-    assert_eq!(RUN_SOURCE.matches("MigrationInventory::build(").count(), 1);
+    assert_eq!(RUN_SOURCE.matches("MigrationInventory::build(").count(), 2);
     for retired_call in [
         "recognized_sources(&root_paths)",
         "supported_authoring_files(&root_paths)",
@@ -19,7 +19,10 @@ fn migration_run_has_one_inventory_walk_owner() {
         assert!(!RUN_SOURCE.contains(retired_call));
     }
     assert_eq!(SCAN_SOURCE.matches("fs::read_dir(").count(), 1);
+    assert!(SCAN_SOURCE.contains(".binary_search_by(|identity| identity.path.as_path().cmp(path))"));
     assert!(!SIDECAR_SOURCE.contains("fs::read_dir("));
+    assert!(!SIDECAR_SOURCE.contains(".exists()"));
+    assert!(SIDECAR_SOURCE.contains("inventory.is_rejected_path"));
     assert!(SCAN_SOURCE.contains("resolver_projections"));
     assert!(SIDECAR_SOURCE.contains("compound_bindings"));
     assert_eq!(
@@ -27,6 +30,36 @@ fn migration_run_has_one_inventory_walk_owner() {
         1
     );
     assert!(RUN_SOURCE.contains("MigrationResolver::new(&sidecars.index, &resolver_index)"));
+}
+
+#[test]
+fn migration_run_republishes_the_inventory_after_apply_mode_recovery() {
+    const RUN_SOURCE: &str = include_str!("../../../migration/run.rs");
+
+    let recovery = RUN_SOURCE
+        .find("recover_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;")
+        .expect("apply-mode pending recovery must complete before publishing the final inventory");
+    let republish = RUN_SOURCE
+        .find("let inventory = if pending_recovery.is_empty() || options.mode == AssetMigrationMode::DryRun {")
+        .expect("migration run must choose a post-recovery inventory generation");
+    let preflight = RUN_SOURCE
+        .find("preflight_sidecars(&root_paths, &inventory)")
+        .expect("sidecar preflight must consume the selected inventory generation");
+
+    assert!(recovery < republish);
+    assert!(republish < preflight);
+    assert!(RUN_SOURCE[republish..preflight].contains("MigrationInventory::build(&roots)"));
+}
+
+#[test]
+fn migration_run_keeps_pending_recovery_available_after_dry_run_reporting() {
+    const RUN_SOURCE: &str = include_str!("../../../migration/run.rs");
+
+    assert!(
+        RUN_SOURCE.contains("for journal in &pending_recovery {"),
+        "dry-run recovery reporting must borrow journals because generation selection reads them later"
+    );
+    assert!(RUN_SOURCE.contains("let inventory = if pending_recovery.is_empty()"));
 }
 
 #[test]
@@ -109,11 +142,9 @@ fn migration_inventory_walks_overlapping_roots_once_and_classifies_files() {
     assert!(snapshot.transaction_targets.contains(&orphan_sidecar));
     assert!(snapshot.transaction_targets.contains(&orphan_counterpart));
     assert!(snapshot.transaction_targets.contains(&prospective_sidecar));
-    assert!(
-        !snapshot
-            .transaction_targets
-            .contains(&assets.join(".zircon/ignored.scene.toml"))
-    );
+    assert!(!snapshot
+        .transaction_targets
+        .contains(&assets.join(".zircon/ignored.scene.toml")));
 
     fs::remove_dir_all(root).unwrap();
 }
@@ -153,7 +184,51 @@ fn migration_inventory_rejects_reparse_asset_roots_without_visiting_their_target
     let error = scan_migration_inventory_for_test(&[linked_assets.clone()]).unwrap_err();
 
     assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
-    assert_eq!(fs::read_to_string(&outside_source).unwrap(), "outside = true\n");
+    assert_eq!(
+        fs::read_to_string(&outside_source).unwrap(),
+        "outside = true\n"
+    );
+    remove_directory_link(&linked_assets);
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(outside).unwrap();
+}
+
+#[test]
+fn migration_commandlet_reports_reparse_asset_roots_as_scan_errors() {
+    let root = fixture_root("migration-commandlet-reparse-asset-root");
+    let outside = fixture_root("migration-commandlet-reparse-asset-root-outside");
+    write_manifest(&root, &["assets"]);
+    let linked_assets = root.join("assets");
+    let shader_guid: AssetUuid = "aa111111-2222-4333-8444-555555555555".parse().unwrap();
+    write_registered_source(
+        &outside,
+        "",
+        "shaders/pbr.zshader",
+        shader_guid,
+        AssetKind::Shader,
+    );
+    let outside_source = outside.join("materials/must-not-migrate.zmaterial");
+    fs::create_dir_all(outside_source.parent().unwrap()).unwrap();
+    let original = format!(
+        "version = 2\n\n[shader]\nuuid = \"{shader_guid}\"\nurl = \"res://shaders/pbr.zshader\"\n"
+    );
+    fs::write(&outside_source, &original).unwrap();
+    if !create_directory_link(&outside, &linked_assets) {
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
+        return;
+    }
+
+    let error =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap_err();
+
+    assert!(matches!(
+        error,
+        crate::asset::migration::AssetMigrationError::Scan { source, .. }
+            if source.kind() == std::io::ErrorKind::InvalidInput
+    ));
+    assert_eq!(fs::read_to_string(&outside_source).unwrap(), original);
     remove_directory_link(&linked_assets);
     fs::remove_dir_all(root).unwrap();
     fs::remove_dir_all(outside).unwrap();
@@ -206,6 +281,89 @@ fn paired_source_link_is_not_followed_into_sidecar_preflight() {
         "outside source"
     );
     remove_file_link(&linked_source);
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(outside).unwrap();
+}
+
+#[test]
+fn linked_current_sidecar_cannot_become_retired_preflight_authority() {
+    let root = fixture_root("migration-current-sidecar-link");
+    let outside = fixture_root("migration-current-sidecar-link-outside");
+    write_manifest(&root, &["assets"]);
+    let assets = root.join("assets/textures");
+    fs::create_dir_all(&assets).unwrap();
+    fs::write(assets.join("hero.png"), b"png fixture").unwrap();
+    fs::write(
+        assets.join("hero.png.meta.toml"),
+        "format_version = 6\nuuid = \"aa111111-2222-4333-8444-555555555555\"\nurl = \"res://textures/hero.png\"\nasset_kind = \"Texture\"\nsource_hash = \"legacy-digest\"\n",
+    )
+    .unwrap();
+    let outside_sidecar = outside.join("hero.png.zmeta");
+    let outside_source = "format_version = 7\nuuid = \"aa111111-2222-4333-8444-555555555555\"\nurl = \"res://textures/hero.png\"\nasset_kind = \"Texture\"\nsource_digest = \"outside-digest\"\n";
+    fs::write(&outside_sidecar, outside_source).unwrap();
+    let linked_sidecar = assets.join("hero.png.zmeta");
+    if !create_file_link(&outside_sidecar, &linked_sidecar) {
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
+        return;
+    }
+
+    let report = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(report.issues().len(), 1);
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::InvalidDocument
+    );
+    assert_eq!(
+        fs::read_to_string(&outside_sidecar).unwrap(),
+        outside_source
+    );
+    remove_file_link(&linked_sidecar);
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(outside).unwrap();
+}
+
+#[test]
+fn linked_retired_sidecar_cannot_suppress_current_sidecar_minting() {
+    let root = fixture_root("migration-retired-sidecar-link");
+    let outside = fixture_root("migration-retired-sidecar-link-outside");
+    write_manifest(&root, &["assets"]);
+    let assets = root.join("assets/textures");
+    fs::create_dir_all(&assets).unwrap();
+    fs::write(assets.join("hero.png"), b"png fixture").unwrap();
+    let outside_sidecar = outside.join("hero.png.meta.toml");
+    let outside_source = "format_version = 6\nuuid = \"ab111111-2222-4333-8444-555555555555\"\nurl = \"res://textures/hero.png\"\nasset_kind = \"Texture\"\nsource_hash = \"outside-digest\"\n";
+    fs::write(&outside_sidecar, outside_source).unwrap();
+    let linked_sidecar = assets.join("hero.png.meta.toml");
+    if !create_file_link(&outside_sidecar, &linked_sidecar) {
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
+        return;
+    }
+
+    let report = migrate_project_assets(AssetMigrationOptions::new(
+        &root,
+        AssetMigrationMode::DryRun,
+    ))
+    .unwrap();
+
+    assert!(!report.succeeded());
+    assert_eq!(report.issues().len(), 1);
+    assert_eq!(
+        report.issues()[0].kind(),
+        AssetMigrationIssueKind::InvalidDocument
+    );
+    assert_eq!(
+        fs::read_to_string(&outside_sidecar).unwrap(),
+        outside_source
+    );
+    remove_file_link(&linked_sidecar);
     fs::remove_dir_all(root).unwrap();
     fs::remove_dir_all(outside).unwrap();
 }

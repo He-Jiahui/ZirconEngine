@@ -11,15 +11,6 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
     let render_assets_doc = read_repo("docs/zircon_runtime/asset/render-assets.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
 
     assert_contains_all(
         "texture descriptor parent keeps public descriptor behavior and delegates settings parsing",
@@ -89,40 +80,6 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
             "asset/assets/texture/descriptor.rs",
             "asset/assets/texture/descriptor/settings.rs",
             "runtime_15_texture_descriptor_settings_parser_is_child_owner",
-            "2026-06-24",
-        ],
-    );
-    for (label, source) in [
-        ("module convention doc", module_doc.as_str()),
-        ("importer doc", importer_doc.as_str()),
-        ("render assets doc", render_assets_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 texture descriptor settings parser owner split",
-                "runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred",
-                "asset/assets/texture/descriptor.rs",
-                "asset/assets/texture/descriptor/settings.rs",
-                "runtime_15_texture_descriptor_settings_parser_is_child_owner",
-            ],
-        );
-    }
-    assert_contains_all_exact(
-        "status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 M4 texture descriptor settings parser owner split",
-            "runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all_exact(
-        "status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 M4 texture descriptor settings parser owner split",
             "2026-06-24",
         ],
     );

@@ -4,7 +4,7 @@ use crate::core::framework::render::LightCookieData;
 use crate::graphics::scene::resources::ResourceStreamer;
 
 use super::blit_pipeline::LightCookieAtlasBlitPipeline;
-use super::{build_cookie_frame_plan, COOKIE_ATLAS_GRID_SIZE};
+use super::{COOKIE_ATLAS_GRID_SIZE, build_cookie_frame_plan};
 
 pub(crate) const LIGHT_COOKIE_ATLAS_BINDING: u32 = 33;
 pub(crate) const LIGHT_COOKIE_SAMPLER_BINDING: u32 = 34;

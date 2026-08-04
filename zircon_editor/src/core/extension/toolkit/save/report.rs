@@ -12,7 +12,7 @@ pub struct DocumentSaveReport {
 }
 
 impl DocumentSaveReport {
-    pub(super) const fn new(
+    pub(crate) const fn new(
         document: DocumentId,
         instance: ToolkitInstanceId,
         reason: SaveReason,

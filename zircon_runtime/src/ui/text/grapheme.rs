@@ -72,24 +72,11 @@ pub(crate) fn word_range_at(text: &str, offset: usize) -> Option<(usize, usize)>
 }
 
 pub(crate) fn line_start_boundary(text: &str, offset: usize) -> usize {
-    let offset = clamp_utf8_boundary(text, offset);
-    text[..offset]
-        .rfind('\n')
-        .map(|index| index + '\n'.len_utf8())
-        .unwrap_or(0)
+    crate::text::hard_line_start(text, offset)
 }
 
 pub(crate) fn line_end_boundary(text: &str, offset: usize) -> usize {
-    let offset = clamp_utf8_boundary(text, offset);
-    let end = text[offset..]
-        .find('\n')
-        .map(|relative| offset + relative)
-        .unwrap_or(text.len());
-    if end > 0 && text.as_bytes().get(end - 1) == Some(&b'\r') {
-        end - 1
-    } else {
-        end
-    }
+    crate::text::hard_line_end(text, offset)
 }
 
 pub(crate) fn previous_line_same_column_boundary(text: &str, offset: usize) -> Option<usize> {
@@ -115,7 +102,7 @@ pub(crate) fn next_line_same_column_boundary(text: &str, offset: usize) -> Optio
     let current_start = line_start_boundary(text, offset);
     let current_end = line_end_boundary(text, offset);
     let column = grapheme_column_in_line(text, current_start, offset.min(current_end));
-    let next_start = next_line_start_after_end(text, current_end)?;
+    let next_start = crate::text::next_hard_line_start(text, current_end)?;
     let next_end = line_end_boundary(text, next_start);
     Some(line_boundary_for_grapheme_column(
         text, next_start, next_end, column,
@@ -174,17 +161,9 @@ fn line_boundary_for_grapheme_column(
         .unwrap_or(line_end)
 }
 
-fn next_line_start_after_end(text: &str, line_end: usize) -> Option<usize> {
-    let bytes = text.as_bytes();
-    if bytes.get(line_end) == Some(&b'\r') && bytes.get(line_end + 1) == Some(&b'\n') {
-        return Some(line_end + 2);
-    }
-    if bytes.get(line_end) == Some(&b'\n') {
-        return Some(line_end + 1);
-    }
-    None
-}
-
 fn is_word_segment(segment: &str) -> bool {
     segment.chars().any(|character| character.is_alphanumeric())
 }
+
+#[cfg(test)]
+mod tests;

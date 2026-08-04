@@ -6,6 +6,8 @@ param(
     [string]$EditorExecutable,
     [Parameter(Mandatory)]
     [string]$RuntimeLibrary,
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
     [string]$EditorRuntimeLibrary,
     [Parameter(Mandatory)]
     [string]$TemplateRoot,
@@ -36,6 +38,8 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'MvpProjectOpenEvidence.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflight.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingRelease.psm1') -Force -ErrorAction Stop
+$pathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+Import-Module (Join-Path $pathResolverRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function Get-TextSha256 {
     param([Parameter(Mandatory)][string]$Text)
@@ -126,7 +130,7 @@ function Resolve-MvpInputFile {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "$Label '$Path' does not exist or is not a file."
     }
-    return (Resolve-Path -LiteralPath $Path).Path
+    return (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
 }
 
 function Resolve-MvpInputDirectory {
@@ -138,17 +142,34 @@ function Resolve-MvpInputDirectory {
     if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
         throw "$Label '$Path' does not exist or is not a directory."
     }
-    return (Resolve-Path -LiteralPath $Path).Path
+    return (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+}
+
+function Assert-MvpDistinctProfileRuntimeLibraries {
+    param(
+        [Parameter(Mandatory)][string]$RuntimeLibraryPath,
+        [Parameter(Mandatory)][string]$EditorRuntimeLibraryPath
+    )
+
+    $runtimeIdentity = Get-ZirconWindowsFileIdentity -Path $RuntimeLibraryPath
+    $editorIdentity = Get-ZirconWindowsFileIdentity -Path $EditorRuntimeLibraryPath
+    if ($runtimeIdentity -eq $editorIdentity) {
+        throw 'RuntimeLibrary and EditorRuntimeLibrary must resolve to distinct physical profile artifacts.'
+    }
 }
 
 function Resolve-MvpStagingRoot {
     param([Parameter(Mandatory)][string]$Path)
 
-    $resolved = [IO.Path]::GetFullPath($Path).TrimEnd('\')
-    if (-not $AllowUnsafeStagingRoot -and $resolved -notmatch '^[D-F]:\\ZirconBuilds(?:\\|$)') {
-        throw "StagingRoot '$resolved' is not under an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root."
+    # The approved staging root has a bounded normal form. Compare and return that display path
+    # so later PowerShell provider calls never receive a verbatim path, while arbitrary product
+    # inputs still retain their resolver physical paths.
+    $resolution = Resolve-ZirconWindowsPath -Path $Path
+    $displayPath = $resolution.DisplayPath.TrimEnd('\')
+    if (-not $AllowUnsafeStagingRoot -and $displayPath -notmatch '^[D-F]:\\ZirconBuilds(?:\\|$)') {
+        throw "StagingRoot '$displayPath' is not under an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root."
     }
-    return $resolved
+    return $displayPath
 }
 
 function Assert-MvpRunId {
@@ -183,8 +204,8 @@ function Get-MvpRelativePath {
         [string]$Label = 'Staged file'
     )
 
-    $resolvedRoot = [IO.Path]::GetFullPath($Root)
-    $resolvedPath = [IO.Path]::GetFullPath($Path)
+    $resolvedRoot = (Resolve-ZirconWindowsPath -Path $Root).OperationalPath
+    $resolvedPath = (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
     $directorySeparator = [string][IO.Path]::DirectorySeparatorChar
     $alternateDirectorySeparator = [string][IO.Path]::AltDirectorySeparatorChar
     $rootPrefix = if ($resolvedRoot.EndsWith($directorySeparator) -or $resolvedRoot.EndsWith($alternateDirectorySeparator)) {
@@ -297,6 +318,12 @@ function Get-MvpPngCaptureEvidence {
         throw "$Label '$Path' is empty."
     }
     if ($null -eq ('ZirconMvpPngEvidence' -as [type])) {
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        $pngEvidenceReferences = @(
+            [Drawing.Bitmap].Assembly.Location
+            [Drawing.Rectangle].Assembly.Location
+            [Security.Cryptography.SHA256].Assembly.Location
+        ) | Select-Object -Unique
         Add-Type -TypeDefinition @'
 using System;
 using System.Drawing;
@@ -380,7 +407,7 @@ public sealed class ZirconMvpPngEvidence
         }
     }
 }
-'@ -ReferencedAssemblies 'System.Drawing' -ErrorAction Stop
+'@ -ReferencedAssemblies $pngEvidenceReferences -ErrorAction Stop
     }
 
     $summary = [ZirconMvpPngEvidence]::Inspect($Path)
@@ -499,7 +526,10 @@ function Start-MvpStagedProcess {
         throw 'ProjectRoot cannot be combined with explicit staged process arguments.'
     }
     if (-not [string]::IsNullOrWhiteSpace($ProjectRoot)) {
-        $startInfo.Arguments = '--project ' + (ConvertTo-MvpProcessArgument -Value $ProjectRoot)
+        # The product CLI accepts a normal Windows path and resolves its physical identity at the
+        # project boundary. Keep physical resolver paths for staging filesystem operations only.
+        $projectRootArgument = (Resolve-ZirconWindowsPath -Path $ProjectRoot).DisplayPath
+        $startInfo.Arguments = '--project ' + (ConvertTo-MvpProcessArgument -Value $projectRootArgument)
     } elseif ($Arguments.Count -gt 0) {
         $startInfo.Arguments = ($Arguments | ForEach-Object {
             ConvertTo-MvpProcessArgument -Value $_
@@ -818,7 +848,10 @@ function Get-MvpEditorProductDiagnosticsEvidence {
         'selected_node_name',
         'inspector_translation_x',
         'inspector_translation_y',
-        'inspector_translation_z'
+        'inspector_translation_z',
+        'inspector_scale_x',
+        'inspector_scale_y',
+        'inspector_scale_z'
     )) {
         $match = [regex]::Match($diagnostic, '(?:^|\s)' + [regex]::Escape($name) + '=([^\s]+)')
         if (-not $match.Success) {
@@ -839,8 +872,8 @@ function Get-MvpEditorProductDiagnosticsEvidence {
     if (-not [UInt64]::TryParse([string]$fields.selected_node_id, [ref]$selectedNodeId) -or $selectedNodeId -eq 0) {
         throw "Editor product diagnostic has invalid selected_node_id '$($fields.selected_node_id)'."
     }
-    $reportedProjectPath = [IO.Path]::GetFullPath([string]$fields.project_path)
-    $expectedProjectPath = [IO.Path]::GetFullPath($ProjectRoot)
+    $reportedProjectPath = (Resolve-ZirconWindowsPath -Path ([string]$fields.project_path)).OperationalPath
+    $expectedProjectPath = (Resolve-ZirconWindowsPath -Path $ProjectRoot).OperationalPath
     if (-not $reportedProjectPath.Equals($expectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Editor product diagnostic project_path '$reportedProjectPath' differs from staged project '$expectedProjectPath'."
     }
@@ -1083,9 +1116,9 @@ function Get-MvpAuthoringAutomationEvidence {
     if ([string]::IsNullOrWhiteSpace($reportedProjectPath)) {
         throw "Staged editor authoring automation report has an empty project_path. See $StdoutPath and $StderrPath."
     }
-    $expectedProjectPath = [IO.Path]::GetFullPath($ProjectRoot)
+    $expectedProjectPath = (Resolve-ZirconWindowsPath -Path $ProjectRoot).OperationalPath
     try {
-        $resolvedReportedProjectPath = [IO.Path]::GetFullPath($reportedProjectPath)
+        $resolvedReportedProjectPath = (Resolve-ZirconWindowsPath -Path $reportedProjectPath).OperationalPath
     }
     catch {
         throw "Staged editor authoring automation report has an invalid project_path '$reportedProjectPath'. See $StdoutPath and $StderrPath."
@@ -1134,6 +1167,7 @@ function Invoke-MvpStagedAuthoringAutomation {
     }
     $started = [Diagnostics.Stopwatch]::StartNew()
     $processState = $null
+    $projectRootArgument = (Resolve-ZirconWindowsPath -Path $ProjectRoot).DisplayPath
     try {
         $processState = Start-MvpStagedProcess `
             -ExecutablePath $ExecutablePath `
@@ -1141,7 +1175,7 @@ function Invoke-MvpStagedAuthoringAutomation {
             -Environment $environment `
             -StageRoot $StageRoot `
             -Phase $EvidenceLabel `
-            -Arguments @('--project', $ProjectRoot, '--automation', $AutomationRequestPath, '--headless')
+            -Arguments @('--project', $projectRootArgument, '--automation', $AutomationRequestPath, '--headless')
         $exitCode = Complete-MvpStagedProcess `
             -ProcessState $processState `
             -StdoutPath $stdout `
@@ -1220,11 +1254,10 @@ function Invoke-MvpProductStaging {
     $runtimeExecutablePath = Resolve-MvpInputFile -Path $RuntimeExecutable -Label 'RuntimeExecutable'
     $editorExecutablePath = Resolve-MvpInputFile -Path $EditorExecutable -Label 'EditorExecutable'
     $runtimeLibraryPath = Resolve-MvpInputFile -Path $RuntimeLibrary -Label 'RuntimeLibrary'
-    $editorRuntimeLibraryPath = if ([string]::IsNullOrWhiteSpace($EditorRuntimeLibrary)) {
-        $runtimeLibraryPath
-    } else {
-        Resolve-MvpInputFile -Path $EditorRuntimeLibrary -Label 'EditorRuntimeLibrary'
-    }
+    $editorRuntimeLibraryPath = Resolve-MvpInputFile -Path $EditorRuntimeLibrary -Label 'EditorRuntimeLibrary'
+    Assert-MvpDistinctProfileRuntimeLibraries `
+        -RuntimeLibraryPath $runtimeLibraryPath `
+        -EditorRuntimeLibraryPath $editorRuntimeLibraryPath
     $templateRootPath = Resolve-MvpInputDirectory -Path $TemplateRoot -Label 'TemplateRoot'
     $engineAssetRootPath = Resolve-MvpInputDirectory -Path $EngineAssetRoot -Label 'EngineAssetRoot'
     $projectRootPath = if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
@@ -1473,15 +1506,19 @@ function Invoke-MvpProductStaging {
                         throw "Staged editor project creation exited without the $diagnostic diagnostic under '$createDiagnosticRoot'. See $createStdout and $createStderr."
                     }
                 }
-                $createdProjectParent = [IO.Path]::GetFullPath((Join-Path $stageDirectory 'project'))
-                $createdProjectExpectedRoot = [IO.Path]::GetFullPath((Join-Path $createdProjectParent $ProjectName))
+                $createdProjectParentResolution = Resolve-ZirconWindowsPath -Path (Join-Path $stageDirectory 'project')
+                $createdProjectExpectedResolution = Resolve-ZirconWindowsPath -Path (Join-ZirconWindowsPath `
+                    -Path $createdProjectParentResolution.OperationalPath `
+                    -ChildPath $ProjectName)
+                $createdProjectParent = $createdProjectParentResolution.OperationalPath
+                $createdProjectExpectedRoot = $createdProjectExpectedResolution.OperationalPath
                 $createdProjectParentPrefix = $createdProjectParent.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
                 if (-not $createdProjectExpectedRoot.StartsWith($createdProjectParentPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-                    throw "Created project target '$createdProjectExpectedRoot' escapes staged project root '$createdProjectParent'."
+                    throw "Created project target '$($createdProjectExpectedResolution.DisplayPath)' escapes staged project root '$($createdProjectParentResolution.DisplayPath)'."
                 }
-                $createdProjectRoot = Resolve-MvpInputDirectory -Path $createdProjectExpectedRoot -Label 'Staged created project'
+                $createdProjectRoot = Resolve-MvpInputDirectory -Path $createdProjectExpectedResolution.DisplayPath -Label 'Staged created project'
                 if (-not $createdProjectRoot.Equals($createdProjectExpectedRoot, [StringComparison]::OrdinalIgnoreCase)) {
-                    throw "Created project root '$createdProjectRoot' differs from expected staged target '$createdProjectExpectedRoot'."
+                    throw "Created project root '$createdProjectRoot' differs from expected staged target '$($createdProjectExpectedResolution.DisplayPath)'."
                 }
                 Test-MvpStagedProjectDirectoryReleased `
                     -StageDirectory $stageDirectory `
@@ -1606,7 +1643,12 @@ function Invoke-MvpProductStaging {
         manifest = $manifestPath
         output_hash = Get-FileSha256 -Path $manifestPath
         launched = -not $NoLaunch
-        staged_project_root = if ($null -eq $stagedProjectRoot) { $null } else { $stagedProjectRoot }
+        staged_project_root = if ($null -eq $stagedProjectRoot) {
+            $null
+        }
+        else {
+            (Resolve-ZirconWindowsPath -Path $stagedProjectRoot).DisplayPath
+        }
         product_runs = $productRuns
         baseline_automation = $baselineAutomation
         authoring_automation = $authoringAutomation

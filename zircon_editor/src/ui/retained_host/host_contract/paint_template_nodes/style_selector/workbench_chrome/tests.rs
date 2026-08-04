@@ -1,15 +1,14 @@
 use super::model::WorkbenchChromeKind;
 use super::palette::{
-    WORKBENCH_CHROME_CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG, WORKBENCH_CHROME_DRAWER_BODY_BG,
-    WORKBENCH_CHROME_MAIN_BG, WORKBENCH_CHROME_PANEL_BG, WORKBENCH_CHROME_RAIL_BG,
-    WORKBENCH_CHROME_ROOT_BG, WORKBENCH_CHROME_SEPARATOR, WORKBENCH_CHROME_SOFT_SEPARATOR,
-    WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR, WORKBENCH_CHROME_TAB_BG,
-    WORKBENCH_CHROME_TOPBAR_BG, WORKBENCH_CHROME_VIEWPORT_FRAME_BG,
-    workbench_chrome_palette_from_host,
+    workbench_chrome_palette_from_host, WORKBENCH_CHROME_CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG,
+    WORKBENCH_CHROME_DRAWER_BODY_BG, WORKBENCH_CHROME_MAIN_BG, WORKBENCH_CHROME_PANEL_BG,
+    WORKBENCH_CHROME_RAIL_BG, WORKBENCH_CHROME_ROOT_BG, WORKBENCH_CHROME_SEPARATOR,
+    WORKBENCH_CHROME_SOFT_SEPARATOR, WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR,
+    WORKBENCH_CHROME_TAB_BG, WORKBENCH_CHROME_TOPBAR_BG, WORKBENCH_CHROME_VIEWPORT_FRAME_BG,
 };
 use super::selection::select_workbench_chrome_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
+use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor};
 
@@ -162,7 +161,15 @@ fn chrome_hover_and_selected_panel_keep_pointer_and_identity_fills() {
 }
 
 #[test]
-fn chrome_drawer_column_stays_fillless_when_selected() {
+fn chrome_drawer_column_stays_fillless_in_normal_and_selected_states() {
+    let normal_column = TemplatePaneNodeData::default();
+
+    let normal_style =
+        select_workbench_chrome_style(&normal_column, WorkbenchChromeKind::DrawerColumn);
+
+    assert_eq!(normal_style.state, UiPainterResolvedState::Normal);
+    assert_eq!(normal_style.fill, None);
+
     let mut selected_column = TemplatePaneNodeData::default();
     selected_column.selected = true;
 

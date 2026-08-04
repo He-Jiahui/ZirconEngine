@@ -1,7 +1,7 @@
 fn zr_environment_pbr_components(
     _world_position: vec3<f32>,
-    normal_ws: vec3<f32>,
-    view_dir_ws: vec3<f32>,
+    normal_normalized: vec3<f32>,
+    view_dir_normalized: vec3<f32>,
     roughness: f32,
     metallic: f32,
     diffuse_color: vec3<f32>,
@@ -22,8 +22,9 @@ fn zr_environment_pbr_components(
     if (clamped_occlusion <= 0.0) {
         return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
-    let normal = zr_environment_normalize_or_zero(normal_ws);
-    let view_dir = zr_environment_normalize_or_zero(view_dir_ws);
+    let normal = normal_normalized;
+    // Both environment-only callers supply zero-safe normalized surface inputs.
+    let view_dir = view_dir_normalized;
     if (all(normal == vec3<f32>(0.0)) || all(view_dir == vec3<f32>(0.0))) {
         return ZrEnvironmentPbrComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
@@ -48,8 +49,8 @@ fn zr_environment_pbr_components(
 
 fn zr_environment_pbr_indirect(
     world_position: vec3<f32>,
-    normal_ws: vec3<f32>,
-    view_dir_ws: vec3<f32>,
+    normal_normalized: vec3<f32>,
+    view_dir_normalized: vec3<f32>,
     roughness: f32,
     metallic: f32,
     diffuse_color: vec3<f32>,
@@ -59,8 +60,8 @@ fn zr_environment_pbr_indirect(
 ) -> vec3<f32> {
     let components = zr_environment_pbr_components(
         world_position,
-        normal_ws,
-        view_dir_ws,
+        normal_normalized,
+        view_dir_normalized,
         roughness,
         metallic,
         diffuse_color,

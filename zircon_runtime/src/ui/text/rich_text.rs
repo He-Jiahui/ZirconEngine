@@ -7,7 +7,7 @@ use crate::text::{
     resolve_compiled_rich_text_artifact, resolve_resolved_text_glyph_artifact,
     rich::compile_rich_text,
 };
-use std::sync::Arc;
+use std::{mem::size_of, sync::Arc};
 use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRichTextFormat, UiTextRange, UiTextRunKind,
 };
@@ -85,13 +85,13 @@ pub(crate) struct UiParsedText {
 impl UiParsedText {
     pub(crate) fn from_compiled(rich: Arc<CompiledRichText>) -> Self {
         let text_length = rich.text().len();
-        let run_indices = (0..rich.parsed().runs.len())
+        let run_indices: Vec<u32> = (0..rich.parsed().runs.len())
             .filter_map(|index| u32::try_from(index).ok())
             .collect();
-        let paragraph_indices = (0..rich.parsed().paragraphs.len())
+        let paragraph_indices: Vec<u32> = (0..rich.parsed().paragraphs.len())
             .filter_map(|index| u32::try_from(index).ok())
             .collect();
-        let table_indices = (0..rich.parsed().tables.len())
+        let table_indices: Vec<u32> = (0..rich.parsed().tables.len())
             .filter_map(|index| u32::try_from(index).ok())
             .collect();
         Self::from_projection(
@@ -211,6 +211,27 @@ impl UiParsedText {
 
     pub(crate) fn table_root_depth(&self) -> u16 {
         self.table_root_depth
+    }
+
+    pub(crate) fn estimated_bytes(&self) -> usize {
+        self.rich
+            .estimated_bytes()
+            .saturating_add(
+                self.runs
+                    .capacity()
+                    .saturating_mul(size_of::<UiTextSourceRun>()),
+            )
+            .saturating_add(
+                self.paragraphs
+                    .capacity()
+                    .saturating_mul(size_of::<UiTextParagraphSource>()),
+            )
+            .saturating_add(
+                self.table_indices
+                    .capacity()
+                    .saturating_mul(size_of::<u32>()),
+            )
+            .saturating_add(size_of::<Self>())
     }
 
     fn from_projection(
@@ -350,7 +371,13 @@ pub(crate) fn prepare_render_command_text_artifacts(commands: &mut [UiRenderComm
                 .rich_text_artifact
                 .as_ref()
                 .and_then(resolve_resolved_text_glyph_artifact)
-                .is_some_and(|artifact| artifact.font_generation == font_generation);
+                // Resolved layouts are immutable owner/cache snapshots: reflow chooses a new
+                // layout and its matching artifact. Keep extraction O(1) per command rather than
+                // repeatedly comparing line strings, runs, and advances on every frame.
+                .is_some_and(|artifact| {
+                    artifact.font_generation == font_generation
+                        && artifact.writing_mode == layout.writing_mode
+                });
             if artifact_is_current {
                 continue;
             }

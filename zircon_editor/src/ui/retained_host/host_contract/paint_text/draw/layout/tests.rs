@@ -8,9 +8,13 @@ use zircon_runtime_interface::ui::{
     surface::{UiTextDirection, UiTextOverflow, UiTextRange, UiTextRunPaintStyle, UiTextWrap},
 };
 
-use super::{layout_text_run, layout_text_run_with_smoothing, runtime_positioned_glyphs};
+use super::{
+    layout_text_run, layout_text_run_with_layout_policy, layout_text_run_with_smoothing,
+    runtime_positioned_glyphs,
+};
 use crate::ui::retained_host::host_contract::data::FrameRect;
-use crate::ui::retained_host::host_contract::paint_text::font::{HostTextFontFace, font_for_face};
+use crate::ui::retained_host::host_contract::paint_text::font::{font_for_face, HostTextFontFace};
+use crate::ui::retained_host::host_contract::paint_text::HostTextLayoutPolicy;
 use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
 
 #[test]
@@ -677,12 +681,36 @@ fn retained_text_run_uses_runtime_ellipsis_for_narrow_editor_labels() {
     assert_eq!(layout.display_text, runtime_line.text);
     assert!(layout.display_text.contains('\u{2026}'));
     assert!(!layout.glyphs.is_empty());
-    assert!(
-        layout
-            .glyphs
-            .iter()
-            .all(|glyph| glyph.x.is_finite() && glyph.origin_x.is_finite() && glyph.y.is_finite())
+    assert!(layout
+        .glyphs
+        .iter()
+        .all(|glyph| glyph.x.is_finite() && glyph.origin_x.is_finite() && glyph.y.is_finite()));
+}
+
+#[test]
+fn retained_text_run_preserves_runtime_word_wrapped_lines_for_body_copy() {
+    let rect = FrameRect {
+        x: 5.0,
+        y: 4.0,
+        width: 72.0,
+        height: 48.0,
+    };
+    let layout = layout_text_run_with_layout_policy(
+        &rect,
+        "Alpha Bravo Charlie Delta",
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+        HostTextLayoutPolicy::WordWrap,
     );
+    let line_origins = layout
+        .glyphs
+        .iter()
+        .map(|glyph| glyph.y.round() as i32)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert!(layout.display_text.contains('\n'));
+    assert!(line_origins.len() >= 2);
 }
 
 #[test]

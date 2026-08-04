@@ -14,7 +14,7 @@ use crate::text::shaping::itemize::{
 use crate::text::shaping::line_break::LineBreakOpportunityMap;
 use crate::text::shaping::script_segment::{script_segments, shaped_script_for_cluster};
 
-pub(super) fn shape_horizontal_request(
+pub(in crate::text::shaping) fn shape_horizontal_request(
     request: BackendShapeRequest<'_>,
     bidi: &BidiParagraph<'_>,
     fallback_spans: &[FallbackTextSpan],

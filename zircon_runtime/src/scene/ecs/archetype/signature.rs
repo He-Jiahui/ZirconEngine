@@ -1,4 +1,4 @@
-use crate::scene::ecs::ComponentId;
+use crate::scene::ecs::{ComponentId, StorageType};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ArchetypeSignature {
@@ -29,12 +29,77 @@ impl ArchetypeSignature {
                 .is_ok()
     }
 
+    pub(crate) fn with_component_added(
+        &self,
+        component_id: ComponentId,
+        storage_type: StorageType,
+    ) -> Self {
+        let mut signature = self.clone();
+        let components = signature.components_for_storage_mut(storage_type);
+        insert_component(components, component_id);
+        signature
+    }
+
+    pub(crate) fn with_component_removed(
+        &self,
+        component_id: ComponentId,
+        storage_type: StorageType,
+    ) -> Self {
+        let mut signature = self.clone();
+        let components = signature.components_for_storage_mut(storage_type);
+        remove_component(components, component_id);
+        signature
+    }
+
     pub fn table_components(&self) -> &[ComponentId] {
         &self.table_components
     }
 
     pub fn sparse_set_components(&self) -> &[ComponentId] {
         &self.sparse_set_components
+    }
+
+    pub(crate) fn ordered_component_ids(&self) -> Vec<ComponentId> {
+        let mut component_ids = Vec::with_capacity(
+            self.table_components
+                .len()
+                .saturating_add(self.sparse_set_components.len()),
+        );
+        let mut table_index = 0_usize;
+        let mut sparse_index = 0_usize;
+        while table_index < self.table_components.len()
+            || sparse_index < self.sparse_set_components.len()
+        {
+            let next_table = self.table_components.get(table_index).copied();
+            let next_sparse = self.sparse_set_components.get(sparse_index).copied();
+            match (next_table, next_sparse) {
+                (Some(table), Some(sparse)) if table <= sparse => {
+                    component_ids.push(table);
+                    table_index += 1;
+                }
+                (Some(_), Some(sparse)) => {
+                    component_ids.push(sparse);
+                    sparse_index += 1;
+                }
+                (Some(table), None) => {
+                    component_ids.push(table);
+                    table_index += 1;
+                }
+                (None, Some(sparse)) => {
+                    component_ids.push(sparse);
+                    sparse_index += 1;
+                }
+                (None, None) => break,
+            }
+        }
+        component_ids
+    }
+
+    fn components_for_storage_mut(&mut self, storage_type: StorageType) -> &mut Vec<ComponentId> {
+        match storage_type {
+            StorageType::Table => &mut self.table_components,
+            StorageType::SparseSet => &mut self.sparse_set_components,
+        }
     }
 }
 
@@ -44,4 +109,67 @@ fn normalize_components(mut components: Vec<ComponentId>) -> Vec<ComponentId> {
         components.dedup();
     }
     components
+}
+
+fn insert_component(components: &mut Vec<ComponentId>, component_id: ComponentId) {
+    if let Err(index) = components.binary_search(&component_id) {
+        components.insert(index, component_id);
+    }
+}
+
+fn remove_component(components: &mut Vec<ComponentId>, component_id: ComponentId) {
+    if let Ok(index) = components.binary_search(&component_id) {
+        components.remove(index);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn component_membership_updates_only_the_known_storage_partition() {
+        let signature =
+            ArchetypeSignature::new(vec![ComponentId::new(4)], vec![ComponentId::new(2)]);
+
+        let updated = signature
+            .with_component_added(ComponentId::new(3), StorageType::Table)
+            .with_component_removed(ComponentId::new(2), StorageType::SparseSet);
+
+        assert_eq!(
+            updated.table_components(),
+            &[ComponentId::new(3), ComponentId::new(4)]
+        );
+        assert!(updated.sparse_set_components().is_empty());
+        assert_eq!(signature.table_components(), &[ComponentId::new(4)]);
+        assert_eq!(signature.sparse_set_components(), &[ComponentId::new(2)]);
+    }
+
+    #[test]
+    fn component_membership_updates_are_idempotent() {
+        let signature = ArchetypeSignature::empty()
+            .with_component_added(ComponentId::new(7), StorageType::SparseSet)
+            .with_component_added(ComponentId::new(7), StorageType::SparseSet)
+            .with_component_removed(ComponentId::new(8), StorageType::SparseSet);
+
+        assert_eq!(signature.sparse_set_components(), &[ComponentId::new(7)]);
+    }
+
+    #[test]
+    fn ordered_component_ids_merge_table_and_sparse_partitions() {
+        let signature = ArchetypeSignature::new(
+            vec![ComponentId::new(2), ComponentId::new(6)],
+            vec![ComponentId::new(1), ComponentId::new(4)],
+        );
+
+        assert_eq!(
+            signature.ordered_component_ids(),
+            vec![
+                ComponentId::new(1),
+                ComponentId::new(2),
+                ComponentId::new(4),
+                ComponentId::new(6),
+            ]
+        );
+    }
 }

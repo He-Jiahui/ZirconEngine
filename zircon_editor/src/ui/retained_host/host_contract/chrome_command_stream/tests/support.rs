@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use super::super::{
-    ChromeCommandKind, ChromeCommandStream, ChromeImagePayload,
-    chrome_command_from_recorded_for_test,
+    chrome_command_from_recorded_for_test, ChromeCommandKind, ChromeCommandStream,
+    ChromeImagePayload,
 };
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostDocumentDockSurfaceData, HostWindowLayoutData, HostWindowPresentationData,
@@ -34,8 +34,8 @@ pub(in crate::ui::retained_host::host_contract) const LEGACY_DOCUMENT_PANEL: [u8
 pub(in crate::ui::retained_host::host_contract) const LEGACY_VIEWPORT_PANEL: [u8; 4] =
     [7, 10, 15, 255];
 
-pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_image()
--> HostWindowPresentationData {
+pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_image(
+) -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
     presentation.host_layout = test_layout();
     presentation.host_scene_data.layout = test_layout();
@@ -79,15 +79,15 @@ pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_im
     presentation
 }
 
-pub(in crate::ui::retained_host::host_contract) fn presentation_with_root_overlay_image()
--> HostWindowPresentationData {
+pub(in crate::ui::retained_host::host_contract) fn presentation_with_root_overlay_image(
+) -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
     presentation.root_template_nodes = model_rc(vec![root_overlay_image_node()]);
     presentation
 }
 
-pub(in crate::ui::retained_host::host_contract) fn presentation_with_componentized_workbench_frame_owner()
--> HostWindowPresentationData {
+pub(in crate::ui::retained_host::host_contract) fn presentation_with_componentized_workbench_frame_owner(
+) -> HostWindowPresentationData {
     let mut presentation = HostWindowPresentationData::default();
     presentation.host_layout = test_layout();
     presentation.host_scene_data.layout = test_layout();
@@ -243,7 +243,10 @@ pub(in crate::ui::retained_host::host_contract) fn root_overlay_image_command<'a
                     && payload.upload_bytes == ROOT_OVERLAY_UPLOAD_BYTES
                     && payload.rgba.as_deref().or_else(|| {
                         stream
-                            .image_resource(payload.resource_key.as_str())
+                            .image_resource(
+                                payload.resource_key.as_str(),
+                                payload.resource_generation,
+                            )
                             .map(|resource| resource.rgba.as_slice())
                     }) == Some(overlay_rgba) =>
             {

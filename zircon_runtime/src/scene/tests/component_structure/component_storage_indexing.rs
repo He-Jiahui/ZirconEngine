@@ -11,14 +11,10 @@ fn component_storage_type_guards_use_entry_lookup() {
     assert!(storage_source.contains("match self.component_types.entry(component_id)"));
     assert!(storage_source.contains("Entry::Occupied(entry)"));
     assert!(storage_source.contains("Entry::Vacant(entry)"));
-    assert!(
-        !storage_source
-            .contains("if let Some(existing) = self.storage_types.get(&component_id).copied()")
-    );
-    assert!(
-        !storage_source
-            .contains("if let Some(existing) = self.component_types.get(&component_id).copied()")
-    );
+    assert!(!storage_source
+        .contains("if let Some(existing) = self.storage_types.get(&component_id).copied()"));
+    assert!(!storage_source
+        .contains("if let Some(existing) = self.component_types.get(&component_id).copied()"));
 }
 
 #[test]
@@ -76,7 +72,7 @@ fn table_component_get_uses_row_index_directly() {
 }
 
 #[test]
-fn sparse_component_insert_uses_entry_lookup_for_replacement() {
+fn sparse_component_insert_keeps_dense_rows_indexed_by_entity() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let storage_source = std::fs::read_to_string(
         manifest_root.join("src/scene/ecs/storage/component_storage/sparse.rs"),
@@ -96,12 +92,18 @@ fn sparse_component_insert_uses_entry_lookup_for_replacement() {
         .expect("sparse component insert body should end before get<T>");
     let insert_body = &storage_source[insert_body_start..insert_body_end];
 
-    assert!(insert_body.contains("match self.entries.entry(entity)"));
-    assert!(insert_body.contains("let entry = occupied.get_mut();"));
+    assert!(storage_source.contains("entities: Vec<InternalEntity>"));
+    assert!(storage_source.contains("entries: Vec<SparseEntry>"));
+    assert!(storage_source.contains("indices: HashMap<InternalEntity, usize>"));
+    assert!(insert_body.contains("if let Some(row) = self.indices.get(&entity).copied()"));
+    assert!(insert_body.contains("let entry = &mut self.entries[row];"));
     assert!(insert_body.contains("std::mem::replace(&mut entry.value, value)"));
-    assert!(insert_body.contains("vacant.insert(SparseEntry"));
-    assert!(!insert_body.contains("self.entries.insert("));
-    assert!(!insert_body.contains("self.entries.get_mut(&entity)"));
+    assert!(insert_body.contains("let row = self.entries.len();"));
+    assert!(insert_body.contains("self.entries.push(SparseEntry"));
+    assert!(insert_body.contains("self.entities.push(entity);"));
+    assert!(insert_body.contains("self.indices.insert(entity, row);"));
+    assert!(!storage_source.contains("HashMap<InternalEntity, SparseEntry>"));
+    assert!(!insert_body.contains("match self.entries.entry(entity)"));
 }
 
 #[test]

@@ -52,7 +52,10 @@ pub use io::{
     RuntimeSessionArchiveWriterLimits, RuntimeSessionArchiveWriterSubmitError,
 };
 pub use manifest::{RuntimeSessionArchiveManifest, RuntimeSessionSlotSummary};
-pub use merge::{RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport};
+pub use merge::{
+    RuntimeSessionArchiveMergePlan, RuntimeSessionArchiveMergePolicy,
+    RuntimeSessionArchiveMergeReport,
+};
 pub use metadata::RuntimeSessionMetadata;
 pub use path_status::RuntimeSessionArchivePathStatus;
 pub use reports::{
@@ -63,5 +66,7 @@ pub use reports::{
 };
 pub use retention::{RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy};
 pub use slot::RuntimeSessionSlot;
-pub use slot_selector::{RuntimeSessionSlotSelectionReport, RuntimeSessionSlotSelector};
+pub use slot_selector::{
+    RuntimeSessionSlotSelection, RuntimeSessionSlotSelectionReport, RuntimeSessionSlotSelector,
+};
 pub use statistics::RuntimeSessionArchiveStatistics;

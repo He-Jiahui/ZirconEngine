@@ -51,8 +51,8 @@ Assert-WorkflowMatch '-ProfileContractSummaryPath\s+\$profileContractSummaryPath
 Assert-WorkflowMatch '-WorkspaceSummaryPath\s+\$workspaceSummaryPath' 'F5 acceptance must receive the explicit workspace summary input.'
 $canonicalBuildGates = @(
     [pscustomobject]@{ gate_id = 'zircon-app-target-server'; command = 'cargo check -p zircon_app --no-default-features --features target-server --locked' },
-    [pscustomobject]@{ gate_id = 'zircon-app-target-client-platform'; command = 'cargo check -p zircon_app --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
-    [pscustomobject]@{ gate_id = 'zircon-app-target-editor-host'; command = 'cargo check -p zircon_app --no-default-features --features target-editor-host --locked' },
+    [pscustomobject]@{ gate_id = 'zircon-app-target-client-platform'; command = 'cargo check -p zircon_app --bin zircon_runtime --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
+    [pscustomobject]@{ gate_id = 'zircon-app-target-editor-host'; command = 'cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked' },
     [pscustomobject]@{ gate_id = 'zircon-app-target-client-shader-pbr-viewer'; command = 'cargo check -p zircon_app --bin zircon_shader_pbr_viewer --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
     [pscustomobject]@{ gate_id = 'zircon-runtime-target-client'; command = 'cargo check -p zircon_runtime --no-default-features --features target-client --locked' },
     [pscustomobject]@{ gate_id = 'zircon-runtime-target-editor-host'; command = 'cargo check -p zircon_runtime --no-default-features --features target-editor-host --locked' },

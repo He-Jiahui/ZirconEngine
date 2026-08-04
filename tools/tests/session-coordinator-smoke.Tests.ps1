@@ -240,6 +240,22 @@ function Test-StrictJsonParser {
             Assert-True ($rootFailure.Exception.Message -match "root must be an object") `
                 "Strict JSON parser did not identify the non-object root: $($rootFailure.Exception.Message)"
 
+            foreach ($nonObjectRoot in @('0', 'true', 'null', '"text"', '[1]')) {
+                $scalarRootFailure = $null
+                try {
+                    ConvertFrom-StrictCoordinatorJson `
+                        -Command "session register" `
+                        -RawOutput @($nonObjectRoot) | Out-Null
+                }
+                catch {
+                    $scalarRootFailure = $_
+                }
+                Assert-True ($null -ne $scalarRootFailure) `
+                    "Strict JSON parser accepted non-object root: $nonObjectRoot"
+                Assert-True ($scalarRootFailure.Exception.Message -match "root must be an object") `
+                    "Strict JSON parser did not identify non-object root ${nonObjectRoot}: $($scalarRootFailure.Exception.Message)"
+            }
+
             $schemaFailure = $null
             try {
                 Require-CoordinatorResponseField `
@@ -273,6 +289,8 @@ function Test-ValidatorDryRun {
             . $validator
             $completeCoordinatorTarget = (Get-Command Complete-CoordinatorCargoTarget).ScriptBlock
             $releaseCalls = [System.Collections.Generic.List[object]]::new()
+            $failFinish = $false
+            $failRelease = $false
             function Invoke-SessionCoordinatorJson {
                 param([string]$RepoRoot, [string[]]$Arguments)
 
@@ -280,6 +298,12 @@ function Test-ValidatorDryRun {
                     RepoRoot = $RepoRoot
                     Arguments = @($Arguments)
                 })
+                if ($failFinish -and $Arguments[1] -eq "finish") {
+                    throw "synthetic finish failure"
+                }
+                if ($failRelease -and $Arguments[1] -eq "release") {
+                    throw "synthetic release failure"
+                }
                 return [pscustomobject]@{ status = "ok" }
             }
 
@@ -299,6 +323,76 @@ function Test-ValidatorDryRun {
             Assert-True ($release.RepoRoot -eq $sourceRoot) "Dry-run cleanup used the wrong repository root."
             Assert-True (($release.Arguments -join " ") -eq "cargo release dry-run-job --session-id $sessionId") `
                 "Dry-run cleanup did not release its coordinator job: $($release.Arguments -join " ")"
+
+            $releaseCalls.Clear()
+            $failFinish = $true
+            $startedTarget = [pscustomobject]@{
+                JobId = "started-job"
+                OwnerId = $sessionId
+                DryRun = $false
+            }
+            $finishFailure = $null
+            try {
+                & $completeCoordinatorTarget `
+                    -RepoRoot $sourceRoot `
+                    -ResolvedTarget $startedTarget `
+                    -ExitCode 1 `
+                    -Started
+            }
+            catch {
+                $finishFailure = $_
+            }
+
+            Assert-True ($null -ne $finishFailure) "Synthetic finish failure did not propagate."
+            Assert-True ($finishFailure.Exception.Message -match "synthetic finish failure") `
+                "Started cleanup replaced the finish failure: $($finishFailure.Exception.Message)"
+            Assert-True ($releaseCalls.Count -eq 2) `
+                "Started cleanup did not attempt release after finish failed: $($releaseCalls.Count) call(s)"
+            Assert-True (($releaseCalls[0].Arguments -join " ") -eq "cargo finish started-job --exit-code 1 --session-id $sessionId") `
+                "Started cleanup did not finish first: $($releaseCalls[0].Arguments -join " ")"
+            Assert-True (($releaseCalls[1].Arguments -join " ") -eq "cargo release started-job --session-id $sessionId") `
+                "Started cleanup did not release after finish failed: $($releaseCalls[1].Arguments -join " ")"
+
+            $releaseCalls.Clear()
+            $failFinish = $false
+            $failRelease = $true
+            $releaseFailure = $null
+            try {
+                & $completeCoordinatorTarget `
+                    -RepoRoot $sourceRoot `
+                    -ResolvedTarget $startedTarget `
+                    -ExitCode 1 `
+                    -Started
+            }
+            catch {
+                $releaseFailure = $_
+            }
+
+            Assert-True ($releaseCalls.Count -eq 2) `
+                "Started cleanup did not attempt release during release-only failure: $($releaseCalls.Count) call(s)"
+            Assert-True ($null -ne $releaseFailure) "Release-only cleanup failure did not propagate."
+            Assert-True ($releaseFailure.Exception.Message -match "synthetic release failure") `
+                "Release-only cleanup propagated the wrong failure: $($releaseFailure.Exception.Message)"
+
+            $releaseCalls.Clear()
+            $failFinish = $true
+            $dualFailure = $null
+            try {
+                & $completeCoordinatorTarget `
+                    -RepoRoot $sourceRoot `
+                    -ResolvedTarget $startedTarget `
+                    -ExitCode 1 `
+                    -Started
+            }
+            catch {
+                $dualFailure = $_
+            }
+
+            Assert-True ($releaseCalls.Count -eq 2) `
+                "Started cleanup did not attempt release during dual failure: $($releaseCalls.Count) call(s)"
+            Assert-True ($null -ne $dualFailure) "Dual cleanup failure did not propagate the finish failure."
+            Assert-True ($dualFailure.Exception.Message -match "synthetic finish failure") `
+                "Release failure replaced the original finish failure: $($dualFailure.Exception.Message)"
         }
         Write-Host "PASS: validator dry-run coordinator release contract"
     }

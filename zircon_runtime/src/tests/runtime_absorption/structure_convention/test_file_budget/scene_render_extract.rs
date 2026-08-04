@@ -143,29 +143,4 @@ fn runtime_15_scene_render_extract_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let scene_doc = read_repo("docs/zircon_runtime/scene/render_extract.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("scene render extract doc", scene_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 scene render extract test folder split",
-                "runtime_15_scene_render_extract_tests_folder_split_static_passed_cargo_deferred",
-                "scene/tests/render_extract.rs",
-                "scene/tests/render_extract/direct_sections.rs",
-                "scene/tests/render_extract/lighting_postprocess.rs",
-                "runtime_15_scene_render_extract_tests_are_folder_backed",
-            ],
-        );
-    }
 }

@@ -9,8 +9,8 @@ use crate::ui::layout::{
 use crate::ui::surface::{
     build_arranged_tree,
     render::{
-        extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
         UiSurfaceRenderCacheStats,
+        extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
     },
 };
 use zircon_runtime_interface::ui::{
@@ -403,6 +403,9 @@ impl UiSurface {
             .nodes
             .get_mut(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
+        if dirty.text && !node.dirty.text {
+            node.layout_cache.advance_text_layout_revision();
+        }
         merge_dirty_flags_into(&mut node.dirty, dirty);
         Ok(())
     }

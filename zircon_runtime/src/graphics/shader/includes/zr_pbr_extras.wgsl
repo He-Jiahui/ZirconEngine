@@ -139,12 +139,25 @@ fn zr_pbr_advanced_environment_normalized(
     if (all(coat_normal == vec3<f32>(0.0)) || all(normalized_view_dir == vec3<f32>(0.0))) {
         return vec3<f32>(0.0);
     }
-    let reflected = zr_environment_reflection_color(
-        world_position,
-        coat_normal,
-        normalized_view_dir,
-        surface.clearcoat_roughness,
-    );
+    let clamped_roughness = clamp(surface.clearcoat_roughness, 0.0, 1.0);
+    let planar = zr_environment_planar_reflection(world_position, clamped_roughness);
+    var reflected = vec3<f32>(0.0);
+    if (planar.a > 0.0) {
+        reflected = planar.rgb;
+    } else {
+        let has_global_environment = zr_environment_is_enabled()
+            && scene.environment_params.y > 0.0;
+        reflected = zr_environment_reflection_color_after_planar(
+            world_position,
+            coat_normal,
+            normalized_view_dir,
+            clamped_roughness,
+            has_global_environment,
+        );
+    }
+    if (all(reflected == vec3<f32>(0.0))) {
+        return vec3<f32>(0.0);
+    }
     let no_v = max(dot(coat_normal, normalized_view_dir), 0.0);
     return reflected
         * zr_environment_env_brdf_lut(vec3<f32>(0.04), surface.clearcoat_roughness, no_v)

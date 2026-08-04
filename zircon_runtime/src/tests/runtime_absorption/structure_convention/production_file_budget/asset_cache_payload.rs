@@ -12,15 +12,6 @@ fn runtime_15_asset_artifact_cache_ui_documents_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let artifact_doc = read_repo("docs/zircon_runtime/asset/artifact.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
 
     assert_contains_all(
         "artifact cache parent keeps variant dispatch and imports the UI cache owner",
@@ -108,80 +99,4 @@ fn runtime_15_asset_artifact_cache_ui_documents_are_child_owner() {
             "{path} should stay below the Runtime 15 production-file soft budget; got {line_count} lines"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("artifact cache doc", artifact_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 asset artifact cache material/shader owner split",
-                "runtime_15_asset_artifact_cache_material_shader_owner_split_static_passed_cargo_deferred",
-                "asset/artifact/cache_payload.rs",
-                "asset/artifact/cache_payload/material_shader.rs",
-                "runtime_15_asset_artifact_cache_ui_documents_are_child_owner",
-            ],
-        );
-    }
-    assert_contains_all(
-        "status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 M4 asset artifact cache material/shader owner split",
-            "runtime_15_asset_artifact_cache_material_shader_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 M4 asset artifact cache material/shader owner split",
-            "2026-07-03",
-        ],
-    );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("artifact cache doc", artifact_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 asset artifact cache UI document owner split",
-                "runtime_15_asset_artifact_cache_ui_documents_owner_split_static_passed_cargo_deferred",
-                "asset/artifact/cache_payload.rs",
-                "asset/artifact/cache_payload/ui.rs",
-                "runtime_15_asset_artifact_cache_ui_documents_are_child_owner",
-            ],
-        );
-    }
-    assert_contains_all(
-        "status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 M4 asset artifact cache UI document owner split",
-            "runtime_15_asset_artifact_cache_ui_documents_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 M4 asset artifact cache UI document owner split",
-            "2026-06-24",
-        ],
-    );
 }

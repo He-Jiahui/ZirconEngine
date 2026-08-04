@@ -6,7 +6,7 @@ use wgpu::util::DeviceExt;
 use crate::core::framework::render::RenderCapabilitySummary;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
-use crate::rhi_wgpu::gpu_readback_queue::{GpuReadbackQueue, ReadbackError};
+use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
 
 use super::{
     IndirectCompactionBatchRange, IndirectCompactionPlan, IndirectDrawBatch, IndirectDrawBatcher,
@@ -57,6 +57,8 @@ pub(crate) struct MeshIndirectDrawExecution {
     batches: Vec<IndirectDrawBatch>,
     compaction_plan: IndirectCompactionPlan,
     compaction_resources: MeshIndirectCompactionResources,
+    multi_draw_indirect_supported: bool,
+    indirect_count_supported: bool,
     visible_remap_scene_bind_group: Option<wgpu::BindGroup>,
     compaction_ready_for_replay: Cell<bool>,
     args_count: u32,
@@ -126,6 +128,8 @@ impl MeshIndirectDrawExecution {
             batches: batcher.batches().to_vec(),
             compaction_plan,
             compaction_resources,
+            multi_draw_indirect_supported: capabilities.supports_multi_draw_indirect,
+            indirect_count_supported: capabilities.gpu_driven_indirect_count_supported(),
             visible_remap_scene_bind_group: None,
             compaction_ready_for_replay: Cell::new(false),
             args_count,
@@ -170,6 +174,14 @@ impl MeshIndirectDrawExecution {
 
     pub(crate) fn compaction_ready_for_replay(&self) -> bool {
         self.compaction_ready_for_replay.get()
+    }
+
+    pub(crate) const fn indirect_count_supported(&self) -> bool {
+        self.indirect_count_supported
+    }
+
+    pub(crate) const fn multi_draw_indirect_supported(&self) -> bool {
+        self.multi_draw_indirect_supported
     }
 
     pub(crate) const fn args_count(&self) -> u32 {
@@ -375,6 +387,7 @@ pub(crate) struct MeshPassIndirectDrawExecutions {
     alpha_mask: Option<MeshIndirectDrawExecution>,
     advanced_pbr_opaque: Option<MeshIndirectDrawExecution>,
     transparent: Option<MeshIndirectDrawExecution>,
+    half_resolution_transparent: Option<MeshIndirectDrawExecution>,
     velocity: Option<MeshIndirectDrawExecution>,
     taa_reactive_mask: Option<MeshIndirectDrawExecution>,
 }
@@ -422,6 +435,12 @@ impl MeshPassIndirectDrawExecutions {
                 command_buffers.transparent().commands(),
                 capabilities,
             ),
+            half_resolution_transparent: MeshIndirectDrawExecution::build(
+                device,
+                "zircon-halfres-transparent-indirect-args",
+                command_buffers.half_resolution_transparent().commands(),
+                capabilities,
+            ),
             velocity: MeshIndirectDrawExecution::build(
                 device,
                 "zircon-velocity-indirect-args",
@@ -459,6 +478,10 @@ impl MeshPassIndirectDrawExecutions {
 
     pub(crate) fn transparent(&self) -> Option<&MeshIndirectDrawExecution> {
         self.transparent.as_ref()
+    }
+
+    pub(crate) fn half_resolution_transparent(&self) -> Option<&MeshIndirectDrawExecution> {
+        self.half_resolution_transparent.as_ref()
     }
 
     pub(crate) fn velocity(&self) -> Option<&MeshIndirectDrawExecution> {
@@ -522,7 +545,7 @@ impl MeshPassIndirectDrawExecutions {
         ]
     }
 
-    fn executions_mut(&mut self) -> [Option<&mut MeshIndirectDrawExecution>; 8] {
+    fn executions_mut(&mut self) -> [Option<&mut MeshIndirectDrawExecution>; 9] {
         [
             self.depth_prepass.as_mut(),
             self.shadow.as_mut(),
@@ -530,6 +553,7 @@ impl MeshPassIndirectDrawExecutions {
             self.alpha_mask.as_mut(),
             self.advanced_pbr_opaque.as_mut(),
             self.transparent.as_mut(),
+            self.half_resolution_transparent.as_mut(),
             self.velocity.as_mut(),
             self.taa_reactive_mask.as_mut(),
         ]
@@ -538,7 +562,7 @@ impl MeshPassIndirectDrawExecutions {
 
 #[cfg(test)]
 mod tests {
-    use super::{MeshIndirectArgsSnapshot, INDEXED_INDIRECT_ARGS_STRIDE_BYTES};
+    use super::{INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectArgsSnapshot};
     use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;

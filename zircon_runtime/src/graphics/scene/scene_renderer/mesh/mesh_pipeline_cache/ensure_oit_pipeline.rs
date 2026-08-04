@@ -2,8 +2,8 @@ use crate::graphics::scene::resources::ResourceStreamer;
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::create_oit_mesh_pipeline;
-use super::MeshPipelineCache;
 use super::shader_source::mesh_pipeline_shader_source_for_geometry_descriptor;
+use super::{MeshPipelineCache, PipelineCreationTarget};
 
 impl MeshPipelineCache {
     pub(crate) fn ensure_oit_pipeline_for_base_variant<'a>(
@@ -63,7 +63,13 @@ impl MeshPipelineCache {
             );
             self.oit_mesh_variant_pipelines.insert(variant_id, pipeline);
         }
-        self.track_pipeline_creation_error_scope(&shader_variant_key, error_scope);
+        self.track_pipeline_creation_error_scope(
+            &shader_variant_key,
+            PipelineCreationTarget::Oit,
+            variant_id,
+            shader_key,
+            error_scope,
+        );
         self.oit_mesh_variant_pipelines.get(&variant_id)
     }
 

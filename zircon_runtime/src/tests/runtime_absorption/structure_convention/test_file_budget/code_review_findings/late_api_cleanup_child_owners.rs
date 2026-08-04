@@ -12,12 +12,8 @@ mod root_inventory;
 mod root_paths;
 #[path = "late_api_cleanup_owners/root_sources.rs"]
 mod root_sources;
-#[path = "late_api_cleanup_owners/root_statuses.rs"]
-mod root_statuses;
 #[path = "late_api_cleanup_owners/route_ownership.rs"]
 mod route_ownership;
-#[path = "late_api_cleanup_owners/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;

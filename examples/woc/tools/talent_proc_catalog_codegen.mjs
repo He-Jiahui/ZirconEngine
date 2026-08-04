@@ -143,6 +143,7 @@ function normalizeResponse(procId, response, index) {
     has_cost_pct: response.costPct !== undefined,
     cost_pct: response.costPct ?? 0,
     reset_cooldown: response.seconds === 'reset',
+    cooldown_seconds: typeof response.seconds === 'number' ? response.seconds : 0,
     below_fraction: response.belowFrac ?? 0,
     window: response.window ?? 0,
     name: response.name ?? '',
@@ -196,6 +197,7 @@ function renderZr(document) {
     'pub responseHasCostPct(index: int, responseIndex: int): bool {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => row.response.has_cost_pct ? 'true' : 'false', 'false') + '\n}\n\n' +
     'pub responseCostPct(index: int, responseIndex: int): float {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => floatLiteral(row.response.cost_pct), '0.0') + '\n}\n\n' +
     'pub responseResetCooldown(index: int, responseIndex: int): bool {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => row.response.reset_cooldown ? 'true' : 'false', 'false') + '\n}\n\n' +
+    'pub responseCooldownSeconds(index: int, responseIndex: int): float {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => floatLiteral(row.response.cooldown_seconds), '0.0') + '\n}\n\n' +
     'pub responseBelowFraction(index: int, responseIndex: int): float {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => floatLiteral(row.response.below_fraction), '0.0') + '\n}\n\n' +
     'pub responseWindow(index: int, responseIndex: int): float {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => floatLiteral(row.response.window), '0.0') + '\n}\n\n' +
     'pub responseName(index: int, responseIndex: int): string {\n' + cases(responseRows, (row) => `index == ${row.entry.index} && responseIndex == ${row.responseIndex}`, (row) => quoted(row.response.name), '""') + '\n}\n\n' +

@@ -42,9 +42,6 @@ fn runtime_15_offscreen_target_construct_uses_owner_name() {
         manifest_root,
         "docs/zircon_runtime/graphics/render-product-submit.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_offscreen_target_new.exists(),
@@ -92,9 +89,6 @@ fn runtime_15_offscreen_target_construct_uses_owner_name() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("graphics render-product doc", graphics_doc.as_str()),
-        ("status row data", status_rows.as_str()),
-        ("status slice", status_slice.as_str()),
-        ("date slice", date_slice.as_str()),
     ] {
         assert_contains_all(
             label,

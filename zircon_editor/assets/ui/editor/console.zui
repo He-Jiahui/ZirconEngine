@@ -31,8 +31,8 @@ layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed"
 [nodes.console_header]
 component = "HorizontalBox"
 control_id = "ConsoleHeader"
-props = { surface_variant = "panel", radius = 4.0, border_width = 1.0, font_weight = 600, overflow = "elide" }
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "panel", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.console_header_body_gap]
 component = "Space"
@@ -64,7 +64,7 @@ children = [{ node = "console_text_left_space" }, { node = "text_panel" }, { nod
 [nodes.console_body]
 component = "VerticalBox"
 control_id = "ConsoleBodySection"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "console_body_top_space" }, { node = "console_text_row" }]
 

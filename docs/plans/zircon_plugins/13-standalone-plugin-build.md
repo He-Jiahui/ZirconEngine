@@ -2894,4 +2894,4 @@ Runtime04 的 fresh focused VG integration gate 已证明根级 support fixture 
 `b8a1305560e4404f9f0fd5b459774d74` 尚未进入 VG test binary，当前由 Frameworks05 Text consumer
 与 Plugins05 `ControlPropRef` 的既有 failure 阻断，因此状态为 `实现完成 / 验收阻塞`，不得提前
 回传 fixed。首次 acquire 同时暴露 Coordinator01 的并发治理问题，当前为 `open / 待修复`：
-[failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md](../zircon_tooling/session_coordinator/01/failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md)（open / 待 Coordinator01 修复）；不得由 Plugins13 手工清理其他 Session 的 target。
+- fixed 已修复：[live-ephemeral-target-misclassified-unmanaged](13/fixed-2026-08-04-live-ephemeral-target-misclassified-unmanaged.md)

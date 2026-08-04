@@ -10,7 +10,6 @@ use zircon_runtime_interface::ui::surface::{
     UiTextWritingMode,
 };
 
-use crate::text::text_style;
 use super::super::rich_text::UiParsedText;
 use super::candidate_line::CandidateLine;
 use super::ellipsis::{
@@ -20,6 +19,7 @@ use super::ellipsis::{
 use super::paragraph_layout;
 use super::rich_inline::{append_soft_hyphen_break_suffix, resolved_runs_for_line};
 use super::visual_order::apply_visual_order_with_advances;
+use crate::text::text_style;
 
 pub(super) fn layout_inline_vertical_text_with_provider(
     parsed: &UiParsedText,
@@ -68,7 +68,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
         };
         let mut column = CandidateLine {
             text: parsed
-                .text
+                .text()
                 .get(source_range.start..source_range.end)?
                 .to_string(),
             source_range,
@@ -147,9 +147,7 @@ pub(super) fn layout_inline_vertical_text_with_provider(
         }
     }
 
-    let column_constraints = (0..columns.len())
-        .map(|index| paragraph_constraints.for_column(parsed.text(), &columns, index))
-        .collect::<Vec<_>>();
+    let column_constraints = paragraph_constraints.for_candidates(&columns);
 
     let ellipsis_advance =
         measured_grapheme_widths_with_provider(ELLIPSIS, &neutral_style, &mut *vertical_provider)

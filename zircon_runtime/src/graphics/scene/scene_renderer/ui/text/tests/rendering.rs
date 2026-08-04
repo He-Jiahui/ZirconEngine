@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use super::super::font_assets::{effective_text_render_mode, LoadedUiFontAsset};
+use super::super::font_assets::{LoadedUiFontAsset, effective_text_render_mode};
 use super::super::resolved_batches::{
-    resolved_auto_text_render_mode, AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches,
+    AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches, resolved_auto_text_render_mode,
 };
 use super::super::*;
 use super::support::text_batch;

@@ -1,4 +1,4 @@
-use crate::graphics::scene::scene_renderer::core::ViewportAsyncCaptureSubmission;
+use crate::graphics::scene::ViewportAsyncCaptureSubmission;
 
 use super::super::super::viewport_record::ViewportRecord;
 use super::super::frame_submission_context::FrameSubmissionContext;

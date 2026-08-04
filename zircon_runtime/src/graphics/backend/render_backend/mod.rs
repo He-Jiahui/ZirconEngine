@@ -20,8 +20,11 @@ mod viewport_surface;
 #[cfg(test)]
 pub(crate) use config::RenderBackendConfig;
 pub(crate) use gpu_pass_timer::{
-    GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
-    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_TIMESTAMP_REQUIRED_FEATURES,
+    GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
+    GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
+    GpuPipelineStatisticsTimer, GpuTimerFrameResult, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES,
+    GPU_TIMESTAMP_REQUIRED_FEATURES,
 };
 pub(crate) use gpu_readback_queue::{
     GpuReadbackQueue, ReadbackCallback, ReadbackError, ReadbackPollStats, ReadbackTicket,

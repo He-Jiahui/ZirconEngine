@@ -22,15 +22,6 @@ fn review_f5_ui_input_surrounding_text_error_implements_std_error() {
         include_str!("../../../../../../../docs/zircon_runtime/ui/platform_input.md");
     let interface_doc =
         include_str!("../../../../../../../docs/zircon_runtime_interface/ui/mod.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     assert!(
         interface_effect
@@ -47,26 +38,4 @@ fn review_f5_ui_input_surrounding_text_error_implements_std_error() {
             && runtime_error.contains("validation_error: UiInputMethodSurroundingTextError"),
         "runtime UI input error should preserve the typed surrounding-text validation error payload"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 UI input surrounding-text error source",
-        "runtime_15_ui_input_surrounding_text_error_source_static_passed_cargo_deferred",
-        "review_f5_ui_input_surrounding_text_error_implements_std_error",
-        "UiInputMethodSurroundingTextError",
-        "ui_dispatch_error_contracts.rs",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || platform_input.contains(doc_anchor)
-                || interface_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 UI input surrounding-text error source docs/status should record `{doc_anchor}`"
-        );
-    }
 }

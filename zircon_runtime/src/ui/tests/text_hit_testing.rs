@@ -1,8 +1,9 @@
 use crate::text::{layout::measured_grapheme_widths, text_style};
 use crate::ui::text::{hit_test_text_layout, layout_text, measure_text_size};
+use std::sync::Arc;
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
-    surface::{UiResolvedStyle, UiTextAlign, UiTextCaretAffinity, UiTextWrap},
+    surface::{UiResolvedStyle, UiTextAlign, UiTextCaretAffinity, UiTextWrap, UiTextWritingMode},
 };
 
 #[test]
@@ -55,6 +56,72 @@ fn text_hit_test_uses_resolved_tab_advances() {
     assert_eq!(before_tab_midpoint.visual_grapheme_index, 1);
     assert_eq!(after_tab_midpoint.source_offset, "a\t".len());
     assert_eq!(after_tab_midpoint.visual_grapheme_index, 2);
+}
+
+#[test]
+fn text_hit_test_prefers_backend_ligature_cluster_edges() {
+    use crate::{
+        core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation},
+        text::{
+            register_resolved_text_glyph_artifact, ResolvedTextGlyphArtifact,
+            ResolvedTextGlyphArtifactLine,
+        },
+    };
+
+    let _shared_font_database = crate::text::font::shared_font_database_test_serial_guard();
+    let style = fixed_text_style();
+    let mut layout = layout_text("fi", &style, UiFrame::new(10.0, 0.0, 80.0, 20.0), None);
+    let line = layout.lines.first_mut().expect("resolved line");
+    line.glyph_advances = vec![12.0, 18.0];
+    line.measured_width = 30.0;
+    line.frame.width = 30.0;
+    let artifact_line = line.clone();
+    let leading_cluster_glyph = TextGlyph {
+        glyph_id: 77,
+        source_range: 0..1,
+        visual_range: 0..1,
+        advance: 10.0,
+        position: [0.0, 0.0],
+        offset: [0.0, 0.0],
+        font_face: None,
+        font_instance: None,
+        rotation: TextGlyphRotation::None,
+        bidi_level: 0,
+        flags: TextGlyphFlags {
+            cluster_start: true,
+            ..TextGlyphFlags::default()
+        },
+        requires_rasterization: true,
+    };
+    let trailing_cluster_glyph = TextGlyph {
+        glyph_id: 78,
+        source_range: 1..2,
+        visual_range: 1..2,
+        advance: 20.0,
+        flags: TextGlyphFlags::default(),
+        ..leading_cluster_glyph.clone()
+    };
+    layout.rich_text_artifact = Some(register_resolved_text_glyph_artifact(Arc::new(
+        ResolvedTextGlyphArtifact {
+            source_text: Arc::from("fi"),
+            source_text_origin: 0,
+            font_generation: crate::text::font::shared_font_database_generation(),
+            style: UiResolvedStyle::default(),
+            writing_mode: UiTextWritingMode::HorizontalTb,
+            lines: vec![Some(ResolvedTextGlyphArtifactLine {
+                glyphs: vec![leading_cluster_glyph, trailing_cluster_glyph],
+                layout_line: artifact_line,
+            })],
+        },
+    )));
+
+    let leading_half = hit_test_text_layout(&layout, UiPoint::new(22.0, 4.0));
+    let trailing_half = hit_test_text_layout(&layout, UiPoint::new(28.0, 4.0));
+
+    assert_eq!(leading_half.source_offset, 0);
+    assert_eq!(leading_half.affinity, UiTextCaretAffinity::Downstream);
+    assert_eq!(trailing_half.source_offset, 2);
+    assert_eq!(trailing_half.affinity, UiTextCaretAffinity::Upstream);
 }
 
 #[test]

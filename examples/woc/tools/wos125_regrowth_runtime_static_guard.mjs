@@ -38,8 +38,8 @@ requireText(dispatch, /case 'hot':[\s\S]*?const hybridHeal = res\.effects\.some\
 const generator = read("tools", "m4_ability_codegen.mjs");
 const zrGenerator = read("tools", "m4_ability_zr_codegen.mjs");
 if (!/swipe',[\s\S]*?'regrowth'/.test(generator) ||
-    !generator.includes("EXPECTED_ABILITY_COUNT = 93") ||
-    !zrGenerator.includes("document.entries.length === 93")) {
+!generator.includes("EXPECTED_ABILITY_COUNT = 96") ||
+!zrGenerator.includes("document.entries.length === 96")) {
   throw new Error("M4 Regrowth projection scope is missing");
 }
 const entry = JSON.parse(read("contracts", "m4_abilities.json")).entries.find(

@@ -62,9 +62,9 @@ fn sdk_examples_package_contributes_window_importer_and_inspector() {
     );
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| drawer.component_type() == MODEL_IMPORT_SETTINGS_COMPONENT));
+        .any(|customization| customization.target_type() == MODEL_IMPORT_SETTINGS_COMPONENT));
     assert!(registration
         .extensions
         .asset_type_contributions()

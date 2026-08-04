@@ -9,7 +9,10 @@ use crate::core::{math::UVec2, resource::ResourceId};
 use crate::graphics::CompiledRenderPipeline;
 #[cfg(test)]
 use crate::graphics::backend::read_texture_rgba;
-use crate::graphics::backend::{DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer, ViewportSurface};
+use crate::graphics::backend::{
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer,
+    GpuPipelineStatisticsTimer, ViewportSurface,
+};
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
@@ -265,6 +268,15 @@ impl SceneRenderer {
                 .as_mut()
                 .and_then(|timer| timer.try_collect(&self.backend.device, readback_queue))
         };
+        self.last_gpu_pipeline_statistics_frame_result = {
+            let (gpu_pipeline_statistics_timer, readback_queue) = (
+                &mut self.gpu_pipeline_statistics_timer,
+                &mut self.core.readback_queue,
+            );
+            gpu_pipeline_statistics_timer
+                .as_mut()
+                .and_then(|timer| timer.try_collect(&self.backend.device, readback_queue))
+        };
         let frame_generation = self.generation.wrapping_add(1);
 
         self.streamer.ensure_scene_resources(
@@ -323,7 +335,11 @@ impl SceneRenderer {
             let target = self.target.as_mut().expect("offscreen target");
             let parallel_record_min_passes_per_bucket = self.parallel_record_min_passes_per_bucket;
             let hzb_indirect_args_readback_enabled = self.hzb_indirect_args_readback_enabled;
-            let (core, gpu_pass_timer) = (&mut self.core, self.gpu_pass_timer.as_mut());
+            let (core, gpu_pass_timer, gpu_pipeline_statistics_timer) = (
+                &mut self.core,
+                self.gpu_pass_timer.as_mut(),
+                self.gpu_pipeline_statistics_timer.as_mut(),
+            );
             core.render_compiled_scene(
                 &self.backend.device,
                 &self.backend.queue,
@@ -338,6 +354,7 @@ impl SceneRenderer {
                 history_available,
                 frame_generation,
                 gpu_pass_timer,
+                gpu_pipeline_statistics_timer,
                 task_pool,
                 parallel_record_min_passes_per_bucket,
                 hzb_indirect_args_readback_enabled,
@@ -435,6 +452,12 @@ impl SceneRenderer {
         &self,
     ) -> Option<&crate::graphics::backend::GpuTimerFrameResult> {
         self.last_gpu_timer_frame_result.as_ref()
+    }
+
+    pub(crate) fn last_gpu_pipeline_statistics_frame_result(
+        &self,
+    ) -> Option<&crate::graphics::backend::GpuPipelineStatisticsFrameResult> {
+        self.last_gpu_pipeline_statistics_frame_result.as_ref()
     }
 
     pub(crate) fn last_readback_poll_stats(&self) -> crate::graphics::backend::ReadbackPollStats {
@@ -717,9 +740,18 @@ impl SceneRenderer {
                 );
                 self.last_gpu_timer_frame_result = None;
             }
+            if self.gpu_pipeline_statistics_timer.is_none() {
+                self.gpu_pipeline_statistics_timer = GpuPipelineStatisticsTimer::try_new(
+                    &self.backend.device,
+                    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+                );
+                self.last_gpu_pipeline_statistics_frame_result = None;
+            }
         } else {
             self.gpu_pass_timer = None;
+            self.gpu_pipeline_statistics_timer = None;
             self.last_gpu_timer_frame_result = None;
+            self.last_gpu_pipeline_statistics_frame_result = None;
         }
     }
 

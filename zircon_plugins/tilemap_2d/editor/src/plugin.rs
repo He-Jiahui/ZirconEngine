@@ -3,8 +3,9 @@ use zircon_editor::core::asset::{
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, EditorMenuItemDescriptor,
+    AssetImporterDescriptor, EditorMenuItemDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
@@ -158,7 +159,7 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
                     .with_required_capabilities([CAPABILITY]),
                 ),
         ],
-        component_drawers: vec![ComponentDrawerDescriptor::new(
+        inspector_customizations: vec![InspectorCustomizationDescriptor::new(
             zircon_plugin_tilemap_2d_runtime::TILEMAP_COMPONENT_TYPE,
             "plugins://tilemap_2d/editor/tilemap_component.zui",
             "tilemap_2d.editor.component",

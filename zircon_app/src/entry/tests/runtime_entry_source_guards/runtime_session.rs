@@ -37,15 +37,17 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             "parse_runtime_session_startup_args",
             "if runtime_session_args.help_requested",
             "return Ok(());",
+            "let project_root =",
+            "resolve_runtime_project_root(runtime_session_args.project_root.as_deref())?",
             "LoadedRuntime::load_default()",
             "EventLoop::new().map_err",
             "event_loop.create_proxy()",
             "RuntimeSession::create_with_profile_and_project",
             "runtime_session_args.profile.as_bytes()",
-            "runtime_session_args.project_root.as_deref()",
+            "project_root.as_deref()",
             "let session_teardown_failure = session.teardown_failure_state();",
         ],
-        "runtime runner should parse logging first, allow help before dynamic loading, create the event loop wake proxy, then pass the selected session profile and project root to the dynamic runtime",
+        "runtime runner should parse logging first, resolve the selected project once before dynamic loading, create the event loop wake proxy, then pass the selected session profile and physical project root to the dynamic runtime",
     );
     let runtime_load_start = runtime_runner_source
         .find("let runtime = LoadedRuntime::load_default()")
@@ -66,7 +68,7 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
                 == [
                     "runtime_library_startup_error(",
                     "runtime_session_args.profile,",
-                    "runtime_session_args.project_root.as_deref(),",
+                    "project_root.as_deref(),",
                     "error,",
                     ")",
                 ]
@@ -75,10 +77,13 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
     );
     assert!(
         runtime_runner_source.contains("fn runtime_library_startup_error(")
+            && runtime_runner_source.contains("fn resolve_runtime_project_root(")
+            && runtime_runner_source
+                .contains("ProjectPaths::resolve_existing_path(requested_root)")
             && runtime_runner_source.contains("\"runtime_library\"")
             && runtime_runner_source
                 .contains("runtime_session_startup_request(profile, project_root)"),
-        "runtime library startup diagnostics should retain the selected request and a stable component"
+        "runtime startup should resolve one physical project root before dynamic loading and retain the selected request in a stable diagnostic component"
     );
     assert!(
         runtime_session_source.contains("profile: ZrByteSlice::from_static(profile)"),

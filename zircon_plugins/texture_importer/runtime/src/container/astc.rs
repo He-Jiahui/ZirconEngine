@@ -41,6 +41,7 @@ pub(super) fn parse(
 
     Ok(TextureContainerInfo {
         format: format!("astc/{block_x}x{block_y}x{block_z}"),
+        upload_bytes: None,
         width,
         height,
         dimension,

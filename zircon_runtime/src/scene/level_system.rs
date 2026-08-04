@@ -12,6 +12,7 @@ use crate::animation::{
 #[cfg(feature = "animation")]
 use crate::asset::{AssetId, ProjectAssetManager};
 use crate::core::framework::animation::AnimationPoseOutput;
+use crate::core::framework::render::{HighlightSet, ViewportHighlightSet, ViewportHighlightStore};
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
@@ -64,6 +65,7 @@ pub struct LevelSystem {
     animation_state: Arc<Mutex<AnimationRuntimeState>>,
     script_state: Arc<Mutex<ScriptRuntimeState>>,
     frame_state: Arc<Mutex<Arc<LevelFrameStateSnapshot>>>,
+    viewport_highlights: Arc<Mutex<ViewportHighlightStore>>,
     metadata: Arc<Mutex<LevelMetadata>>,
     lifecycle: Arc<Mutex<LevelLifecycleState>>,
     subsystems: Arc<Mutex<Vec<String>>>,
@@ -102,6 +104,7 @@ impl LevelSystem {
             frame_state: Arc::new(Mutex::new(Arc::new(LevelFrameStateSnapshot::new(
                 world_generation,
             )))),
+            viewport_highlights: Arc::new(Mutex::new(ViewportHighlightStore::default())),
             metadata: Arc::new(Mutex::new(metadata)),
             lifecycle: Arc::new(Mutex::new(LevelLifecycleState::Loaded)),
             subsystems: Arc::new(Mutex::new(Vec::new())),
@@ -114,6 +117,23 @@ impl LevelSystem {
 
     pub fn world_handle(&self) -> WorldHandle {
         self.handle
+    }
+
+    /// Replaces the editor overlay input retained for one viewport when its
+    /// generation is at least as recent as the currently retained value.
+    pub fn submit_highlight_set(
+        &self,
+        viewport: u64,
+        generation: u64,
+        set: HighlightSet,
+    ) -> bool {
+        lock_poison_recovered(&self.viewport_highlights).submit(viewport, generation, set)
+    }
+
+    pub fn viewport_highlight_set(&self, viewport: u64) -> Option<ViewportHighlightSet> {
+        lock_poison_recovered(&self.viewport_highlights)
+            .get(viewport)
+            .cloned()
     }
 
     /// Returns the current World generation for work that will publish a sealed frame payload.

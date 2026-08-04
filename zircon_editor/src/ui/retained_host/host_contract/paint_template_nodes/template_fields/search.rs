@@ -1,9 +1,13 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::workbench_field_metrics;
+use crate::ui::retained_host::host_contract::search_field_clear_action_frame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 mod glyph;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use glyph::push_search_field_glyph;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use glyph::{
+    push_search_field_clear_glyph, push_search_field_glyph,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_search_field(
     node: &TemplatePaneNodeData,
@@ -51,6 +55,31 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
     label: &str,
 ) -> bool {
     is_search_field(node) && node.value_text.trim().is_empty() && !label.trim().is_empty()
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_has_clear_action(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    is_search_field(node) && node.has_clear_action && !node.value_text.trim().is_empty()
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_clear_action_rect(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+) -> Option<FrameRect> {
+    if !search_field_has_clear_action(node) {
+        return None;
+    }
+
+    let action =
+        search_field_clear_action_frame(UiFrame::new(rect.x, rect.y, rect.width, rect.height))?;
+    let action = FrameRect {
+        x: action.x,
+        y: action.y,
+        width: action.width,
+        height: action.height,
+    };
+    super::geometry::frame_is_within(&action, rect).then_some(action)
 }
 
 fn search_identity_text(value: &str) -> bool {

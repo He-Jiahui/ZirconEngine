@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::metrics::{chip_border_width, chip_radius};
 use super::style::{chip_border, chip_surface};
@@ -12,6 +13,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     order: i32,
     opacity: f32,
 ) {
+    if intersect(rect, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),

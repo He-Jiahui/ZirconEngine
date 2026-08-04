@@ -5,26 +5,26 @@ version = 2
 display_name = "Project Overview"
 
 [imports]
-styles = ["res://ui/theme/editor_base.zui"]
+styles = ["res://ui/theme/editor_base.zui", "res://ui/editor/theme/editor_tokens.zui"]
 
 [root]
 node = "project_overview_root"
 
 [nodes.top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
 
 [nodes.bottom_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
 
 [nodes.left_space]
 component = "Space"
-layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.right_space]
 component = "Space"
-layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.project_overview_root]
 component = "VerticalBox"
@@ -42,25 +42,25 @@ children = [{ node = "left_space" }, { node = "outer_panel" }, { node = "right_s
 component = "VerticalBox"
 control_id = "ProjectOverviewOuterPanel"
 classes = ["panel"]
-props = { surface_variant = "panel", radius = 4.0, border_width = 1.0 }
+props = { surface_variant = "panel", radius = "$editor.control.radius.panel", border_width = "$editor.control.border_width" }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "outer_top_space" }, { node = "content_inset_row" }, { node = "outer_bottom_space" }]
 
 [nodes.outer_top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
 
 [nodes.outer_bottom_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
 
 [nodes.content_inset_left]
 component = "Space"
-layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.content_inset_right]
 component = "Space"
-layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.content_inset_row]
 component = "HorizontalBox"
@@ -70,13 +70,13 @@ children = [{ node = "content_inset_left" }, { node = "content_stack" }, { node 
 [nodes.header_title_row]
 component = "HorizontalBox"
 control_id = "ProjectOverviewHeaderTitleRow"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "header_title_text" }]
 
 [nodes.header_title_text]
 component = "Label"
 control_id = "ProjectOverviewTitleText"
-props = { text = "Project", font_weight = 600, overflow = "elide" }
+props = { text = "Project", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.header_path_row]
@@ -93,27 +93,27 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.header_details_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.large", preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
 
 [nodes.details_panel]
 component = "VerticalBox"
 control_id = "ProjectOverviewDetailsPanel"
 classes = ["inset"]
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0 }
-layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 130.0, preferred = 130.0, max = 130.0, stretch = "Fixed" } }
 children = [{ node = "details_top_space" }, { node = "details_title" }, { node = "details_default_scene_row" }, { node = "details_assets_root_row" }, { node = "details_library_row" }, { node = "details_bottom_space" }]
 
 [nodes.details_top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.details_bottom_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.details_title]
 component = "Label"
-props = { text = "Project Settings", text_tone = "muted", font_weight = 600, overflow = "elide" }
+props = { text = "Project Settings", text_tone = "muted", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.details_default_scene_label]
@@ -124,12 +124,12 @@ layout = { width = { min = 0.0, preferred = 92.0, max = 92.0, stretch = "Fixed" 
 [nodes.details_default_scene_value]
 component = "Overlay"
 control_id = "ProjectOverviewDefaultSceneValue"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.details_default_scene_row]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "details_default_scene_label" }, { node = "details_default_scene_value" }]
 
 [nodes.details_assets_root_label]
@@ -140,12 +140,12 @@ layout = { width = { min = 0.0, preferred = 92.0, max = 92.0, stretch = "Fixed" 
 [nodes.details_assets_root_value]
 component = "Overlay"
 control_id = "ProjectOverviewAssetsRootValue"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.details_assets_root_row]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "details_assets_root_label" }, { node = "details_assets_root_value" }]
 
 [nodes.details_library_label]
@@ -156,37 +156,37 @@ layout = { width = { min = 0.0, preferred = 92.0, max = 92.0, stretch = "Fixed" 
 [nodes.details_library_value]
 component = "Overlay"
 control_id = "ProjectOverviewLibraryValue"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.details_library_row]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "details_library_label" }, { node = "details_library_value" }]
 
 [nodes.details_catalog_gap]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.medium", preferred = "$editor.density.gap.medium", max = "$editor.density.gap.medium", stretch = "Fixed" } }
 
 [nodes.catalog_panel]
 component = "VerticalBox"
 control_id = "ProjectOverviewCatalogPanel"
 classes = ["inset"]
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0 }
-layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 126.0, preferred = 126.0, max = 126.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 126.0, preferred = 126.0, max = 126.0, stretch = "Fixed" } }
 children = [{ node = "catalog_top_space" }, { node = "catalog_label" }, { node = "catalog_summary_value" }, { node = "catalog_open_assets_button" }, { node = "catalog_open_browser_button" }, { node = "catalog_bottom_space" }]
 
 [nodes.catalog_top_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.catalog_bottom_space]
 component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
 
 [nodes.catalog_label]
 component = "Label"
-props = { text = "Content", text_tone = "muted", font_weight = 600, overflow = "elide" }
+props = { text = "Content", text_tone = "muted", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
 [nodes.catalog_summary_value]
@@ -200,14 +200,14 @@ component = "Button"
 control_id = "OpenAssetsView"
 classes = ["primary"]
 props = { label = "Open Assets", dispatch_kind = "surface", action_id = "workbench.view.open.editor.assets", button_variant = "primary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.catalog_open_browser_button]
 component = "Button"
 control_id = "OpenAssetBrowser"
 classes = ["secondary"]
 props = { label = "Asset Browser", dispatch_kind = "asset", button_variant = "secondary" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.bottom_fill]
 component = "Space"

@@ -4,6 +4,9 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::{channel, sync_channel, Receiver, SyncSender, TryRecvError, TrySendError};
 use std::thread::JoinHandle;
 
+#[cfg(test)]
+use std::sync::{mpsc::Sender, Arc, Mutex};
+
 type PipelineCompileJob<R> = Box<dyn FnOnce() -> R + Send + 'static>;
 
 struct PipelineCompileRequest<K, R> {
@@ -56,6 +59,8 @@ pub(crate) struct PipelineAsyncCompiler<K, R> {
     worker: Option<JoinHandle<()>>,
     #[cfg(test)]
     target_sync_wait_observer: Option<SyncSender<()>>,
+    #[cfg(test)]
+    completion_observer: Arc<Mutex<Option<Sender<()>>>>,
 }
 
 impl<K, R> PipelineAsyncCompiler<K, R>
@@ -65,8 +70,13 @@ where
 {
     pub(crate) fn new(worker_name: &str, max_in_flight: usize) -> std::io::Result<Self> {
         let max_in_flight = max_in_flight.max(1);
-        let (request_sender, request_receiver) = sync_channel(max_in_flight);
-        let (completion_sender, completion_receiver) = channel();
+        let (request_sender, request_receiver) =
+            sync_channel::<PipelineCompileRequest<K, R>>(max_in_flight);
+        let (completion_sender, completion_receiver) = channel::<PipelineCompileCompletion<K, R>>();
+        #[cfg(test)]
+        let completion_observer = Arc::new(Mutex::new(None));
+        #[cfg(test)]
+        let worker_completion_observer = Arc::clone(&completion_observer);
         let worker = std::thread::Builder::new()
             .name(format!("zircon-{worker_name}"))
             .spawn(move || {
@@ -82,6 +92,12 @@ where
                     {
                         break;
                     }
+                    #[cfg(test)]
+                    if let Ok(mut observer) = worker_completion_observer.lock() {
+                        if let Some(observer) = observer.take() {
+                            let _ = observer.send(());
+                        }
+                    }
                 }
             })?;
         Ok(Self {
@@ -92,7 +108,15 @@ where
             worker: Some(worker),
             #[cfg(test)]
             target_sync_wait_observer: None,
+            #[cfg(test)]
+            completion_observer,
         })
+    }
+
+    /// Avoids expensive pipeline source preparation when the bounded worker
+    /// cannot accept another background job yet.
+    pub(crate) fn has_available_slot(&self) -> bool {
+        self.pending.len() < self.max_in_flight
     }
 
     pub(crate) fn try_queue(
@@ -214,6 +238,13 @@ where
         self.target_sync_wait_observer = Some(observer);
     }
 
+    #[cfg(test)]
+    pub(crate) fn set_completion_observer(&mut self, observer: Sender<()>) {
+        if let Ok(mut completion_observer) = self.completion_observer.lock() {
+            *completion_observer = Some(observer);
+        }
+    }
+
     pub(crate) fn pending_count(&self) -> usize {
         self.pending.len()
     }
@@ -261,15 +292,18 @@ mod tests {
     #[test]
     fn render_perf_async_pipeline_queue_has_a_hard_in_flight_budget() {
         let mut compiler = PipelineAsyncCompiler::new("bounded-pipeline-test", 1).unwrap();
+        assert!(compiler.has_available_slot());
         assert_eq!(
             compiler.try_queue(1_u32, || 1_u32),
             PipelineAsyncQueueResult::Queued
         );
+        assert!(!compiler.has_available_slot());
         assert_eq!(
             compiler.try_queue(2_u32, || 2_u32),
             PipelineAsyncQueueResult::Full
         );
         compiler.finish_pending(|_, _| {});
+        assert!(compiler.has_available_slot());
     }
 
     #[test]

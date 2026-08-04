@@ -1,11 +1,12 @@
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
 use crate::text::layout::measure_line_width;
 use crate::ui::text::{
-    UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest, UiWidthBucket,
+    UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest, UiTextViewport,
+    UiWidthBucket,
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
-    surface::{UiResolvedStyle, UiTextWrap, UiTextWritingMode},
+    surface::{UiResolvedStyle, UiTextOverflow, UiTextWrap, UiTextWritingMode},
 };
 
 #[test]
@@ -106,6 +107,101 @@ fn text_measure_cache_separates_layouts_by_writing_mode() {
         2,
         "writing mode must also participate in same-frame layout dedup"
     );
+}
+
+#[test]
+fn text_measure_cache_separates_complete_and_viewport_layouts() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 10.0,
+        wrap: UiTextWrap::None,
+        text_overflow: UiTextOverflow::Clip,
+        ..UiResolvedStyle::default()
+    };
+    let text = (0..100)
+        .map(|index| format!("row-{index:03}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let frame = UiFrame::new(0.0, 0.0, 120.0, 1_000.0);
+    let clip = Some(UiFrame::new(0.0, 121.0, 120.0, 8.0));
+    let complete = UiTextLayoutRequest::new(&text, &style, frame, clip);
+    let visible = complete
+        .with_viewport(UiTextViewport::new(121.0, 8.0, 2).expect("finite document viewport"));
+    let mut cache = UiTextMeasureCache::default();
+
+    let complete_layout = cache.resolve_or_shape(&complete);
+    let visible_layout = cache.resolve_or_shape(&visible);
+
+    assert_eq!(complete_layout.layout.measured_height, 10.0);
+    assert_eq!(visible_layout.layout.measured_height, 1_000.0);
+    assert_eq!(visible_layout.layout.lines[0].text, "row-012");
+    assert_eq!(cache.frame_layout_report().miss_count, 2);
+    assert_eq!(cache.frame_layout_dedup_report().miss_count, 2);
+}
+
+#[test]
+fn unwrapped_text_height_measure_shapes_only_line_metrics() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 24.0,
+        wrap: UiTextWrap::None,
+        text_overflow: UiTextOverflow::Clip,
+        ..UiResolvedStyle::default()
+    };
+    let text = (0..1_000)
+        .map(|index| format!("log-row-{index:04}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut cache = UiTextMeasureCache::default();
+    cache.begin_frame();
+    let before = cache.frame_shaped_run_report();
+
+    let height = cache
+        .measure_unwrapped_text_height(&text, &style)
+        .expect("plain unwrapped text supports exact height-only measure");
+    let after = cache.frame_shaped_run_report();
+
+    assert_eq!(height, 24_000.0);
+    assert_eq!(after.miss_count.saturating_sub(before.miss_count), 1);
+    assert_eq!(after.insert_count.saturating_sub(before.insert_count), 1);
+}
+
+#[test]
+fn render_perf_text_huge_log_shapes_visible_only() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 20.0,
+        wrap: UiTextWrap::None,
+        text_overflow: UiTextOverflow::Clip,
+        ..UiResolvedStyle::default()
+    };
+    let text = (0..10_000)
+        .map(|index| format!("log-row-{index:05}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut cache = UiTextMeasureCache::default();
+    cache.begin_frame();
+    let before = cache.frame_shaped_run_report();
+    let document_height = cache
+        .measure_unwrapped_text_height(&text, &style)
+        .expect("fixed-width plain log supports height-only measure");
+    let request = UiTextLayoutRequest::new(
+        &text,
+        &style,
+        UiFrame::new(0.0, 0.0, 240.0, document_height),
+        Some(UiFrame::new(0.0, 241.0, 240.0, 8.0)),
+    )
+    .with_viewport(UiTextViewport::new(241.0, 8.0, 2).expect("finite document viewport"));
+
+    let layout = cache.resolve_or_shape(&request).layout;
+    let after = cache.frame_shaped_run_report();
+
+    assert_eq!(document_height, 200_000.0);
+    assert_eq!(layout.lines.len(), 1);
+    assert_eq!(layout.lines[0].text, "log-row-00012");
+    assert_eq!(layout.measured_height, document_height);
+    assert_eq!(after.miss_count.saturating_sub(before.miss_count), 6);
+    assert_eq!(after.insert_count.saturating_sub(before.insert_count), 6);
 }
 
 #[test]
@@ -335,6 +431,49 @@ fn render_perf_text_parallel_shape_pool_prewarms_ui_measure_cache() {
         rows.len() as u64,
         "prewarming shaped runs does not bypass absolute frame layout entries"
     );
+}
+
+#[test]
+fn text_prewarm_reuses_each_physical_paragraph_during_layout() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 12.0,
+        wrap: UiTextWrap::None,
+        ..UiResolvedStyle::default()
+    };
+    let text = "one\ntwo\nthree";
+    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
+    let mut cache = UiTextMeasureCache::default();
+
+    cache.begin_frame();
+    let _ = cache.measure_text_size("Hg", &style);
+    let prewarm = cache.prewarm_horizontal_paragraphs(
+        &pool,
+        &[UiTextShapePrewarmRequest::horizontal(text, style.clone())],
+        1,
+    );
+    let before_measure = cache.frame_shaped_run_report();
+    let measured = cache.measure_text_size(text, &style);
+    let after_measure = cache.frame_shaped_run_report();
+
+    let _ = cache.resolve_or_shape(&UiTextLayoutRequest::new(
+        text,
+        &style,
+        UiFrame::new(0.0, 0.0, 180.0, 80.0),
+        None,
+    ));
+    let after_layout = cache.frame_shaped_run_report();
+
+    assert_eq!(prewarm.requested_count, 3);
+    assert_eq!(prewarm.cache_miss_count, 3);
+    assert_eq!(prewarm.shaped_count, 3);
+    assert!(measured.height > 0.0);
+    assert_eq!(after_measure.miss_count, before_measure.miss_count);
+    assert_eq!(after_measure.insert_count, before_measure.insert_count);
+    assert!(after_measure.hit_count > before_measure.hit_count);
+    assert_eq!(after_layout.miss_count, after_measure.miss_count);
+    assert_eq!(after_layout.insert_count, after_measure.insert_count);
+    assert!(after_layout.hit_count > after_measure.hit_count);
 }
 
 #[test]

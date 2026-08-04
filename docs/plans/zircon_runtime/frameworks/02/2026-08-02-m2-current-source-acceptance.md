@@ -2,10 +2,10 @@
 
 Plan: docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
 Milestone: M2
-Status: completed
+Status: in_progress
 Files: ["docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md", "docs/plans/zircon_runtime/frameworks/02/2026-08-02-m2-current-source-acceptance.md", "zircon_app/src/plugins/builder.rs", "zircon_app/src/plugins/groups.rs", "zircon_app/src/plugins/groups/resolution.rs", "zircon_app/src/plugins/tests.rs", "zircon_runtime/src/asset/module.rs", "zircon_runtime/src/asset/module/lifecycle.rs", "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/readiness.rs", "zircon_runtime/src/asset/tests/module_lifecycle.rs", "zircon_runtime/src/builtin/runtime_modules/assembly.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/profile_selection.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs/tests.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/registration_reports.rs", "zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs", "zircon_runtime/src/builtin/runtime_modules/core_modules.rs", "zircon_runtime/src/builtin/runtime_modules/ids.rs", "zircon_runtime/src/builtin/runtime_modules/ids/module_id.rs", "zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs", "zircon_runtime/src/builtin/runtime_modules/tests/mod.rs", "zircon_runtime/src/builtin/runtime_modules/tests/profile_modules.rs", "zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs", "zircon_runtime/src/plugin/runtime_profile/defaults.rs", "zircon_runtime/src/plugin/runtime_profile/descriptor.rs"]
 
-> 本记录绑定 2026-08-02 当前源码的 M2 实现清单。`completed` 只表示实现、静态门与二次审查完成；Windows managed Cargo 和原生 milestone acceptance 仍须由 coordinator workflow 取得，不把 testing-ready 冒充 accepted。
+> 本记录绑定 2026-08-02 当前源码的 M2 实现清单。当前 `in_progress` 表示实现、静态门与二次审查已完成，但 Windows managed Cargo 和原生 milestone acceptance 仍须由 coordinator workflow 取得；不得把 testing-ready 冒充 accepted。
 
 ## Scope Delivered
 
@@ -25,7 +25,8 @@ Files: ["docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-uni
 
 ## Review
 
-- 独立二次审查结论：Critical 0 / Important 0 / Minor 0。
+- 独立二次审查首轮结论：Critical 0 / Important 1 / Minor 0；唯一 Important 是本记录曾把 managed-validation-pending 的里程碑写成终态 `completed`。
 - 审查确认 profile 组装只有一个 typed registry/dependency/sorter pipeline，Asset readiness 使用真实 production generation signal，App groups 没有重建模块列表。
-- 后续源码审计发现并修复唯一运行时 `expect`；类型化错误与负向 source guard 落地后最终结论保持 Critical 0 / Important 0 / Minor 0。
+- 后续源码审计发现并修复唯一运行时 `expect`；类型化错误与负向 source guard 落地后源码结论保持 Critical 0 / Important 0 / Minor 0。
+- 状态 finding 已通过把机器可读状态硬切为 `in_progress` 修复；独立复核确认最终 Critical 0 / Important 0 / Minor 0。
 - managed validation 终端前不写 accepted closeout；queued/running 验证由 coordinator wakeup 回传，Session 继续后续可实现工作。

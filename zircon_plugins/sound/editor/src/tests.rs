@@ -39,12 +39,13 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
         .any(|template| template.id() == SOUND_ACOUSTIC_DEBUG_TEMPLATE_ID));
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| {
-            drawer.component_type() == AUDIO_SOURCE_COMPONENT_TYPE
-                && drawer.controller() == SOUND_AUDIO_SOURCE_DRAWER_ID
-                && drawer
+        .any(|customization| {
+            customization.target_type() == AUDIO_SOURCE_COMPONENT_TYPE
+                && customization.surface().controller() == SOUND_AUDIO_SOURCE_DRAWER_ID
+                && customization
+                    .surface()
                     .bindings()
                     .iter()
                     .map(String::as_str)
@@ -52,12 +53,13 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
         }));
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| {
-            drawer.component_type() == AUDIO_LISTENER_COMPONENT_TYPE
-                && drawer.controller() == SOUND_AUDIO_LISTENER_DRAWER_ID
-                && drawer
+        .any(|customization| {
+            customization.target_type() == AUDIO_LISTENER_COMPONENT_TYPE
+                && customization.surface().controller() == SOUND_AUDIO_LISTENER_DRAWER_ID
+                && customization
+                    .surface()
                     .bindings()
                     .iter()
                     .map(String::as_str)
@@ -65,12 +67,13 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
         }));
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| {
-            drawer.component_type() == AUDIO_VOLUME_COMPONENT_TYPE
-                && drawer.controller() == SOUND_AUDIO_VOLUME_DRAWER_ID
-                && drawer
+        .any(|customization| {
+            customization.target_type() == AUDIO_VOLUME_COMPONENT_TYPE
+                && customization.surface().controller() == SOUND_AUDIO_VOLUME_DRAWER_ID
+                && customization
+                    .surface()
                     .bindings()
                     .iter()
                     .map(String::as_str)

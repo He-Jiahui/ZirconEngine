@@ -1,13 +1,13 @@
 use std::fmt::{Display, Formatter};
 
+use crate::core::notifications::NotificationId;
+
 use super::{
     DecisionCenterInstanceId, DecisionOptionId, DecisionReceiptCursor, DecisionReceiptSequence,
-    NotificationId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DecisionNotificationError {
-    InvalidNotificationId(String),
     InvalidOptionId(String),
     EmptyField {
         field: &'static str,
@@ -76,9 +76,6 @@ pub enum DecisionNotificationError {
 impl Display for DecisionNotificationError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidNotificationId(id) => {
-                write!(formatter, "notification id `{id}` is invalid")
-            }
             Self::InvalidOptionId(id) => write!(formatter, "decision option id `{id}` is invalid"),
             Self::EmptyField { field } => write!(formatter, "decision {field} must not be empty"),
             Self::FieldTooLong {

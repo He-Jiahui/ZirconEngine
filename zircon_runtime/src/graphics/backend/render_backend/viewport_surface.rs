@@ -1,8 +1,9 @@
 use std::num::NonZeroIsize;
 
-use crate::core::framework::render::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
+use crate::core::framework::render::RenderViewportSurfaceDescriptor;
 use crate::core::math::UVec2;
 use crate::graphics::types::GraphicsError;
+use crate::rhi::RenderNativeSurfaceTarget;
 
 use super::render_backend::RenderBackend;
 

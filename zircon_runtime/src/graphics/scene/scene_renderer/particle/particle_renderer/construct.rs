@@ -1,7 +1,7 @@
 use super::super::particle_velocity_vertex::ParticleVelocityVertex;
 use super::super::particle_vertex::ParticleVertex;
-use super::shader_source::{PARTICLE_SHADER, PARTICLE_VELOCITY_SHADER};
 use super::ParticleRenderer;
+use super::shader_source::{PARTICLE_SHADER, PARTICLE_VELOCITY_SHADER};
 
 impl ParticleRenderer {
     pub(crate) fn new(

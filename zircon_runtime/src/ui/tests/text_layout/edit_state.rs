@@ -1,6 +1,6 @@
 use super::*;
 use zircon_runtime_interface::ui::surface::{
-    UiEditableTextState, UiTextCaret, UiTextEditAction, UiTextSelection,
+    UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextEditAction, UiTextSelection,
 };
 
 #[test]
@@ -21,6 +21,7 @@ font_size = 10.0
 line_height = 12.0
 focused = true
 caret_offset = 4
+caret_affinity = "upstream"
 selection_anchor = 1
 selection_focus = 4
 composition_start = 1
@@ -47,6 +48,7 @@ read_only = true
         .expect("TextField render layout should carry editable state");
     assert_eq!(editable.text, "Hello");
     assert_eq!(editable.caret.offset, 4);
+    assert_eq!(editable.caret.affinity, UiTextCaretAffinity::Upstream);
     assert_eq!(
         editable.selection,
         Some(UiTextSelection {

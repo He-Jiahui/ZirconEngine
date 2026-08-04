@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchAlertMetrics {
@@ -9,11 +9,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub icon_size: f32,
     pub icon_left: f32,
     pub text_gap: f32,
+    pub text_vertical_inset: f32,
     pub text_right_inset: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_metrics()
--> WorkbenchAlertMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_metrics(
+) -> WorkbenchAlertMetrics {
     alert_metrics_from_host(current_host_metrics())
 }
 
@@ -29,6 +30,7 @@ pub(super) fn alert_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchA
             .max(metrics.font_body),
         icon_left,
         text_gap: metrics.gap_m,
+        text_vertical_inset: metrics.gap_s + metrics.border_width,
         text_right_inset: icon_left,
     }
 }
@@ -49,8 +51,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub action_minimum_width: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_metrics()
--> WorkbenchToastMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toast_metrics(
+) -> WorkbenchToastMetrics {
     toast_metrics_from_host(current_host_metrics())
 }
 
@@ -116,6 +118,7 @@ mod tests {
         assert_eq!(alert.icon_size, 21.0);
         assert_eq!(alert.icon_left, 10.0);
         assert_eq!(alert.text_gap, 9.0);
+        assert_eq!(alert.text_vertical_inset, host.gap_s + host.border_width);
         assert_eq!(alert.text_right_inset, 10.0);
     }
 

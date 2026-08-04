@@ -12,7 +12,10 @@ use super::ellipsis::{
     ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
-use super::line_box::{MIN_TEXT_FONT_SIZE, resolve_line_widths_with_provider, text_advance};
+use super::line_box::{
+    MIN_TEXT_FONT_SIZE, available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
+    resolve_line_widths_with_provider,
+};
 use super::paragraph_layout;
 use super::visual_order;
 use super::wrapping::wrap_source_runs_with_provider;
@@ -36,13 +39,13 @@ pub(super) fn layout_vertical_text_with_provider(
     let mut vertical_provider = provider.vertical_scope(VerticalMode::Mixed);
     let column_advance = metrics.line_height.max(font_size.max(MIN_TEXT_FONT_SIZE));
     let column_width = font_size.max(MIN_TEXT_FONT_SIZE);
-    let max_column_height = frame.height.max(text_advance(font_size));
+    let max_column_height = available_wrap_extent(frame.height);
     let block_layout = paragraph_layout::has_block_layout(parsed);
     let mut columns = if block_layout {
         paragraph_layout::wrap_block_paragraphs_with_provider(
             parsed,
             style,
-            frame.height,
+            max_column_height,
             &mut *vertical_provider,
         )
     } else {
@@ -54,6 +57,13 @@ pub(super) fn layout_vertical_text_with_provider(
             &mut *vertical_provider,
         )
     };
+    let paragraph_constraints =
+        paragraph_layout::resolve_paragraph_column_constraints_with_provider(
+            parsed,
+            style,
+            frame.height,
+            &mut *vertical_provider,
+        );
     let clip = clip_frame.unwrap_or(frame);
     let column_capacity = layout_vertical_rl_columns(
         frame.x,
@@ -75,17 +85,9 @@ pub(super) fn layout_vertical_text_with_provider(
         }
         columns.truncate(column_capacity);
         if !columns.is_empty() {
+            let column_constraints = paragraph_constraints.for_candidates(&columns);
             let last_index = columns.len() - 1;
-            let available_height =
-                paragraph_layout::column_constraints_for_candidate_with_provider(
-                    parsed,
-                    style,
-                    frame.height,
-                    &columns,
-                    last_index,
-                    &mut *vertical_provider,
-                )
-                .max_height;
+            let available_height = column_constraints[last_index].max_height;
             let last = &mut columns[last_index];
             ellipsize_line_with_provider(
                 last,
@@ -96,18 +98,10 @@ pub(super) fn layout_vertical_text_with_provider(
             );
         }
     }
+    let column_constraints = paragraph_constraints.for_candidates(&columns);
     if is_ellipsis_overflow(style.text_overflow) {
         for index in 0..columns.len() {
-            let available_height =
-                paragraph_layout::column_constraints_for_candidate_with_provider(
-                    parsed,
-                    style,
-                    frame.height,
-                    &columns,
-                    index,
-                    &mut *vertical_provider,
-                )
-                .max_height;
+            let available_height = column_constraints[index].max_height;
             let column = &mut columns[index];
             if !column.ellipsized
                 && line_overflows_horizontally_with_provider(
@@ -129,6 +123,19 @@ pub(super) fn layout_vertical_text_with_provider(
         }
     }
 
+    for index in 0..columns.len() {
+        let is_last_column = index + 1 == columns.len();
+        let constraints = column_constraints[index];
+        let mut column_style = style.clone();
+        column_style.text_align = constraints.align;
+        materialize_arabic_tatweels_for_justified_line(
+            &mut columns[index],
+            &column_style,
+            constraints.max_height.max(0.0),
+            is_last_column,
+            &mut *vertical_provider,
+        );
+    }
     for column in &mut columns {
         visual_order::apply_visual_order(column, text, direction);
     }
@@ -138,14 +145,7 @@ pub(super) fn layout_vertical_text_with_provider(
         .enumerate()
         .map(|(index, column)| {
             let is_last_column = index + 1 == columns.len();
-            let constraints = paragraph_layout::column_constraints_for_candidate_with_provider(
-                parsed,
-                style,
-                frame.height,
-                &columns,
-                index,
-                &mut *vertical_provider,
-            );
+            let constraints = column_constraints[index];
             let mut column_style = style.clone();
             column_style.text_align = constraints.align;
             let (measured_height, glyph_advances, content_height) =

@@ -36,6 +36,26 @@
     },
     {
       "path": {
+        "view_id": "Inspector",
+        "control_id": "TransformScaleXCommit",
+        "event_kind": "Submit"
+      },
+      "payload": {
+        "InspectorFieldBatch": {
+          "subject_path": "entity://selected",
+          "changes": [
+            {
+              "field_id": "transform.scale.x",
+              "value": {
+                "Float": 1.25
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": {
         "view_id": "WorkbenchMenuBar",
         "control_id": "SaveProject",
         "event_kind": "Click"

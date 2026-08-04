@@ -64,6 +64,7 @@ fn host_text_preferences() -> &'static RwLock<HostTextPreferences> {
 }
 
 fn project_typography_tokens(tokens: &EditorTypographyTokens) -> HostTextPreferences {
+    let defaults = EditorTypographyTokens::workbench_default();
     HostTextPreferences {
         ui_family: normalized_family_or_default(
             tokens.ui_family.as_str(),
@@ -79,10 +80,17 @@ fn project_typography_tokens(tokens: &EditorTypographyTokens) -> HostTextPrefere
         ),
         utility_tab_text_role: host_utility_tab_text_role_for_tokens(tokens.utility_tab_text_role),
         smoothing: host_text_smoothing_for_tokens(tokens.font_smoothing),
-        ui_weight: tokens.body_weight,
-        strong_weight: tokens.strong_weight,
-        code_weight: tokens.code_weight,
+        ui_weight: valid_font_weight_or(tokens.body_weight, defaults.body_weight),
+        strong_weight: valid_font_weight_or(tokens.strong_weight, defaults.strong_weight),
+        code_weight: valid_font_weight_or(tokens.code_weight, defaults.code_weight),
     }
+}
+
+fn valid_font_weight_or(value: u16, fallback: u16) -> u16 {
+    (1..=1000)
+        .contains(&value)
+        .then_some(value)
+        .unwrap_or(fallback)
 }
 
 fn host_text_smoothing_for_tokens(smoothing: EditorFontSmoothing) -> HostTextSmoothing {
@@ -151,5 +159,34 @@ mod tests {
             HostUtilityTabTextRole::Ui
         );
         assert_eq!(preferences.smoothing, HostTextSmoothing::Grayscale);
+    }
+
+    #[test]
+    fn host_text_preferences_reject_invalid_font_weights() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.typography.body_weight = 0;
+        tokens.typography.strong_weight = 1_001;
+        tokens.typography.code_weight = u16::MAX;
+
+        let preferences = project_host_text_preferences(&tokens);
+        let defaults = EditorTypographyTokens::workbench_default();
+
+        assert_eq!(preferences.ui_weight, defaults.body_weight);
+        assert_eq!(preferences.strong_weight, defaults.strong_weight);
+        assert_eq!(preferences.code_weight, defaults.code_weight);
+    }
+
+    #[test]
+    fn host_text_preferences_preserve_valid_variable_font_weights() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.typography.body_weight = 1;
+        tokens.typography.strong_weight = 650;
+        tokens.typography.code_weight = 1_000;
+
+        let preferences = project_host_text_preferences(&tokens);
+
+        assert_eq!(preferences.ui_weight, 1);
+        assert_eq!(preferences.strong_weight, 650);
+        assert_eq!(preferences.code_weight, 1_000);
     }
 }

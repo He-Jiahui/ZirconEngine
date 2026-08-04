@@ -3,8 +3,9 @@ use zircon_runtime_interface::{
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1,
 };
 
-use crate::core::framework::render::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
+use crate::core::framework::render::RenderViewportSurfaceDescriptor;
 use crate::core::math::UVec2;
+use crate::rhi::RenderNativeSurfaceTarget;
 
 pub(super) fn render_surface_descriptor(
     request: ZrRuntimeBindViewportSurfaceRequestV1,

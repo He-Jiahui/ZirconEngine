@@ -2,7 +2,8 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
 use super::geometry::{frame_is_within, section_label_rect};
-use super::style::{WorkbenchSectionTitleMetrics, section_text_color, section_title_metrics};
+use super::style::{section_text_color, section_title_metrics, WorkbenchSectionTitleMetrics};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_section_label(
@@ -62,7 +63,7 @@ fn push_text(
     metrics: &WorkbenchSectionTitleMetrics,
     opacity: f32,
 ) {
-    if !frame_is_within(section_rect, &rect) {
+    if !frame_is_within(section_rect, &rect) || intersect(&rect, clip).is_none() {
         return;
     }
     commands.push(HostPaintCommand::text(

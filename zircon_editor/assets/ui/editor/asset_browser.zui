@@ -15,20 +15,20 @@ node = "asset_browser_root"
 [nodes.toolbar_title_text]
 component = "Label"
 control_id = "AssetBrowserTitleText"
-props = { text = "Asset Browser", font_weight = 700, overflow = "elide" }
+props = { text = "Asset Browser", font_weight = "$editor.typography.emphasis.weight", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.toolbar_locate_button]
 component = "IconButton"
 control_id = "LocateSelectedAsset"
 props = { label = "Locate selected asset", icon = "editor_pages/asset_browser/navigation/search.svg", icon_placement = "icon_only", dispatch_kind = "asset:browser" }
-layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "workbench.asset.locate_selected_asset" }]
 
 [nodes.toolbar_title_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserToolbarTitleRow"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 children = [{ node = "toolbar_title_text" }]
 
 [nodes.toolbar_subtitle_text]
@@ -53,7 +53,7 @@ events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "workben
 [nodes.toolbar_search_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserToolbarSearchRow"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 children = [{ node = "toolbar_search_field" }]
 
 [nodes.toolbar_kind_all_chip]
@@ -106,21 +106,21 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "IconButton"
 control_id = "AssetBrowserViewModeListButton"
 props = { label = "List view", icon = "list-outline", icon_placement = "icon_only", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "list" }
-layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.toolbar_view_mode_thumb_button]
 component = "IconButton"
 control_id = "AssetBrowserViewModeThumbButton"
 props = { label = "Thumbnail view", icon = "grid-outline", icon_placement = "icon_only", dispatch_kind = "asset:browser", action_id = "workbench.asset.view_mode.set", value = "thumbnail" }
-layout = { width = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbench.asset.set_view_mode" }]
 
 [nodes.toolbar_kind_primary_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserToolbarKindPrimaryRow"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, z_index = -1 }
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", z_index = -1 }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }, { node = "toolbar_kind_primary_spacer" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }, { node = "toolbar_locate_button" }]
 
 [nodes.toolbar_kind_physics_chip]
@@ -168,14 +168,14 @@ events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "workbe
 [nodes.toolbar_kind_secondary_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserToolbarKindSecondaryRow"
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "toolbar_kind_physics_chip" }, { node = "toolbar_kind_skeleton_chip" }, { node = "toolbar_kind_clip_chip" }, { node = "toolbar_kind_sequence_chip" }, { node = "toolbar_kind_graph_chip" }, { node = "toolbar_kind_state_chip" }]
 
 [nodes.toolbar_panel]
 component = "VerticalBox"
 control_id = "AssetBrowserToolbarPanel"
 props = { surface_variant = "frame_only" }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 100.0, preferred = 100.0, max = 100.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 100.0, preferred = 100.0, max = 100.0, stretch = "Fixed" } }
 children = [{ node = "toolbar_title_row" }, { node = "toolbar_subtitle_row" }, { node = "toolbar_search_row" }, { node = "toolbar_kind_primary_row" }]
 
 [nodes.import_left_space]
@@ -192,7 +192,7 @@ layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed"
 component = "TextField"
 control_id = "AssetBrowserImportPathField"
 props = { placeholder = "Drop or paste asset source path" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.import_button]
 component = "Button"
@@ -209,13 +209,13 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 component = "HorizontalBox"
 control_id = "AssetBrowserImportPanel"
 props = { surface_variant = "frame_only" }
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
 children = [{ node = "import_left_space" }, { node = "import_label" }, { node = "import_path_field" }, { node = "import_button" }, { node = "import_right_space" }]
 
 [nodes.sources_title_text]
 component = "Label"
 control_id = "AssetBrowserSourcesTitleText"
-props = { text = "Sources", font_weight = 700 }
+props = { text = "Sources", font_weight = "$editor.typography.emphasis.weight" }
 layout = { position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.sources_subtitle_text]
@@ -257,8 +257,8 @@ layout = { position = { x = 104.0, y = 5.0 }, width = { min = 20.0, preferred = 
 [nodes.sources_row_panel]
 component = "Overlay"
 control_id = "AssetBrowserSourcesRowPanel"
-props = { surface_variant = "asset-tree-row", radius = 6.0 }
-layout = { clip = true, container = { kind = "Overlay" }, position = { x = 8.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "asset-tree-row", radius = "$editor.control.radius.small" }
+layout = { clip = true, container = { kind = "Overlay" }, position = { x = 8.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "sources_row_icon" }, { node = "sources_row_name_text" }, { node = "sources_row_count_text" }]
 
 [nodes.sources_scroll_body]
@@ -271,14 +271,14 @@ children = [{ node = "sources_row_panel" }]
 [nodes.sources_panel]
 component = "Overlay"
 control_id = "AssetBrowserSourcesPanel"
-props = { surface_variant = "panel", border_width = 1.0 }
+props = { surface_variant = "panel", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { min = 136.0, preferred = 136.0, max = 136.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "sources_header_panel" }, { node = "sources_divider" }, { node = "sources_scroll_body" }]
 
 [nodes.content_header_title_text]
 component = "Label"
 control_id = "AssetBrowserContentHeaderTitleText"
-props = { text = "Content Browser", font_weight = 700, overflow = "elide" }
+props = { text = "Content Browser", font_weight = "$editor.typography.emphasis.weight", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.content_header_path_text]
@@ -290,56 +290,56 @@ layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed"
 [nodes.content_header_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserContentHeaderRow"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "content_header_title_text" }, { node = "content_header_path_text" }]
 
 [nodes.content_asset_table_header]
 component = "Table"
 control_id = "WorkbenchAssetBrowserTableHeader"
-props = { text = "Name Type Size Rev", surface_variant = "asset-table", border_width = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Name Type Size Rev", surface_variant = "asset-table", border_width = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.content_asset_row_01]
 component = "Table"
 control_id = "WorkbenchAssetBrowserAssetRow01"
-props = { text = "Host UI 12K r42", selected = true, focused = true, surface_variant = "asset-table", border_width = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Host UI 12K r42", selected = true, focused = true, surface_variant = "asset-table", border_width = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 
 [nodes.content_asset_row_02]
 component = "Table"
 control_id = "WorkbenchAssetBrowserAssetRow02"
-props = { text = "Base Style 8K r41", surface_variant = "asset-table", border_width = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Base Style 8K r41", surface_variant = "asset-table", border_width = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 
 [nodes.content_asset_row_03]
 component = "Table"
 control_id = "WorkbenchAssetBrowserAssetRow03"
-props = { text = "Folder Tex 4K r40", surface_variant = "asset-table", border_width = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "Folder Tex 4K r40", surface_variant = "asset-table", border_width = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 
 [nodes.content_asset_row_04]
 component = "Table"
 control_id = "WorkbenchAssetBrowserAssetRow04"
-props = { text = "A11y Widget 16K r39", surface_variant = "asset-table", border_width = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+props = { text = "A11y Widget 16K r39", surface_variant = "asset-table", border_width = "$editor.control.border_width" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 
 [nodes.content_asset_table]
 component = "VerticalBox"
 control_id = "AssetBrowserAssetTablePanel"
-props = { surface_variant = "asset-table", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "asset-table", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" } }
 children = [{ node = "content_asset_table_header" }, { node = "content_asset_row_01" }, { node = "content_asset_row_02" }, { node = "content_asset_row_03" }, { node = "content_asset_row_04" }]
 
 [nodes.content_preview_card_visual]
 component = "Overlay"
 control_id = "AssetBrowserContentPreviewVisual"
-props = { surface_variant = "asset-placeholder-visual", radius = 6.0, border_width = 0.0 }
+props = { surface_variant = "asset-placeholder-visual", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" } }
 
 [nodes.content_preview_card_name]
 component = "Label"
 control_id = "AssetBrowserContentPreviewName"
-props = { text = "workbench_page_chrome.zui", font_weight = 600, overflow = "elide" }
+props = { text = "workbench_page_chrome.zui", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.content_preview_card_meta]
@@ -351,21 +351,21 @@ layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 1
 [nodes.content_preview_card]
 component = "VerticalBox"
 control_id = "AssetBrowserContentPreviewCard"
-props = { surface_variant = "asset-placeholder", radius = 6.0, border_width = 0.0 }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" } }
+props = { surface_variant = "asset-placeholder", radius = "$editor.control.radius.small", border_width = 0.0 }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" } }
 children = [{ node = "content_preview_card_visual" }, { node = "content_preview_card_name" }, { node = "content_preview_card_meta" }]
 
 [nodes.content_panel]
 component = "VerticalBox"
 control_id = "AssetBrowserContentPanel"
-props = { surface_variant = "asset-content", radius = 6.0, border_width = 1.0 }
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+props = { surface_variant = "asset-content", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "content_header_row" }, { node = "content_asset_table" }, { node = "content_preview_card" }]
 
 [nodes.details_header_title_text]
 component = "Label"
 control_id = "AssetBrowserDetailsHeaderTitleText"
-props = { text = "Details", font_weight = 700 }
+props = { text = "Details", font_weight = "$editor.typography.emphasis.weight" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
 
 [nodes.details_header_selection_text]
@@ -393,13 +393,13 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 [nodes.details_preview_visual_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsPreviewVisualPanel"
-props = { surface_variant = "asset-placeholder-visual", radius = 6.0, border_width = 0.0 }
+props = { surface_variant = "asset-placeholder-visual", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 10.0 }, width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" } }
 
 [nodes.details_preview_name_text]
 component = "Label"
 control_id = "AssetBrowserDetailsPreviewNameText"
-props = { text = "No Asset Selected", font_weight = 700, overflow = "elide" }
+props = { text = "No Asset Selected", font_weight = "$editor.typography.emphasis.weight", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 74.0, y = 12.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.details_preview_locator_text]
@@ -441,7 +441,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.details_preview_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsPreviewPanel"
-props = { surface_variant = "asset-placeholder", radius = 8.0, border_width = 0.0 }
+props = { surface_variant = "asset-placeholder", radius = "$editor.control.radius.large", border_width = 0.0 }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 150.0, preferred = 150.0, max = 150.0, stretch = "Fixed" } }
 children = [{ node = "details_preview_visual_panel" }, { node = "details_preview_name_text" }, { node = "details_preview_locator_text" }, { node = "details_preview_kind_text" }, { node = "details_preview_identity_text" }, { node = "details_preview_adapter_text" }, { node = "details_preview_meta_path_text" }, { node = "details_preview_diagnostics_text" }]
 
@@ -460,7 +460,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.details_locator_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsLocatorPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" } }
 children = [{ node = "details_locator_label" }, { node = "details_locator_value" }]
 
@@ -479,7 +479,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.details_type_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsTypePanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
 children = [{ node = "details_type_label" }, { node = "details_type_value" }]
 
@@ -504,7 +504,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.details_identity_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsIdentityPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" } }
 children = [{ node = "details_identity_label" }, { node = "details_identity_uuid_value" }, { node = "details_identity_revision_value" }]
 
@@ -529,7 +529,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.details_metadata_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsMetadataPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
 children = [{ node = "details_metadata_label" }, { node = "details_metadata_meta_path_value" }, { node = "details_metadata_adapter_value" }]
 
@@ -548,7 +548,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.details_diagnostics_panel]
 component = "Overlay"
 control_id = "AssetBrowserDetailsDiagnosticsPanel"
-props = { surface_variant = "danger", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "danger", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" } }
 children = [{ node = "details_diagnostics_label" }, { node = "details_diagnostics_text" }]
 
@@ -556,7 +556,7 @@ children = [{ node = "details_diagnostics_label" }, { node = "details_diagnostic
 component = "VerticalBox"
 control_id = "AssetBrowserDetailsContentPanel"
 props = { surface_variant = "frame_only" }
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 538.0, preferred = 538.0, max = 538.0, stretch = "Fixed" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { min = 538.0, preferred = 538.0, max = 538.0, stretch = "Fixed" } }
 children = [{ node = "details_preview_panel" }, { node = "details_locator_panel" }, { node = "details_type_panel" }, { node = "details_identity_panel" }, { node = "details_metadata_panel" }, { node = "details_diagnostics_panel" }]
 
 [nodes.details_right_gutter]
@@ -581,7 +581,7 @@ children = [{ node = "details_header_panel" }, { node = "details_divider" }, { n
 component = "HorizontalBox"
 control_id = "AssetBrowserMainPanel"
 props = { surface_variant = "frame_only" }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "sources_panel" }, { node = "content_panel" }, { node = "details_panel" }]
 
 [nodes.utility_preview_button]
@@ -626,7 +626,7 @@ layout = { width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fix
 component = "HorizontalBox"
 control_id = "AssetBrowserUtilityTabsRow"
 props = { surface_variant = "frame_only" }
-layout = { container = { kind = "HorizontalBox", gap = 6.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 children = [{ node = "utility_preview_button" }, { node = "utility_references_button" }, { node = "utility_metadata_button" }, { node = "utility_plugins_button" }, { node = "utility_tabs_spacer" }, { node = "utility_selection_locator_text" }]
 
 [nodes.utility_divider]
@@ -637,13 +637,13 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.preview_visual_panel]
 component = "Overlay"
 control_id = "AssetBrowserPreviewVisualPanel"
-props = { surface_variant = "asset-placeholder-visual", radius = 6.0, border_width = 0.0 }
+props = { surface_variant = "asset-placeholder-visual", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 8.0 }, width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" } }
 
 [nodes.preview_name_text]
 component = "Label"
 control_id = "AssetBrowserPreviewNameText"
-props = { text = "No Asset Selected", font_weight = 700, overflow = "elide" }
+props = { text = "No Asset Selected", font_weight = "$editor.typography.emphasis.weight", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 94.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.preview_locator_text]
@@ -685,14 +685,14 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.preview_panel]
 component = "Overlay"
 control_id = "AssetBrowserPreviewPanel"
-props = { surface_variant = "asset-placeholder", radius = 6.0, border_width = 0.0 }
+props = { surface_variant = "asset-placeholder", radius = "$editor.control.radius.small", border_width = 0.0 }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "preview_visual_panel" }, { node = "preview_name_text" }, { node = "preview_locator_text" }, { node = "preview_kind_text" }, { node = "preview_identity_text" }, { node = "preview_adapter_text" }, { node = "preview_meta_path_text" }, { node = "preview_diagnostics_text" }]
 
 [nodes.reference_left_title_text]
 component = "Label"
 control_id = "AssetBrowserReferenceLeftTitleText"
-props = { text = "References", font_weight = 600, overflow = "elide" }
+props = { text = "References", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.reference_left_empty_text]
@@ -722,7 +722,7 @@ layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position
 [nodes.reference_left_row_panel]
 component = "Overlay"
 control_id = "AssetBrowserReferenceLeftRowPanel"
-props = { surface_variant = "reference-row", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "reference-row", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 children = [{ node = "reference_left_row_name_text" }, { node = "reference_left_row_locator_text" }, { node = "reference_left_row_kind_text" }]
 
@@ -743,7 +743,7 @@ children = [{ node = "reference_left_title_text" }, { node = "reference_left_scr
 [nodes.reference_right_title_text]
 component = "Label"
 control_id = "AssetBrowserReferenceRightTitleText"
-props = { text = "Used By", font_weight = 600, overflow = "elide" }
+props = { text = "Used By", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
 layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.reference_right_empty_text]
@@ -773,7 +773,7 @@ layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position
 [nodes.reference_right_row_panel]
 component = "Overlay"
 control_id = "AssetBrowserReferenceRightRowPanel"
-props = { surface_variant = "reference-row", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "reference-row", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
 children = [{ node = "reference_right_row_name_text" }, { node = "reference_right_row_locator_text" }, { node = "reference_right_row_kind_text" }]
 
@@ -793,7 +793,7 @@ children = [{ node = "reference_right_title_text" }, { node = "reference_right_s
 
 [nodes.references_shell]
 component = "HorizontalBox"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "reference_left_panel" }, { node = "reference_right_panel" }]
 
 [nodes.metadata_meta_path_label]
@@ -811,7 +811,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.metadata_meta_path_panel]
 component = "Overlay"
 control_id = "AssetBrowserMetaPathPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
 children = [{ node = "metadata_meta_path_label" }, { node = "metadata_meta_path_value" }]
 
@@ -830,7 +830,7 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.metadata_adapter_panel]
 component = "Overlay"
 control_id = "AssetBrowserToolkitPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
 children = [{ node = "metadata_adapter_label" }, { node = "metadata_adapter_value" }]
 
@@ -849,13 +849,13 @@ layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position
 [nodes.metadata_diagnostics_panel]
 component = "Overlay"
 control_id = "AssetBrowserDiagnosticsPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "metadata_diagnostics_label" }, { node = "metadata_diagnostics_text" }]
 
 [nodes.metadata_stack]
 component = "VerticalBox"
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "metadata_meta_path_panel" }, { node = "metadata_adapter_panel" }, { node = "metadata_diagnostics_panel" }]
 
 [nodes.plugins_text]
@@ -867,7 +867,7 @@ layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position
 [nodes.plugins_panel]
 component = "Overlay"
 control_id = "AssetBrowserPluginsPanel"
-props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "plugins_text" }]
 
@@ -890,5 +890,5 @@ component = "VerticalBox"
 control_id = "AssetBrowserRoot"
 classes = ["editor-shell", "editor-pane", "asset-browser-pane"]
 props = { surface_variant = "frame_only" }
-layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "toolbar_panel" }, { node = "import_panel" }, { node = "main_panel" }, { node = "utility_panel" }]

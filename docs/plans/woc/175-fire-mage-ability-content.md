@@ -1,6 +1,6 @@
 ---
 title: WOS175 Fire Mage ability content projection
-status: in_progress
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -40,3 +40,11 @@ not yet own; WOS172's specialized contract remains the correct upstream bridge.
 | 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
 | WOS175a | Fire 三能力的受管 M4 内容投影 | implemented_static_validation_pending | 2026-08-01 | `m4_ability_codegen`、生成产物、WOS175 静态守卫 |
+
+## 二次审查
+
+2026-08-03: second static review confirmed that the source-pinned Pyroblast,
+Flamestrike and Combustion definitions remain in the 96-entry generated M4
+catalog with their intended `directDamage`, `aoeDamage` and `selfBuff` shapes.
+`node examples/woc/tools/wos175_fire_mage_ability_content_static_guard.mjs`
+passed. Dynamic acceptance remains exclusively pending `zr_vm:project`.

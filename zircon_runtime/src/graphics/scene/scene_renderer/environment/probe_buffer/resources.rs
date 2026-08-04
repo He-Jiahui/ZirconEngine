@@ -3,13 +3,13 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{
-    derive_planar_reflection_camera, ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget,
+    ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget, derive_planar_reflection_camera,
 };
-use crate::core::math::{view_matrix, Vec3};
+use crate::core::math::{Vec3, view_matrix};
 #[cfg(test)]
 use crate::graphics::backend::{
-    read_buffer_bytes, read_texture_rgba16float_region, BufferByteReadback,
-    Rgba16FloatTextureRegionReadback,
+    BufferByteReadback, Rgba16FloatTextureRegionReadback, read_buffer_bytes,
+    read_texture_rgba16float_region,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
@@ -19,8 +19,8 @@ use super::gpu_layout::{
 };
 use super::slot_allocator::ProbeCubemapSlotAllocator;
 use super::upload::{
-    upload_probe_pmrem_texture, validate_probe_pmrem_texture, ReflectionProbeAssetError,
-    ReflectionProbeAssetRejection,
+    ReflectionProbeAssetError, ReflectionProbeAssetRejection, upload_probe_pmrem_texture,
+    validate_probe_pmrem_texture,
 };
 
 pub(super) const MAX_REFLECTION_PROBES: usize = 64;
@@ -286,11 +286,7 @@ impl SceneReflectionProbeResources {
         )?;
         let header = bytemuck::pod_read_unaligned::<GpuReflectionProbeHeader>(&header_bytes);
         let mut probes = [GpuReflectionProbe::default(); 2];
-        for (index, probe) in probes
-            .iter_mut()
-            .enumerate()
-            .take(diagnostic_probe_count)
-        {
+        for (index, probe) in probes.iter_mut().enumerate().take(diagnostic_probe_count) {
             let byte_offset = index * std::mem::size_of::<GpuReflectionProbe>();
             *probe = bytemuck::pod_read_unaligned::<GpuReflectionProbe>(
                 &probe_bytes[byte_offset..byte_offset + std::mem::size_of::<GpuReflectionProbe>()],
@@ -366,16 +362,30 @@ impl SceneReflectionProbeResources {
             .filter_map(|probe| {
                 let cubemap = probe.baked_cubemap()?;
                 (probe.intensity() > 0.0 && probe.layer_mask().intersects(camera_layers))
-                    .then_some((probe, cubemap, None))
+                    .then(|| {
+                        (
+                            probe,
+                            cubemap,
+                            None,
+                            probe_distance_to_influence(probe, camera_position),
+                        )
+                    })
             })
             .collect::<Vec<_>>();
-        candidates.sort_by(|left, right| {
-            probe_distance_to_influence(left.0, camera_position)
-                .total_cmp(&probe_distance_to_influence(right.0, camera_position))
+        let candidate_order = |
+            left: &(&ReflectionProbeData, crate::core::resource::ResourceId, Option<u64>, f32),
+            right: &(&ReflectionProbeData, crate::core::resource::ResourceId, Option<u64>, f32),
+        | {
+            left.3
+                .total_cmp(&right.3)
                 .then_with(|| right.0.priority().cmp(&left.0.priority()))
                 .then_with(|| left.0.probe_id().cmp(&right.0.probe_id()))
-        });
-        candidates.truncate(MAX_REFLECTION_PROBES);
+        };
+        if candidates.len() > MAX_REFLECTION_PROBES {
+            candidates.select_nth_unstable_by(MAX_REFLECTION_PROBES, candidate_order);
+            candidates.truncate(MAX_REFLECTION_PROBES);
+        }
+        candidates.sort_by(candidate_order);
 
         let asset_manager = match streamer.asset_manager() {
             Ok(asset_manager) => asset_manager,
@@ -384,12 +394,12 @@ impl SceneReflectionProbeResources {
         let resource_manager = asset_manager.resource_manager();
         {
             let registry = resource_manager.registry();
-            for (_, cubemap, revision) in &mut candidates {
+            for (_, cubemap, revision, _) in &mut candidates {
                 *revision = registry.get(*cubemap).map(|record| record.revision);
             }
         }
         let mut gpu_probes = Vec::with_capacity(candidates.len());
-        for (probe, cubemap, revision) in candidates {
+        for (probe, cubemap, revision, _) in candidates {
             let Some(revision) = revision else {
                 record_probe_asset_rejection(
                     &mut report,
@@ -530,12 +540,13 @@ fn planar_gpu_params(
 }
 
 fn probe_distance_to_influence(probe: &ReflectionProbeData, world_position: Vec3) -> f32 {
-    let local = probe.rotation().conjugate() * (world_position - probe.position());
+    let position_delta = world_position - probe.position();
     match probe.shape() {
         ProbeInfluenceShape::Box { half_extents, .. } => {
+            let local = probe.rotation().conjugate() * position_delta;
             (local.abs() - half_extents).max(Vec3::ZERO).length()
         }
-        ProbeInfluenceShape::Sphere { radius, .. } => (local.length() - radius).max(0.0),
+        ProbeInfluenceShape::Sphere { radius, .. } => (position_delta.length() - radius).max(0.0),
     }
 }
 

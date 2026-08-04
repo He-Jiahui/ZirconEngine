@@ -3,8 +3,8 @@ use wgpu::util::DeviceExt;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
 
 use super::{
-    IndirectCompactionPlan, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-    INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
+    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
+    IndirectCompactionPlan,
 };
 
 pub(crate) struct MeshIndirectCompactionResources {

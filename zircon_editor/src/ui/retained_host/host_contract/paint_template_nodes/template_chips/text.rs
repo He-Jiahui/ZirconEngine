@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_chip_glyphs::{
     chip_can_paint_chevron, chip_glyph_chevron_reserve, chip_has_chevron,
@@ -35,9 +36,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     if label_rect.width <= 0.0 {
         return;
     }
+    let Some(text_clip) = intersect(&label_rect, clip) else {
+        return;
+    };
     commands.push(HostPaintCommand::text(
         label_rect,
-        Some(clip.clone()),
+        Some(text_clip),
         order,
         label,
         chip_text_color(node),

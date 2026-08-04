@@ -3,8 +3,9 @@ use zircon_editor::core::asset::{
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorMenuItemDescriptor,
+    EditorExtensionRegistry, EditorMenuItemDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -136,7 +137,7 @@ fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
                 .with_default_document("plugins://prefab_tools/templates/default_prefab.toml")
                 .with_required_capabilities([CAPABILITY]),
         )],
-        component_drawers: vec![ComponentDrawerDescriptor::new(
+        inspector_customizations: vec![InspectorCustomizationDescriptor::new(
             zircon_plugin_prefab_tools_runtime::PREFAB_INSTANCE_COMPONENT_TYPE,
             "plugins://prefab_tools/editor/prefab_instance.zui",
             "prefab_tools.editor.component",

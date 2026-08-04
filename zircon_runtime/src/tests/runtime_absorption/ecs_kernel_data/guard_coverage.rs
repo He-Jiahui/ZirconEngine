@@ -29,7 +29,6 @@ pub(super) fn assert_runtime_08_guard_and_behavior_anchors() {
             include_str!("../../../scene/tests/ecs_events_messages.rs"),
             include_str!("../../../scene/tests/ecs_change_detection.rs"),
             include_str!("../../../scene/tests/component_structure/runtime_08_owner_tree.rs"),
-            include_str!("../plan_status/cargo_gates/early.rs"),
             include_str!("../ecs_kernel_data.rs"),
             include_str!("inventory.rs"),
             include_str!("guard_coverage.rs"),
@@ -58,7 +57,6 @@ pub(super) fn assert_runtime_08_guard_and_behavior_anchors() {
             "runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover",
             "runtime_08_ecs_change_detection_owner_tree_stays_folder_backed_after_cutover",
             "runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover",
-            "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
             "runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts",
         ],
     );

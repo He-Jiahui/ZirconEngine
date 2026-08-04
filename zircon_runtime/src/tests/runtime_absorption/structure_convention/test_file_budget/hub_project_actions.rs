@@ -21,15 +21,6 @@ fn runtime_15_support_hub_project_actions_tests_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let hub_project_doc = read_repo("docs/zircon_hub/projects/lifecycle-workflows.md");
-    let status_rows = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/hub_editor_support.rs",
-    );
-    let status_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/hub_editor_maps.rs",
-    );
-    let date_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/hub_editor_maps.rs",
-    );
 
     assert_contains_all(
         "Hub project-actions parent mounts test child owner",
@@ -72,22 +63,4 @@ fn runtime_15_support_hub_project_actions_tests_are_child_owner() {
             "project-actions tests child-owner split",
         ],
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("Hub project lifecycle doc", hub_project_doc.as_str()),
-        ("status row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[SLICE, STATUS, PROJECT_ACTIONS, PROJECT_ACTION_TESTS, GUARD],
-        );
-    }
-    assert_contains_all("status map", &status_map, &[SLICE, STATUS]);
-    assert_contains_all("date map", &date_map, &[SLICE, DATE]);
 }

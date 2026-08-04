@@ -148,13 +148,19 @@ impl EditorState {
     ) -> Self {
         let console_history =
             crate::ui::workbench::state::console_history::EditorConsoleHistory::new(&status_line);
+        let viewport_controller = SceneViewportController::with_settings(
+            viewport_size,
+            Arc::clone(context.settings()),
+            context.settings_persistence().clone(),
+        );
         let mut state = Self {
             context,
             world,
-            viewport_controller: SceneViewportController::new(viewport_size),
+            viewport_controller,
             name_field: String::new(),
             parent_field: String::new(),
             transform_fields: Default::default(),
+            scale_fields: Default::default(),
             inspector_dynamic_fields: Default::default(),
             mesh_import_path: String::new(),
             asset_workspace: AssetWorkspaceState::default(),

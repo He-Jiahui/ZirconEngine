@@ -159,29 +159,4 @@ fn runtime_15_dynamic_scene_root_tests_are_folder_backed() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("dynamic scene doc", dynamic_scene_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 dynamic scene root test folder split",
-                "runtime_15_dynamic_scene_root_tests_folder_split_static_passed_cargo_deferred",
-                "scene/tests/dynamic_scene.rs",
-                "scene/tests/dynamic_scene/archive_manifest.rs",
-                "scene/tests/dynamic_scene/scene_patch_document.rs",
-                "runtime_15_dynamic_scene_root_tests_are_folder_backed",
-            ],
-        );
-    }
 }

@@ -11,6 +11,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
     RenderVirtualGeometryPagePayload, RenderVirtualGeometryPayloadSource, ShaderQualityTier,
     SolariRuntimeReport, TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
+    normalize_texture_max_anisotropy,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
@@ -42,6 +43,7 @@ pub(super) struct FrameSubmissionContext {
     quality_profile: Option<String>,
     shader_quality: ShaderQualityTier,
     global_material_mip_bias: f32,
+    texture_max_anisotropy: u8,
     compiled_pipeline: Arc<CompiledRenderPipeline>,
     capabilities: RenderCapabilitySummary,
     visibility_context: VisibilityContext,
@@ -173,6 +175,7 @@ impl FrameSubmissionContext {
             quality_profile,
             shader_quality,
             global_material_mip_bias: 0.0,
+            texture_max_anisotropy: 16,
             compiled_pipeline,
             capabilities,
             visibility_context,
@@ -241,6 +244,15 @@ impl FrameSubmissionContext {
 
     pub(super) fn global_material_mip_bias(&self) -> f32 {
         self.global_material_mip_bias
+    }
+
+    pub(super) fn with_texture_max_anisotropy(mut self, max_anisotropy: u8) -> Self {
+        self.texture_max_anisotropy = normalize_texture_max_anisotropy(max_anisotropy);
+        self
+    }
+
+    pub(super) fn texture_max_anisotropy(&self) -> u8 {
+        self.texture_max_anisotropy
     }
 
     pub(super) fn compiled_pipeline(&self) -> &CompiledRenderPipeline {

@@ -15,8 +15,6 @@ pub(in crate::scene::dynamic_scene::session) fn slot_mut<'a>(
     archive: &'a mut RuntimeSessionArchive,
     slot_id: &str,
 ) -> Option<&'a mut RuntimeSessionSlot> {
-    archive
-        .slots
-        .iter_mut()
-        .find(|slot| slot.slot_id == slot_id)
+    let slot_index = archive.indexed_slot_index(slot_id)?;
+    archive.slots.get_mut(slot_index)
 }

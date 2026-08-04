@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
-use super::super::workbench_command::{WorkbenchCommandVisualRole, workbench_command_visual_role};
+use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
 use super::metrics::workbench_button_border_width;
 use super::model::WorkbenchButtonStyle;
 use super::palette::workbench_button_command_palette;
@@ -32,6 +32,7 @@ fn muted_prominent_workbench_command_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.popup_open;
+    let focus_visible = node.focused || node.selected || node.checked;
     let command_palette = workbench_button_command_palette();
     style.surface = if node.pressed {
         command_palette.muted_pressed_surface
@@ -40,7 +41,11 @@ fn muted_prominent_workbench_command_style(
     } else {
         command_palette.muted_rest_surface
     };
-    style.border = command_palette.muted_border;
+    style.border = if focus_visible && !node.pressed {
+        style.border
+    } else {
+        command_palette.muted_border
+    };
     style.border_width = workbench_button_border_width();
     style.text = command_palette.muted_text;
     style.glyph = command_palette.muted_text;
@@ -52,16 +57,28 @@ fn primary_import_workbench_command_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.popup_open;
+    let focus_visible = node.focused || node.selected || node.checked;
     let command_palette = workbench_button_command_palette();
-    let surface = if node.pressed || active || node.hovered {
+    let surface = if node.pressed {
+        command_palette.primary_pressed_surface
+    } else if active || node.hovered {
         command_palette.primary_hot_surface
     } else {
         command_palette.primary_rest_surface
     };
     style.surface = surface;
-    style.border = surface;
+    style.border = if focus_visible && !node.pressed {
+        style.border
+    } else {
+        surface
+    };
     style.border_width = workbench_button_border_width();
-    style.text = command_palette.primary_text;
-    style.glyph = command_palette.primary_text;
+    let text = if node.pressed {
+        command_palette.primary_pressed_text
+    } else {
+        command_palette.primary_text
+    };
+    style.text = text;
+    style.glyph = text;
     style
 }

@@ -145,6 +145,7 @@ impl SceneRendererCore {
                 None,
                 stage_streamer,
                 stage_mesh_pipelines,
+                Some(&mut self.ibl_bake_pipeline_cache),
                 uses_mesh_pipeline_context.then_some(mesh_draw_lists),
                 self.hzb_occlusion_culler.as_ref(),
                 is_shadow.then_some(&self.shadow_map_renderer),
@@ -180,6 +181,7 @@ impl SceneRendererCore {
                 None,
                 None,
                 None,
+                Some(&mut self.ibl_bake_pipeline_cache),
                 None,
                 None,
                 None,
@@ -254,6 +256,7 @@ impl SceneRendererCore {
             None,
             Some(streamer),
             Some(&mut self.mesh_pipelines),
+            Some(&mut self.ibl_bake_pipeline_cache),
             Some(mesh_draw_lists),
             self.hzb_occlusion_culler.as_ref(),
             None,
@@ -327,6 +330,7 @@ impl SceneRendererCore {
                 None,
                 Some(streamer),
                 None,
+                Some(&mut self.ibl_bake_pipeline_cache),
                 None,
                 None,
                 None,
@@ -428,6 +432,8 @@ mod tests {
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
+            half_resolution_transparency_depth_sigma:
+                crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
             graph: RenderGraphBuilder::new("stage-order-test")
                 .compile()
                 .expect("stage order test graph"),

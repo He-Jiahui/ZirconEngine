@@ -12,7 +12,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui#WorkbenchStatusItem",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
 ]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchValidationLog]
 root = "validation_log_root"

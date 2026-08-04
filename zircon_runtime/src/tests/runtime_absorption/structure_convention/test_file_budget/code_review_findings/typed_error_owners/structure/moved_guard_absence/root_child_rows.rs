@@ -7,11 +7,6 @@ pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_CHILDREN: &[(&str, &str, &str)]
         "runtime_15_typed_error_structure_moved_guard_absence_is_child_owner",
     ),
     (
-        "child_ownership_status",
-        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD_OWNERSHIP_STATUS_CHILD,
-        TYPED_ERROR_MOVED_GUARD_ABSENCE_CHILD_OWNER_ROUTE_STATUS_GUARD,
-    ),
-    (
         "preserved_guards",
         TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_PRESERVED_GUARDS_CHILD,
         "runtime_15_typed_error_moved_guard_absence_preserved_guards_are_child_owned",
@@ -31,11 +26,6 @@ pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_CHILDREN: &[(&str, &str, &str)]
         TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_BUDGETS_CHILD,
         "runtime_15_typed_error_moved_guard_absence_children_line_budgets_are_current",
     ),
-    (
-        "status_mirrors",
-        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_STATUS_MIRRORS_CHILD,
-        TYPED_ERROR_MOVED_GUARD_ABSENCE_STATUS_GUARD,
-    ),
 ];
 
 pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
@@ -43,11 +33,6 @@ pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_CHILDREN: &[(&str, &str, &
         "root_paths",
         TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_PATHS_CHILD,
         "TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_PATHS_CHILD",
-    ),
-    (
-        "root_statuses",
-        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_STATUSES_CHILD,
-        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_INVENTORY_STATUS,
     ),
     (
         "root_child_rows",
@@ -58,10 +43,5 @@ pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_CHILDREN: &[(&str, &str, &
         "root_sources",
         TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_SOURCES_CHILD,
         "moved_guard_absence_child_sources",
-    ),
-    (
-        "root_inventory",
-        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_INVENTORY_CHILD,
-        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_INVENTORY_GUARD,
     ),
 ];

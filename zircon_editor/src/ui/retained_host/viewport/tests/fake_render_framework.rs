@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 
 use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
@@ -11,6 +13,14 @@ use zircon_runtime_interface::ui::surface::UiRenderExtract;
 #[derive(Default)]
 pub(super) struct FakeRenderFramework {
     pub(super) state: Mutex<FakeRenderFrameworkState>,
+    submit_gate: Mutex<Option<SubmitGate>>,
+    destroy_notifier: Mutex<Option<SyncSender<RenderViewportHandle>>>,
+    submit_in_flight: AtomicBool,
+}
+
+struct SubmitGate {
+    started: SyncSender<()>,
+    release: Receiver<()>,
 }
 
 #[derive(Default)]
@@ -31,6 +41,40 @@ pub(super) struct FakeRenderFrameworkState {
     pub(super) captures: HashMap<RenderViewportHandle, CapturedFrame>,
 }
 
+impl FakeRenderFramework {
+    pub(super) fn block_next_submit(&self) -> (Receiver<()>, SyncSender<()>) {
+        let (started_sender, started_receiver) = sync_channel(1);
+        let (release_sender, release_receiver) = sync_channel(1);
+        *self.submit_gate.lock().unwrap() = Some(SubmitGate {
+            started: started_sender,
+            release: release_receiver,
+        });
+        (started_receiver, release_sender)
+    }
+
+    pub(super) fn notify_next_destroy(&self) -> Receiver<RenderViewportHandle> {
+        let (sender, receiver) = sync_channel(1);
+        *self.destroy_notifier.lock().unwrap() = Some(sender);
+        receiver
+    }
+
+    fn wait_for_submit_gate(&self) {
+        let Some(gate) = self.submit_gate.lock().unwrap().take() else {
+            return;
+        };
+        self.submit_in_flight.store(true, Ordering::Release);
+        let _ = gate.started.send(());
+        let _ = gate.release.recv();
+        self.submit_in_flight.store(false, Ordering::Release);
+    }
+
+    fn notify_destroy(&self, viewport: RenderViewportHandle) {
+        if let Some(notifier) = self.destroy_notifier.lock().unwrap().take() {
+            let _ = notifier.send(viewport);
+        }
+    }
+}
+
 impl RenderFramework for FakeRenderFramework {
     fn create_viewport(
         &self,
@@ -45,11 +89,16 @@ impl RenderFramework for FakeRenderFramework {
     }
 
     fn destroy_viewport(&self, viewport: RenderViewportHandle) -> Result<(), RenderFrameworkError> {
-        self.state
-            .lock()
-            .unwrap()
-            .destroyed_viewports
-            .push(viewport);
+        self.notify_destroy(viewport);
+        if self.submit_in_flight.load(Ordering::Acquire) {
+            return Err(RenderFrameworkError::Backend(
+                "test framework rejected viewport destruction during submit".to_string(),
+            ));
+        }
+        let mut state = self.state.lock().unwrap();
+        state.destroyed_viewports.push(viewport);
+        state.viewport_sizes.remove(&viewport);
+        state.captures.remove(&viewport);
         Ok(())
     }
 
@@ -58,23 +107,26 @@ impl RenderFramework for FakeRenderFramework {
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
     ) -> Result<(), RenderFrameworkError> {
-        let mut state = self.state.lock().unwrap();
-        state.submitted_viewports.push(viewport);
-        state
-            .submitted_hybrid_gi_settings
-            .push(extract.lighting.hybrid_global_illumination.clone());
-        let size = state
-            .viewport_sizes
-            .get(&viewport)
-            .copied()
-            .unwrap_or(UVec2::new(1, 1));
-        state
-            .submitted_aspect_ratios
-            .push(size.x as f32 / size.y as f32);
-        state.captures.insert(
-            viewport,
-            CapturedFrame::new(1, 1, vec![viewport.raw() as u8, 0, 0, 255], viewport.raw()),
-        );
+        {
+            let mut state = self.state.lock().unwrap();
+            state.submitted_viewports.push(viewport);
+            state
+                .submitted_hybrid_gi_settings
+                .push(extract.lighting.hybrid_global_illumination.clone());
+            let size = state
+                .viewport_sizes
+                .get(&viewport)
+                .copied()
+                .unwrap_or(UVec2::new(1, 1));
+            state
+                .submitted_aspect_ratios
+                .push(size.x as f32 / size.y as f32);
+            state.captures.insert(
+                viewport,
+                CapturedFrame::new(1, 1, vec![viewport.raw() as u8, 0, 0, 255], viewport.raw()),
+            );
+        }
+        self.wait_for_submit_gate();
         Ok(())
     }
 
@@ -84,40 +136,43 @@ impl RenderFramework for FakeRenderFramework {
         extract: RenderFrameExtract,
         ui: Option<UiRenderExtract>,
     ) -> Result<(), RenderFrameworkError> {
-        let mut state = self.state.lock().unwrap();
-        state.submitted_viewports.push(viewport);
-        state
-            .submitted_hybrid_gi_settings
-            .push(extract.lighting.hybrid_global_illumination.clone());
-        let size = state
-            .viewport_sizes
-            .get(&viewport)
-            .copied()
-            .unwrap_or(UVec2::new(1, 1));
-        state
-            .submitted_aspect_ratios
-            .push(size.x as f32 / size.y as f32);
-        state.submitted_ui_command_counts.push(
-            ui.as_ref()
-                .map(|extract| extract.list.commands.len())
-                .unwrap_or(0),
-        );
-        state.submitted_ui_texts.push(
-            ui.as_ref()
-                .map(|extract| {
-                    extract
-                        .list
-                        .commands
-                        .iter()
-                        .filter_map(|command| command.text.clone())
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default(),
-        );
-        state.captures.insert(
-            viewport,
-            CapturedFrame::new(1, 1, vec![viewport.raw() as u8, 0, 0, 255], viewport.raw()),
-        );
+        {
+            let mut state = self.state.lock().unwrap();
+            state.submitted_viewports.push(viewport);
+            state
+                .submitted_hybrid_gi_settings
+                .push(extract.lighting.hybrid_global_illumination.clone());
+            let size = state
+                .viewport_sizes
+                .get(&viewport)
+                .copied()
+                .unwrap_or(UVec2::new(1, 1));
+            state
+                .submitted_aspect_ratios
+                .push(size.x as f32 / size.y as f32);
+            state.submitted_ui_command_counts.push(
+                ui.as_ref()
+                    .map(|extract| extract.list.commands.len())
+                    .unwrap_or(0),
+            );
+            state.submitted_ui_texts.push(
+                ui.as_ref()
+                    .map(|extract| {
+                        extract
+                            .list
+                            .commands
+                            .iter()
+                            .filter_map(|command| command.text.clone())
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default(),
+            );
+            state.captures.insert(
+                viewport,
+                CapturedFrame::new(1, 1, vec![viewport.raw() as u8, 0, 0, 255], viewport.raw()),
+            );
+        }
+        self.wait_for_submit_gate();
         Ok(())
     }
 

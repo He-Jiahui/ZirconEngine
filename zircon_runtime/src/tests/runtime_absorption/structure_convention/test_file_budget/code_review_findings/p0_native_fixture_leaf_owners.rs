@@ -14,10 +14,6 @@ mod root_inventory;
 mod root_paths;
 #[path = "p0_native_fixture_leaf_owners/root_sources.rs"]
 mod root_sources;
-#[path = "p0_native_fixture_leaf_owners/root_statuses.rs"]
-mod root_statuses;
-#[path = "p0_native_fixture_leaf_owners/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;

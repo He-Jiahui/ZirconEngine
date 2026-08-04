@@ -2,6 +2,8 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use zircon_runtime::asset::project::ProjectPaths;
+
 use super::ProjectAuthorityError;
 
 const PROJECT_MANIFEST_FILE: &str = "zircon-project.toml";
@@ -16,20 +18,17 @@ pub(super) fn canonical_project_root(path: &Path) -> Result<PathBuf, ProjectAuth
     } else {
         path
     };
-    let root = if root.is_absolute() {
-        root.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map_err(|source| ProjectAuthorityError::CurrentDirectory { source })?
-            .join(root)
-    };
-    reject_linked_components(&root)?;
-    if root.exists() {
-        fs::canonicalize(&root)
-            .map_err(|source| ProjectAuthorityError::io("canonicalize project root", &root, source))
-    } else {
-        Ok(root)
-    }
+    resolve_project_path(root)
+}
+
+/// Resolves an existing project path, or its deepest existing ancestor when publishing a new one.
+///
+/// This turns an OS path alias such as a Windows junction, SUBST drive, or symlink into one
+/// physical project identity before project ownership code reads or writes beneath it.
+pub(super) fn resolve_project_path(path: &Path) -> Result<PathBuf, ProjectAuthorityError> {
+    reject_blank_project_path(path)?;
+    ProjectPaths::resolve_root(path)
+        .map_err(|source| ProjectAuthorityError::io("canonicalize project path", path, source))
 }
 
 pub(super) fn validate_creation_target(root: &Path) -> Result<(), ProjectAuthorityError> {

@@ -179,6 +179,8 @@ Runtime 已向 production Editor 发布 immutable world inspection generation；
 
 - [ ] 复验既有 `zircon_app/tests/editor_mvp_authoring.rs`，确认它通过 App editor composition 创建完整 retained host/runtime gateway，且不直接构造简化 EditorState。
 - [ ] harness 从 F3 canonical project 打开 editor，读取 production WorldInspection，按 Hierarchy control/binding 选择 cube。
+- [ ] `--project` 与 `--automation` 在读取或创建 composition 前各自解析一次为现有物理路径；
+  `--location` 通过 ProjectAuthority 的同一 resolver 在创建前解析，automation report 和启动诊断只发布显示路径。
 - [ ] harness 向 `TransformPositionXCommit` 注入与用户提交等价的正常 UI event，等待 operation/transaction/save completion。
 - [ ] Drop 完整 app/host/gateway/session，创建第二份 App composition 并重新打开同一 project。
 - [ ] 第二份 composition 从 production snapshot 和 parsed persisted document 双重比较 entity/transform/refs。

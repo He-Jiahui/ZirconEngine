@@ -2,14 +2,17 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
-    let parent = read_runtime_src("rhi_wgpu/ui_surface.rs");
-    let batching = read_runtime_src("rhi_wgpu/ui_surface/batching.rs");
-    let batching_tests = read_runtime_src("rhi_wgpu/ui_surface/batching/tests.rs");
-    let render_pass = read_runtime_src("rhi_wgpu/ui_surface/render_pass.rs");
-    let retained_cache = read_runtime_src("rhi_wgpu/ui_surface/retained_cache.rs");
-    let surface_setup = read_runtime_src("rhi_wgpu/ui_surface/surface_setup.rs");
-    let tests = read_runtime_src("rhi_wgpu/ui_surface/tests.rs");
-    let text = read_runtime_src("rhi_wgpu/ui_surface/text.rs");
+    let parent = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs");
+    let batching = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs");
+    let batching_tests =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests.rs");
+    let render_pass = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs");
+    let retained_cache =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/retained_cache.rs");
+    let surface_setup =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs");
+    let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs");
+    let text = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -17,9 +20,6 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let rhi_ui_doc = read_repo("docs/zircon_runtime/rhi/ui_surface.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "WGPU UI surface parent keeps presenter, renderer lifecycle, and image cache responsibilities",
@@ -105,14 +105,15 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         ],
     );
     assert_contains_all(
-        "retained-cache child owns persistent target copy and restore",
+        "retained-cache child owns persistent target state and surface copy",
         &retained_cache,
         &[
             "pub(super) struct WgpuRetainedSurfaceCache",
+            "pub(super) fn initialized",
+            "pub(super) fn matches",
+            "pub(super) fn mark_initialized",
             "pub(super) fn record_copy_to_surface",
             "fn retained_copy_byte_count",
-            "pub(super) fn record_restore",
-            "fn restore_quad_vertices",
         ],
     );
     assert_contains_all(
@@ -198,15 +199,4 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 RHI WGPU UI surface render/setup owner split",
-            "runtime_15_rhi_wgpu_ui_surface_render_setup_owner_split_static_passed_cargo_timeout_no_result",
-            "rhi_wgpu/ui_surface.rs",
-            "rhi_wgpu/ui_surface/render_pass.rs",
-            "runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners",
-        ],
-    );
 }

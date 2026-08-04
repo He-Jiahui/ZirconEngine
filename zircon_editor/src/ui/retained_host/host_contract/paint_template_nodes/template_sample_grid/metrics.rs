@@ -13,10 +13,12 @@ pub(super) const MIN_TOP_GUTTER: f32 = 22.0;
 pub(super) const MAX_TOP_GUTTER: f32 = 30.0;
 pub(super) const MIN_BOTTOM_GUTTER: f32 = 34.0;
 pub(super) const MAX_BOTTOM_GUTTER: f32 = 44.0;
-pub(super) const TICK_FONT_SIZE: f32 = 10.0;
-pub(super) const TICK_LINE_HEIGHT: f32 = 12.0;
-pub(super) const AXIS_FONT_SIZE: f32 = 11.0;
-pub(super) const AXIS_LINE_HEIGHT: f32 = 14.0;
+pub(super) const TICK_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
+pub(super) const TICK_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+pub(super) const AXIS_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
+pub(super) const AXIS_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 pub(super) const POINT_RADIUS: i32 = 4;
 pub(super) const SELECTED_POINT_RADIUS: i32 = 6;
 pub(super) const POINT_EDGE_INSET: f32 = 7.0;
@@ -24,3 +26,4 @@ pub(super) const SAMPLE_LABEL_HEIGHT: f32 = 18.0;
 pub(super) const SAMPLE_LABEL_MIN_WIDTH: f32 = 54.0;
 pub(super) const SAMPLE_LABEL_OFFSET_X: f32 = 9.0;
 pub(super) const SAMPLE_LABEL_OFFSET_Y: f32 = -22.0;
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;

@@ -6,7 +6,7 @@ display_name = "Showcase Category Navigation"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.ShowcaseCategoryNav]
 root = "category_nav_root"
@@ -16,8 +16,8 @@ default_classes = ["showcase-panel"]
 component = "Button"
 control_id = "ShowAllCategory"
 classes = ["material-control", "material-button"]
-props = { text = "All", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "All", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowAllCategory", event = "Click", route = "component_lab.showcase.select_category.all" },
 ]
@@ -26,8 +26,8 @@ events = [
 component = "Button"
 control_id = "ShowVisualCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Visual", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Visual", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowVisualCategory", event = "Click", route = "component_lab.showcase.select_category.visual" },
 ]
@@ -36,8 +36,8 @@ events = [
 component = "Button"
 control_id = "ShowFeedbackCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Feedback", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Feedback", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowFeedbackCategory", event = "Click", route = "component_lab.showcase.select_category.feedback" },
 ]
@@ -46,8 +46,8 @@ events = [
 component = "Button"
 control_id = "ShowInputCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Input", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Input", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowInputCategory", event = "Click", route = "component_lab.showcase.select_category.input" },
 ]
@@ -56,8 +56,8 @@ events = [
 component = "Button"
 control_id = "ShowNumericCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Numeric", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Numeric", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowNumericCategory", event = "Click", route = "component_lab.showcase.select_category.numeric" },
 ]
@@ -66,8 +66,8 @@ events = [
 component = "Button"
 control_id = "ShowSelectionCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Selection", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Selection", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowSelectionCategory", event = "Click", route = "component_lab.showcase.select_category.selection" },
 ]
@@ -76,8 +76,8 @@ events = [
 component = "Button"
 control_id = "ShowReferenceCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Reference", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Reference", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowReferenceCategory", event = "Click", route = "component_lab.showcase.select_category.reference" },
 ]
@@ -86,8 +86,8 @@ events = [
 component = "Button"
 control_id = "ShowDataCategory"
 classes = ["material-control", "material-button"]
-props = { text = "Collections", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { text = "Collections", layout_padding_left = "$editor.density.gap.large", layout_padding_right = "$editor.density.gap.large", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small", layout_min_width = "$editor.control.height.default", layout_min_height = "$editor.control.height.dense", layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ShowDataCategory", event = "Click", route = "component_lab.showcase.select_category.collections" },
 ]
@@ -95,7 +95,7 @@ events = [
 [nodes.category_nav_root]
 component = "VerticalBox"
 control_id = "ComponentCategoryNav"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" } }
 children = [
   { node = "nav_all" },
   { node = "nav_visual" },

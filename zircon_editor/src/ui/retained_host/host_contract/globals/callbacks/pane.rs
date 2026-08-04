@@ -36,6 +36,8 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
         Option<Callback2<SharedString, SharedString>>,
     pub(in crate::ui::retained_host::host_contract) pointer_component_event:
         Option<Callback1<UiPointerComponentEvent>>,
+    pub(in crate::ui::retained_host::host_contract) template_table_row_selected:
+        Option<Callback5<SharedString, SharedString, i32, SharedString, SharedString>>,
     pub(in crate::ui::retained_host::host_contract) workbench_context_menu_requested:
         Option<Callback1<WorkbenchContextMenuRequestData>>,
     pub(in crate::ui::retained_host::host_contract) surface_control_edited:
@@ -76,6 +78,8 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
         Option<Callback8<SharedString, SharedString, i32, i32, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_reference_pointer_moved:
         Option<Callback6<SharedString, SharedString, f32, f32, f32, f32>>,
+    pub(in crate::ui::retained_host::host_contract) asset_reference_pointer_left:
+        Option<Callback1<SharedString>>,
     pub(in crate::ui::retained_host::host_contract) asset_reference_pointer_scrolled:
         Option<Callback7<SharedString, SharedString, f32, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) browser_asset_details_pointer_scrolled:

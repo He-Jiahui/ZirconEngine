@@ -10,7 +10,7 @@ use super::super::style::tree_icon_color;
 use super::support::{changed_pixel_count, pixel_at, tree_node};
 
 #[test]
-fn selected_tree_row_paints_muted_selected_fill_neutral_outline_icon_and_actions() {
+fn selected_tree_row_paints_muted_selected_fill_teal_outline_icon_and_actions() {
     let bytes = paint_template_nodes_for_test(
         280,
         48,
@@ -24,7 +24,7 @@ fn selected_tree_row_paints_muted_selected_fill_neutral_outline_icon_and_actions
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 280, 4, 19), PALETTE.border);
+    assert_eq!(pixel_at(&bytes, 280, 4, 19), PALETTE.accent);
     assert_eq!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_pressed);
     assert_ne!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_selected);
     assert!(changed_pixel_count(&bytes, 280, 50, 10, 40, 24) > 0);

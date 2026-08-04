@@ -1,11 +1,13 @@
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
     ShaderFeatureBits, ShaderPassType, ShaderPipelinePrewarmState, ShaderQualityTier,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShadingModelDescriptor,
-    ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    ShaderVariantPrewarmSource, ShadingModelDescriptor, ShadingModelId,
+    GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::{

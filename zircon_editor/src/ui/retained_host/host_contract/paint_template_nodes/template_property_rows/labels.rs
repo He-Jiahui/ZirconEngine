@@ -14,12 +14,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
     label_width: f32,
     opacity: f32,
 ) {
-    commands.push(text_command(
+    let Some(command) = text_command(
         label_text_rect(rect, label_width),
         clip,
         order,
         label,
         text_color(node),
         opacity,
-    ));
+    ) else {
+        return;
+    };
+    commands.push(command);
 }

@@ -152,8 +152,8 @@ jobs:
 
           $f5CargoGateContracts = [ordered]@{
             'zircon-app-target-server' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-server', '--locked')
-            'zircon-app-target-client-platform' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
-            'zircon-app-target-editor-host' = @('check', '-p', 'zircon_app', '--no-default-features', '--features', 'target-editor-host', '--locked')
+            'zircon-app-target-client-platform' = @('check', '-p', 'zircon_app', '--bin', 'zircon_runtime', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
+            'zircon-app-target-editor-host' = @('check', '-p', 'zircon_app', '--bin', 'zircon_editor', '--no-default-features', '--features', 'target-editor-host', '--locked')
             'zircon-app-target-client-shader-pbr-viewer' = @('check', '-p', 'zircon_app', '--bin', 'zircon_shader_pbr_viewer', '--no-default-features', '--features', 'target-client,platform-winit,input-gamepad,gamepad-gilrs', '--locked')
             'zircon-runtime-target-client' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-client', '--locked')
             'zircon-runtime-target-editor-host' = @('check', '-p', 'zircon_runtime', '--no-default-features', '--features', 'target-editor-host', '--locked')

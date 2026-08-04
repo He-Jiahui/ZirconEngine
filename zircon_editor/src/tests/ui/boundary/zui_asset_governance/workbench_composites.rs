@@ -12,6 +12,10 @@ fn workbench_transport_controls_match_unreal_animation_scrub_density() {
     let source = fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()));
 
+    assert!(
+        source.contains("styles = [\"res://ui/editor/theme/editor_tokens.zui\"]"),
+        "transport controls must explicitly import the tokens used by their root layout"
+    );
     assert_eq!(
         source
             .matches("component = \"WorkbenchIconButton\"")
@@ -25,15 +29,17 @@ fn workbench_transport_controls_match_unreal_animation_scrub_density() {
         "Unreal Animation scrub controls use 20x20 playback brushes"
     );
     for edge in ["left", "right", "top", "bottom"] {
-        let authored = format!("layout_padding_{edge} = 2.0");
+        let authored = format!("layout_padding_{edge} = \"$editor.density.gap.xsmall\"");
         assert_eq!(
             source.matches(&authored).count(),
             6,
-            "Unreal Animation.PlayControlsButton uses 2px padding on every edge: {authored}"
+            "Unreal Animation.PlayControlsButton must use the shared 2px density token on every edge: {authored}"
         );
     }
     assert_eq!(
-        source.matches("preferred = 28.0").count(),
+        source
+            .matches("preferred = \"$editor.control.height.dense\"")
+            .count(),
         7,
         "six 20px glyph buttons plus the root lane should keep compact 28px control height"
     );

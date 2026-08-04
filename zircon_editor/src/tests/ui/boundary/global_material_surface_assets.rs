@@ -8,6 +8,110 @@ use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 const MATERIAL_THEME_ZUI: &str = "res://ui/theme/editor_material.zui";
+const EDITOR_BASE_THEME_ZUI: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/ui/theme/editor_base.zui"
+));
+const PRIMARY_EDITOR_PANE_TEMPLATES: &[(&str, &str)] = &[
+    (
+        "animation editor",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/animation_editor.zui"
+        )),
+    ),
+    (
+        "console",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/console.zui"
+        )),
+    ),
+    (
+        "hierarchy",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/hierarchy.zui"
+        )),
+    ),
+    (
+        "inspector",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/assets/ui/editor/inspector.zui"
+        )),
+    ),
+];
+
+#[test]
+fn editor_base_control_geometry_uses_central_design_tokens() {
+    for token in [
+        "$editor.control.border_width",
+        "$editor.control.radius.small",
+        "$editor.control.radius.panel",
+    ] {
+        assert!(
+            EDITOR_BASE_THEME_ZUI.contains(token),
+            "editor base theme must consume the central control token `{token}`"
+        );
+    }
+
+    for raw_metric in [
+        "width = 1.0",
+        "radius = 5.0",
+        "radius = 6.0",
+        "radius = 8.0",
+    ] {
+        assert!(
+            !EDITOR_BASE_THEME_ZUI.contains(raw_metric),
+            "editor base theme must not retain local control geometry `{raw_metric}`"
+        );
+    }
+}
+
+#[test]
+fn primary_editor_panes_use_shared_control_and_text_tokens() {
+    for (name, template) in PRIMARY_EDITOR_PANE_TEMPLATES {
+        for token in [
+            "$editor.control.border_width",
+            "$editor.control.radius.small",
+        ] {
+            assert!(
+                template.contains(token),
+                "{name} pane must consume the shared token `{token}`"
+            );
+        }
+        for raw_metric in ["border_width = 1.0", "radius = 3.0", "radius = 4.0"] {
+            assert!(
+                !template.contains(raw_metric),
+                "{name} pane must not retain local control geometry `{raw_metric}`"
+            );
+        }
+    }
+
+    for (name, template) in PRIMARY_EDITOR_PANE_TEMPLATES
+        .iter()
+        .filter(|(name, _)| *name != "animation editor")
+    {
+        for token in [
+            "$editor.density.row_height",
+            "$editor.typography.strong.weight",
+        ] {
+            assert!(
+                template.contains(token),
+                "{name} pane must consume the shared token `{token}`"
+            );
+        }
+        assert!(
+            !template.contains("font_weight = 600"),
+            "{name} pane must not retain a local strong font weight"
+        );
+        assert!(
+            !template.contains("height = { min = 28.0"),
+            "{name} pane must not retain a local standard row height"
+        );
+    }
+}
 
 #[test]
 fn global_material_surface_assets_follow_responsive_contracts() {
@@ -325,7 +429,9 @@ fn root_has_responsive_contract(relative: &str, root: &Value) -> bool {
 fn root_responsive_pending_reason(relative: &str) -> Option<&'static str> {
     let normalized = relative.replace('\\', "/");
     if normalized.starts_with("editor/host/") || normalized.starts_with("editor/windows/") {
-        return Some("host/window roots are mounted into responsive shell slots pending direct asset layout cutover");
+        return Some(
+            "host/window roots are mounted into responsive shell slots pending direct asset layout cutover",
+        );
     }
     None
 }
@@ -382,7 +488,9 @@ fn material_import_pending_reason(relative: &str) -> Option<&'static str> {
         || normalized.starts_with("editor/windows/")
         || normalized.starts_with("editor/workbench_");
     if pending_host_or_window {
-        return Some("host/window chrome currently receives Material through shell projection; direct asset import remains tracked by this exception");
+        return Some(
+            "host/window chrome currently receives Material through shell projection; direct asset import remains tracked by this exception",
+        );
     }
     None
 }

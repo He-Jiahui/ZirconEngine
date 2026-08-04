@@ -14,14 +14,6 @@ struct HzbDepthRange {
     closest: f32,
 };
 
-fn furthest_depth(a: f32, b: f32) -> f32 {
-    return max(a, b);
-}
-
-fn closest_depth(a: f32, b: f32) -> f32 {
-    return min(a, b);
-}
-
 fn load_depth_range_or_far(coord: vec2<i32>, size: vec2<i32>) -> HzbDepthRange {
     if (coord.x < 0 || coord.y < 0 || coord.x >= size.x || coord.y >= size.y) {
         return HzbDepthRange(1.0, 1.0);
@@ -40,8 +32,8 @@ fn load_hzb_range_or_far(coord: vec2<i32>, size: vec2<i32>) -> HzbDepthRange {
 
 fn combine_depth_ranges(a: HzbDepthRange, b: HzbDepthRange) -> HzbDepthRange {
     return HzbDepthRange(
-        furthest_depth(a.furthest, b.furthest),
-        closest_depth(a.closest, b.closest),
+        zr_reduce_max_f32(a.furthest, b.furthest),
+        zr_reduce_min_f32(a.closest, b.closest),
     );
 }
 

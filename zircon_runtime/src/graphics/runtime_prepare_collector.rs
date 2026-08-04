@@ -17,7 +17,7 @@ use crate::graphics::scene::resources::MaterialCaptureSeed;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::GraphicsError;
 use crate::graphics::ViewportRenderFrame;
-use crate::rhi_wgpu::gpu_readback_queue::{GpuReadbackQueue, ReadbackError};
+use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
 
 pub trait RuntimePrepareCollector: Send + Sync {
     fn collect(

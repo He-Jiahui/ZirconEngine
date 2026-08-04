@@ -5,6 +5,7 @@ use super::super::super::template_nodes::{
 };
 use super::super::metrics::{linear_progress_radius, material_feedback_metrics_from_host};
 use super::super::palette::material_feedback_palette_from_host;
+use super::super::push_material_feedback_primitive_commands;
 use super::support::{pixel_at, positioned_backdrop_node, positioned_progress_node};
 use crate::ui::layouts::common::model_rc;
 
@@ -102,4 +103,73 @@ fn backdrop_uses_host_shadow_when_background_is_not_declared() {
         .find(|command| command.frame.x == 8.0 && command.frame.y == 8.0)
         .expect("backdrop command");
     assert_eq!(backdrop.background_color, Some(palette.backdrop_scrim));
+}
+
+#[test]
+fn fully_clipped_material_progress_does_not_emit_paint_commands() {
+    let node = positioned_progress_node("WorkbenchFeedbackProgress", 0.64, 8.0, 16.0, 184.0, 12.0);
+    let rect = FrameRect {
+        x: 8.0,
+        y: 16.0,
+        width: 184.0,
+        height: 12.0,
+    };
+    let clip = FrameRect {
+        x: 220.0,
+        y: 0.0,
+        width: 80.0,
+        height: 80.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_material_feedback_primitive_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &clip,
+        0,
+        1.0,
+    ));
+
+    assert!(commands.is_empty());
+}
+
+#[test]
+fn partially_clipped_material_backdrop_keeps_only_clipped_paint_commands() {
+    let node = positioned_backdrop_node("WorkbenchBackdropAtlas", 8.0, 8.0, 120.0, 32.0);
+    let rect = FrameRect {
+        x: 8.0,
+        y: 8.0,
+        width: 120.0,
+        height: 32.0,
+    };
+    let clip = FrameRect {
+        x: 16.0,
+        y: 12.0,
+        width: 60.0,
+        height: 20.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_material_feedback_primitive_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &clip,
+        0,
+        1.0,
+    ));
+
+    assert!(!commands.is_empty());
+    assert!(commands.iter().all(|command| command
+        .clip_frame
+        .as_ref()
+        .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+}
+
+fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {
+    inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner.x + inner.width <= outer.x + outer.width
+        && inner.y + inner.height <= outer.y + outer.height
 }

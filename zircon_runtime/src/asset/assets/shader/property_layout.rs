@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use crate::core::framework::render::{
     MaterialOptionKind, MaterialOptionRef, MaterialOptionTable, MaterialPropertyKind,
     MaterialPropertyLayout, MaterialPropertySlotRef, MaterialTextureBindingRef,
-    PropertyScalarClass,
+    PropertyScalarClass, RenderMaterialTextureDimension,
 };
 
 use super::{ShaderMaterialPropertyAsset, ShaderOptionAsset, ShaderTextureSlotAsset};
 
-const MATERIAL_PROPERTY_LAYOUT_ALGORITHM_VERSION: u8 = 1;
+const MATERIAL_PROPERTY_LAYOUT_ALGORITHM_VERSION: u8 = 2;
 const MATERIAL_PROPERTY_EMPTY_UNIFORM_SIZE: u32 = 16;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -256,6 +256,8 @@ fn material_layout_hash(
         hasher.update(binding.name.as_bytes());
         hasher.update(&binding.texture_binding.to_le_bytes());
         hasher.update(&binding.sampler_binding.to_le_bytes());
+        hasher.update(binding.kind.as_bytes());
+        hasher.update(&[0]);
         hasher.update(&[u8::from(binding.has_st_transform)]);
     }
     for option in options {
@@ -309,8 +311,9 @@ fn generate_material_wgsl(layout: &MaterialPropertyLayout) -> String {
     }
     for binding in &layout.texture_bindings {
         let name = material_identifier(&binding.name);
-        source.push_str(&format!(
-            "fn zr_sample_{name}(uv: vec2<f32>) -> vec4<f32> {{\n    return textureSample(zr_tex_{name}, zr_smp_{name}, uv);\n}}\n"
+        source.push_str(&texture_sample_helper_wgsl(
+            &name,
+            RenderMaterialTextureDimension::from_shader_kind(&binding.kind),
         ));
         if binding.has_st_transform {
             source.push_str(&format!(
@@ -366,12 +369,23 @@ fn component_swizzle(component: u8, count: u8) -> String {
 }
 
 fn texture_binding_type(kind: &str) -> &'static str {
-    match kind.trim().to_ascii_lowercase().as_str() {
-        "texture_cube" | "cube" => "texture_cube<f32>",
-        "texture_2d_array" => "texture_2d_array<f32>",
-        "texture_3d" => "texture_3d<f32>",
-        _ => "texture_2d<f32>",
-    }
+    RenderMaterialTextureDimension::from_shader_kind(kind).wgsl_sampled_texture_type()
+}
+
+fn texture_sample_helper_wgsl(name: &str, dimension: RenderMaterialTextureDimension) -> String {
+    let (parameters, coordinates) = match dimension {
+        RenderMaterialTextureDimension::D1 => ("coord: f32", "coord"),
+        RenderMaterialTextureDimension::D2 => ("uv: vec2<f32>", "uv"),
+        RenderMaterialTextureDimension::D2Array => ("uv: vec2<f32>, layer: i32", "uv, layer"),
+        RenderMaterialTextureDimension::Cube => ("direction: vec3<f32>", "direction"),
+        RenderMaterialTextureDimension::CubeArray => {
+            ("direction: vec3<f32>, layer: i32", "direction, layer")
+        }
+        RenderMaterialTextureDimension::D3 => ("position: vec3<f32>", "position"),
+    };
+    format!(
+        "fn zr_sample_{name}({parameters}) -> vec4<f32> {{\n    return textureSample(zr_tex_{name}, zr_smp_{name}, {coordinates});\n}}\n"
+    )
 }
 
 fn material_identifier(name: &str) -> String {
@@ -444,6 +458,19 @@ mod tests {
     }
 
     #[test]
+    fn render_shader_property_layout_hash_includes_texture_dimension() {
+        let two_dimensional =
+            generate_material_artifact(&[], &[], &[texture_slot("input", "texture_2d", false)]);
+        let cube =
+            generate_material_artifact(&[], &[], &[texture_slot("input", "texture_cube", false)]);
+
+        assert_ne!(
+            two_dimensional.property_layout.layout_hash,
+            cube.property_layout.layout_hash
+        );
+    }
+
+    #[test]
     #[cfg(feature = "graphics")]
     fn render_shader_generated_module_naga_accepts_full_type_surface_layout() {
         let properties = vec![
@@ -455,23 +482,38 @@ mod tests {
             property("flags", MaterialPropertyKind::UInt),
             property("enabled", MaterialPropertyKind::Bool),
         ];
-        let texture_slots = vec![ShaderTextureSlotAsset {
-            name: "base_color".to_string(),
-            kind: "texture_2d".to_string(),
-            required: false,
-            default: Some("white".to_string()),
-            sampler: None,
-            group: None,
-            label: None,
-            option: Some("detail_layer".to_string()),
-            st: true,
-            editor: BTreeMap::new(),
-        }];
+        let texture_slots = vec![
+            texture_slot("profile", "texture_1d", false),
+            texture_slot("base_color", "texture_2d", true),
+            texture_slot("decals", "texture_2d_array", false),
+            texture_slot("environment", "texture_cube", false),
+            texture_slot("environment_probes", "texture_cube_array", false),
+            texture_slot("volume", "texture_3d", false),
+        ];
 
         let artifact = generate_material_artifact(&properties, &[], &texture_slots);
 
         assert!(artifact.wgsl_source.contains("fn zr_mat_base_color_st()"));
         assert!(artifact.wgsl_source.contains("fn zr_uv_base_color"));
+        assert!(artifact
+            .wgsl_source
+            .contains("fn zr_sample_profile(coord: f32)"));
+        assert!(artifact
+            .wgsl_source
+            .contains("fn zr_sample_base_color(uv: vec2<f32>)"));
+        assert!(artifact
+            .wgsl_source
+            .contains("fn zr_sample_decals(uv: vec2<f32>, layer: i32)"));
+        assert!(artifact
+            .wgsl_source
+            .contains("fn zr_sample_environment(direction: vec3<f32>)"));
+        assert!(artifact.wgsl_source.contains("texture_cube_array<f32>"));
+        assert!(artifact
+            .wgsl_source
+            .contains("fn zr_sample_environment_probes(direction: vec3<f32>, layer: i32)"));
+        assert!(artifact
+            .wgsl_source
+            .contains("fn zr_sample_volume(position: vec3<f32>)"));
         naga::front::wgsl::parse_str(&artifact.wgsl_source).unwrap();
     }
 
@@ -523,6 +565,21 @@ mod tests {
             kind: kind.to_string(),
             default,
             editor,
+        }
+    }
+
+    fn texture_slot(name: &str, kind: &str, st: bool) -> ShaderTextureSlotAsset {
+        ShaderTextureSlotAsset {
+            name: name.to_string(),
+            kind: kind.to_string(),
+            required: false,
+            default: None,
+            sampler: None,
+            group: None,
+            label: None,
+            option: None,
+            st,
+            editor: BTreeMap::new(),
         }
     }
 

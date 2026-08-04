@@ -1,10 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::super::super::support::{
-    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
-    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows, read_text,
-};
+use super::super::super::support::{assert_contains_all, read_repo_text, read_text};
 
 #[test]
 fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
@@ -54,9 +51,6 @@ fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
         manifest_root,
         "docs/zircon_runtime/graphics/render-product-submit.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !hybrid_gi_files.is_empty(),
@@ -104,9 +98,6 @@ fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("render product submit doc", render_product_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,

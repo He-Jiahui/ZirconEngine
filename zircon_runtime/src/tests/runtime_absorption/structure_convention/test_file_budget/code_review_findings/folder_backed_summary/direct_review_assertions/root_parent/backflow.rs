@@ -78,7 +78,6 @@ fn runtime_15_code_review_findings_root_parent_direct_assertions_guard_is_folder
             ROOT_PARENT_DIRECT_ASSERTIONS_FOLDER_BACKED_SLICE,
             ROOT_PARENT_DIRECT_ASSERTIONS_FOLDER_BACKED_STATUS,
             ROOT_PARENT_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            ROOT_PARENT_DIRECT_ASSERTIONS_STATUS_GUARD,
             ROOT_PARENT_DIRECT_ASSERTIONS_BUDGET_GUARD,
         ],
     );

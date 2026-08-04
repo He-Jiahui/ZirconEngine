@@ -6,7 +6,7 @@ display_name = "Showcase Visual Section"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.ShowcaseVisualSection]
 root = "visual_section_root"
@@ -16,7 +16,7 @@ default_classes = ["showcase-panel", "material-surface"]
 component = "Label"
 control_id = "ComponentShowcaseVisualSectionTitle"
 classes = ["showcase-section-title"]
-props = { text = "Visual and Feedback", font_size = 13.0, font_weight = 700 }
+props = { text = "Visual and Feedback", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 
 [nodes.label_demo]

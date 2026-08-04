@@ -13,7 +13,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/inputs/workbench_field.zui#WorkbenchField",
   "res://ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchBlendSpaceDetails]
 root = "root"
@@ -23,7 +23,7 @@ default_classes = ["workbench-blend-space-details", "workbench-composite"]
 component = "VerticalGroup"
 control_id = "WorkbenchBlendSpaceDetailsRoot"
 classes = ["workbench-blend-space-details"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.xsmall" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "samples_title" }, { node = "run_forward" }, { node = "strafe_left" }, { node = "strafe_right" }, { node = "idle" }, { node = "axes_title" }, { node = "horizontal_axis" }, { node = "vertical_axis" }, { node = "grid_divisions" }, { node = "sample_title" }, { node = "asset_row" }, { node = "x_axis_row" }, { node = "interpolation_row" }, { node = "sample_position" }, { node = "rate_scale" }, { node = "fill" }]
 
 [nodes.samples_title]
@@ -38,7 +38,7 @@ control_id = "WorkbenchExtensionBlendSpaceSampleRunForwardRow"
 classes = ["workbench-table-row", "workbench-row-selected"]
 props = { text = "Run_Fwd  0  600  1.00", value = "run_forward", options = ["Run_Fwd", "0", "600", "1.00"], selected = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceRunSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.run" }]
+events = [{ id = "WorkbenchExtension/BlendSpaceRunSampleTableRow", event = "Click", route = "workbench.extension.blend_space.run_sample_table_row.select" }]
 
 [nodes.strafe_left]
 component = "WorkbenchTableRow"
@@ -46,7 +46,7 @@ control_id = "WorkbenchExtensionBlendSpaceSampleStrafeLeftRow"
 classes = ["workbench-table-row"]
 props = { text = "Strafe_L  -90  240  0.34", value = "strafe_left", options = ["Strafe_L", "-90", "240", "0.34"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceWalkSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.walk" }]
+events = [{ id = "WorkbenchExtension/BlendSpaceWalkSampleTableRow", event = "Click", route = "workbench.extension.blend_space.walk_sample_table_row.select" }]
 
 [nodes.strafe_right]
 component = "WorkbenchTableRow"
@@ -54,7 +54,7 @@ control_id = "WorkbenchExtensionBlendSpaceSampleStrafeRightRow"
 classes = ["workbench-table-row"]
 props = { text = "Strafe_R  90  240  0.32", value = "strafe_right", options = ["Strafe_R", "90", "240", "0.32"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceDiagonalSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.diagonal" }]
+events = [{ id = "WorkbenchExtension/BlendSpaceDiagonalSampleTableRow", event = "Click", route = "workbench.extension.blend_space.diagonal_sample_table_row.select" }]
 
 [nodes.idle]
 component = "WorkbenchTableRow"
@@ -62,7 +62,7 @@ control_id = "WorkbenchExtensionBlendSpaceSampleIdleRow"
 classes = ["workbench-table-row"]
 props = { text = "Idle  0  0  0.18", value = "idle", options = ["Idle", "0", "0", "0.18"] }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchExtension/BlendSpaceIdleSampleTableRow", event = "Click", route = "workbench.extension.blend_space.sample.idle" }]
+events = [{ id = "WorkbenchExtension/BlendSpaceIdleSampleTableRow", event = "Click", route = "workbench.extension.blend_space.idle_sample_table_row.select" }]
 
 [nodes.axes_title]
 component = "WorkbenchSectionTitle"

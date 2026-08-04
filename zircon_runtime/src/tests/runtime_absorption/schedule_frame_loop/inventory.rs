@@ -28,7 +28,6 @@ pub(super) const EXPECTED_RUNTIME_03_GUARD_FILES: &[&str] = &[
     "src/dynamic_api/tests/session_profiles.rs",
     "src/tests/time.rs",
     "src/tests/runtime_absorption/schedule_frame_loop.rs",
-    "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
 ];
 
 pub(super) const EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS: &[&str] = &[

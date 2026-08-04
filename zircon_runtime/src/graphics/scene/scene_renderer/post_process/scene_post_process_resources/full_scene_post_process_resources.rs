@@ -15,6 +15,10 @@ pub(crate) struct FullScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_msaa_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) half_res_transparency_depth_downsample_bind_group_layout:
+        wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) half_res_transparency_composite_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_histogram_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_bind_group_layout:
@@ -53,6 +57,10 @@ pub(crate) struct FullScenePostProcessResources {
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_msaa_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) half_res_transparency_depth_downsample_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) half_res_transparency_composite_pipeline:
+        wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_histogram_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_pipeline:
@@ -102,6 +110,8 @@ pub(crate) struct FullScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_params_buffer: wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::post_process) half_res_transparency_params_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_params_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::post_process) color_lut_bake_params_buffer:

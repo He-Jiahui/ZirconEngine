@@ -1,25 +1,26 @@
+#[cfg(test)]
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::load_preview_image;
 use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::ModelRc;
-use crate::ui::template_runtime::{
-    RetainedUiHostNodeModel, RetainedUiHostProjection, RetainedUiHostRouteProjection,
-    RetainedUiHostValue,
-};
+#[cfg(test)]
+use crate::ui::template_runtime::RetainedUiHostValue;
+use crate::ui::template_runtime::{RetainedUiHostNodeModel, RetainedUiHostProjection};
 use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 
 use super::component_contract_metadata::tokens_for_component_role;
 use super::pane_data_conversion::{
-    NotificationCenterMetadata, projected_command_palette_options,
-    projected_command_palette_structured_options, projected_notification_center_metadata_from_host,
-    projected_notification_center_option_rows, projected_notification_center_value_text,
+    projected_command_palette_options, projected_command_palette_structured_options,
+    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
     structured_menu_items, structured_options_for_node,
 };
 use super::template_layout_context::apply_table_layout_context_variant;
 
+#[path = "workbench_window_projection/defaults.rs"]
+mod defaults;
 #[path = "workbench_window_projection/host_value_toml.rs"]
 mod host_value_toml;
 #[path = "workbench_window_projection/mount.rs"]
@@ -30,9 +31,21 @@ mod node_index;
 mod notification_cache;
 #[path = "workbench_window_projection/previous_node_index.rs"]
 mod previous_node_index;
+#[path = "workbench_window_projection/properties.rs"]
+mod properties;
+#[path = "workbench_window_projection/selection_style.rs"]
+mod selection_style;
+#[path = "workbench_window_projection/status_right.rs"]
+mod status_right;
 #[path = "workbench_window_projection/typed_canvas.rs"]
 mod typed_canvas;
 
+use defaults::{
+    default_border_width, default_corner_radius, default_text_tone,
+    default_workbench_surface_variant, is_workbench_command_palette_mount,
+    is_workbench_notification_center_mount, projected_workbench_text,
+    projected_workbench_value_text, resolve_workbench_role,
+};
 use host_value_toml::{
     toml_values_from_host_properties, toml_values_from_host_properties_without_notifications,
 };
@@ -40,17 +53,20 @@ use mount::project_node_into_mount;
 use node_index::ProjectionNodeIndex;
 use notification_cache::reusable_notification_rows;
 use previous_node_index::{PreviousWorkbenchNodeIndex, model_with_projection_identity};
+use properties::{
+    bool_property, color_property, first_string_property, integer_property, normalized_percent,
+    numeric_property, preferred_route_action_id, preferred_route_binding, shared_string_list,
+    string_array_property, template_frame,
+};
+use selection_style::{
+    clear_button_surface_style_values, is_cleared_inspector_property_row,
+    normalize_workbench_selection_control_style_values,
+};
+use status_right::{
+    inherited_status_right_color_property, inherited_status_right_numeric_property,
+};
 use typed_canvas::projected_typed_canvas_data;
 
-const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
-const WORKBENCH_STATUS_RIGHT_LABEL_COLOR: host_contract::primitives::Color =
-    host_contract::primitives::Color::from_rgb_u8(125, 137, 144);
-const WORKBENCH_SELECTION_SELECTED_SURFACE: &str = "#173942";
-const WORKBENCH_SELECTION_ACCENT: &str = "#2aa6b8";
-const WORKBENCH_RADIO_SELECTED_SURFACE: &str = "#1b272d";
-const WORKBENCH_RADIO_SELECTED_BORDER: &str = "#4c5b63";
-const WORKBENCH_TOGGLE_SELECTED_BORDER: &str = "#414b54";
-const WORKBENCH_TOGGLE_SELECTED_THUMB: &str = "#a4aeb4";
 const UI_HOST_WINDOW_ROOT_CONTROL_ID: &str = "UiHostWindowRoot";
 
 pub(crate) fn to_host_contract_workbench_window_nodes(
@@ -432,554 +448,6 @@ fn to_host_contract_workbench_window_node_with_previous(
         frame: template_frame(node.frame),
         ..host_contract::TemplatePaneNodeData::default()
     })
-}
-
-fn inherited_status_right_numeric_property(
-    node: &RetainedUiHostNodeModel,
-    node_index: &ProjectionNodeIndex<'_>,
-    property: &str,
-) -> Option<f64> {
-    inherited_status_right_parent(node, node_index)
-        .and_then(|parent| numeric_property(&parent.properties, property))
-        .or_else(|| {
-            (property == "status_right_offset_y" && is_status_right_control(node))
-                .then_some(WORKBENCH_STATUS_RIGHT_OFFSET_Y)
-        })
-}
-
-fn inherited_status_right_color_property(
-    node: &RetainedUiHostNodeModel,
-    node_index: &ProjectionNodeIndex<'_>,
-    property: &str,
-) -> Option<host_contract::primitives::Color> {
-    inherited_status_right_parent(node, node_index)
-        .and_then(|parent| color_property(&parent.properties, property))
-        .or_else(|| {
-            (property == "status_right_label_color" && is_status_right_control(node))
-                .then_some(WORKBENCH_STATUS_RIGHT_LABEL_COLOR)
-        })
-}
-
-fn inherited_status_right_parent<'a>(
-    node: &RetainedUiHostNodeModel,
-    node_index: &ProjectionNodeIndex<'a>,
-) -> Option<&'a RetainedUiHostNodeModel> {
-    if !is_status_right_control(node) {
-        return None;
-    }
-
-    let mut parent_id = node.parent_id.as_deref();
-    while let Some(current_parent_id) = parent_id {
-        let parent = node_index.node(current_parent_id)?;
-        if parent.control_id.as_deref() == Some("WorkbenchWindowStatusBar") {
-            return Some(parent);
-        }
-        parent_id = parent.parent_id.as_deref();
-    }
-    None
-}
-
-fn is_status_right_control(node: &RetainedUiHostNodeModel) -> bool {
-    matches!(
-        node.control_id.as_deref(),
-        Some(
-            "WorkbenchStatusGrid"
-                | "WorkbenchStatusSnap"
-                | "WorkbenchStatusTaskProgress"
-                | "WorkbenchStatusTaskLabel"
-                | "WorkbenchStatusTaskBar"
-                | "WorkbenchStatusSnapToggle"
-                | "WorkbenchStatusWorld"
-                | "WorkbenchStatusTarget"
-                | "WorkbenchStatusZoom"
-        )
-    )
-}
-
-fn is_cleared_inspector_property_row(
-    control_id: &str,
-    properties: &BTreeMap<String, RetainedUiHostValue>,
-) -> bool {
-    if !matches!(
-        control_id,
-        "WorkbenchMeshRow"
-            | "WorkbenchMaterialRow"
-            | "WorkbenchComponentPropertySlot03Row"
-            | "WorkbenchComponentPropertySlot04Row"
-    ) && !control_id.starts_with("WorkbenchComponentPropertyVirtualRow")
-    {
-        return false;
-    }
-
-    first_string_property(properties, &["text"]).is_none_or(|text| text.is_empty())
-        && first_string_property(properties, &["value_text"]).is_none_or(|value| value.is_empty())
-}
-
-fn clear_button_surface_style_values(values: &mut BTreeMap<String, toml::Value>) {
-    for key in ["background", "background_color", "border", "border_color"] {
-        values.remove(key);
-    }
-}
-
-fn normalize_workbench_selection_control_style_values(
-    values: &mut BTreeMap<String, toml::Value>,
-    node: &RetainedUiHostNodeModel,
-    component_role: &str,
-) {
-    if !active_workbench_selection_control(node) {
-        return;
-    }
-
-    if is_workbench_checkbox_control(node, component_role) {
-        set_toml_string_aliases(
-            values,
-            &["background", "background_color"],
-            WORKBENCH_SELECTION_SELECTED_SURFACE,
-        );
-        set_toml_string_aliases(
-            values,
-            &["border", "border_color"],
-            WORKBENCH_SELECTION_ACCENT,
-        );
-    } else if is_workbench_radio_control(node, component_role) {
-        set_toml_string_aliases(
-            values,
-            &["background", "background_color"],
-            WORKBENCH_RADIO_SELECTED_SURFACE,
-        );
-        set_toml_string_aliases(
-            values,
-            &["border", "border_color"],
-            WORKBENCH_RADIO_SELECTED_BORDER,
-        );
-    } else if is_workbench_toggle_control(node, component_role) {
-        set_toml_string_aliases(
-            values,
-            &["background", "background_color"],
-            WORKBENCH_SELECTION_SELECTED_SURFACE,
-        );
-        set_toml_string_aliases(
-            values,
-            &["border", "border_color"],
-            WORKBENCH_TOGGLE_SELECTED_BORDER,
-        );
-        set_toml_string_aliases(
-            values,
-            &["foreground", "foreground_color"],
-            WORKBENCH_TOGGLE_SELECTED_THUMB,
-        );
-    }
-}
-
-fn active_workbench_selection_control(node: &RetainedUiHostNodeModel) -> bool {
-    node.checked
-        || bool_property(&node.properties, "checked")
-        || bool_property(&node.properties, "selected")
-}
-
-fn is_workbench_checkbox_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
-    component_role == "checkbox"
-        || matches!(node.component.as_str(), "Checkbox" | "WorkbenchCheckbox")
-        || node
-            .control_id
-            .as_deref()
-            .is_some_and(|control_id| control_id.contains("Checkbox"))
-}
-
-fn is_workbench_radio_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
-    component_role == "radio"
-        || matches!(node.component.as_str(), "Radio" | "WorkbenchRadio")
-        || node
-            .control_id
-            .as_deref()
-            .is_some_and(|control_id| control_id.contains("Radio"))
-}
-
-fn is_workbench_toggle_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
-    component_role == "toggle"
-        || matches!(
-            node.component.as_str(),
-            "Toggle" | "Switch" | "WorkbenchToggle" | "WorkbenchSwitch"
-        )
-        || node
-            .control_id
-            .as_deref()
-            .is_some_and(|control_id| control_id.contains("Toggle"))
-}
-
-fn set_toml_string_aliases(values: &mut BTreeMap<String, toml::Value>, keys: &[&str], value: &str) {
-    for key in keys {
-        values.insert((*key).to_string(), toml::Value::String(value.to_string()));
-    }
-}
-
-fn projected_workbench_text(node: &RetainedUiHostNodeModel, component_role: &str) -> String {
-    let authored_text = first_string_property(&node.properties, &["text", "label"]);
-    let authored_text = authored_text.or_else(|| {
-        matches!(node.component.as_str(), "SearchField")
-            .then(|| first_string_property(&node.properties, &["placeholder"]))
-            .flatten()
-    });
-    if prefers_authored_text_over_rendered_text(node.component.as_str(), component_role) {
-        authored_text
-            .or_else(|| node.text.clone())
-            .unwrap_or_default()
-    } else {
-        node.text.clone().or(authored_text).unwrap_or_default()
-    }
-}
-
-fn prefers_authored_text_over_rendered_text(component: &str, component_role: &str) -> bool {
-    matches!(
-        component_role,
-        "button"
-            | "toggle"
-            | "tab"
-            | "tabs"
-            | "tab-list"
-            | "segmented-control"
-            | "checkbox"
-            | "radio"
-            | "icon-button"
-    ) || matches!(
-        component,
-        "Button"
-            | "Toggle"
-            | "ToggleButton"
-            | "Switch"
-            | "Checkbox"
-            | "Radio"
-            | "RadioField"
-            | "SegmentedControl"
-            | "Tab"
-            | "Tabs"
-            | "TabList"
-            | "IconButton"
-    )
-}
-
-fn projected_workbench_value_text(
-    node: &RetainedUiHostNodeModel,
-    component_role: &str,
-    button_style_values: &BTreeMap<String, toml::Value>,
-) -> String {
-    display_node_value_text(node, component_role)
-        .or_else(|| projected_notification_center_value_text(component_role, button_style_values))
-        .or_else(|| first_string_property(&node.properties, &["value_text"]))
-        .or_else(|| display_value_property_for_node(node, component_role))
-        .unwrap_or_default()
-}
-
-fn display_node_value_text(node: &RetainedUiHostNodeModel, component_role: &str) -> Option<String> {
-    if !uses_value_property_as_display_text(node.component.as_str(), component_role) {
-        return None;
-    }
-
-    node.value_text.clone()
-}
-
-fn display_value_property_for_node(
-    node: &RetainedUiHostNodeModel,
-    component_role: &str,
-) -> Option<String> {
-    if !uses_value_property_as_display_text(node.component.as_str(), component_role) {
-        return None;
-    }
-
-    first_string_property(&node.properties, &["value"])
-}
-
-fn uses_value_property_as_display_text(component: &str, component_role: &str) -> bool {
-    matches!(
-        component_role,
-        "input-field"
-            | "number-field"
-            | "range-field"
-            | "slider"
-            | "range-slider"
-            | "segmented-control"
-            | "combo-box"
-            | "dropdown"
-            | "enum-field"
-            | "flags-field"
-            | "search-select"
-            | "asset-field"
-            | "object-field"
-            | "instance-field"
-            | "property-row"
-    ) || matches!(
-        component,
-        "InputField"
-            | "TextField"
-            | "LineEdit"
-            | "NumberField"
-            | "RangeField"
-            | "Slider"
-            | "RangeSlider"
-            | "SegmentedControl"
-            | "ComboBox"
-            | "Dropdown"
-            | "EnumField"
-            | "FlagsField"
-            | "SearchSelect"
-            | "AssetField"
-            | "ObjectField"
-            | "InstanceField"
-            | "PropertyRow"
-    )
-}
-
-fn resolve_workbench_role(component: &str) -> &'static str {
-    match component {
-        "Button" => "Button",
-        "IconButton" => "IconButton",
-        "ComboBox" | "Dropdown" | "SearchSelect" => "Dropdown",
-        "ContextActionMenu" | "ContextMenu" | "Menu" | "PopupMenu" => "Menu",
-        "InputField" | "TextField" | "NumberField" => "InputField",
-        "SearchField" => "SearchField",
-        "Checkbox" => "Checkbox",
-        "Radio" => "Radio",
-        "RangeField" | "Slider" => "Slider",
-        "Toggle" | "Switch" => "Toggle",
-        "Table" | "EditableTable" => "Table",
-        "Image" => "Image",
-        "SvgIcon" => "SvgIcon",
-        "Icon" => "Icon",
-        "Tooltip" => "Tooltip",
-        "NotificationCenter" => "NotificationCenter",
-        "Label" | "Text" => "Label",
-        _ => "Mount",
-    }
-}
-
-fn default_workbench_surface_variant(component: &str, component_role: &str) -> Option<String> {
-    match (component, component_role) {
-        (_, "button") | ("Button", _) | ("IconButton", _) => Some("panel".to_string()),
-        ("InputField", _) | ("TextField", _) | ("NumberField", _) | ("SearchField", _) => {
-            Some("inset".to_string())
-        }
-        ("Label", _) | ("Text", _) => None,
-        _ => Some("panel".to_string()),
-    }
-}
-
-fn is_workbench_command_palette_mount(component: &str, control_id: &str) -> bool {
-    component == "WorkbenchCommandPalette" || control_id == "WorkbenchCommandPalette"
-}
-
-fn is_workbench_notification_center_mount(component: &str, control_id: &str) -> bool {
-    component == "NotificationCenter"
-        || component == "WorkbenchNotificationCenter"
-        || control_id == "WorkbenchNotificationCenter"
-}
-
-fn default_text_tone(component: &str, component_role: &str, surface_variant: &str) -> String {
-    if matches!(component, "Image" | "SvgIcon" | "Icon" | "IconButton") {
-        "muted".to_string()
-    } else if matches!(component_role, "button") || matches!(surface_variant, "accent" | "primary")
-    {
-        "primary".to_string()
-    } else {
-        String::new()
-    }
-}
-
-fn default_corner_radius(component: &str, component_role: &str) -> f64 {
-    match (component, component_role) {
-        ("Button", _)
-        | ("IconButton", _)
-        | ("InputField", _)
-        | ("SearchField", _)
-        | (_, "button") => 5.0,
-        ("Label", _) | ("Text", _) => 0.0,
-        _ => 4.0,
-    }
-}
-
-fn default_border_width(
-    component: &str,
-    component_role: &str,
-    surface_variant: &str,
-) -> Option<f64> {
-    if matches!(component, "Label" | "Text") && surface_variant.is_empty() {
-        return None;
-    }
-    if matches!(component_role, "button")
-        || matches!(
-            component,
-            "Button" | "IconButton" | "InputField" | "TextField" | "NumberField" | "SearchField"
-        )
-        || !surface_variant.is_empty()
-    {
-        Some(1.0)
-    } else {
-        None
-    }
-}
-
-fn template_frame(frame: UiFrame) -> host_contract::TemplateNodeFrameData {
-    host_contract::TemplateNodeFrameData {
-        x: frame.x,
-        y: frame.y,
-        width: frame.width,
-        height: frame.height,
-    }
-}
-
-fn shared_string_list(
-    values: Vec<String>,
-) -> ModelRc<crate::ui::retained_host::primitives::SharedString> {
-    model_rc(values.into_iter().map(Into::into).collect())
-}
-
-fn first_string_property(
-    properties: &BTreeMap<String, RetainedUiHostValue>,
-    keys: &[&str],
-) -> Option<String> {
-    keys.iter()
-        .find_map(|key| string_property(properties, key))
-        .filter(|value| !value.is_empty())
-}
-
-fn string_property(
-    properties: &BTreeMap<String, RetainedUiHostValue>,
-    key: &str,
-) -> Option<String> {
-    match properties.get(key) {
-        Some(RetainedUiHostValue::String(value)) => Some(value.clone()),
-        Some(RetainedUiHostValue::Integer(value)) => Some(value.to_string()),
-        Some(RetainedUiHostValue::Float(value)) => Some(value.to_string()),
-        Some(RetainedUiHostValue::Bool(value)) => Some(value.to_string()),
-        _ => None,
-    }
-}
-
-fn numeric_property(properties: &BTreeMap<String, RetainedUiHostValue>, key: &str) -> Option<f64> {
-    match properties.get(key) {
-        Some(RetainedUiHostValue::Float(value)) => Some(*value),
-        Some(RetainedUiHostValue::Integer(value)) => Some(*value as f64),
-        Some(RetainedUiHostValue::String(value)) => value.parse().ok(),
-        _ => None,
-    }
-}
-
-fn integer_property(properties: &BTreeMap<String, RetainedUiHostValue>, key: &str) -> Option<i32> {
-    match properties.get(key) {
-        Some(RetainedUiHostValue::Integer(value)) => i32::try_from(*value).ok(),
-        Some(RetainedUiHostValue::Float(value)) => Some(*value as i32),
-        Some(RetainedUiHostValue::String(value)) => value.parse().ok(),
-        _ => None,
-    }
-}
-
-fn bool_property(properties: &BTreeMap<String, RetainedUiHostValue>, key: &str) -> bool {
-    match properties.get(key) {
-        Some(RetainedUiHostValue::Bool(value)) => *value,
-        Some(RetainedUiHostValue::String(value)) => value.parse().unwrap_or(false),
-        _ => false,
-    }
-}
-
-fn normalized_percent(properties: &BTreeMap<String, RetainedUiHostValue>) -> f32 {
-    let Some(value) = numeric_property(properties, "value") else {
-        return 0.0;
-    };
-    let min = numeric_property(properties, "min").unwrap_or(0.0);
-    let max = numeric_property(properties, "max").unwrap_or(100.0);
-    if max <= min {
-        0.0
-    } else {
-        ((value - min) / (max - min)).clamp(0.0, 1.0) as f32
-    }
-}
-
-fn string_array_property(
-    properties: &BTreeMap<String, RetainedUiHostValue>,
-    key: &str,
-    fallback: &[String],
-) -> Vec<String> {
-    match properties.get(key) {
-        Some(RetainedUiHostValue::Array(values)) => values
-            .iter()
-            .filter_map(host_value_display_text)
-            .filter(|value| !value.is_empty())
-            .collect(),
-        Some(value) => host_value_display_text(value).into_iter().collect(),
-        None => fallback.to_vec(),
-    }
-}
-
-fn host_value_display_text(value: &RetainedUiHostValue) -> Option<String> {
-    match value {
-        RetainedUiHostValue::String(value) => Some(value.clone()),
-        RetainedUiHostValue::Integer(value) => Some(value.to_string()),
-        RetainedUiHostValue::Float(value) => Some(value.to_string()),
-        RetainedUiHostValue::Bool(value) => Some(value.to_string()),
-        RetainedUiHostValue::Datetime(value) => Some(value.clone()),
-        RetainedUiHostValue::Array(_) | RetainedUiHostValue::Table(_) => None,
-    }
-}
-
-fn preferred_route_binding<const N: usize>(
-    routes: &[RetainedUiHostRouteProjection],
-    kinds: [UiEventKind; N],
-) -> Option<String> {
-    kinds
-        .iter()
-        .find_map(|kind| routes.iter().find(|route| route.event_kind == *kind))
-        .or_else(|| routes.first())
-        .map(|route| route.binding_id.clone())
-}
-
-fn preferred_route_action_id<const N: usize>(
-    routes: &[RetainedUiHostRouteProjection],
-    kinds: [UiEventKind; N],
-) -> Option<String> {
-    preferred_route(routes, kinds).map(|route| {
-        if route.action_id.is_empty() {
-            route.binding_id.clone()
-        } else {
-            route.action_id.clone()
-        }
-    })
-}
-
-fn preferred_route<const N: usize>(
-    routes: &[RetainedUiHostRouteProjection],
-    kinds: [UiEventKind; N],
-) -> Option<&RetainedUiHostRouteProjection> {
-    kinds
-        .iter()
-        .find_map(|kind| routes.iter().find(|route| route.event_kind == *kind))
-        .or_else(|| routes.first())
-}
-
-fn color_property(
-    properties: &BTreeMap<String, RetainedUiHostValue>,
-    key: &str,
-) -> Option<crate::ui::retained_host::primitives::Color> {
-    let RetainedUiHostValue::String(value) = properties.get(key)? else {
-        return None;
-    };
-    let rgba = parse_hex_rgba(value)?;
-    Some(crate::ui::retained_host::primitives::Color::from_argb_u8(
-        rgba[3], rgba[0], rgba[1], rgba[2],
-    ))
-}
-
-fn parse_hex_rgba(raw: &str) -> Option<[u8; 4]> {
-    let hex = raw.trim().strip_prefix('#')?;
-    let channel = |range: std::ops::Range<usize>| u8::from_str_radix(&hex[range], 16).ok();
-    match hex.len() {
-        6 => Some([channel(0..2)?, channel(2..4)?, channel(4..6)?, 255]),
-        8 => Some([
-            channel(0..2)?,
-            channel(2..4)?,
-            channel(4..6)?,
-            channel(6..8)?,
-        ]),
-        _ => None,
-    }
 }
 
 #[cfg(test)]

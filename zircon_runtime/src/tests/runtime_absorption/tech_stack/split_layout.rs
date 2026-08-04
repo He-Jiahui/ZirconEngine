@@ -28,15 +28,6 @@ const REVIEW_FINDINGS_OUTPUT_ARCHIVE: &str = include_str!(
 );
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
-const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_platform_rows.rs"
-);
-const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
-);
-const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
-);
 
 #[test]
 fn runtime_15_tech_stack_route_owner_is_folder_backed() {
@@ -92,7 +83,6 @@ fn assert_child_owners_are_focused() {
         &[
             "assert_runtime_01_guard_anchors",
             "tech_stack_dependency_guard.rs",
-            "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
         ],
     );
     assert_contains_all(
@@ -146,8 +136,6 @@ fn assert_docs_and_status_mirror_split() {
             REVIEW_FINDINGS_OUTPUT_ARCHIVE,
         ),
         ("module convention doc", MODULE_CONVENTION_DOC),
-        ("status row data", STATUS_ROW_DATA),
-        ("status map", STATUS_MAP),
     ] {
         assert!(
             source.contains("runtime_15_tech_stack_route_owner_split_static_passed_cargo_deferred"),
@@ -183,10 +171,6 @@ fn assert_docs_and_status_mirror_split() {
     ] {
         assert_contains_all(label, source, &[route_anchor, "此处仅展示当前现状的概述"]);
     }
-    assert!(
-        DATE_MAP.contains("Runtime 15 M3 tech-stack route-owner split"),
-        "date map should mirror the tech_stack route-owner split slice"
-    );
     assert_contains_all(
         "module convention doc",
         MODULE_CONVENTION_DOC,

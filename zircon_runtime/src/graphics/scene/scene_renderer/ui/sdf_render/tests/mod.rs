@@ -10,9 +10,7 @@ use super::*;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::ui::render::{
-    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph,
-};
+use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiGlyphArtifactLine;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
     SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan, SdfAtlasRun,
     plan_sdf_atlas,
@@ -30,9 +28,7 @@ use crate::text::sdf::{
 use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot};
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::shaping::vertical_glyph_rotation;
-use crate::text::{
-    ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, ShapedGlyphRotation, VerticalMode,
-};
+use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLine, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap,
@@ -46,6 +42,7 @@ mod material;
 mod prepare_report;
 mod product_framebuffer;
 mod shader_contract;
+mod shaped_advances;
 
 fn synthetic_layered_plan(page_index: u32) -> SdfAtlasPlan {
     let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, page_index);

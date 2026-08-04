@@ -63,6 +63,8 @@ class NumericDispatchState {
     pub var target: NumericEntity;
     pub var targetPresent: bool;
     pub var globalCritVsRooted: float;
+    pub var judgementDamageMultiplier: float;
+    pub var judgementFlatDamage: float;
     pub var nextAttackCrit: bool;
     pub var nextDamageKillsTarget: bool;
     pub var meleeSwingHit: bool;
@@ -98,6 +100,8 @@ class NumericDispatchState {
         this.target = new NumericEntity();
         this.targetPresent = true;
         this.globalCritVsRooted = 0.0;
+        this.judgementDamageMultiplier = 1.0;
+        this.judgementFlatDamage = 0.0;
         this.nextAttackCrit = false;
         this.nextDamageKillsTarget = false;
         this.meleeSwingHit = false;
@@ -619,7 +623,8 @@ dispatchJudgement(state: NumericDispatchState, abilityIndex: int): void {
         abilities.metric(abilityIndex, state.source.level, "castTime"),
         false
     );
-    var damage = randomRange(state, minimum, maximum) + <float>directHitBonus;
+    var damage = randomRange(state, minimum, maximum) * state.judgementDamageMultiplier +
+        state.judgementFlatDamage + <float>directHitBonus;
     var forced = consumeNextAttackCrit(state);
     var crit = randomChance(state, forced ? 1.0 : state.source.spellCritChance);
     if (crit) { damage = damage * (1.5 + state.source.critDmgSpellBonus); }
@@ -849,6 +854,8 @@ pub contractTest(): int {
     judgement.source.level = 4;
     judgement.source.spellPower = 70.0;
     judgement.source.spellCritChance = 0.2;
+    judgement.judgementDamageMultiplier = 1.2;
+    judgement.judgementFlatDamage = 2.0;
     judgement.target.id = <uint>10;
     appendAura(
         judgement.source,
@@ -864,7 +871,7 @@ pub contractTest(): int {
     dispatchNumericAbility(judgement, 15, 1, 0);
     if (judgement.source.auraIds.length != 0 || judgement.auraLostEvents != 1 ||
         judgement.randomIndex != 2 || judgement.damageAmounts.length != 1 ||
-        <int>judgement.damageAmounts[0] != 67 ||
+        <int>judgement.damageAmounts[0] != 76 ||
         <string>judgement.damageSchools[0] != "holy" ||
         judgement.spellHitNotes != 1) {
         return -9;

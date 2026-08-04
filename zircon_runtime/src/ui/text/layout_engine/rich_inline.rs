@@ -1,24 +1,24 @@
-use crate::text::LayoutItem;
-use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
-    ELLIPSIS, RichWordWrapMode, layout_rich_text_glyph_wrapped_with_provider,
-    layout_rich_text_with_provider, layout_rich_text_word_wrapped_with_provider,
-    measured_grapheme_widths_with_provider, resolve_rich_run_style, rich_forced_line_ranges,
-    rich_glyph_line_ranges_with_provider, soft_hyphen_break_suffix_at,
+    layout_rich_text_glyph_wrapped_with_provider, layout_rich_text_with_provider,
+    layout_rich_text_word_wrapped_with_provider, measured_grapheme_widths_with_provider,
+    resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
+    soft_hyphen_break_suffix_at, RichWordWrapMode, ELLIPSIS,
 };
 use crate::text::shaping::TextShapeRunProvider;
+use crate::text::LayoutItem;
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextDirection,
     UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
-use crate::text::text_style;
 use super::super::rich_text::UiParsedText;
-use super::candidate_line::{CandidateLine, append_segment};
+use super::candidate_line::{append_segment, CandidateLine};
 use super::ellipsis::{ellipsize_line_with_advances, is_ellipsis_overflow};
 use super::line_box::aligned_x;
 use super::visual_order::apply_visual_order_with_advances;
+use crate::text::text_style;
 
 pub(super) fn layout_inline_rich_text_with_provider(
     parsed: &UiParsedText,
@@ -83,24 +83,24 @@ pub(super) fn layout_inline_rich_text_with_provider(
         rich_layout.size.x > frame.width.max(0.0) || rich_layout.size.y > frame.height.max(0.0);
     let mut max_line_height = 0.0_f32;
     let mut previous_paragraph_start = None;
+    let paragraph_constraints =
+        super::paragraph_layout::resolve_paragraph_line_constraints_with_provider(
+            parsed,
+            style,
+            frame.width,
+            provider,
+        );
     for (rich_line, source_range) in rich_layout.lines.iter().zip(source_ranges) {
         let source_range = UiTextRange {
             start: usize::try_from(source_range.0).ok()?,
             end: usize::try_from(source_range.1).ok()?,
         };
         let line_height = rich_line.ascent + rich_line.descent;
-        let paragraph_start =
-            super::paragraph_layout::physical_paragraph_start(parsed.text(), source_range.start);
+        let paragraph_start = crate::text::hard_line_start(parsed.text(), source_range.start);
         let first_physical_line = previous_paragraph_start != Some(paragraph_start);
         previous_paragraph_start = Some(paragraph_start);
-        let constraints = super::paragraph_layout::line_constraints_with_provider(
-            parsed,
-            style,
-            frame.width,
-            source_range.start,
-            first_physical_line,
-            provider,
-        );
+        let constraints =
+            paragraph_constraints.for_source_offset(source_range.start, first_physical_line);
         max_line_height = max_line_height.max(line_height);
         let item_start = usize::try_from(rich_line.item_range.0).ok()?;
         let item_end = usize::try_from(rich_line.item_range.1).ok()?;
@@ -111,7 +111,7 @@ pub(super) fn layout_inline_rich_text_with_provider(
             .flat_map(|item| item_advances(item, parsed, style, provider))
             .collect::<Vec<_>>();
         let line_text = parsed
-            .text
+            .text()
             .get(source_range.start..source_range.end)?
             .to_string();
         let mut visual_line = CandidateLine {

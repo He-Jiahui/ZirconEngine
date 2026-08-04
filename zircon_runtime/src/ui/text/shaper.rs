@@ -3,15 +3,20 @@ use zircon_runtime_interface::ui::{
     surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
 };
 
-use crate::text::SharedTextLayoutSession;
+use crate::text::{SharedTextLayoutSession, TextDocumentKey};
 
 use super::layout_engine::{
     layout_text as shared_layout_text,
     layout_text_with_provider as shared_layout_text_with_provider,
+    layout_text_with_provider_and_viewport as shared_layout_text_with_provider_and_viewport,
+    layout_text_with_viewport as shared_layout_text_with_viewport,
     measure_text_size as shared_measure_text_size,
     measure_text_size_with_provider as shared_measure_text_size_with_provider,
     measure_text_source_range_width as shared_measure_text_source_range_width,
+    measure_unwrapped_text_height as shared_measure_unwrapped_text_height,
+    measure_unwrapped_text_height_with_provider as shared_measure_unwrapped_text_height_with_provider,
 };
+use super::resolved_layout::UiTextViewport;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct UiTextShapeRequest<'a> {
@@ -19,6 +24,8 @@ pub(crate) struct UiTextShapeRequest<'a> {
     pub style: &'a UiResolvedStyle,
     pub frame: UiFrame,
     pub clip_frame: Option<UiFrame>,
+    pub viewport: Option<UiTextViewport>,
+    pub document_key: Option<TextDocumentKey>,
 }
 
 impl<'a> UiTextShapeRequest<'a> {
@@ -33,7 +40,14 @@ impl<'a> UiTextShapeRequest<'a> {
             style,
             frame,
             clip_frame,
+            viewport: None,
+            document_key: None,
         }
+    }
+
+    pub(crate) const fn with_viewport(mut self, viewport: UiTextViewport) -> Self {
+        self.viewport = Some(viewport);
+        self
     }
 }
 
@@ -53,12 +67,21 @@ pub(crate) struct UiSharedTextShaper;
 
 impl UiTextShaper for UiSharedTextShaper {
     fn shape_text(&self, request: &UiTextShapeRequest<'_>) -> UiResolvedTextLayout {
-        shared_layout_text(
-            request.text,
-            request.style,
-            request.frame,
-            request.clip_frame,
-        )
+        match request.viewport {
+            Some(viewport) => shared_layout_text_with_viewport(
+                request.text,
+                request.style,
+                request.frame,
+                request.clip_frame,
+                viewport,
+            ),
+            None => shared_layout_text(
+                request.text,
+                request.style,
+                request.frame,
+                request.clip_frame,
+            ),
+        }
     }
 
     fn measure_text(&self, text: &str, style: &UiResolvedStyle) -> UiSize {
@@ -81,13 +104,24 @@ impl UiSharedTextShaper {
         request: &UiTextShapeRequest<'_>,
         provider: &mut SharedTextLayoutSession,
     ) -> UiResolvedTextLayout {
-        shared_layout_text_with_provider(
-            request.text,
-            request.style,
-            request.frame,
-            request.clip_frame,
-            provider,
-        )
+        match request.viewport {
+            Some(viewport) => shared_layout_text_with_provider_and_viewport(
+                request.text,
+                request.style,
+                request.frame,
+                request.clip_frame,
+                viewport,
+                request.document_key,
+                provider,
+            ),
+            None => shared_layout_text_with_provider(
+                request.text,
+                request.style,
+                request.frame,
+                request.clip_frame,
+                provider,
+            ),
+        }
     }
 
     fn measure_text_with_provider(
@@ -160,6 +194,18 @@ pub fn layout_text(
     UiTextShaperStack::new().shape_text(&UiTextShapeRequest::new(text, style, frame, clip_frame))
 }
 
+pub(crate) fn layout_text_with_viewport(
+    text: &str,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: UiTextViewport,
+) -> UiResolvedTextLayout {
+    UiTextShaperStack::new().shape_text(
+        &UiTextShapeRequest::new(text, style, frame, clip_frame).with_viewport(viewport),
+    )
+}
+
 pub(crate) fn layout_text_with_provider(
     text: &str,
     style: &UiResolvedStyle,
@@ -173,6 +219,21 @@ pub(crate) fn layout_text_with_provider(
     )
 }
 
+pub(crate) fn layout_text_with_provider_and_viewport(
+    text: &str,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: UiTextViewport,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
+    let mut request =
+        UiTextShapeRequest::new(text, style, frame, clip_frame).with_viewport(viewport);
+    request.document_key = document_key;
+    UiTextShaperStack::new().shape_text_with_provider(&request, provider)
+}
+
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
     UiTextShaperStack::new().measure_text(text, style)
 }
@@ -183,6 +244,18 @@ pub(crate) fn measure_text_size_with_provider(
     provider: &mut SharedTextLayoutSession,
 ) -> UiSize {
     UiTextShaperStack::new().measure_text_with_provider(text, style, provider)
+}
+
+pub(crate) fn measure_unwrapped_text_height(text: &str, style: &UiResolvedStyle) -> Option<f32> {
+    shared_measure_unwrapped_text_height(text, style)
+}
+
+pub(crate) fn measure_unwrapped_text_height_with_provider(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut SharedTextLayoutSession,
+) -> Option<f32> {
+    shared_measure_unwrapped_text_height_with_provider(text, style, provider)
 }
 
 pub(crate) fn measure_text_source_range_width(

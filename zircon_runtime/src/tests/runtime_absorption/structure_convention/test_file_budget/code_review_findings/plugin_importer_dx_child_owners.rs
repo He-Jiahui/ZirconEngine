@@ -14,14 +14,8 @@ mod root_inventory;
 mod root_paths;
 #[path = "plugin_importer_dx_owners/root_sources.rs"]
 mod root_sources;
-#[path = "plugin_importer_dx_owners/root_statuses.rs"]
-mod root_statuses;
 #[path = "plugin_importer_dx_owners/source_inventory.rs"]
 mod source_inventory;
-#[path = "plugin_importer_dx_owners/status_docs.rs"]
-mod status_docs;
-#[path = "plugin_importer_dx_owners/status_mirrors.rs"]
-mod status_mirrors;
 #[path = "plugin_importer_dx_owners/structure_assertions.rs"]
 mod structure_assertions;
 

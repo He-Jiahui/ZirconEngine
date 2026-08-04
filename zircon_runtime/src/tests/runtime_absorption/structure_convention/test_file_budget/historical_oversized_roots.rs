@@ -33,9 +33,6 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/test_file_budget.rs",
-    );
 
     assert_contains_all(
         "test-file budget parent mounts historical oversized roots guard",
@@ -176,15 +173,4 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M3 historical oversized test roots closeout",
-            "runtime_15_historical_oversized_test_roots_closeout_static_passed_cargo_deferred",
-            "core/framework/tests.rs",
-            "ui/tests/v2_asset.rs",
-            "runtime_15_historical_oversized_test_roots_are_folder_backed",
-        ],
-    );
 }

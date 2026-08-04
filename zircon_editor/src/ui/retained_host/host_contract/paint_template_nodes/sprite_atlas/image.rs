@@ -44,7 +44,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_at
             generation: cached.generation,
         });
     }
-    let image = image::open(texture_path).ok()?.into_rgba8();
+    let image = image::open(&texture_path).ok()?.into_rgba8();
     if image.dimensions() != (width, height) {
         return None;
     }

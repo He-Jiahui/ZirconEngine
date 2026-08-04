@@ -18,6 +18,9 @@ pub(super) fn push_heatmap_field(
     order: i32,
     opacity: f32,
 ) {
+    if !geometry.is_drawable() {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         geometry.outer.clone(),
         Some(clip.clone()),

@@ -7,10 +7,6 @@ from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
 
 UI_PENDING_GATE_ANCHORS = (
     (
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_10.rs",
-        "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-    ),
-    (
         RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ),

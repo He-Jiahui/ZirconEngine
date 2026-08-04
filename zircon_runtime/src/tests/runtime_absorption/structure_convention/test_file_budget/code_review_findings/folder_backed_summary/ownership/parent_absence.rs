@@ -61,7 +61,6 @@ fn runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_i
             FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_SLICE,
             FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS,
             FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_GUARD,
-            FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_STATUS_GUARD,
             FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_BUDGET_GUARD,
         ],
     );

@@ -152,7 +152,7 @@ fn session_destroy_reports_explicit_not_found_after_headless_destroy() {
 
 #[test]
 fn create_session_requires_output_pointer() {
-    let api = unsafe { &*zircon_runtime_get_api_v3(core::ptr::null()) };
+    let api = unsafe { &*zircon_runtime_get_api_v4(core::ptr::null()) };
     let create_session = api.create_session.expect("create_session");
     let status = unsafe {
         create_session(

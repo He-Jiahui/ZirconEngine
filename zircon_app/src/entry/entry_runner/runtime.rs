@@ -7,6 +7,7 @@ use std::{
 };
 
 use winit::event_loop::EventLoop;
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::core::framework::window::{
     WindowDescriptor, WindowExitCondition, WindowLifecyclePolicy,
 };
@@ -66,9 +67,31 @@ fn runtime_session_startup_request(
     project_root: Option<&Path>,
 ) -> String {
     let project_root = project_root
+        .map(ProjectPaths::display_path)
         .map(|project_root| project_root.display().to_string())
         .unwrap_or_else(|| "<none>".to_owned());
     format!("profile={} project={project_root}", profile.as_str())
+}
+
+/// Resolves the command-line project root to the one physical identity used by the runtime.
+///
+/// This keeps project aliases, junctions, SUBST drives, and symbolic links at the process
+/// boundary instead of allowing downstream runtime services to resolve them independently.
+fn resolve_runtime_project_root(
+    project_root: Option<&Path>,
+) -> Result<Option<PathBuf>, Box<dyn Error>> {
+    let Some(requested_root) = project_root else {
+        return Ok(None);
+    };
+    let project_root = ProjectPaths::resolve_existing_path(requested_root)
+        .map_err(|_| invalid_runtime_project_root_error(requested_root))?;
+    if !project_root.is_dir() {
+        return Err(invalid_runtime_project_root_error(requested_root).into());
+    }
+    if !project_root.join("zircon-project.toml").is_file() {
+        return Err(missing_runtime_project_manifest_error(requested_root).into());
+    }
+    Ok(Some(project_root))
 }
 
 fn runtime_library_startup_error(
@@ -106,12 +129,27 @@ fn runtime_frame_capture_path_from_value(
     if !path.is_absolute() {
         return Err(runtime_startup_execution_error(
             "runtime_app",
-            format!("{RUNTIME_FRAME_CAPTURE_PNG_ENV}={}", path.display()),
+            format!(
+                "{RUNTIME_FRAME_CAPTURE_PNG_ENV}={}",
+                ProjectPaths::display_path(&path).display()
+            ),
             "first-frame PNG capture path must be absolute",
             "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
         ));
     }
-    Ok(Some(path))
+    ProjectPaths::resolve_root(&path)
+        .map(Some)
+        .map_err(|error| {
+            runtime_startup_execution_error(
+                "runtime_app",
+                format!(
+                    "{RUNTIME_FRAME_CAPTURE_PNG_ENV}={}",
+                    ProjectPaths::display_path(&path).display()
+                ),
+                format!("could not resolve first-frame PNG capture path: {error}"),
+                "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
+            )
+        })
 }
 
 fn runtime_process_teardown_complete_diagnostic() -> &'static str {
@@ -181,14 +219,8 @@ impl EntryRunner {
             )
             .into());
         }
-        if let Some(project_root) = runtime_session_args.project_root.as_deref() {
-            if !project_root.is_dir() {
-                return Err(invalid_runtime_project_root_error(project_root).into());
-            }
-            if !project_root.join("zircon-project.toml").is_file() {
-                return Err(missing_runtime_project_manifest_error(project_root).into());
-            }
-        }
+        let project_root =
+            resolve_runtime_project_root(runtime_session_args.project_root.as_deref())?;
         let first_frame_capture_path = runtime_frame_capture_path_from_env()?;
         zircon_runtime::diagnostic_log::initialize_unity_process_log_with_config(
             "runtime",
@@ -203,7 +235,7 @@ impl EntryRunner {
         let runtime = LoadedRuntime::load_default().map_err(|error| {
             runtime_library_startup_error(
                 runtime_session_args.profile,
-                runtime_session_args.project_root.as_deref(),
+                project_root.as_deref(),
                 error,
             )
         })?;
@@ -221,7 +253,7 @@ impl EntryRunner {
         let session = RuntimeSession::create_with_profile_and_project(
             runtime,
             runtime_session_args.profile.as_bytes(),
-            runtime_session_args.project_root.as_deref(),
+            project_root.as_deref(),
             Some(wake_registration),
         )
         .map_err(|error| {
@@ -229,7 +261,7 @@ impl EntryRunner {
                 "runtime_session",
                 runtime_session_startup_request(
                     runtime_session_args.profile,
-                    runtime_session_args.project_root.as_deref(),
+                    project_root.as_deref(),
                 ),
                 format!("runtime session creation failed: {error}"),
                 "verify the selected profile, project, and runtime library ABI before retrying zircon_runtime",
@@ -241,7 +273,7 @@ impl EntryRunner {
             runtime_session_args.profile,
             runtime_exit_after_first_frame_enabled(),
         )
-        .with_persisted_scene_diagnostics(runtime_session_args.project_root.is_some())
+        .with_persisted_scene_diagnostics(project_root.is_some())
         .with_first_frame_capture_path(first_frame_capture_path);
         let failure_state = RuntimeEntryAppFailureState::default();
         let app = RuntimeEntryApp::new(session, host_config, failure_state.clone());
@@ -270,17 +302,14 @@ impl EntryRunner {
                 "runtime_session",
                 runtime_session_startup_request(
                     runtime_session_args.profile,
-                    runtime_session_args.project_root.as_deref(),
+                    project_root.as_deref(),
                 ),
                 format!("runtime session teardown failed: {error}"),
                 "verify the runtime surface and session lifecycle, then restart zircon_runtime",
             )) as Box<dyn Error>
         });
         finish_runtime_process(
-            runtime_session_startup_request(
-                runtime_session_args.profile,
-                runtime_session_args.project_root.as_deref(),
-            ),
+            runtime_session_startup_request(runtime_session_args.profile, project_root.as_deref()),
             event_loop_failure,
             runtime_app_failure,
             runtime_session_failure,
@@ -449,6 +478,37 @@ mod tests {
     }
 
     #[test]
+    fn runtime_project_root_resolution_uses_the_physical_template_identity() {
+        let template_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("templates")
+            .join("projects")
+            .join("renderable-empty");
+        let requested_root = template_root.join("assets").join("..");
+
+        let resolved = resolve_runtime_project_root(Some(&requested_root))
+            .unwrap()
+            .expect("a requested project root must resolve");
+
+        assert_eq!(
+            resolved,
+            ProjectPaths::resolve_existing_path(&template_root).unwrap()
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn runtime_project_root_resolution_rejects_drive_relative_paths() {
+        let requested_root = Path::new(r"C:zircon-project");
+        let error = resolve_runtime_project_root(Some(requested_root)).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "runtime startup diagnostic: component=runtime_app argument=--project requested=C:zircon-project cause=project root is not an existing directory recovery=provide an existing project-root directory after --project"
+        );
+    }
+
+    #[test]
     fn runtime_process_finish_preserves_a_single_terminal_failure() {
         let failure = runtime_startup_execution_error(
             "runtime_event_loop",
@@ -492,7 +552,7 @@ mod tests {
 
         assert_eq!(
             runtime_frame_capture_path_from_value(Some(path.clone().into_os_string())).unwrap(),
-            Some(path)
+            Some(ProjectPaths::resolve_root(path).unwrap())
         );
     }
 
@@ -511,7 +571,7 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn runtime_first_frame_capture_path_preserves_windows_absolute_path_semantics() {
+    fn runtime_first_frame_capture_path_resolves_windows_absolute_path_semantics() {
         for absolute in [
             PathBuf::from(r"C:\zircon\runtime-first-frame.png"),
             PathBuf::from(r"\\server\share\runtime-first-frame.png"),
@@ -519,7 +579,7 @@ mod tests {
             assert_eq!(
                 runtime_frame_capture_path_from_value(Some(absolute.clone().into_os_string(),))
                     .unwrap(),
-                Some(absolute)
+                Some(ProjectPaths::resolve_root(absolute).unwrap())
             );
         }
 
@@ -534,14 +594,14 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn runtime_first_frame_capture_path_preserves_non_utf8_absolute_path() {
+    fn runtime_first_frame_capture_path_resolves_non_utf8_absolute_path() {
         use std::os::unix::ffi::OsStringExt;
 
         let value = OsString::from_vec(vec![b'/', b't', b'm', b'p', b'/', 0xFF]);
 
         assert_eq!(
             runtime_frame_capture_path_from_value(Some(value.clone())).unwrap(),
-            Some(PathBuf::from(value))
+            Some(ProjectPaths::resolve_root(PathBuf::from(value)).unwrap())
         );
     }
 

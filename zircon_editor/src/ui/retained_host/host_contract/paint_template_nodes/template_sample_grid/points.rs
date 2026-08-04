@@ -53,6 +53,9 @@ pub(super) fn push_sample_points(
 
         if point.selected() && !point.label().trim().is_empty() {
             let label_width = selected_sample_label_width(point.label(), geometry.plot.width);
+            if label_width <= f32::EPSILON || geometry.plot.height < SAMPLE_LABEL_HEIGHT + 4.0 {
+                continue;
+            }
             let label_x = (x + SAMPLE_LABEL_OFFSET_X)
                 .min(geometry.plot.x + geometry.plot.width - label_width - 2.0)
                 .max(geometry.plot.x + 2.0);
@@ -80,7 +83,7 @@ pub(super) fn push_sample_points(
                 FrameRect {
                     x: label_frame.x + 5.0,
                     y: label_frame.y + 2.0,
-                    width: (label_frame.width - 10.0).max(1.0),
+                    width: (label_frame.width - 10.0).max(0.0),
                     height: TICK_LINE_HEIGHT,
                 },
                 clip,
@@ -96,9 +99,17 @@ pub(super) fn push_sample_points(
 }
 
 fn selected_sample_label_width(label: &str, plot_width: f32) -> f32 {
+    let available_width = if plot_width.is_finite() {
+        plot_width.max(0.0) * 0.6
+    } else {
+        0.0
+    };
+    if available_width < SAMPLE_LABEL_MIN_WIDTH {
+        return 0.0;
+    }
     (measure_runtime_text_width(label, TICK_FONT_SIZE) + 12.0)
         .max(SAMPLE_LABEL_MIN_WIDTH)
-        .min(plot_width.max(0.0) * 0.6)
+        .min(available_width)
 }
 
 fn push_diamond(
@@ -159,5 +170,14 @@ mod tests {
             wide_width > narrow_width,
             "selected labels need their actual glyph advances rather than a character count"
         );
+    }
+
+    #[test]
+    fn selected_sample_label_collapses_when_the_plot_cannot_fit_its_minimum_width() {
+        assert_eq!(
+            selected_sample_label_width("Blend source", SAMPLE_LABEL_MIN_WIDTH / 0.6 - 0.1),
+            0.0
+        );
+        assert_eq!(selected_sample_label_width("Blend source", f32::NAN), 0.0);
     }
 }

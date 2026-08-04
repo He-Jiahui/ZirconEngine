@@ -13,7 +13,7 @@ pub(crate) use content::{
 pub(crate) use reference::AssetReferenceListPointerEntry;
 pub(crate) use reference::{
     AssetPointerReferenceRoute, AssetReferenceListPointerBridge, AssetReferenceListPointerDispatch,
-    AssetReferenceListPointerLayout,
+    AssetReferenceListPointerLayout, asset_reference_content_height, asset_reference_viewport_y,
 };
 pub(crate) use tree::{
     AssetFolderTreePointerBridge, AssetFolderTreePointerDispatch, AssetFolderTreePointerLayout,

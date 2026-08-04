@@ -1,4 +1,5 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 use crate::ui::retained_host::host_contract::paint_template_nodes::visual_assets::raster_size_from_frame;
 
@@ -23,6 +24,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
     opacity: f32,
 ) {
     let image_rect = circular_progress_rect(rect);
+    if intersect(&image_rect, clip).is_none() {
+        return;
+    }
     let Some((width, height)) = raster_size_from_frame(image_rect.width, image_rect.height) else {
         return;
     };

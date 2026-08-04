@@ -28,7 +28,7 @@ pub use shared::SharedEditorMessageBus;
 pub use subscriber::EditorSubscriberId;
 pub use topic::{EditorTopic, EditorTopicError};
 pub use topics::{
-    TOPIC_DOCUMENT, TOPIC_FOCUS, TOPIC_JOB, TOPIC_MODE, TOPIC_SCENE_INSPECTION, TOPIC_TOOL,
-    TOPIC_TRANSACTION,
+    TOPIC_DOCUMENT, TOPIC_FOCUS, TOPIC_I18N, TOPIC_JOB, TOPIC_LOG, TOPIC_MODE,
+    TOPIC_SCENE_INSPECTION, TOPIC_TOOL, TOPIC_TRANSACTION,
 };
 pub use view_dirty_set::{EditorViewInvalidationMask, ViewDirtySet};

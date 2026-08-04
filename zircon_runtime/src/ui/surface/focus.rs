@@ -12,8 +12,8 @@ use zircon_runtime_interface::ui::{
 use crate::ui::tree::UiRuntimeTreeFocusExt;
 
 use super::input::{
-    commit_editable_text_composition_for_focus_loss, is_valid_input_owner,
-    text_state::{editable_text_input_is_secure, is_editable_text_input},
+    commit_editable_text_composition_for_focus_loss, editable_text_input_is_secure,
+    is_editable_text_input, is_valid_input_owner,
 };
 use super::surface::UiSurface;
 

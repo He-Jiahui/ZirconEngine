@@ -25,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn aligned
         UiTextAlign::Left | UiTextAlign::Justify => frame.x,
         UiTextAlign::Center => center_aligned_text_x(frame.x, frame.width, measured_width),
         UiTextAlign::Right => right_aligned_text_x(frame.x, frame.width, measured_width),
-        UiTextAlign::Start | UiTextAlign::End => unreachable!("resolved align is physical"),
+        UiTextAlign::Start | UiTextAlign::End => frame.x,
     }
 }
 

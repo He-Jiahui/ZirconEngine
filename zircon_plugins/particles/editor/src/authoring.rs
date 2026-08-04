@@ -4,9 +4,10 @@ use zircon_editor::core::asset::{
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
+    EditorUiTemplateDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -48,19 +49,19 @@ pub(crate) fn register_particles_authoring_extensions(
             ],
         },
     )?;
-    register_particles_component_drawers(registry)?;
+    register_particles_inspector_customizations(registry)?;
     let asset_type = AssetTypeId::parse(PARTICLES_SYSTEM_ASSET_KIND)?;
     register_authoring_contribution_batch(registry, particles_authoring_batch(asset_type))
 }
 
-fn register_particles_component_drawers(
+fn register_particles_inspector_customizations(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         PARTICLES_PREVIEW_TEMPLATE_ID,
         "plugins://particles/editor/preview.zui",
     ))?;
-    registry.register_component_drawer(ComponentDrawerDescriptor::new(
+    registry.register_inspector_customization(InspectorCustomizationDescriptor::new(
         PARTICLE_SYSTEM_COMPONENT_TYPE,
         "plugins://particles/editor/particle_system.drawer.zui",
         PARTICLES_COMPONENT_DRAWER_ID,

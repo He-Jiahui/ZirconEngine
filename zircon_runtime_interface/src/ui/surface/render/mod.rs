@@ -38,7 +38,8 @@ pub use command::UiRenderCommand;
 pub use command_kind::UiRenderCommandKind;
 pub use debug::{UiRenderBatchDebugEntry, UiRenderDebugSnapshot, UiRenderDebugStatsV2};
 pub use editable_text::{
-    UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextEditAction,
+    UiEditableTextState, UiTextByteRange, UiTextCaret, UiTextCaretAffinity, UiTextComposition,
+    UiTextEditAction, UiTextPreeditClause, UiTextPreeditClauseError, UiTextPreeditClauseKind,
     UiTextSelection,
 };
 pub use extract::{UiRenderExtract, UiRenderExtractKind, UiRenderStats};

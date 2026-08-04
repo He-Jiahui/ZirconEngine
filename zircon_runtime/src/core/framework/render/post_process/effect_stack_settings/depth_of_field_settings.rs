@@ -73,8 +73,8 @@ impl RenderDepthOfFieldSettings {
 #[cfg(test)]
 mod tests {
     use super::{
-        MAX_DEPTH_OF_FIELD_FOCAL_LENGTH_MM, MIN_DEPTH_OF_FIELD_BOKEH_BLADE_COUNT,
-        MIN_DEPTH_OF_FIELD_FOCUS_RANGE, RenderDepthOfFieldSettings,
+        RenderDepthOfFieldSettings, MAX_DEPTH_OF_FIELD_FOCAL_LENGTH_MM,
+        MIN_DEPTH_OF_FIELD_BOKEH_BLADE_COUNT, MIN_DEPTH_OF_FIELD_FOCUS_RANGE,
     };
 
     #[test]

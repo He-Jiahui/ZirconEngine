@@ -67,6 +67,7 @@ pub(super) fn parse(
 
     Ok(TextureContainerInfo {
         format: format!("ktx/gl-internal-0x{gl_internal_format:08x}"),
+        upload_bytes: None,
         width,
         height,
         dimension,

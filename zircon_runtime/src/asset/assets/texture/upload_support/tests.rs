@@ -1,5 +1,5 @@
 use super::TextureUploadSupport;
-use super::ktx::{KTX2_IDENTIFIER, KTX2_LEVEL_INDEX_OFFSET};
+use super::ktx::{KTX2_IDENTIFIER, KTX2_LEVEL_INDEX_ENTRY_SIZE, KTX2_LEVEL_INDEX_OFFSET};
 use crate::asset::{
     AssetUri, LIGHTMAP_RGBA16F_FORMAT, LIGHTMAP_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT,
     RGBA8_UNORM_SRGB_FORMAT, TextureAsset, TextureAssetDescriptor,
@@ -17,6 +17,67 @@ fn ktx2_upload_plan_rejects_level_payload_inside_level_index() {
         "ktx2/vk-133/supercompression-0",
         bytes,
         1,
+        1,
+    );
+
+    assert_eq!(
+        texture
+            .upload_readiness(TextureUploadSupport {
+                bc: true,
+                ..TextureUploadSupport::uncompressed_only()
+            })
+            .unsupported_reason(),
+        Some("ktx2 texture format or level index is not upload-ready")
+    );
+}
+
+#[test]
+fn ktx2_upload_plan_exposes_indexed_mip_subresources() {
+    let texture = TextureAsset::new_container(
+        AssetUri::parse("res://textures/two-mip.ktx2").unwrap(),
+        4,
+        4,
+        "ktx2/vk-133/supercompression-0",
+        ktx2_bc1_two_mip_bytes(),
+        2,
+        1,
+    );
+
+    let super::TextureUploadReadiness::Ready { plan } =
+        texture.upload_readiness(TextureUploadSupport {
+            bc: true,
+            ..TextureUploadSupport::uncompressed_only()
+        })
+    else {
+        panic!("complete KTX2 BC1 mip chain should be upload-ready");
+    };
+
+    assert_eq!(plan.subresources.len(), 2);
+    assert_eq!(plan.subresources[0].mip_level, 0);
+    assert_eq!(plan.subresources[0].array_layer, 0);
+    assert_eq!(plan.subresources[0].data_offset, 168);
+    assert_eq!(plan.subresources[0].data_length, 8);
+    assert_eq!(plan.subresources[1].mip_level, 1);
+    assert_eq!(plan.subresources[1].array_layer, 0);
+    assert_eq!(plan.subresources[1].data_offset, 160);
+    assert_eq!(plan.subresources[1].data_length, 8);
+}
+
+#[test]
+fn ktx2_upload_plan_rejects_overlapping_mip_payloads() {
+    let mut bytes = ktx2_bc1_two_mip_bytes();
+    write_u64_le(
+        &mut bytes,
+        KTX2_LEVEL_INDEX_OFFSET + KTX2_LEVEL_INDEX_ENTRY_SIZE,
+        168,
+    );
+    let texture = TextureAsset::new_container(
+        AssetUri::parse("res://textures/overlapping-mips.ktx2").unwrap(),
+        4,
+        4,
+        "ktx2/vk-133/supercompression-0",
+        bytes,
+        2,
         1,
     );
 
@@ -338,6 +399,36 @@ fn ktx2_bc1_level_bytes() -> Vec<u8> {
         KTX2_TEST_DFD_LENGTH as u32,
     );
     bytes.extend_from_slice(&[1_u8; 8]);
+    bytes
+}
+
+fn ktx2_bc1_two_mip_bytes() -> Vec<u8> {
+    const LEVEL_INDEX_END: usize = 128;
+    const DFD_OFFSET: usize = LEVEL_INDEX_END;
+    const DFD_LENGTH: usize = 32;
+    const SMALL_MIP_OFFSET: usize = DFD_OFFSET + DFD_LENGTH;
+    const BASE_MIP_OFFSET: usize = SMALL_MIP_OFFSET + 8;
+
+    let mut bytes = vec![0_u8; BASE_MIP_OFFSET + 8];
+    bytes[0..12].copy_from_slice(KTX2_IDENTIFIER);
+    write_u32_le(&mut bytes, 12, 133);
+    write_u32_le(&mut bytes, 16, 1);
+    write_u32_le(&mut bytes, 20, 4);
+    write_u32_le(&mut bytes, 24, 4);
+    write_u32_le(&mut bytes, 36, 1);
+    write_u32_le(&mut bytes, 40, 2);
+    write_u32_le(&mut bytes, 44, 0);
+    write_u32_le(&mut bytes, 48, DFD_OFFSET as u32);
+    write_u32_le(&mut bytes, 52, DFD_LENGTH as u32);
+    write_u64_le(&mut bytes, 80, BASE_MIP_OFFSET as u64);
+    write_u64_le(&mut bytes, 88, 8);
+    write_u64_le(&mut bytes, 96, 8);
+    write_u64_le(&mut bytes, 104, SMALL_MIP_OFFSET as u64);
+    write_u64_le(&mut bytes, 112, 8);
+    write_u64_le(&mut bytes, 120, 8);
+    write_u32_le(&mut bytes, DFD_OFFSET, DFD_LENGTH as u32);
+    bytes[SMALL_MIP_OFFSET..BASE_MIP_OFFSET].fill(17);
+    bytes[BASE_MIP_OFFSET..].fill(34);
     bytes
 }
 

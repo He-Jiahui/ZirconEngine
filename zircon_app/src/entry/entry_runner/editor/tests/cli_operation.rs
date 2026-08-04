@@ -178,6 +178,48 @@ fn editor_startup_argument_summary_redacts_operation_payloads() {
     }
 }
 
+#[cfg(windows)]
+#[test]
+fn editor_startup_argument_summary_hides_windows_verbatim_path_prefixes() {
+    let args = vec![
+        "--project".to_string(),
+        r"\\?\C:\ZirconBuilds\project".to_string(),
+        "--automation".to_string(),
+        r"\\?\UNC\server\share\automation.json".to_string(),
+        "--location".to_string(),
+        r"\\?\C:\ZirconBuilds".to_string(),
+    ];
+
+    assert_eq!(
+        editor_startup_argument_summary(&args),
+        r"--project C:\ZirconBuilds\project --automation \\server\share\automation.json --location C:\ZirconBuilds"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn editor_startup_argument_error_hides_windows_verbatim_path_prefixes_from_cause() {
+    let args = vec![
+        "--project".to_string(),
+        r"\\?\C:\ZirconBuilds\project".to_string(),
+        "--automation".to_string(),
+        r"\\?\UNC\server\share\automation.json".to_string(),
+    ];
+    let source = std::io::Error::other(format!(
+        "could not resolve project '{}' from automation '{}'",
+        args[1], args[3]
+    ));
+    let rendered = editor_startup_argument_error(&args, source.into()).to_string();
+
+    assert!(rendered.contains(
+        r"requested=--project C:\ZirconBuilds\project --automation \\server\share\automation.json"
+    ));
+    assert!(rendered.contains(
+        r"cause=could not resolve project 'C:\ZirconBuilds\project' from automation '\\server\share\automation.json'"
+    ));
+    assert!(!rendered.contains(r"\\?\"));
+}
+
 #[test]
 fn editor_startup_argument_error_redacts_payloads_from_requested_and_cause() {
     let secret = r#"{"token":"secret"}"#;

@@ -71,7 +71,7 @@ fn popup_row_focused_only_keeps_normal_background_with_focus_outline() {
 
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
     assert_eq!(focused.background, None);
-    assert_eq!(focused.outline, Some(PALETTE.border));
+    assert_eq!(focused.outline, Some(PALETTE.accent));
     assert_eq!(focused.text, PALETTE.text);
     assert_eq!(focused.adornment, PALETTE.text_muted);
 }
@@ -86,12 +86,26 @@ fn popup_row_hovered_while_focused_still_uses_hover_fill() {
 
     assert_eq!(hovered.state, UiPainterResolvedState::Focused);
     assert_eq!(hovered.background, Some(PALETTE.surface_hover));
-    assert_eq!(hovered.outline, Some(PALETTE.border));
+    assert_eq!(hovered.outline, Some(PALETTE.accent));
     assert_eq!(hovered.adornment, PALETTE.text);
 }
 
 #[test]
-fn popup_row_selected_or_checked_uses_muted_selected_fill_and_neutral_outline() {
+fn popup_row_pressed_uses_pressed_fill_without_selected_outline() {
+    let pressed = select_workbench_popup_row_style(WorkbenchPopupRowState {
+        pressed: true,
+        ..WorkbenchPopupRowState::default()
+    });
+
+    assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
+    assert_eq!(pressed.background, Some(PALETTE.surface_pressed));
+    assert_eq!(pressed.outline, None);
+    assert_eq!(pressed.text, PALETTE.text);
+    assert_eq!(pressed.adornment, PALETTE.text);
+}
+
+#[test]
+fn popup_row_selected_or_checked_uses_muted_selected_fill_and_teal_outline() {
     let selected = select_workbench_popup_row_style(WorkbenchPopupRowState {
         selected: true,
         focused: true,
@@ -101,9 +115,8 @@ fn popup_row_selected_or_checked_uses_muted_selected_fill_and_neutral_outline() 
     assert_eq!(selected.state, UiPainterResolvedState::Focused);
     assert_eq!(selected.background, Some(PALETTE.surface_pressed));
     assert_ne!(selected.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected.outline, Some(PALETTE.border));
-    assert_ne!(selected.outline, Some(PALETTE.accent));
-    assert_ne!(selected.outline, Some(PALETTE.focus_ring));
+    assert_eq!(selected.outline, Some(PALETTE.accent));
+    assert_ne!(selected.outline, Some(PALETTE.border));
 
     let checked_pressed = select_workbench_popup_row_style(WorkbenchPopupRowState {
         checked: true,
@@ -114,5 +127,5 @@ fn popup_row_selected_or_checked_uses_muted_selected_fill_and_neutral_outline() 
     assert_eq!(checked_pressed.state, UiPainterResolvedState::Pressed);
     assert_eq!(checked_pressed.background, Some(PALETTE.surface_pressed));
     assert_ne!(checked_pressed.background, Some(PALETTE.surface_selected));
-    assert_eq!(checked_pressed.outline, Some(PALETTE.border));
+    assert_eq!(checked_pressed.outline, Some(PALETTE.accent));
 }

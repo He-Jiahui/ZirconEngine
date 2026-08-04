@@ -12,7 +12,10 @@ fn host_request_batch_encodes_runtime_ime_requests() {
                 viewport,
             )),
             ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(
-                ImeHostRequest::SetSurroundingText(ImeSurroundingText::new("search", 6, 0)),
+                ImeHostRequest::SetSurroundingText(
+                    ImeSurroundingText::new("search", 6, 0)
+                        .with_composition_range(Some(ImeCursorRange::new(1, 6))),
+                ),
                 viewport,
             )),
         ],
@@ -43,8 +46,8 @@ fn host_request_batch_encodes_runtime_ime_requests() {
                 && request
                     .surrounding_text
                     .as_ref()
-                    .map(|text| text.value.as_str())
-                    == Some("search")
+                    .map(|text| (text.value.as_str(), text.composition_range))
+                    == Some(("search", Some(ZrRuntimeImeTextRangeV1::new(1, 6))))
                 && request.target_viewport == Some(viewport)
     ));
 }

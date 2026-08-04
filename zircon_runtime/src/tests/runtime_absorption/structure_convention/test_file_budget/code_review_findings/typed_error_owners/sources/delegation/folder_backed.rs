@@ -5,8 +5,6 @@ use super::super::*;
 mod child_ownership;
 #[path = "folder_backed/guard_body.rs"]
 mod guard_body;
-#[path = "folder_backed/status_current.rs"]
-mod status_current;
 
 pub(super) fn assert_typed_error_source_inventory_guard_is_folder_backed() {
     guard_body::assert_typed_error_source_inventory_guard_is_folder_backed();

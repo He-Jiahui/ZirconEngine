@@ -29,6 +29,7 @@ impl MeshDraw {
         .with_casts_shadow(self.casts_shadow())
         .with_disabled_passes(self.disabled_passes)
         .with_taa_reactive_mask_strength(self.taa_reactive_mask_strength)
+        .with_half_resolution_transparency(self.half_resolution_transparency)
         .with_visibility(
             self.primitive_relevance,
             self.main_view_visible,

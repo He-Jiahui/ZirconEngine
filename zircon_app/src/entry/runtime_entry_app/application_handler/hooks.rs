@@ -8,16 +8,18 @@ use super::super::RuntimeEntryApp;
 impl ApplicationHandler for RuntimeEntryApp {
     fn resumed(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "resumed");
-        if self.create_primary_window_surface(event_loop) {
-            self.submit_mvp_input_probe_if_requested(event_loop);
+        if self.create_primary_window_surface(event_loop)
+            && self.submit_mvp_input_probe_if_requested(event_loop)
+        {
             self.request_runtime_frame();
         }
     }
 
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "can_create_surfaces");
-        if self.create_primary_window_surface(event_loop) {
-            self.submit_mvp_input_probe_if_requested(event_loop);
+        if self.create_primary_window_surface(event_loop)
+            && self.submit_mvp_input_probe_if_requested(event_loop)
+        {
             self.request_runtime_frame();
         }
     }
@@ -57,5 +59,20 @@ impl ApplicationHandler for RuntimeEntryApp {
         if !self.failure_state.is_recorded() {
             self.handle_device_event(event_loop, event);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn input_probe_failure_blocks_initial_frame_scheduling_for_both_surface_hooks() {
+        let source = include_str!("hooks.rs");
+        let probe_then_frame = [
+            "&& self.submit_mvp_input_probe_if_requested(event_loop)\n",
+            "        {\n            self.request_runtime_frame();\n        }",
+        ]
+        .concat();
+
+        assert_eq!(source.matches(&probe_then_frame).count(), 2);
     }
 }

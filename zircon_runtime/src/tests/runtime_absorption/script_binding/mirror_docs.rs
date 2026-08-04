@@ -62,7 +62,6 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
         include_str!("mirror_docs.rs"),
         include_str!("gameplay_host.rs"),
         include_str!("../../../script/vm/gameplay_host/tests/combat_lifecycle.rs"),
-        include_str!("../plan_status/cargo_gates/late/runtime_13.rs"),
     ]
     .join("\n");
     for guard_anchor in RUNTIME_13_GUARD_ANCHORS {

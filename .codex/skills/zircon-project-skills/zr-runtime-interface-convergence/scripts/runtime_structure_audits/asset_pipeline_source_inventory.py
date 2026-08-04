@@ -56,8 +56,6 @@ RUNTIME_04_GUARD_FILES = (
     "zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_pipeline/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_04.rs",
 )
 
 RUNTIME_04_ARTIFACT_STORE_ROUNDTRIP_FILES = (

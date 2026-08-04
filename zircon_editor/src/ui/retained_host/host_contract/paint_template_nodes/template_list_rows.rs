@@ -1,4 +1,5 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
 use super::template_list_row_glyphs::push_list_row_adornment;
 
@@ -34,15 +35,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     if !has_paintable_list_row_extent(rect) {
         return true;
     }
+    let Some(clip) = intersect(rect, clip) else {
+        return true;
+    };
 
-    push_list_row_surface(commands, node, rect, clip, order, opacity);
-    push_list_row_label(commands, node, rect, clip, label_order(order), opacity);
+    push_list_row_surface(commands, node, rect, &clip, order, opacity);
+    push_list_row_label(commands, node, rect, &clip, label_order(order), opacity);
     if list_row_has_adornment_space(rect) {
         push_list_row_adornment(
             commands,
             node,
             rect,
-            clip,
+            &clip,
             adornment_order(order),
             list_row_adornment_color(node),
             opacity,

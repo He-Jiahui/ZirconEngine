@@ -14,6 +14,15 @@ else:
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_MANIFEST = REPO_ROOT / "zircon_runtime" / "Cargo.toml"
 RUNTIME_ROOT = REPO_ROOT / "zircon_runtime" / "src" / "lib.rs"
+RHI_BOUNDARY_TEST = (
+    REPO_ROOT
+    / "zircon_runtime"
+    / "crates"
+    / "zr_rhi"
+    / "src"
+    / "tests"
+    / "boundary.rs"
+)
 APP_MANIFEST = REPO_ROOT / "zircon_app" / "Cargo.toml"
 APP_PLUGIN_GROUPS = REPO_ROOT / "zircon_app" / "src" / "plugins" / "groups.rs"
 APP_PLUGIN_GROUP_RESOLUTION = (
@@ -289,6 +298,7 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.manifest = tomllib.loads(RUNTIME_MANIFEST.read_text(encoding="utf-8"))
         cls.root_source = RUNTIME_ROOT.read_text(encoding="utf-8")
+        cls.rhi_boundary_test = RHI_BOUNDARY_TEST.read_text(encoding="utf-8")
         cls.app_manifest = tomllib.loads(APP_MANIFEST.read_text(encoding="utf-8"))
         cls.app_plugin_groups = APP_PLUGIN_GROUPS.read_text(encoding="utf-8")
         cls.app_plugin_group_resolution = APP_PLUGIN_GROUP_RESOLUTION.read_text(
@@ -324,7 +334,7 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
             )
         )
 
-    def test_graphics_and_text_dependencies_are_optional(self) -> None:
+    def test_graphics_backend_and_text_dependencies_are_optional(self) -> None:
         dependencies = self.manifest["dependencies"]
         for dependency in (
             "wgpu",
@@ -339,10 +349,27 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
             "unicode-normalization",
             "unicode-script",
             "unicode-segmentation",
+            "zr_rhi_wgpu",
         ):
             entry = dependencies[dependency]
             self.assertIsInstance(entry, dict, dependency)
             self.assertTrue(entry.get("optional"), dependency)
+
+        neutral_rhi = dependencies["zr_rhi"]
+        self.assertIsInstance(neutral_rhi, dict)
+        self.assertNotIn("optional", neutral_rhi)
+
+    def test_neutral_rhi_wgpu_dependency_guard_covers_dotted_keys(self) -> None:
+        required_contract = (
+            "if declares_wgpu_dependency(line) {",
+            "fn declares_wgpu_dependency(line: &str) -> bool {",
+            '"wgpu.workspace = true"',
+            'key.starts_with("wgpu.")',
+            '"wgpu-types.workspace = true"',
+            "!declares_wgpu_dependency(declaration)",
+        )
+        for marker in required_contract:
+            self.assertIn(marker, self.rhi_boundary_test, marker)
 
     def test_root_domain_modules_are_cfg_gated(self) -> None:
         required = {
@@ -362,8 +389,10 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
                 self.root_source,
                 module,
             )
-        self.assertIn(
-            '#[cfg(feature = "graphics")]\nmod rhi_wgpu;', self.root_source
+        self.assertNotIn(
+            "mod rhi_wgpu;",
+            self.root_source,
+            "the WGPU implementation must live in the physical zr_rhi_wgpu crate",
         )
 
     def test_app_target_server_does_not_reenable_client_domains(self) -> None:

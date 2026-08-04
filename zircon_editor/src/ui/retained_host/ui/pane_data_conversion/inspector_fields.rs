@@ -384,16 +384,17 @@ fn inspector_dynamic_component_edit_action_id(field_id: &str) -> String {
 }
 
 fn inspector_component_key(value: &str) -> String {
-    value
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() {
-                ch.to_ascii_lowercase()
-            } else {
-                '_'
-            }
-        })
-        .collect()
+    let mut key = String::with_capacity(value.len());
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            key.push(ch.to_ascii_lowercase());
+        } else {
+            key.push_str("_u");
+            key.push_str(&format!("{:x}", ch as u32));
+            key.push('_');
+        }
+    }
+    key
 }
 
 fn inspector_numeric_kind(value_kind: &str) -> bool {
@@ -572,5 +573,32 @@ fn inspector_node(
         text: text.into().into(),
         frame,
         ..host_contract::TemplatePaneNodeData::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        inspector_component_key, inspector_dynamic_component_control_id,
+        inspector_dynamic_component_edit_action_id,
+    };
+
+    #[test]
+    fn plugin_field_identity_distinguishes_punctuation_that_was_previously_collapsed() {
+        let hyphenated = "camera-offset";
+        let underscored = "camera_offset";
+
+        assert_ne!(
+            inspector_component_key(hyphenated),
+            inspector_component_key(underscored)
+        );
+        assert_ne!(
+            inspector_dynamic_component_control_id(hyphenated),
+            inspector_dynamic_component_control_id(underscored)
+        );
+        assert_ne!(
+            inspector_dynamic_component_edit_action_id(hyphenated),
+            inspector_dynamic_component_edit_action_id(underscored)
+        );
     }
 }

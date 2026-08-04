@@ -1,5 +1,6 @@
 //! Runtime UI subsystem: layout, template, surface, binding, and event data.
 
+pub(in crate::ui) mod editable_text_composition;
 mod module;
 pub mod prelude;
 mod public_runtime_frame;

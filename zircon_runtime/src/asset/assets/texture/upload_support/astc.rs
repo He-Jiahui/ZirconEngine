@@ -61,5 +61,6 @@ pub(super) fn astc_upload_plan(
         block_height,
         block_depth,
         bytes_per_block: 16,
+        subresources: Vec::new(),
     })
 }

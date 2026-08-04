@@ -3,7 +3,7 @@ use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiRichTextArtifactHandle,
-    UiTextRange, UiTextWritingMode,
+    UiTextCaret, UiTextCaretAffinity, UiTextRange, UiTextWritingMode,
 };
 
 use super::font::shared_font_database_generation;
@@ -27,6 +27,195 @@ pub(crate) struct ResolvedTextGlyphArtifactLine {
     pub(crate) layout_line: UiResolvedTextLine,
 }
 
+/// Returns the visual advance for an interior source offset that a shaped glyph keeps whole.
+///
+/// The serializable resolved-line DTO carries grapheme advances, while this process-local
+/// artifact retains the backend glyph cluster ranges. Returning `None` leaves callers on the DTO
+/// path when the layout no longer matches the artifact or the offset is already a legal boundary.
+pub(crate) fn resolved_text_glyph_artifact_caret_advance(
+    artifact: &ResolvedTextGlyphArtifact,
+    line_index: usize,
+    layout_line: &UiResolvedTextLine,
+    caret: &UiTextCaret,
+) -> Option<f32> {
+    let glyphs = matching_artifact_line(artifact, line_index, layout_line)?;
+    let backend_cluster_flags = glyphs.iter().any(|glyph| glyph.flags.cluster_start);
+    let mut index = 0;
+    let mut leading = 0.0;
+    let cluster = loop {
+        let (cluster, next_index) = glyph_cluster_at(glyphs, index, backend_cluster_flags)?;
+        if cluster.source_range.start < caret.offset && caret.offset < cluster.source_range.end {
+            break cluster;
+        }
+        leading += cluster.advance;
+        index = next_index;
+    };
+    let logical_start = matches!(caret.affinity, UiTextCaretAffinity::Upstream);
+    Some(if cluster.right_to_left == logical_start {
+        leading + cluster.advance
+    } else {
+        leading
+    })
+}
+
+/// Resolves a physical visual advance to a legal source caret using backend glyph clusters.
+///
+/// The serialized DTO has one advance per visual grapheme, which cannot represent a ligature or
+/// another backend cluster spanning multiple source offsets. Returning `None` keeps the caller on
+/// the DTO source-map path when the text-owned glyph line is unavailable or no longer matches.
+pub(crate) fn resolved_text_glyph_artifact_caret_at_advance(
+    artifact: &ResolvedTextGlyphArtifact,
+    line_index: usize,
+    layout_line: &UiResolvedTextLine,
+    visual_advance: f32,
+) -> Option<UiTextCaret> {
+    let glyphs = matching_artifact_line(artifact, line_index, layout_line)?;
+    let backend_cluster_flags = glyphs.iter().any(|glyph| glyph.flags.cluster_start);
+    let mut index = 0;
+    let mut advance = 0.0;
+    let visual_advance = finite_non_negative(visual_advance);
+    while index < glyphs.len() {
+        let (cluster, next_index) = glyph_cluster_at(glyphs, index, backend_cluster_flags)?;
+        if visual_advance <= advance + cluster.advance * 0.5 {
+            return Some(cluster_caret(
+                cluster.source_range,
+                cluster.right_to_left,
+                true,
+            ));
+        }
+        advance += cluster.advance;
+        index = next_index;
+        if index == glyphs.len() {
+            return Some(cluster_caret(
+                cluster.source_range,
+                cluster.right_to_left,
+                false,
+            ));
+        }
+    }
+    None
+}
+
+/// Returns physical advance spans for source ranges that overlap shaped glyph clusters.
+pub(crate) fn resolved_text_glyph_artifact_range_advance_spans(
+    artifact: &ResolvedTextGlyphArtifact,
+    line_index: usize,
+    layout_line: &UiResolvedTextLine,
+    range: UiTextRange,
+) -> Option<Vec<(f32, f32)>> {
+    let glyphs = matching_artifact_line(artifact, line_index, layout_line)?;
+    let backend_cluster_flags = glyphs.iter().any(|glyph| glyph.flags.cluster_start);
+    let mut spans = Vec::new();
+    let mut span_start = None;
+    let mut advance = 0.0;
+    let mut index = 0;
+    while index < glyphs.len() {
+        let (cluster, next_index) = glyph_cluster_at(glyphs, index, backend_cluster_flags)?;
+        if source_ranges_overlap(cluster.source_range, range) {
+            span_start.get_or_insert(advance);
+        } else if let Some(start) = span_start.take() {
+            spans.push((start, advance));
+        }
+        advance += cluster.advance;
+        index = next_index;
+    }
+    if let Some(start) = span_start {
+        spans.push((start, advance));
+    }
+    (!spans.is_empty()).then_some(spans)
+}
+
+fn matching_artifact_line<'a>(
+    artifact: &'a ResolvedTextGlyphArtifact,
+    line_index: usize,
+    layout_line: &UiResolvedTextLine,
+) -> Option<&'a [TextGlyph]> {
+    let line = artifact.lines.get(line_index)?.as_ref()?;
+    (artifact.font_generation == shared_font_database_generation()
+        && line.layout_line == *layout_line)
+        .then_some(line.glyphs.as_slice())
+}
+
+#[derive(Clone, Copy)]
+struct GlyphCluster {
+    source_range: UiTextRange,
+    advance: f32,
+    right_to_left: bool,
+}
+
+fn glyph_cluster_at(
+    glyphs: &[TextGlyph],
+    start: usize,
+    backend_cluster_flags: bool,
+) -> Option<(GlyphCluster, usize)> {
+    let first = glyphs.get(start)?;
+    let mut source_range = UiTextRange {
+        start: first.source_range.start,
+        end: first.source_range.end,
+    };
+    let right_to_left = first.flags.right_to_left;
+    let mut advance = 0.0;
+    let mut index = start;
+    while let Some(glyph) = glyphs.get(index) {
+        let starts_next_cluster = if backend_cluster_flags {
+            glyph.flags.cluster_start
+        } else {
+            glyph.source_range.start != source_range.start
+                || glyph.source_range.end != source_range.end
+        };
+        if index > start && starts_next_cluster {
+            break;
+        }
+        if glyph.flags.right_to_left != right_to_left {
+            return None;
+        }
+        source_range.start = source_range.start.min(glyph.source_range.start);
+        source_range.end = source_range.end.max(glyph.source_range.end);
+        advance += finite_non_negative(glyph.advance);
+        index += 1;
+    }
+    Some((
+        GlyphCluster {
+            source_range,
+            advance,
+            right_to_left,
+        },
+        index,
+    ))
+}
+
+fn cluster_caret(
+    source_range: UiTextRange,
+    right_to_left: bool,
+    leading_visual_edge: bool,
+) -> UiTextCaret {
+    let offset = if right_to_left == leading_visual_edge {
+        source_range.end
+    } else {
+        source_range.start
+    };
+    UiTextCaret {
+        offset,
+        affinity: if leading_visual_edge {
+            UiTextCaretAffinity::Downstream
+        } else {
+            UiTextCaretAffinity::Upstream
+        },
+    }
+}
+
+fn source_ranges_overlap(source_range: UiTextRange, range: UiTextRange) -> bool {
+    range.start < source_range.end && source_range.start < range.end
+}
+
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
 pub(crate) fn register_resolved_text_glyph_artifact(
     artifact: Arc<ResolvedTextGlyphArtifact>,
 ) -> UiRichTextArtifactHandle {
@@ -45,7 +234,22 @@ pub(crate) fn build_resolved_text_glyph_artifact(
     layout: &UiResolvedTextLayout,
     provider: &mut SharedTextLayoutSession,
 ) -> Option<ResolvedTextGlyphArtifact> {
-    let source_text_origin = source_text_origin(source_text, layout.source_range);
+    build_resolved_text_glyph_artifact_with_shared_source(
+        Arc::from(source_text),
+        style,
+        layout,
+        provider,
+    )
+}
+
+/// Builds an artifact without copying a retained document's source allocation.
+pub(crate) fn build_resolved_text_glyph_artifact_with_shared_source(
+    source_text: Arc<str>,
+    style: &UiResolvedStyle,
+    layout: &UiResolvedTextLayout,
+    provider: &mut SharedTextLayoutSession,
+) -> Option<ResolvedTextGlyphArtifact> {
+    let source_text_origin = source_text_origin(source_text.as_ref(), layout.source_range);
     let shaped_style = text_style(&UiResolvedStyle {
         font_size: layout.font_size,
         line_height: layout.line_height,
@@ -60,11 +264,11 @@ pub(crate) fn build_resolved_text_glyph_artifact(
         .lines
         .iter()
         .map(|line| {
-            if line.ellipsized {
+            if resolved_text_line_requires_visual_fallback(line) {
                 return None;
             }
             let projected = shape_line_for_artifact(
-                source_text,
+                source_text.as_ref(),
                 source_text_origin,
                 &shaped_style,
                 layout.writing_mode,
@@ -72,7 +276,12 @@ pub(crate) fn build_resolved_text_glyph_artifact(
                 provider,
             )?;
             Some(ResolvedTextGlyphArtifactLine {
-                glyphs: visual_glyphs_for_line(source_text, source_text_origin, line, projected),
+                glyphs: visual_glyphs_for_line(
+                    source_text.as_ref(),
+                    source_text_origin,
+                    line,
+                    projected,
+                ),
                 layout_line: line.clone(),
             })
         })
@@ -81,13 +290,24 @@ pub(crate) fn build_resolved_text_glyph_artifact(
         .iter()
         .any(Option::is_some)
         .then(|| ResolvedTextGlyphArtifact {
-            source_text: Arc::from(source_text),
+            source_text,
             source_text_origin,
             font_generation: shared_font_database_generation(),
             style: artifact_style,
             writing_mode: layout.writing_mode,
             lines,
         })
+}
+
+/// Synthetic visual runs have no one-to-one source slice for artifact re-shaping. They keep the
+/// resolved-layout renderer path, which shapes their actual visual text without inventing source
+/// glyph ranges.
+pub(crate) fn resolved_text_line_requires_visual_fallback(line: &UiResolvedTextLine) -> bool {
+    line.ellipsized
+        || line
+            .runs
+            .iter()
+            .any(|run| !run.text.is_empty() && run.source_range.start == run.source_range.end)
 }
 
 pub(crate) fn rebuild_resolved_text_glyph_artifact_line(
@@ -432,184 +652,4 @@ fn source_slice(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::text::{
-        TextGlyphFlags, TextGlyphRotation, TextShapeResult, TextShapeRun,
-    };
-    use zircon_runtime_interface::ui::layout::UiFrame;
-    use zircon_runtime_interface::ui::surface::{UiTextDirection, UiTextRunKind};
-
-    #[test]
-    fn visual_glyph_artifact_keeps_contextual_arabic_glyphs_in_visual_order() {
-        let line = UiResolvedTextLine {
-            text: "مالس".to_string(),
-            frame: UiFrame::new(0.0, 0.0, 40.0, 12.0),
-            source_range: UiTextRange { start: 0, end: 8 },
-            visual_range: UiTextRange { start: 0, end: 8 },
-            measured_width: 40.0,
-            glyph_advances: vec![10.0; 4],
-            baseline: 9.0,
-            direction: UiTextDirection::RightToLeft,
-            runs: vec![
-                visual_run("م", 6, 8, 0, 2),
-                visual_run("ا", 4, 6, 2, 4),
-                visual_run("ل", 2, 4, 4, 6),
-                visual_run("س", 0, 2, 6, 8),
-            ],
-            ellipsized: false,
-        };
-
-        let glyphs = visual_glyphs_for_line(
-            "سلام",
-            0,
-            &line,
-            TextShapeResult {
-                runs: vec![TextShapeRun {
-                    source_range: 0..8,
-                    direction: crate::core::framework::text::TextDirection::RightToLeft,
-                    glyphs: vec![
-                        glyph(101, 0..2),
-                        glyph(102, 2..4),
-                        glyph(103, 4..6),
-                        glyph(104, 6..8),
-                    ],
-                }],
-                metrics: Default::default(),
-                resolved_direction: crate::core::framework::text::TextDirection::RightToLeft,
-            },
-        );
-
-        assert_eq!(
-            glyphs
-                .iter()
-                .map(|glyph| glyph.glyph_id)
-                .collect::<Vec<_>>(),
-            vec![104, 103, 102, 101]
-        );
-    }
-
-    #[test]
-    fn visual_glyph_artifact_projects_resolved_advance_to_an_unsplit_ligature() {
-        let line = UiResolvedTextLine {
-            text: "fi".to_string(),
-            frame: UiFrame::new(0.0, 0.0, 30.0, 12.0),
-            source_range: UiTextRange { start: 0, end: 2 },
-            visual_range: UiTextRange { start: 0, end: 2 },
-            measured_width: 30.0,
-            glyph_advances: vec![12.0, 18.0],
-            baseline: 9.0,
-            direction: UiTextDirection::LeftToRight,
-            runs: vec![zircon_runtime_interface::ui::surface::UiResolvedTextRun {
-                kind: UiTextRunKind::Plain,
-                text: "fi".to_string(),
-                source_range: UiTextRange { start: 0, end: 2 },
-                visual_range: UiTextRange { start: 0, end: 2 },
-                direction: UiTextDirection::LeftToRight,
-            }],
-            ellipsized: false,
-        };
-
-        let glyphs = visual_glyphs_for_line(
-            "fi",
-            0,
-            &line,
-            TextShapeResult {
-                runs: vec![TextShapeRun {
-                    source_range: 0..2,
-                    direction: crate::core::framework::text::TextDirection::LeftToRight,
-                    glyphs: vec![glyph(77, 0..2)],
-                }],
-                metrics: Default::default(),
-                resolved_direction: crate::core::framework::text::TextDirection::LeftToRight,
-            },
-        );
-
-        assert_eq!(glyphs.len(), 1);
-        assert_eq!(glyphs[0].advance, 30.0);
-    }
-
-    #[test]
-    fn visual_glyph_artifact_preserves_tab_and_justified_space_advances() {
-        let line = UiResolvedTextLine {
-            text: "a\tb c".to_string(),
-            frame: UiFrame::new(0.0, 0.0, 91.0, 12.0),
-            source_range: UiTextRange { start: 0, end: 5 },
-            visual_range: UiTextRange { start: 0, end: 5 },
-            measured_width: 91.0,
-            glyph_advances: vec![9.0, 40.0, 9.0, 24.0, 9.0],
-            baseline: 9.0,
-            direction: UiTextDirection::LeftToRight,
-            runs: vec![visual_run("a\tb c", 0, 5, 0, 5)],
-            ellipsized: false,
-        };
-
-        let glyphs = visual_glyphs_for_line(
-            "a\tb c",
-            0,
-            &line,
-            TextShapeResult {
-                runs: vec![TextShapeRun {
-                    source_range: 0..5,
-                    direction: crate::core::framework::text::TextDirection::LeftToRight,
-                    glyphs: vec![
-                        glyph(1, 0..1),
-                        glyph(2, 1..2),
-                        glyph(3, 2..3),
-                        glyph(4, 3..4),
-                        glyph(5, 4..5),
-                    ],
-                }],
-                metrics: Default::default(),
-                resolved_direction: crate::core::framework::text::TextDirection::LeftToRight,
-            },
-        );
-
-        assert_eq!(
-            glyphs.iter().map(|glyph| glyph.advance).collect::<Vec<_>>(),
-            line.glyph_advances
-        );
-    }
-
-    fn visual_run(
-        text: &str,
-        source_start: usize,
-        source_end: usize,
-        visual_start: usize,
-        visual_end: usize,
-    ) -> zircon_runtime_interface::ui::surface::UiResolvedTextRun {
-        UiResolvedTextRun {
-            kind: UiTextRunKind::Plain,
-            text: text.to_string(),
-            source_range: UiTextRange {
-                start: source_start,
-                end: source_end,
-            },
-            visual_range: UiTextRange {
-                start: visual_start,
-                end: visual_end,
-            },
-            direction: UiTextDirection::RightToLeft,
-        }
-    }
-
-    fn glyph(glyph_id: u32, source_range: std::ops::Range<usize>) -> TextGlyph {
-        TextGlyph {
-            glyph_id,
-            source_range,
-            visual_range: 0..0,
-            advance: 10.0,
-            position: [0.0, 0.0],
-            offset: [0.0, 0.0],
-            font_face: None,
-            font_instance: None,
-            rotation: TextGlyphRotation::None,
-            bidi_level: 1,
-            flags: TextGlyphFlags {
-                right_to_left: true,
-                ..TextGlyphFlags::default()
-            },
-            requires_rasterization: true,
-        }
-    }
-}
+mod tests;

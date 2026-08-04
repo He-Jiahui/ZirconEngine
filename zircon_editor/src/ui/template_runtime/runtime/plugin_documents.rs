@@ -208,6 +208,12 @@ pub(super) struct EditorUiHostPluginV2Document {
     document: EditorUiHostV2Document,
 }
 
+impl EditorUiHostPluginV2Document {
+    pub(super) fn owner(&self) -> &EditorPluginV2DocumentOwner {
+        &self.owner
+    }
+}
+
 impl EditorUiHostRuntime {
     pub(crate) fn sync_plugin_v2_template_descriptor_sets(
         &self,

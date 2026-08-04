@@ -184,7 +184,6 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ae92a5119aa49cdbcf6b9f893fe4e1d98b04ccbf82ee0584ad948a44a734dea"
 dependencies = [
- "libloading",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -652,6 +651,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-platform"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cargo-zircon"
 version = "0.1.0"
 dependencies = [
@@ -660,15 +668,6 @@ dependencies = [
  "syn 2.0.117",
  "toml 1.1.2+spec-1.1.0",
  "toml_edit 0.25.12+spec-1.1.0",
-]
-
-[[package]]
-name = "cargo-platform"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e35af189006b9c0f00a064685c727031e3ed2d8020f7ba284d78cc2671bd36ea"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -6478,6 +6477,7 @@ dependencies = [
  "indexmap 2.14.0",
  "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
+ "toml_writer",
  "winnow 1.0.3",
 ]
 
@@ -8863,6 +8863,7 @@ dependencies = [
 name = "zircon_plugin_sound_ray_traced_convolution_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8871,6 +8872,7 @@ name = "zircon_plugin_sound_runtime"
 version = "0.1.0"
 dependencies = [
  "kira",
+ "zircon_plugin_sdk",
  "zircon_plugin_sound_ray_traced_convolution_runtime",
  "zircon_plugin_sound_timeline_animation_runtime",
  "zircon_runtime",
@@ -8881,6 +8883,7 @@ dependencies = [
 name = "zircon_plugin_sound_timeline_animation_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -8985,6 +8988,8 @@ dependencies = [
  "zircon_reflect_derive",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
+ "zr_rhi",
+ "zr_rhi_wgpu",
  "zstd",
 ]
 
@@ -9017,6 +9022,30 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
+
+[[package]]
+name = "zr_rhi"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "winit",
+]
+
+[[package]]
+name = "zr_rhi_wgpu"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "glyphon",
+ "pollster",
+ "thiserror 2.0.18",
+ "wgpu",
+ "winit",
+ "zircon_runtime_interface",
+ "zr_rhi",
+]
 
 [[package]]
 name = "zr_vm_rust_binding"

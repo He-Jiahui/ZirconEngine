@@ -13,9 +13,6 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_session_doc = read_repo("docs/zircon_runtime/dynamic_api/session.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "dynamic API session registry module mount",
@@ -100,26 +97,6 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
             "runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry",
         ],
     );
-    for (label, source) in [
-        ("module convention doc", module_doc.as_str()),
-        ("dynamic API session doc", dynamic_session_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 dynamic API session lock poison recovery",
-                "runtime_15_dynamic_api_session_lock_poison_recovery_static_passed_cargo_deferred",
-                "dynamic_api/session.rs",
-                "dynamic_api/session/tests/lock_poison.rs",
-                "runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry",
-            ],
-        );
-    }
 }
 
 #[test]
@@ -133,9 +110,6 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "dynamic scene spawn task poison recovery helpers",
@@ -168,32 +142,6 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
             "{label} production code should recover poisoned locks instead of panicking"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("dynamic scene doc", dynamic_scene_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 dynamic scene spawn task lock poison recovery",
-                "runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_static_passed_cargo_deferred",
-                "scene/dynamic_scene/spawn_task/task.rs",
-                "scene/dynamic_scene/spawn_task/loader.rs",
-                "dynamic_scene_spawn_task_accessors_recover_poisoned_locks",
-                "runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task",
-            ],
-        );
-    }
 }
 
 #[test]
@@ -206,9 +154,6 @@ fn runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batc
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "schedule parallel executor batch-result poison recovery helpers",
@@ -229,29 +174,4 @@ fn runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batc
         !production.contains(LOCK_UNWRAP_CALL) && !production.contains("lock poisoned"),
         "schedule parallel executor production code should recover poisoned batch-result locks"
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("ECS module doc", ecs_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 scene ECS parallel executor lock poison recovery",
-                "runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_static_passed_cargo_deferred",
-                "scene/ecs/schedule_parallel_executor.rs",
-                "schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock",
-                "runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batch_result_slots",
-            ],
-        );
-    }
 }

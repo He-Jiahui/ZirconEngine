@@ -7,10 +7,11 @@ use zircon_runtime::{
 use zircon_runtime_interface::ui::surface::{UiTextOverflow, UiTextRunPaintStyle, UiTextWrap};
 
 use super::super::super::data::FrameRect;
-use super::super::super::paint_theme::{HostTextSmoothing, current_host_text_preferences};
+use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
 use super::super::font::{
-    HostTextFontFace, font_face_for_paint_style, font_for_face, runtime_text_style_for_face,
+    font_face_for_paint_style, font_for_face, runtime_text_style_for_face, HostTextFontFace,
 };
+use super::super::layout_policy::HostTextLayoutPolicy;
 use super::metrics::runtime_text_layout_frame;
 use super::placement::{
     retained_glyph_left_offset_px, retained_glyph_placements_share_bin_for_smoothing,
@@ -52,7 +53,36 @@ pub(super) fn layout_text_run(
 ) -> PaintTextLayout {
     let font_face = font_face_for_paint_style(style);
     let smoothing = current_host_text_preferences().smoothing;
-    layout_text_run_with_smoothing(rect, text, font_size, line_height, font_face, smoothing)
+    layout_text_run_with_layout_policy_and_smoothing(
+        rect,
+        text,
+        font_size,
+        line_height,
+        font_face,
+        smoothing,
+        HostTextLayoutPolicy::SingleLineEllipsis,
+    )
+}
+
+pub(super) fn layout_text_run_with_layout_policy(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    style: UiTextRunPaintStyle,
+    layout_policy: HostTextLayoutPolicy,
+) -> PaintTextLayout {
+    let font_face = font_face_for_paint_style(style);
+    let smoothing = current_host_text_preferences().smoothing;
+    layout_text_run_with_layout_policy_and_smoothing(
+        rect,
+        text,
+        font_size,
+        line_height,
+        font_face,
+        smoothing,
+        layout_policy,
+    )
 }
 
 fn layout_text_run_with_smoothing(
@@ -63,21 +93,69 @@ fn layout_text_run_with_smoothing(
     font_face: HostTextFontFace,
     smoothing: HostTextSmoothing,
 ) -> PaintTextLayout {
-    let line = runtime_single_line_text(rect, text, font_size, line_height, font_face);
-    let text_y = centered_line_y(rect.y, rect.height, line_height);
-    let text_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
-    let glyphs = runtime_positioned_glyphs(
-        line.text.as_str(),
-        &line.glyph_advances,
-        &line.shaped_glyphs,
-        font_face,
+    layout_text_run_with_layout_policy_and_smoothing(
+        rect,
+        text,
         font_size,
-        text_x,
-        text_y,
+        line_height,
+        font_face,
         smoothing,
-    );
+        HostTextLayoutPolicy::SingleLineEllipsis,
+    )
+}
+
+fn layout_text_run_with_layout_policy_and_smoothing(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    font_face: HostTextFontFace,
+    smoothing: HostTextSmoothing,
+    layout_policy: HostTextLayoutPolicy,
+) -> PaintTextLayout {
+    let lines = match layout_policy {
+        HostTextLayoutPolicy::SingleLineEllipsis => {
+            vec![runtime_single_line_text(
+                rect,
+                text,
+                font_size,
+                line_height,
+                font_face,
+            )]
+        }
+        HostTextLayoutPolicy::WordWrap => {
+            runtime_word_wrapped_text(rect, text, font_size, line_height, font_face)
+        }
+    };
+    let display_text = lines
+        .iter()
+        .map(|line| line.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let glyphs = lines
+        .into_iter()
+        .flat_map(|line| {
+            let text_y = match layout_policy {
+                HostTextLayoutPolicy::SingleLineEllipsis => {
+                    centered_line_y(rect.y, rect.height, line_height)
+                }
+                HostTextLayoutPolicy::WordWrap => rect.y + line.frame_y,
+            };
+            let text_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
+            runtime_positioned_glyphs(
+                line.text.as_str(),
+                &line.glyph_advances,
+                &line.shaped_glyphs,
+                font_face,
+                font_size,
+                text_x,
+                text_y,
+                smoothing,
+            )
+        })
+        .collect();
     PaintTextLayout {
-        display_text: line.text,
+        display_text,
         font_face,
         glyphs,
     }
@@ -607,9 +685,10 @@ fn grapheme_ranges_overlap(
     grapheme_start < source_end && source_start < grapheme_end
 }
 
-struct RuntimeSingleLineText {
+struct RuntimeTextLine {
     text: String,
     frame_x: f32,
+    frame_y: f32,
     glyph_advances: Vec<f32>,
     shaped_glyphs: Vec<ShapedGlyph>,
 }
@@ -620,24 +699,61 @@ fn runtime_single_line_text(
     font_size: f32,
     line_height: f32,
     font_face: HostTextFontFace,
-) -> RuntimeSingleLineText {
+) -> RuntimeTextLine {
+    runtime_text_lines(
+        rect,
+        text,
+        font_size,
+        line_height,
+        font_face,
+        UiTextWrap::None,
+        line_height,
+    )
+    .into_iter()
+    .next()
+    .unwrap_or_else(empty_runtime_text_line)
+}
+
+fn runtime_word_wrapped_text(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    font_face: HostTextFontFace,
+) -> Vec<RuntimeTextLine> {
+    runtime_text_lines(
+        rect,
+        text,
+        font_size,
+        line_height,
+        font_face,
+        UiTextWrap::Word,
+        rect.height,
+    )
+}
+
+fn runtime_text_lines(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    font_face: HostTextFontFace,
+    wrap: UiTextWrap,
+    layout_height: f32,
+) -> Vec<RuntimeTextLine> {
     let style = runtime_text_style_for_face(
         font_face,
         font_size,
         line_height,
-        UiTextWrap::None,
+        wrap,
         UiTextOverflow::Ellipsis,
     );
-    let frame = runtime_text_layout_frame(rect, line_height);
+    let frame = runtime_text_layout_frame(rect, layout_height);
     let layout = layout_text(text, &style, frame, None);
-    layout.lines.first().map_or_else(
-        || RuntimeSingleLineText {
-            text: String::new(),
-            frame_x: empty_runtime_line_frame_x(),
-            glyph_advances: Vec::new(),
-            shaped_glyphs: Vec::new(),
-        },
-        |line| {
+    layout
+        .lines
+        .iter()
+        .map(|line| {
             let shaped = shape_text_line(line.text.as_str(), &style);
             let glyph_advances = runtime_shaped_glyph_advances_from_run(
                 line.text.as_str(),
@@ -649,14 +765,25 @@ fn runtime_single_line_text(
                 .first()
                 .map(|shaped_line| shaped_line.glyphs.clone())
                 .unwrap_or_default();
-            RuntimeSingleLineText {
+            RuntimeTextLine {
                 text: line.text.clone(),
                 frame_x: line.frame.x,
+                frame_y: line.frame.y,
                 glyph_advances,
                 shaped_glyphs,
             }
-        },
-    )
+        })
+        .collect()
+}
+
+fn empty_runtime_text_line() -> RuntimeTextLine {
+    RuntimeTextLine {
+        text: String::new(),
+        frame_x: empty_runtime_line_frame_x(),
+        frame_y: 0.0,
+        glyph_advances: Vec::new(),
+        shaped_glyphs: Vec::new(),
+    }
 }
 
 #[cfg(test)]

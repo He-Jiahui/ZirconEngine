@@ -1,15 +1,15 @@
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+    OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE, PostProcessGraphResourceNames,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorRegistration,
 };
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
-use super::resolve_pipeline::OitResolvePipeline;
 use super::OitFragmentStorePipeline;
+use super::resolve_pipeline::OitResolvePipeline;
 use super::{OIT_FRAGMENT_STORE_EXECUTOR_ID, OIT_RESOLVE_EXECUTOR_ID};
 
 pub(crate) fn registrations() -> Vec<RenderPassExecutorRegistration> {

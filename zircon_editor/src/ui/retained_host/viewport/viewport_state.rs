@@ -5,7 +5,6 @@ use crate::core::jobs::{
 };
 use crate::scene::viewport::{RenderFramework, RenderFrameworkError};
 use crate::ui::retained_host::host_contract::WorldSpaceUiSurfaceSubmission;
-use crate::ui::retained_host::primitives::Image;
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::core::manager::{ManagerServiceHandle, resolve_manager_service};
 
@@ -22,7 +21,6 @@ pub(super) struct ViewportState {
     pub(super) render_framework_task: Option<JobTicket<ManagerServiceHandle<dyn RenderFramework>>>,
     pub(super) viewport: Option<ActiveViewport>,
     pub(super) latest_generation: Option<u64>,
-    pub(super) latest_image: Option<Image>,
     pub(super) last_error: Option<String>,
     pub(super) last_world_space_ui_surfaces: Vec<WorldSpaceUiSurfaceSubmission>,
     pub(super) world_space_ui_pointer_capture: Option<WorldSpaceUiSurfaceSubmission>,
@@ -145,7 +143,6 @@ impl ViewportState {
             render_framework_task: None,
             viewport: None,
             latest_generation: None,
-            latest_image: None,
             last_error: None,
             last_world_space_ui_surfaces: Vec::new(),
             world_space_ui_pointer_capture: None,

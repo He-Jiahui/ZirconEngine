@@ -30,8 +30,6 @@ pub(super) fn assert_typed_error_source_inventory_delegation_is_child_backed() {
         "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/texture.rs",
         "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/runtime_behavior.rs",
         "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli/args_boundary.rs",
-        "TYPED_ERROR_SOURCE_INVENTORY_FOLDER_BACKED_SLICE",
-        "TYPED_ERROR_SOURCE_INVENTORY_FOLDER_BACKED_STATUS",
     ] {
         assert!(
             !delegation_parent.contains(moved_anchor),

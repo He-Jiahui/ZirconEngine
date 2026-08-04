@@ -36,6 +36,7 @@ const ABILITY_METRIC_FIELDS = [
 ];
 const ABILITY_FLAG_FIELDS = [
   'requiresTarget', 'onNextSwing', 'offGcd', 'spendsCombo', 'partyOnlyTarget',
+  'usableInForm', 'uninterruptible', 'projectile',
 ];
 const EFFECT_METRIC_FIELDS = [
   'amount',
@@ -43,6 +44,7 @@ const EFFECT_METRIC_FIELDS = [
   'base',
   'bonus',
   'duration',
+  'falloff',
   'fraction',
   'healFrac',
   'healMaxHpPct',
@@ -50,6 +52,7 @@ const EFFECT_METRIC_FIELDS = [
   'hostilePvpDuration',
   'hp',
   'interval',
+  'jumps',
   'judgeMax',
   'judgeMin',
   'leechPct',
@@ -63,12 +66,17 @@ const EFFECT_METRIC_FIELDS = [
   'mult',
   'perCombo',
   'radius',
+  'rageOnInterrupt',
   'selfRadius',
   'captureRadius',
   'groundDuration',
   'selfCooldownRate',
   'allyCooldownRate',
   'total',
+  // Nested hunter-trap source fields are exposed as stable scalar metrics
+  // without rewriting the source-shaped contract document.
+  'trapArmTime',
+  'trapLifetime',
   'value',
   'variance',
   'windowSec',
@@ -76,7 +84,7 @@ const EFFECT_METRIC_FIELDS = [
 ];
 const EFFECT_TEXT_FIELDS = ['auraKind', 'kind', 'mobId'];
 const EFFECT_FLAG_FIELDS = [
-  'canCrit', 'requiresBehind', 'spell', 'exhaust', 'groupOnly',
+  'canCrit', 'requiresBehind', 'spell', 'exhaust', 'groupOnly', 'stun',
 ];
 
 main();
@@ -84,7 +92,7 @@ main();
 function main() {
   const document = JSON.parse(readFileSync(inputPath, 'utf8'));
   invariant(document.schema_version === 1, 'unsupported M4 ability catalog schema');
-  invariant(document.entries.length === 93, 'M4 ability catalog must contain 93 entries');
+invariant(document.entries.length === 117, 'M4 ability catalog must contain 117 entries');
   invariant(
     document.catalog_sha256 === hashText(JSON.stringify(document.entries)),
     'M4 ability catalog entry fingerprint drifted',
@@ -155,10 +163,15 @@ function validateEffect(abilityId, rank, effect) {
   for (const [field, value] of Object.entries(effect)) {
     if (field === 'type' || field === 'auraIds' || field === 'auraKind' ||
         field === 'deal' || field === 'heal') continue;
+    const supportedTrap = field === 'trap' && effect.type === 'aoeRoot' &&
+      value && typeof value === 'object' && !Array.isArray(value) &&
+      Object.keys(value).length === 2 &&
+      typeof value.armTime === 'number' && typeof value.lifetime === 'number';
     const supported =
       (typeof value === 'number' && EFFECT_METRIC_FIELDS.includes(field)) ||
       (typeof value === 'string' && EFFECT_TEXT_FIELDS.includes(field)) ||
-      (typeof value === 'boolean' && EFFECT_FLAG_FIELDS.includes(field));
+      (typeof value === 'boolean' && EFFECT_FLAG_FIELDS.includes(field)) ||
+      supportedTrap;
     invariant(supported, `${abilityId} rank ${rank} has unsupported effect field ${field}`);
   }
 }
@@ -377,7 +390,9 @@ function renderEffectMetric(effect) {
   const lines = [];
   for (const field of EFFECT_METRIC_FIELDS) {
     const value = typeof effect[field] === 'number' ? effect[field] :
-      effect.deal?.[field] ?? effect.heal?.[field];
+      effect.deal?.[field] ?? effect.heal?.[field] ??
+      (field === 'trapArmTime' ? effect.trap?.armTime : undefined) ??
+      (field === 'trapLifetime' ? effect.trap?.lifetime : undefined);
     if (typeof value === 'number') {
       lines.push(`if (field == ${zrString(field)}) { return ${zrNumber(value)}; }`);
     }

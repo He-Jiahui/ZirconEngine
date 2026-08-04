@@ -7,7 +7,9 @@ fn runtime_15_render_graph_materialization_tests_are_child_owner_split() {
     let tests =
         read_runtime_src("graphics/scene/scene_renderer/graph_execution/materialization/tests.rs");
 
-    let plan_01 = read_repo("docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md");
+    let plan_01 = read_repo(
+        "docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
@@ -219,7 +221,8 @@ fn runtime_15_render_graph_materialization_requires_transient_pool() {
         ],
     );
     assert!(
-        !resource_resolver_production.contains(".passes()\n            .iter()\n            .find(")
+        !resource_resolver_production
+            .contains(".passes()\n            .iter()\n            .find(")
             && !resource_resolver_production.contains("self.pass_resources().iter().find(")
             && !resource_resolver_production
                 .contains("self.pass_resources()\n            .iter()\n            .any("),

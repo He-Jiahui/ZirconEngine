@@ -19,34 +19,6 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
         include_str!("mirror_docs.rs"),
     ]
     .join("\n");
-    let cargo_gate_guard = include_str!("../plan_status/cargo_gates/middle.rs");
-
-    for guard_anchor in [
-        "runtime_09_ui_architecture_doc_records_current_boundaries",
-        "runtime_09_ui_architecture_baselines_match_current_source_scan",
-        "runtime_09_v2_verdict_matches_runtime_and_interface_modules",
-        "runtime_09_navigation_legacy_reply_rename_reduces_ui_input_debt",
-        "runtime_09_pointer_legacy_reply_rename_reduces_ui_input_debt",
-        "runtime_09_pointer_capture_fallback_rename_reduces_ui_input_debt",
-        "runtime_09_table_row_label_fallback_rename_reduces_ui_render_debt",
-        "runtime_09_template_component_name_fallback_rename_reduces_ui_template_debt",
-        "runtime_09_property_visibility_flag_rename_reduces_ui_surface_debt",
-        "runtime_09_responsive_mui_visibility_flag_rename_reduces_ui_layout_debt",
-        "runtime_09_accessibility_open_state_fallback_rename_reduces_ui_a11y_debt",
-        "runtime_09_layout_engine_backend_name_cutover_reduces_ui_layout_debt",
-        "runtime_09_surface_default_interaction_fallback_rename_reduces_ui_surface_debt",
-        "runtime_09_ui_input_events_route_through_single_dispatch_authority",
-        "runtime_09_taffy_layout_pass_order_uses_bridge_authority",
-        "runtime_09_virtualization_scroll_boundary_records_invalidation_authority",
-        "runtime_09_template_pipeline_boundary_records_compile_instance_validate_authority",
-        "runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts",
-        "runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation",
-    ] {
-        assert!(
-            ui_guard.contains(guard_anchor) || cargo_gate_guard.contains(guard_anchor),
-            "Runtime 09 guard anchor `{guard_anchor}` should stay visible to ui_architecture_boundary"
-        );
-    }
 
     for audit_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 52",

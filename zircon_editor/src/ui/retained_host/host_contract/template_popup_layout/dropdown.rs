@@ -29,14 +29,30 @@ pub(crate) fn dropdown_option_popup_frame_within(
         return Some(popup);
     }
 
-    let below_y = control_frame.y + control_frame.height + TEMPLATE_POPUP_ANCHOR_GAP;
-    let above_y = control_frame.y - TEMPLATE_POPUP_ANCHOR_GAP - popup.height;
     let bounds_bottom = bounds.y + bounds.height;
-    if below_y + popup.height > bounds_bottom && above_y >= bounds.y {
-        popup.y = above_y;
+    let below_y = control_frame.y + control_frame.height + TEMPLATE_POPUP_ANCHOR_GAP;
+    let below_start = below_y.max(bounds.y);
+    let below_space = (bounds_bottom - below_start).max(0.0);
+    let above_space = (control_frame.y - TEMPLATE_POPUP_ANCHOR_GAP - bounds.y).max(0.0);
+    let opens_above = below_space < popup.height && above_space > below_space;
+    let available_height = if opens_above {
+        above_space
+    } else {
+        below_space
     }
+    .min(bounds.height);
+    if available_height <= 0.0 {
+        return None;
+    }
+    popup.height = popup.height.min(available_height);
+    let popup_y = if opens_above {
+        control_frame.y - TEMPLATE_POPUP_ANCHOR_GAP - popup.height
+    } else {
+        below_start
+    };
+    popup.y = popup_y.clamp(bounds.y, bounds_bottom - popup.height);
 
-    let popup_width = popup.width.min(bounds.width.max(1.0)).max(1.0);
+    let popup_width = popup.width.min(bounds.width);
     popup.x = clamp_popup_x_to_bounds(popup.x, bounds.x, bounds.width, popup_width);
     popup.width = popup_width;
     Some(popup)
@@ -66,9 +82,13 @@ pub(crate) fn dropdown_option_row_frame_within(
     }
     let popup = dropdown_option_popup_frame_within(control_frame, row_count, bounds)?;
     let row_height = dropdown_option_row_height(control_frame);
+    let row_y = popup.y + row as f32 * row_height;
+    if row_y + row_height > popup.y + popup.height {
+        return None;
+    }
     Some(FrameRect {
         x: popup.x,
-        y: popup.y + row as f32 * row_height,
+        y: row_y,
         width: popup.width,
         height: row_height,
     })

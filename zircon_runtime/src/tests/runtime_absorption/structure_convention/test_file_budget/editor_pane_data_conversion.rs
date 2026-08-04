@@ -29,15 +29,6 @@ fn runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_ow
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let editor_workbench_doc = read_repo("docs/editor-and-tooling/editor-workbench-shell.md");
-    let status_rows = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/hub_editor_support.rs",
-    );
-    let status_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/hub_editor_maps.rs",
-    );
-    let date_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/hub_editor_maps.rs",
-    );
 
     assert_contains_all(
         "pane data conversion root delegates projection owners",
@@ -104,30 +95,4 @@ fn runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_ow
             "{path} should stay below {FILE_BUDGET} lines after the F15 pane projection owner split; got {line_count}"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("editor workbench doc", editor_workbench_doc.as_str()),
-        ("status row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                SLICE,
-                STATUS,
-                PANE_DATA_MOD,
-                TEMPLATE_NODE_PROJECTION,
-                ANIMATION_PROJECTION,
-                APPLY_PANE_CONVERSION,
-                GUARD,
-            ],
-        );
-    }
-    assert_contains_all("status map", &status_map, &[SLICE, STATUS]);
-    assert_contains_all("date map", &date_map, &[SLICE, DATE]);
 }

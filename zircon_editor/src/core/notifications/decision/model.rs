@@ -1,50 +1,12 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use super::{
-    DecisionNotificationError, DecisionOptionId, DecisionReceipt, DecisionTicket, NotificationId,
-};
+use crate::core::notifications::{NotificationId, NotificationSource};
+
+use super::{DecisionNotificationError, DecisionOptionId, DecisionReceipt, DecisionTicket};
 
 pub const MAX_DECISION_OPTIONS: usize = 16;
 pub const MAX_LOCALIZATION_KEY_BYTES: usize = 256;
-pub const MAX_NOTIFICATION_SOURCE_ID_BYTES: usize = 128;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NotificationSourceKind {
-    Builtin,
-    Plugin,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NotificationSource {
-    kind: NotificationSourceKind,
-    id: Arc<str>,
-}
-
-impl NotificationSource {
-    pub fn builtin(owner: impl Into<String>) -> Result<Self, DecisionNotificationError> {
-        Ok(Self {
-            kind: NotificationSourceKind::Builtin,
-            id: bounded_non_empty("source owner", owner, MAX_NOTIFICATION_SOURCE_ID_BYTES)?,
-        })
-    }
-
-    pub fn plugin(plugin_id: impl Into<String>) -> Result<Self, DecisionNotificationError> {
-        Ok(Self {
-            kind: NotificationSourceKind::Plugin,
-            id: bounded_non_empty("plugin id", plugin_id, MAX_NOTIFICATION_SOURCE_ID_BYTES)?,
-        })
-    }
-
-    pub const fn kind(&self) -> NotificationSourceKind {
-        self.kind
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DecisionOption {
     id: DecisionOptionId,

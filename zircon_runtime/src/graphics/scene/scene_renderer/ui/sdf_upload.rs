@@ -1,11 +1,11 @@
 use crate::text::atlas::{
-    glyph_atlas_upload_command, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
-    GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasUploadCommand,
+    GlyphAtlasUploadMode, glyph_atlas_upload_command,
 };
 use crate::text::sdf::{SdfAtlasBakeDirtyPage, SdfAtlasRect};
 
 use super::sdf_atlas::{
-    distance_field_atlas_page_keys, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan,
+    SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, distance_field_atlas_page_keys,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

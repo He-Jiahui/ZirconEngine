@@ -13,27 +13,366 @@ const REALTIME_CAPTURE_SHADER: &str = include_str!(
 const SKYBOX_SETTINGS_SOURCE: &str =
     include_str!("../src/core/framework/render/environment/skybox.rs");
 
-fn environment_pbr_composition_source() -> &'static str {
-    ENVIRONMENT_SHADER
-        .split("fn zr_environment_pbr_components_from_reflection(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_components(").next())
-        .expect("environment shader should retain shared PBR composition")
+fn environment_pbr_composition_source() -> String {
+    function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_pbr_components_from_reflection(",
+    )
 }
 
-fn function_body<'a>(source: &'a str, signature: &str) -> &'a str {
-    let start = source
-        .find(signature)
+enum WgslComment {
+    NotComment,
+    End(usize),
+    UnterminatedBlock,
+}
+
+fn wgsl_line_break_len_at(bytes: &[u8], index: usize) -> Option<usize> {
+    match bytes.get(index) {
+        Some(b'\n' | b'\x0B' | b'\x0C') => Some(1),
+        Some(b'\r') => Some(if bytes.get(index + 1) == Some(&b'\n') {
+            2
+        } else {
+            1
+        }),
+        Some(&0xC2) if bytes.get(index + 1) == Some(&0x85) => Some(2),
+        Some(&0xE2)
+            if bytes.get(index + 1) == Some(&0x80)
+                && matches!(bytes.get(index + 2), Some(0xA8 | 0xA9)) =>
+        {
+            Some(3)
+        }
+        _ => None,
+    }
+}
+
+fn is_wgsl_blankspace_character(character: char) -> bool {
+    matches!(
+        character,
+        ' ' | '\t' | '\n' | '\u{000B}' | '\u{000C}' | '\r' | '\u{0085}' | '\u{200E}' | '\u{200F}' | '\u{2028}' | '\u{2029}'
+    )
+}
+
+fn wgsl_blankspace_len_at(source: &str, index: usize) -> Option<usize> {
+    let character = source.get(index..)?.chars().next()?;
+    is_wgsl_blankspace_character(character).then_some(character.len_utf8())
+}
+
+fn wgsl_comment_at(bytes: &[u8], start: usize) -> WgslComment {
+    if bytes.get(start) != Some(&b'/') {
+        return WgslComment::NotComment;
+    }
+
+    match bytes.get(start + 1) {
+        Some(&b'/') => {
+            let mut index = start + 2;
+            while index < bytes.len() && wgsl_line_break_len_at(bytes, index).is_none() {
+                index += 1;
+            }
+            WgslComment::End(index)
+        }
+        Some(&b'*') => {
+            let mut depth = 1usize;
+            let mut index = start + 2;
+            while index + 1 < bytes.len() {
+                match (bytes[index], bytes[index + 1]) {
+                    (b'/', b'*') => {
+                        depth += 1;
+                        index += 2;
+                    }
+                    (b'*', b'/') => {
+                        depth -= 1;
+                        index += 2;
+                        if depth == 0 {
+                            return WgslComment::End(index);
+                        }
+                    }
+                    _ => index += 1,
+                }
+            }
+            WgslComment::UnterminatedBlock
+        }
+        _ => WgslComment::NotComment,
+    }
+}
+
+fn wgsl_function_body_start(bytes: &[u8], signature: &str) -> usize {
+    let mut index = 0;
+    while index < bytes.len() {
+        match wgsl_comment_at(bytes, index) {
+            WgslComment::End(next) => {
+                index = next;
+                continue;
+            }
+            WgslComment::UnterminatedBlock => {
+                panic!("unterminated block comment before {signature} body");
+            }
+            WgslComment::NotComment => {}
+        }
+
+        if bytes[index] == b'{' {
+            return index;
+        }
+        index += 1;
+    }
+
+    panic!("missing opening brace for {signature}");
+}
+
+fn wgsl_code_position(bytes: &[u8], needle: &[u8]) -> Option<usize> {
+    let mut index = 0;
+    while index < bytes.len() {
+        match wgsl_comment_at(bytes, index) {
+            WgslComment::End(next) => {
+                index = next;
+                continue;
+            }
+            WgslComment::UnterminatedBlock => return None,
+            WgslComment::NotComment => {}
+        }
+
+        if bytes[index..].starts_with(needle) {
+            return Some(index);
+        }
+        index += 1;
+    }
+
+    None
+}
+
+fn wgsl_code_view(source: &str, context: &str) -> String {
+    let bytes = source.as_bytes();
+    let mut code = String::with_capacity(source.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        match wgsl_comment_at(bytes, index) {
+            WgslComment::End(next) => {
+                // Comments separate WGSL tokens, so preserve that boundary in the contract view.
+                code.push(' ');
+                index = next;
+                continue;
+            }
+            WgslComment::UnterminatedBlock => {
+                panic!("unterminated block comment in {context}");
+            }
+            WgslComment::NotComment => {}
+        }
+
+        let character = source[index..]
+            .chars()
+            .next()
+            .expect("source index must remain on a UTF-8 boundary");
+        code.push(character);
+        index += character.len_utf8();
+    }
+    code
+}
+
+fn function_body(source: &str, signature: &str) -> String {
+    let start = wgsl_code_position(source.as_bytes(), signature.as_bytes())
         .unwrap_or_else(|| panic!("missing {signature}"));
     let function = &source[start..];
-    let body_start = function
-        .find('{')
-        .unwrap_or_else(|| panic!("missing opening brace for {signature}"));
-    let body = &function[body_start + 1..];
-    let body_end = body
-        .find('}')
-        .unwrap_or_else(|| panic!("missing closing brace for {signature}"));
-    &body[..body_end]
+    let body_start = wgsl_function_body_start(function.as_bytes(), signature);
+    let mut depth = 1usize;
+    let bytes = function.as_bytes();
+    let mut index = body_start + 1;
+    while index < bytes.len() {
+        match wgsl_comment_at(bytes, index) {
+            WgslComment::End(next) => {
+                index = next;
+                continue;
+            }
+            WgslComment::UnterminatedBlock => {
+                panic!("unterminated block comment for {signature}");
+            }
+            WgslComment::NotComment => {}
+        }
+
+        match bytes[index] {
+            b'{' => {
+                depth += 1;
+                index += 1;
+            }
+            b'}' => {
+                depth = depth
+                    .checked_sub(1)
+                    .unwrap_or_else(|| panic!("unbalanced braces for {signature}"));
+                if depth == 0 {
+                    return wgsl_code_view(&function[body_start + 1..index], signature);
+                }
+                index += 1;
+            }
+            _ => index += 1,
+        }
+    }
+
+    panic!("missing closing brace for {signature}");
+}
+
+fn is_wgsl_identifier_character(character: char) -> bool {
+    character == '_'
+        || character.is_ascii_alphanumeric()
+        // WGSL's valid non-ASCII code points are XID identifier characters unless blankspace.
+        || (!character.is_ascii() && !is_wgsl_blankspace_character(character))
+}
+
+fn is_wgsl_identifier_before(source: &str, index: usize) -> bool {
+    source[..index]
+        .chars()
+        .next_back()
+        .is_some_and(is_wgsl_identifier_character)
+}
+
+fn is_wgsl_identifier_after(source: &str, index: usize) -> bool {
+    wgsl_blankspace_len_at(source, index).is_none()
+        && source[index..]
+            .chars()
+            .next()
+            .is_some_and(is_wgsl_identifier_character)
+}
+
+fn contains_wgsl_function_call(source: &str, function_name: &str) -> bool {
+    let bytes = source.as_bytes();
+    let name = function_name.as_bytes();
+    let mut index = 0;
+    while index < bytes.len() {
+        match wgsl_comment_at(bytes, index) {
+            WgslComment::End(next) => {
+                index = next;
+                continue;
+            }
+            WgslComment::UnterminatedBlock => return false,
+            WgslComment::NotComment => {}
+        }
+
+        let name_end = index + name.len();
+        if bytes[index..].starts_with(name)
+            && !is_wgsl_identifier_before(source, index)
+            && !is_wgsl_identifier_after(source, name_end)
+        {
+            let mut call_start = name_end;
+            loop {
+                while let Some(blankspace_len) = wgsl_blankspace_len_at(source, call_start) {
+                    call_start += blankspace_len;
+                }
+                match wgsl_comment_at(bytes, call_start) {
+                    WgslComment::End(next) => call_start = next,
+                    WgslComment::UnterminatedBlock => break,
+                    WgslComment::NotComment => break,
+                }
+            }
+            if bytes.get(call_start) == Some(&b'(') {
+                return true;
+            }
+        }
+
+        index += 1;
+    }
+
+    false
+}
+
+#[test]
+fn function_body_keeps_nested_block_contents() {
+    let body = function_body(
+        "fn nested() { if (ready) { return; } let sentinel = 1; }",
+        "fn nested()",
+    );
+
+    assert!(
+        body.contains("let sentinel = 1;"),
+        "function extraction must retain statements after nested blocks"
+    );
+}
+
+#[test]
+fn function_body_ignores_braces_in_comments() {
+    let body = function_body(
+        "fn commented() /* prelude { */ { // }\n /* outer { /* nested } */ still outer } */ let sentinel = 1; }",
+        "fn commented()",
+    );
+
+    assert!(
+        body.contains("let sentinel = 1;"),
+        "function extraction must ignore braces inside comments"
+    );
+}
+
+#[test]
+fn function_body_ignores_commented_out_signatures() {
+    let body = function_body(
+        "// fn commented() { stale; }\nfn commented() { let sentinel = 1; }",
+        "fn commented()",
+    );
+
+    assert!(
+        body.contains("let sentinel = 1;"),
+        "function extraction must skip commented-out declarations"
+    );
+}
+
+#[test]
+fn function_body_ignores_nested_block_comment_signatures() {
+    let body = function_body(
+        "/* outer { /* inner */ fn commented() { stale; } still outer } */ fn commented() { let sentinel = 1; }",
+        "fn commented()",
+    );
+
+    assert!(
+        body.contains("let sentinel = 1;"),
+        "function extraction must skip nested block-comment declarations"
+    );
+}
+
+#[test]
+fn function_body_ends_line_comments_at_each_wgsl_line_break() {
+    for line_break in ["\r", "\u{000B}", "\u{000C}", "\u{0085}", "\u{2028}", "\u{2029}"] {
+        let source = format!(
+            "// fn commented() {{ stale; }}{line_break}fn commented() {{ let sentinel = 1; }}"
+        );
+        let body = function_body(&source, "fn commented()");
+        assert!(
+            body.contains("let sentinel = 1;"),
+            "line comments must end at the WGSL line break {line_break:?}"
+        );
+    }
+}
+
+#[test]
+fn function_body_excludes_commented_out_rotation_fast_path() {
+    let body = function_body(
+        "fn rotation() { /* if (scene.environment_rotation_sin_cos.z < 0.5) { return direction; } let s = scene.environment_rotation_sin_cos.x; */ let live = 1; }",
+        "fn rotation()",
+    );
+
+    assert!(!body.contains("if (scene.environment_rotation_sin_cos.z < 0.5)"));
+    assert!(!body.contains("return direction;"));
+    assert!(!body.contains("let s = scene.environment_rotation_sin_cos.x;"));
+    assert!(body.contains("let live = 1;"));
+}
+
+#[test]
+#[should_panic(expected = "unterminated block comment")]
+fn function_body_rejects_unterminated_block_comments() {
+    let _ = function_body("fn incomplete() { /*", "fn incomplete()");
+}
+
+#[test]
+fn wgsl_function_call_scan_accepts_whitespace_but_not_identifiers_or_comments() {
+    assert!(contains_wgsl_function_call("sin (value)", "sin"));
+    assert!(contains_wgsl_function_call("cos\t(value)", "cos"));
+    assert!(contains_wgsl_function_call("sin/* note */(value)", "sin"));
+    assert!(contains_wgsl_function_call("cos // note\n(value)", "cos"));
+    assert!(contains_wgsl_function_call("sin\u{200E}(value)", "sin"));
+    assert!(contains_wgsl_function_call(
+        "sin/* outer /* nested */ note */ (value)",
+        "sin"
+    ));
+    assert!(!contains_wgsl_function_call(
+        "let sin_cos = 1.0; // sin (value)",
+        "sin"
+    ));
+    assert!(!contains_wgsl_function_call("\u{0394}sin (value)", "sin"));
+    assert!(!contains_wgsl_function_call("let result = asin (value);", "sin"));
 }
 
 #[test]
@@ -63,53 +402,40 @@ fn runtime_environment_wgpu_cubemap_sampling_does_not_warp_lookup_directions() {
 }
 
 #[test]
-fn runtime_environment_zero_rotation_skips_trigonometry() {
-    let rotation = ENVIRONMENT_SHADER
-        .split("fn zr_environment_rotated_direction(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_fix_cube_lookup_for_face_size(")
-                .next()
-        })
-        .expect("environment shader should retain the shared rotation owner");
+fn runtime_environment_precomputed_rotation_skips_per_pixel_trigonometry() {
+    let rotation = function_body(ENVIRONMENT_SHADER, "fn zr_environment_rotated_direction(");
 
     let zero_guard = rotation
-        .find("if (rotation == 0.0)")
-        .expect("the default zero rotation must retain a uniform fast path");
+        .find("if (scene.environment_rotation_sin_cos.z < 0.5)")
+        .expect("the default environment rotation must retain the precomputed uniform fast path");
     let identity_return = rotation[zero_guard..]
         .find("return direction;")
         .map(|offset| zero_guard + offset)
         .expect("zero rotation must preserve the already-normalized direction");
     let sine = rotation
-        .find("let s = sin(rotation);")
-        .expect("nonzero rotation must retain its sine");
+        .find("let s = scene.environment_rotation_sin_cos.x;")
+        .expect("a rotated environment must consume its precomputed sine");
     let cosine = rotation
-        .find("let c = cos(rotation);")
-        .expect("nonzero rotation must retain its cosine");
+        .find("let c = scene.environment_rotation_sin_cos.y;")
+        .expect("a rotated environment must consume its precomputed cosine");
 
     assert!(
         zero_guard < identity_return && identity_return < sine && sine < cosine,
-        "zero rotation must return before evaluating per-pixel trigonometry"
+        "the default environment rotation must return before reading precomputed sine/cosine"
     );
+    for forbidden in ["sin", "cos"] {
+        assert!(
+            !contains_wgsl_function_call(rotation, forbidden),
+            "environment rotation must not evaluate per-pixel trigonometry through `{forbidden}`"
+        );
+    }
 }
 
 #[test]
 fn runtime_environment_cpu_sun_rotation_is_inverse_of_shader_lookup_rotation() {
-    let environment_rotation = ENVIRONMENT_SHADER
-        .split("fn zr_environment_rotated_direction(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_fix_cube_lookup_for_face_size(")
-                .next()
-        })
-        .expect("environment shader should retain the shared rotation owner");
-    let skybox_rotation = SKYBOX_SHADER
-        .split("fn skybox_rotated_direction_normalized(")
-        .nth(1)
-        .and_then(|source| source.split("fn skybox_normalize_or_fallback(").next())
-        .expect("skybox shader should retain its rotation owner");
+    let environment_rotation =
+        function_body(ENVIRONMENT_SHADER, "fn zr_environment_rotated_direction(");
+    let skybox_rotation = function_body(SKYBOX_SHADER, "fn skybox_rotated_direction_normalized(");
     for (label, rotation) in [
         ("environment", environment_rotation),
         ("skybox", skybox_rotation),
@@ -135,52 +461,46 @@ fn runtime_environment_cpu_sun_rotation_is_inverse_of_shader_lookup_rotation() {
 
 #[test]
 fn runtime_environment_skybox_reuses_reconstructed_normalized_direction() {
-    let rotation = SKYBOX_SHADER
-        .split("fn skybox_rotated_direction_normalized(")
-        .nth(1)
-        .and_then(|source| source.split("fn skybox_normalize_or_fallback(").next())
-        .expect("skybox shader should retain the normalized rotation owner");
+    let rotation = function_body(SKYBOX_SHADER, "fn skybox_rotated_direction_normalized(");
     assert!(
         !rotation.contains("normalize("),
         "the skybox rotation owner must not renormalize its reconstructed unit direction"
     );
     let zero_guard = rotation
-        .find("if (rotation == 0.0)")
-        .expect("the default skybox rotation must retain a uniform fast path");
+        .find("if (scene.environment_rotation_sin_cos.z < 0.5)")
+        .expect("the default skybox rotation must retain the precomputed uniform fast path");
     let identity_return = rotation[zero_guard..]
         .find("return direction;")
         .map(|offset| zero_guard + offset)
         .expect("zero skybox rotation must preserve the reconstructed direction");
     let sine = rotation
-        .find("let s = sin(rotation);")
-        .expect("nonzero skybox rotation must retain its sine");
+        .find("let s = scene.environment_rotation_sin_cos.x;")
+        .expect("a rotated skybox must consume its precomputed sine");
+    let cosine = rotation
+        .find("let c = scene.environment_rotation_sin_cos.y;")
+        .expect("a rotated skybox must consume its precomputed cosine");
     assert!(
-        zero_guard < identity_return && identity_return < sine,
-        "zero skybox rotation must return before trigonometry"
+        zero_guard < identity_return && identity_return < sine && sine < cosine,
+        "the default skybox rotation must return before reading precomputed sine/cosine"
     );
+    for forbidden in ["sin", "cos"] {
+        assert!(
+            !contains_wgsl_function_call(rotation, forbidden),
+            "skybox rotation must not evaluate per-pixel trigonometry through `{forbidden}`"
+        );
+    }
 
-    let source_sample = SKYBOX_SHADER
-        .split("fn source_cubemap_sky_color(")
-        .nth(1)
-        .and_then(|source| source.split("fn procedural_sun_radiance(").next())
-        .expect("skybox shader should retain source cubemap sampling");
+    let source_sample = function_body(SKYBOX_SHADER, "fn source_cubemap_sky_color(");
     assert!(
-        source_sample.contains("skybox_rotated_direction_normalized(direction)"),
+        contains_wgsl_function_call(&source_sample, "skybox_rotated_direction_normalized")
+            && source_sample.contains("skybox_rotated_direction_normalized(direction)"),
         "source cubemap sky sampling must use the normalized rotation owner"
     );
 }
 
 #[test]
 fn runtime_environment_source_cubemap_reflections_use_pmrem_before_procedural_fallback() {
-    let reflection = ENVIRONMENT_SHADER
-        .split("fn zr_environment_sky_reflection_color(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_diffuse_color_normalized(")
-                .next()
-        })
-        .expect("environment shader should retain the sky-reflection owner");
+    let reflection = function_body(ENVIRONMENT_SHADER, "fn zr_environment_sky_reflection_color(");
 
     for expected in [
         "if (zr_environment_is_source_cubemap() || zr_environment_is_realtime_ibl())",
@@ -229,15 +549,10 @@ fn runtime_environment_source_cubemap_reflections_use_pmrem_before_procedural_fa
 
 #[test]
 fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
-    let normalized_sky = ENVIRONMENT_SHADER
-        .split("fn zr_environment_procedural_sky_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_sky_reflection_color(")
-                .next()
-        })
-        .expect("environment shader should retain the normalized procedural-sky owner");
+    let normalized_sky = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_procedural_sky_color_normalized(",
+    );
     assert!(
         !normalized_sky.contains("zr_environment_normalize_or_zero("),
         "the normalized procedural-sky path must not normalize its input a second time"
@@ -254,37 +569,22 @@ fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
         "the public procedural-sky wrapper must retain defensive normalization"
     );
 
-    let diffuse = ENVIRONMENT_SHADER
-        .split("fn zr_environment_diffuse_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_pbr_components_from_reflection(")
-                .next()
-        })
-        .expect("environment shader should retain the normalized diffuse owner");
+    let diffuse = function_body(ENVIRONMENT_SHADER, "fn zr_environment_diffuse_color_normalized(");
     assert!(
-        diffuse.contains("zr_environment_procedural_sky_color_normalized(normal)"),
+        contains_wgsl_function_call(&diffuse, "zr_environment_procedural_sky_color_normalized")
+            && diffuse.contains("zr_environment_procedural_sky_color_normalized(normal)"),
         "procedural diffuse must reuse its normalized PBR normal"
     );
 }
 
 #[test]
 fn runtime_environment_procedural_sun_uses_cpu_prepared_parameters() {
-    let environment_sun = ENVIRONMENT_SHADER
-        .split("fn zr_environment_procedural_sky_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_sky_reflection_color(")
-                .next()
-        })
-        .expect("environment shader should retain procedural sky sampling");
-    let skybox_sun = SKYBOX_SHADER
-        .split("fn procedural_sun_radiance(")
-        .nth(1)
-        .and_then(|source| source.split("@fragment").next())
-        .expect("skybox shader should retain procedural sun sampling");
+    let environment_sun = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_procedural_sky_color_normalized(",
+    );
+    let skybox_sun = function_body(SKYBOX_SHADER, "fn procedural_sun_radiance(");
+    let realtime_capture = wgsl_code_view(REALTIME_CAPTURE_SHADER, "realtime capture shader");
 
     for (label, source, direction_owner) in [
         (
@@ -295,7 +595,7 @@ fn runtime_environment_procedural_sun_uses_cpu_prepared_parameters() {
         ("skybox", skybox_sun, "scene.sky_sun_direction.xyz"),
         (
             "realtime capture",
-            REALTIME_CAPTURE_SHADER,
+            realtime_capture,
             "params.sun_direction.xyz",
         ),
     ] {
@@ -320,21 +620,13 @@ fn runtime_environment_procedural_sun_uses_cpu_prepared_parameters() {
 
 #[test]
 fn runtime_environment_direct_procedural_sun_obeys_final_sampling_intensity() {
-    let environment_sun = ENVIRONMENT_SHADER
-        .split("fn zr_environment_procedural_sky_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_sky_reflection_color(")
-                .next()
-        })
-        .expect("environment shader should retain procedural sky sampling");
+    let environment_sun = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_procedural_sky_color_normalized(",
+    );
     assert!(environment_sun.contains("return color * max(scene.environment_params.y, 0.0);"));
 
-    let skybox_fragment = SKYBOX_SHADER
-        .split("fn fs_main(")
-        .nth(1)
-        .expect("skybox shader should retain its fragment entry");
+    let skybox_fragment = function_body(SKYBOX_SHADER, "fn fs_main(");
     assert!(skybox_fragment.contains(
         "color = (select(ground, sky, direction.y >= 0.0)\n            + procedural_sun_radiance(direction))\n            * intensity;"
     ));
@@ -379,11 +671,10 @@ fn runtime_environment_pbr_pmrem_reuses_normalized_direction_and_clamped_lod() {
 
 #[test]
 fn runtime_environment_planar_reflection_short_circuits_pmrem_and_probe_work() {
-    let reflection = ENVIRONMENT_SHADER
-        .split("fn zr_environment_reflection_color_normalized(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_components(").next())
-        .expect("environment shader should retain the reflection owner");
+    let reflection = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_reflection_color_normalized(",
+    );
 
     let planar = reflection
         .find("let planar = zr_environment_planar_reflection(")
@@ -422,11 +713,10 @@ fn runtime_environment_planar_reflection_short_circuits_pmrem_and_probe_work() {
 
 #[test]
 fn runtime_environment_full_probe_coverage_skips_zero_weight_sky_sample() {
-    let reflection = ENVIRONMENT_SHADER
-        .split("fn zr_environment_reflection_color_after_planar(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_components(").next())
-        .expect("environment shader should retain the post-planar reflection owner");
+    let reflection = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_reflection_color_after_planar(",
+    );
 
     let no_probes = reflection
         .find("if (zr_env_probe_header.probe_count == 0u)")
@@ -456,14 +746,10 @@ fn runtime_environment_full_probe_coverage_skips_zero_weight_sky_sample() {
 
 #[test]
 fn runtime_environment_pbr_reuses_normalized_reflection_inputs() {
-    let components = ENVIRONMENT_SHADER
-        .split("fn zr_environment_pbr_components(")
-        .nth(1)
-        .and_then(|source| source.split("fn zr_environment_pbr_indirect(").next())
-        .expect("environment shader should retain PBR indirect components");
+    let components = function_body(ENVIRONMENT_SHADER, "fn zr_environment_pbr_components(");
 
     assert!(
-        components.contains("zr_environment_reflection_color_normalized("),
+        contains_wgsl_function_call(&components, "zr_environment_reflection_color_normalized"),
         "PBR components must call the normalized reflection hot path"
     );
     assert!(
@@ -471,15 +757,7 @@ fn runtime_environment_pbr_reuses_normalized_reflection_inputs() {
         "PBR components already normalize normal/view and clamp roughness before reflection"
     );
 
-    let wrapper = ENVIRONMENT_SHADER
-        .split("fn zr_environment_reflection_color(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_reflection_color_normalized(")
-                .next()
-        })
-        .expect("environment shader should retain the defensive reflection wrapper");
+    let wrapper = function_body(ENVIRONMENT_SHADER, "fn zr_environment_reflection_color(");
     for expected in [
         "zr_environment_normalize_or_zero(normal_ws)",
         "zr_environment_normalize_or_zero(view_dir_ws)",
@@ -532,22 +810,19 @@ fn runtime_environment_full_metal_skips_zero_weight_diffuse_ibl() {
 
 #[test]
 fn runtime_environment_pbr_diffuse_reuses_its_normalized_normal() {
-    let normalized_diffuse = ENVIRONMENT_SHADER
-        .split("fn zr_environment_diffuse_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_pbr_components_from_reflection(")
-                .next()
-        })
-        .expect("environment shader should retain the normalized diffuse IBL owner");
+    let normalized_diffuse =
+        function_body(ENVIRONMENT_SHADER, "fn zr_environment_diffuse_color_normalized(");
 
     assert!(
-        normalized_diffuse.contains("zr_environment_sh9_color_normalized(normal)"),
+        contains_wgsl_function_call(&normalized_diffuse, "zr_environment_sh9_color_normalized")
+            && normalized_diffuse.contains("zr_environment_sh9_color_normalized(normal)"),
         "normalized diffuse IBL must pass its normalized normal through to SH9"
     );
     assert!(
-        normalized_diffuse.contains("zr_environment_irradiance_cube_color_normalized(normal)"),
+        contains_wgsl_function_call(
+            &normalized_diffuse,
+            "zr_environment_irradiance_cube_color_normalized",
+        ) && normalized_diffuse.contains("zr_environment_irradiance_cube_color_normalized(normal)"),
         "normalized diffuse IBL must pass its normalized normal through to the irradiance cube"
     );
     assert!(
@@ -558,15 +833,8 @@ fn runtime_environment_pbr_diffuse_reuses_its_normalized_normal() {
 
 #[test]
 fn runtime_environment_sh9_diffuse_tracks_runtime_sky_rotation() {
-    let normalized_diffuse = ENVIRONMENT_SHADER
-        .split("fn zr_environment_diffuse_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_pbr_components_from_reflection(")
-                .next()
-        })
-        .expect("environment shader should retain the normalized diffuse IBL owner");
+    let normalized_diffuse =
+        function_body(ENVIRONMENT_SHADER, "fn zr_environment_diffuse_color_normalized(");
 
     assert_eq!(
         normalized_diffuse
@@ -576,15 +844,7 @@ fn runtime_environment_sh9_diffuse_tracks_runtime_sky_rotation() {
         "source and realtime SH9 diffuse must share the rotation-aware normalized owner"
     );
 
-    let rotated_sh9 = ENVIRONMENT_SHADER
-        .split("fn zr_environment_sh9_color_normalized(")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("fn zr_environment_irradiance_cube_color_normalized(")
-                .next()
-        })
-        .expect("environment shader should retain the rotation-aware normalized SH9 owner");
+    let rotated_sh9 = function_body(ENVIRONMENT_SHADER, "fn zr_environment_sh9_color_normalized(");
     let rotation = rotated_sh9
         .find("let rotated = zr_environment_rotated_direction(normal);")
         .expect("SH9 diffuse must rotate the normalized world normal with the runtime sky");

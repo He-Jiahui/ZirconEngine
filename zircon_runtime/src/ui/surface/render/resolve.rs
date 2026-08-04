@@ -2,7 +2,8 @@ use toml::Value;
 
 use zircon_runtime_interface::ui::surface::{
     normalize_ui_text_language_tag, UiEditableTextState, UiRenderCommandKind, UiResolvedStyle,
-    UiTextCaret, UiTextComposition, UiTextOverflow, UiTextRange, UiTextSelection, UiVisualAssetRef,
+    UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextOverflow, UiTextRange,
+    UiTextSelection, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
@@ -13,6 +14,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
+use crate::ui::editable_text_composition::composition_clauses_from_metadata;
 
 mod text_style_parsing;
 
@@ -246,7 +248,7 @@ pub(super) fn resolve_editable_text_state(
             &text,
             resolve_usize_attribute(Some(metadata), "caret_offset").unwrap_or(text.len()),
         ),
-        affinity: Default::default(),
+        affinity: resolve_text_caret_affinity(metadata),
     };
     let selection = resolve_selection(metadata, &text);
     let composition = resolve_composition(metadata, &text);
@@ -259,6 +261,13 @@ pub(super) fn resolve_editable_text_state(
             .or_else(|| resolve_bool_attribute(Some(metadata), "input_read_only"))
             .unwrap_or(false),
     })
+}
+
+fn resolve_text_caret_affinity(metadata: &UiTemplateNodeMetadata) -> UiTextCaretAffinity {
+    resolve_string_attribute(Some(metadata), "caret_affinity")
+        .is_some_and(|value| value.eq_ignore_ascii_case("upstream"))
+        .then_some(UiTextCaretAffinity::Upstream)
+        .unwrap_or(UiTextCaretAffinity::Downstream)
 }
 
 fn resolve_string_attribute<'a>(
@@ -446,6 +455,7 @@ fn resolve_composition(metadata: &UiTemplateNodeMetadata, text: &str) -> Option<
             start: clamp_text_boundary(text, start),
             end: clamp_text_boundary(text, end),
         },
+        preedit_clauses: composition_clauses_from_metadata(metadata, composition_text),
         text: composition_text.to_string(),
         restore_text: resolve_string_attribute(Some(metadata), "composition_restore_text")
             .map(str::to_string),

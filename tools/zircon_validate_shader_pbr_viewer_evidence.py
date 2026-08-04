@@ -15,7 +15,25 @@ from typing import Mapping
 
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v2"
+_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v8"
+_V3_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v3"
+_V4_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v4"
+_V5_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v5"
+_V6_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v6"
+_V7_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v7"
+# Decimal serialization of the canonical Rust IBL_BAKE_ALGORITHM_VERSION.
+_CURRENT_IBL_BAKE_ALGORITHM_VERSION = "202608020005"
+_SUPPORTED_READY_FRAME_EVIDENCE_SCHEMAS = frozenset(
+    {
+        "zircon_shader_pbr_viewer_ready_frame_evidence_v2",
+        _V3_READY_FRAME_EVIDENCE_SCHEMA,
+        _V4_READY_FRAME_EVIDENCE_SCHEMA,
+        _V5_READY_FRAME_EVIDENCE_SCHEMA,
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    }
+)
 _PROCESS_LOCAL_MESH_PIPELINE_CACHE = "process_local_mesh_pipeline_cache"
 _MAX_VIEWPORT_DIMENSION = 16_384
 _MAX_ENCODED_PNG_BYTES = 64 * 1024 * 1024
@@ -56,6 +74,38 @@ _REQUIRED_METADATA_FIELDS = (
     "ready_frame_renderer_call_ns",
     "ready_frame_readback_and_completion_ns",
 )
+_V3_REQUIRED_METADATA_FIELDS = ("environment_only_base_prewarm_pipeline_ready",)
+_V4_REQUIRED_METADATA_FIELDS = (
+    "environment_only_base_prewarm_pipeline_ready",
+    "environment_only_base_pipeline_ready_at_capture",
+)
+_V5_REQUIRED_METADATA_FIELDS = (
+    *_V4_REQUIRED_METADATA_FIELDS,
+    "scene_startup_hdri_decode_ns",
+    "scene_startup_project_assets_ns",
+    "scene_startup_runtime_bootstrap_ns",
+    "scene_startup_project_open_ns",
+    "scene_startup_world_load_ns",
+    "scene_startup_renderer_initialization_ns",
+    "scene_startup_renderer_backend_initialization_ns",
+    "scene_startup_renderer_deferred_initialization_ns",
+    "scene_startup_renderer_deferred_standard_pipeline_ns",
+    "scene_startup_resource_streamer_initialization_ns",
+    "scene_startup_ibl_restore_ns",
+    "scene_startup_total_ns",
+)
+_V6_REQUIRED_METADATA_FIELDS = (
+    *_V5_REQUIRED_METADATA_FIELDS,
+    "one_shot_base_pipeline_wait_elapsed_ns",
+)
+_V7_REQUIRED_METADATA_FIELDS = (
+    *_V6_REQUIRED_METADATA_FIELDS,
+    "viewer_scene_load_elapsed_ns",
+)
+_V8_REQUIRED_METADATA_FIELDS = (
+    *_V7_REQUIRED_METADATA_FIELDS,
+    "viewer_ready_elapsed_ns",
+)
 
 
 @dataclass(frozen=True)
@@ -75,6 +125,8 @@ def validate_ready_frame_evidence(
     *,
     expected_backend: str | None = None,
     require_direct_present: bool = False,
+    required_schema: str | None = None,
+    expected_ibl_bake_algorithm_version: str | None = None,
     min_distinct_rgba_colors: int = 2,
     min_non_black_pixels: int = 1,
 ) -> ReadyFrameEvidence:
@@ -93,6 +145,8 @@ def validate_ready_frame_evidence(
         height=height,
         expected_backend=expected_backend,
         require_direct_present=require_direct_present,
+        required_schema=required_schema,
+        expected_ibl_bake_algorithm_version=expected_ibl_bake_algorithm_version,
     )
     if (
         distinct_colors < min_distinct_rgba_colors
@@ -147,6 +201,8 @@ def _validate_metadata(
     height: int,
     expected_backend: str | None,
     require_direct_present: bool,
+    required_schema: str | None,
+    expected_ibl_bake_algorithm_version: str | None,
 ) -> None:
     missing = [field for field in _REQUIRED_METADATA_FIELDS if field not in metadata]
     if missing:
@@ -154,11 +210,78 @@ def _validate_metadata(
             "ready-frame provenance sidecar is missing required fields: "
             f"{', '.join(missing)} path={screenshot_path}"
         )
-    if metadata["schema"] != _READY_FRAME_EVIDENCE_SCHEMA:
+    if metadata["schema"] not in _SUPPORTED_READY_FRAME_EVIDENCE_SCHEMAS:
         raise RuntimeError(
             "ready-frame provenance schema is unsupported: "
             f"schema={metadata['schema']} path={screenshot_path}"
         )
+    if required_schema is not None and metadata["schema"] != required_schema:
+        raise RuntimeError(
+            "ready-frame provenance requires schema="
+            f"{required_schema}: actual={metadata['schema']} path={screenshot_path}"
+        )
+    if metadata["schema"] == _V3_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v3 = [
+            field for field in _V3_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v3:
+            raise RuntimeError(
+                "ready-frame v3 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v3)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _V4_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v4 = [
+            field for field in _V4_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v4:
+            raise RuntimeError(
+                "ready-frame v4 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v4)} path={screenshot_path}"
+            )
+    if metadata["schema"] in (
+        _V5_READY_FRAME_EVIDENCE_SCHEMA,
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        missing_v5 = [
+            field for field in _V5_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v5:
+            raise RuntimeError(
+                "ready-frame v5 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v5)} path={screenshot_path}"
+            )
+    if metadata["schema"] in (
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        missing_v6 = [
+            field for field in _V6_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v6:
+            raise RuntimeError(
+                "ready-frame v6 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v6)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _V7_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v7 = [
+            field for field in _V7_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v7:
+            raise RuntimeError(
+                "ready-frame v7 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v7)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v8 = [
+            field for field in _V8_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v8:
+            raise RuntimeError(
+                "ready-frame v8 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v8)} path={screenshot_path}"
+            )
     if metadata["screenshot"] != screenshot_path.name:
         raise RuntimeError(
             "ready-frame provenance screenshot name does not match PNG: "
@@ -171,6 +294,36 @@ def _validate_metadata(
         )
     _require_boolean(metadata, "interactive_direct_present_enabled", screenshot_path)
     _require_boolean(metadata, "environment_only_base_prewarm_cache_hit", screenshot_path)
+    if metadata["schema"] in (
+        _V3_READY_FRAME_EVIDENCE_SCHEMA,
+        _V4_READY_FRAME_EVIDENCE_SCHEMA,
+        _V5_READY_FRAME_EVIDENCE_SCHEMA,
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        _require_boolean(
+            metadata,
+            "environment_only_base_prewarm_pipeline_ready",
+            screenshot_path,
+        )
+    if metadata["schema"] in (
+        _V4_READY_FRAME_EVIDENCE_SCHEMA,
+        _V5_READY_FRAME_EVIDENCE_SCHEMA,
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        _require_boolean(
+            metadata,
+            "environment_only_base_pipeline_ready_at_capture",
+            screenshot_path,
+        )
+        if metadata["environment_only_base_pipeline_ready_at_capture"] != "true":
+            raise RuntimeError(
+                "ready-frame provenance requires capture-time Base pipeline readiness: "
+                f"path={screenshot_path}"
+            )
     if require_direct_present and metadata["interactive_direct_present_enabled"] != "true":
         raise RuntimeError(
             "ready-frame provenance requires the interactive direct-present path: "
@@ -208,6 +361,16 @@ def _validate_metadata(
         "ibl_bake_algorithm_version",
     ):
         _require_positive_integer(metadata, field, screenshot_path)
+    if (
+        expected_ibl_bake_algorithm_version is not None
+        and metadata["ibl_bake_algorithm_version"]
+        != expected_ibl_bake_algorithm_version
+    ):
+        raise RuntimeError(
+            "ready-frame provenance requires IBL bake algorithm version="
+            f"{expected_ibl_bake_algorithm_version}: "
+            f"actual={metadata['ibl_bake_algorithm_version']} path={screenshot_path}"
+        )
     _require_complete_cubemap_mip_chain(
         metadata,
         face_size_field="active_source_cubemap_face_size",
@@ -241,6 +404,96 @@ def _validate_metadata(
         ),
         screenshot_path=screenshot_path,
     )
+    if metadata["schema"] in (
+        _V5_READY_FRAME_EVIDENCE_SCHEMA,
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        startup_phase_fields = (
+            "scene_startup_hdri_decode_ns",
+            "scene_startup_project_assets_ns",
+            "scene_startup_runtime_bootstrap_ns",
+            "scene_startup_project_open_ns",
+            "scene_startup_world_load_ns",
+            "scene_startup_renderer_initialization_ns",
+            "scene_startup_renderer_backend_initialization_ns",
+            "scene_startup_renderer_deferred_initialization_ns",
+            "scene_startup_renderer_deferred_standard_pipeline_ns",
+            "scene_startup_resource_streamer_initialization_ns",
+            "scene_startup_ibl_restore_ns",
+            "scene_startup_total_ns",
+        )
+        for field in startup_phase_fields:
+            _require_non_negative_integer(metadata, field, screenshot_path)
+        _require_duration_hierarchy(
+            metadata,
+            total_field="scene_startup_renderer_initialization_ns",
+            component_fields=(
+                "scene_startup_renderer_backend_initialization_ns",
+                "scene_startup_renderer_deferred_initialization_ns",
+                "scene_startup_resource_streamer_initialization_ns",
+            ),
+            screenshot_path=screenshot_path,
+        )
+        _require_duration_hierarchy(
+            metadata,
+            total_field="scene_startup_renderer_deferred_initialization_ns",
+            component_fields=("scene_startup_renderer_deferred_standard_pipeline_ns",),
+            screenshot_path=screenshot_path,
+        )
+        _require_duration_hierarchy(
+            metadata,
+            total_field="scene_startup_total_ns",
+            component_fields=(
+                "scene_startup_hdri_decode_ns",
+                "scene_startup_project_assets_ns",
+                "scene_startup_runtime_bootstrap_ns",
+                "scene_startup_project_open_ns",
+                "scene_startup_world_load_ns",
+                "scene_startup_renderer_initialization_ns",
+                "scene_startup_ibl_restore_ns",
+            ),
+            screenshot_path=screenshot_path,
+        )
+    if metadata["schema"] in (
+        _V6_READY_FRAME_EVIDENCE_SCHEMA,
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        _require_non_negative_integer(
+            metadata,
+            "one_shot_base_pipeline_wait_elapsed_ns",
+            screenshot_path,
+        )
+    if metadata["schema"] in (_V7_READY_FRAME_EVIDENCE_SCHEMA, _READY_FRAME_EVIDENCE_SCHEMA):
+        _require_non_negative_integer(
+            metadata,
+            "viewer_scene_load_elapsed_ns",
+            screenshot_path,
+        )
+        _require_duration_hierarchy(
+            metadata,
+            total_field="viewer_scene_load_elapsed_ns",
+            component_fields=("scene_startup_total_ns",),
+            screenshot_path=screenshot_path,
+        )
+    if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+        _require_non_negative_integer(
+            metadata,
+            "viewer_ready_elapsed_ns",
+            screenshot_path,
+        )
+        _require_duration_hierarchy(
+            metadata,
+            total_field="viewer_ready_elapsed_ns",
+            component_fields=(
+                "viewer_scene_load_elapsed_ns",
+                "one_shot_base_pipeline_wait_elapsed_ns",
+                "ready_frame_render_elapsed_ns",
+            ),
+            screenshot_path=screenshot_path,
+        )
     _require_duration_hierarchy(
         metadata,
         total_field="ibl_total_elapsed_ns",
@@ -539,7 +792,7 @@ def _paeth_predictor(left: int, up: int, up_left: int) -> int:
 
 def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate a Zircon PBR viewer ready-frame PNG and v2 provenance sidecar."
+        description="Validate a Zircon PBR viewer ready-frame PNG and v8 provenance sidecar."
     )
     parser.add_argument("png", type=Path, help="Ready-frame PNG written by zircon_shader_pbr_viewer")
     parser.add_argument("--expected-backend", help="Require the recorded backend, for example Dx12")
@@ -547,6 +800,14 @@ def _parse_arguments() -> argparse.Namespace:
         "--require-direct-present",
         action="store_true",
         help="Require the normal interactive path to have used direct presentation",
+    )
+    parser.add_argument(
+        "--allow-legacy-schema",
+        action="store_true",
+        help=(
+            "Allow v2-v7 or stale IBL bake provenance only when inspecting "
+            "historical baseline evidence"
+        ),
     )
     return parser.parse_args()
 
@@ -558,6 +819,14 @@ def main() -> int:
             arguments.png,
             expected_backend=arguments.expected_backend,
             require_direct_present=arguments.require_direct_present,
+            required_schema=(
+                None if arguments.allow_legacy_schema else _READY_FRAME_EVIDENCE_SCHEMA
+            ),
+            expected_ibl_bake_algorithm_version=(
+                None
+                if arguments.allow_legacy_schema
+                else _CURRENT_IBL_BAKE_ALGORITHM_VERSION
+            ),
         )
     except (OSError, RuntimeError, ValueError) as error:
         print(f"PBR viewer evidence validation failed: {error}", file=sys.stderr)

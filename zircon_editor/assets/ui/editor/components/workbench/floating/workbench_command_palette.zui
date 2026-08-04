@@ -23,16 +23,16 @@ component = "Panel"
 control_id = "WorkbenchCommandPalette"
 classes = ["workbench-floating", "workbench-command-palette"]
 style = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.large" } } }
-layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 520.0, preferred = 640.0, max = 760.0, stretch = "Fixed" }, height = { min = 120.0, preferred = 320.0, max = 520.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 520.0, preferred = 640.0, max = 760.0, stretch = "Fixed" }, height = { min = 120.0, preferred = 320.0, max = 520.0, stretch = "Fixed" } }
 children = [{ node = "search" }, { node = "first_result" }]
 
 [nodes.search]
 component = "WorkbenchSearchInput"
 control_id = "WorkbenchCommandPaletteSearch"
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.first_result]
 component = "WorkbenchListRow"
 control_id = "WorkbenchCommandPaletteFirstResult"
 props = { label = "Open command" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }

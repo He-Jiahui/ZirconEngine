@@ -115,6 +115,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         active_layout_preset: None,
         shell_size,
         shell_scale_factor,
+        shell_scale_mode: ResolutionScaleMode::ConstantPhysical,
         chrome_metrics: WorkbenchChromeMetrics::default(),
         shell_geometry: None,
         shell_token_region_defaults: None,

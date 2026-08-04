@@ -129,7 +129,7 @@ fn quantized_non_negative_depth(effective_depth: f32, units: f32, max: u64) -> u
 
 #[cfg(test)]
 mod tests {
-    use super::{SORT_KEY_QUEUE_SHIFT, packed_sort_key_u64};
+    use super::{packed_sort_key_u64, SORT_KEY_QUEUE_SHIFT};
     use crate::core::framework::render::{
         RenderPhase, RenderPhaseSortComponents, RenderQueueValue,
     };

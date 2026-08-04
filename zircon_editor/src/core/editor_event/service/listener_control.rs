@@ -1,8 +1,8 @@
 use serde_json::json;
 
 use crate::core::editor_event::{
-    listener_deliveries, listener_descriptors, listener_status, EditorEventListenerControlRequest,
-    EditorEventListenerControlResponse,
+    EditorEventListenerControlRequest, EditorEventListenerControlResponse, listener_deliveries,
+    listener_descriptors, listener_status,
 };
 
 use super::EditorEventService;

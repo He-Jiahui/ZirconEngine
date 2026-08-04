@@ -13,5 +13,6 @@ pub(in crate::scene::dynamic_scene::session) fn touch_slot(
         }
     })?;
     slot.metadata = report.metadata;
+    archive.rebuild_slot_indexes();
     Ok(())
 }

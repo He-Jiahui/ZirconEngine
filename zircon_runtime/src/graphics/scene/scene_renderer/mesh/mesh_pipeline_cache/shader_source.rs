@@ -78,7 +78,6 @@ impl MeshPipelineShaderSource {
             })
     }
 
-    #[cfg(test)]
     pub(super) fn validation_cache_key(&self) -> String {
         use std::fmt::Write;
 

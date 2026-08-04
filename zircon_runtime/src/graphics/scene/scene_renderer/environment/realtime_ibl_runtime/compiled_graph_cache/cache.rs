@@ -29,12 +29,12 @@ impl RealtimeIblCompiledGraphCache {
         request: &IblBakeArtifactRequest,
         batch: &RealtimeIblFrameBatch,
     ) -> Result<&RealtimeIblCompiledGraphVariant, RenderGraphError> {
-        if let Some(variant) = self
+        if let Some(index) = self
             .variants
             .iter()
-            .find(|variant| variant.matches(request, batch))
+            .position(|variant| variant.matches(request, batch))
         {
-            return Ok(variant);
+            return Ok(&self.variants[index]);
         }
 
         assert!(
@@ -47,8 +47,7 @@ impl RealtimeIblCompiledGraphCache {
         self.variants.push(RealtimeIblCompiledGraphVariant::new(
             request, batch, plan, graph,
         ));
-        #[cfg(test)]
-        self.compile_count += 1;
+        self.record_compile();
         Ok(self
             .variants
             .last()
@@ -64,4 +63,12 @@ impl RealtimeIblCompiledGraphCache {
     pub(in crate::graphics) fn compile_count(&self) -> usize {
         self.compile_count
     }
+
+    #[cfg(test)]
+    fn record_compile(&mut self) {
+        self.compile_count += 1;
+    }
+
+    #[cfg(not(test))]
+    fn record_compile(&mut self) {}
 }

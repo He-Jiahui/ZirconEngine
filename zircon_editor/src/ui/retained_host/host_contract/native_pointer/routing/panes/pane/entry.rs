@@ -1,4 +1,6 @@
 mod asset_content;
+mod asset_reference;
+mod asset_tree;
 mod console;
 mod template;
 mod viewport_body;
@@ -6,6 +8,8 @@ mod viewport_body;
 use crate::ui::retained_host::host_contract::data::{FrameRect, PaneData};
 
 use self::asset_content::route_asset_content_hit;
+use self::asset_reference::route_asset_reference_hit;
+use self::asset_tree::route_browser_asset_tree_hit;
 use self::console::console_output_route_frame;
 use self::template::route_template_node_hit;
 use self::viewport_body::viewport_body_route;
@@ -27,6 +31,12 @@ pub(in super::super) fn pane_route_from_pane(
     let body_route = viewport_body_route(pane, content, x, y, surface_key);
     if let Some(toolbar_route) = body_route.toolbar_route {
         return Some(toolbar_route);
+    }
+    if let Some(route) = route_browser_asset_tree_hit(pane, &body_route.body, x, y) {
+        return Some(route);
+    }
+    if let Some(route) = route_asset_reference_hit(pane, &body_route.body, x, y) {
+        return Some(route);
     }
     if let Some(route) = route_asset_content_hit(pane, &body_route.body, x, y) {
         return Some(route);

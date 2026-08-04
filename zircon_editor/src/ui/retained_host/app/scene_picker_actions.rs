@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use crate::ui::binding::EditorUiEventKind;
+use crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::scene_picker_session::{ScenePickerMode, ScenePickerSubmission};
@@ -18,7 +21,7 @@ impl RetainedEditorHost {
                 return;
             }
         };
-        let catalog = match self.editor_asset_manager_at_use_point() {
+        let catalog: Arc<EditorAssetCatalogGeneration> = match self.editor_asset_manager_at_use_point() {
             Ok(manager) => manager.catalog_snapshot(),
             Err(error) => {
                 self.set_status_line(error.to_string());

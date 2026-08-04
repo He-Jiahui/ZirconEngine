@@ -1,39 +1,11 @@
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 
+use crate::core::notifications::NotificationId;
+
 use super::DecisionNotificationError;
 
-pub const MAX_NOTIFICATION_ID_BYTES: usize = 192;
 pub const MAX_DECISION_OPTION_ID_BYTES: usize = 64;
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NotificationId(Arc<str>);
-
-impl NotificationId {
-    pub fn parse(value: impl Into<String>) -> Result<Self, DecisionNotificationError> {
-        let value = value.into();
-        require_max_bytes("notification id", &value, MAX_NOTIFICATION_ID_BYTES)?;
-        let mut segment_count = 0;
-        let invalid_segment = value.split('.').any(|segment| {
-            segment_count += 1;
-            !valid_segment(segment)
-        });
-        if segment_count < 3 || invalid_segment {
-            return Err(DecisionNotificationError::InvalidNotificationId(value));
-        }
-        Ok(Self(Arc::from(value)))
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Display for NotificationId {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DecisionOptionId(Arc<str>);

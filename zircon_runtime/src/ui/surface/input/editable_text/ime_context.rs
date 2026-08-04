@@ -3,8 +3,9 @@ use std::borrow::Cow;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{
     dispatch::{
-        UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT, UiDispatchEffect, UiImeInputEventKind,
-        UiInputEvent, UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
+        UiDispatchEffect, UiImeInputEventKind, UiInputEvent, UiInputMethodRequest,
+        UiInputMethodRequestKind, UiInputMethodSurroundingText, UiTextByteRange,
+        UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
     },
     event_ui::UiNodeId,
     layout::UiFrame,
@@ -205,16 +206,49 @@ fn surrounding_text_for_state(state: &UiEditableTextState) -> Option<UiInputMeth
         .unwrap_or(state.caret.offset);
     let anchor_byte =
         map_visible_offset_to_committed_offset(anchor, source_range, source_replacement_len);
-    let (text, cursor_byte, anchor_byte) =
-        surrounding_text_window(text.as_ref(), cursor_byte, anchor_byte)?;
-    UiInputMethodSurroundingText::new(text, cursor_byte as u32, anchor_byte as u32).ok()
+    let composition_range =
+        committed_composition_range_for_input_method(state, source_range, source_replacement_len);
+    let (text, cursor_byte, anchor_byte, composition_range) =
+        surrounding_text_window(text.as_ref(), cursor_byte, anchor_byte, composition_range)?;
+    let surrounding =
+        UiInputMethodSurroundingText::new(text, cursor_byte as u32, anchor_byte as u32).ok()?;
+    match composition_range {
+        Some(range) => surrounding
+            .with_composition_range(UiTextByteRange::new(range.start as u32, range.end as u32))
+            .ok(),
+        None => Some(surrounding),
+    }
+}
+
+fn committed_composition_range_for_input_method(
+    state: &UiEditableTextState,
+    source_range: UiTextRange,
+    source_replacement_len: usize,
+) -> Option<UiTextRange> {
+    let composition = state.composition.as_ref()?;
+    composition.restore_text.as_ref()?;
+    let start = map_visible_offset_to_committed_offset(
+        composition.range.start,
+        source_range,
+        source_replacement_len,
+    );
+    let end = map_visible_offset_to_committed_offset(
+        composition.range.end,
+        source_range,
+        source_replacement_len,
+    );
+    Some(UiTextRange {
+        start: start.min(end),
+        end: start.max(end),
+    })
 }
 
 fn surrounding_text_window(
     text: &str,
     cursor_byte: usize,
     anchor_byte: usize,
-) -> Option<(&str, usize, usize)> {
+    composition_range: Option<UiTextRange>,
+) -> Option<(&str, usize, usize, Option<UiTextRange>)> {
     let cursor_byte = clamp_text_boundary(text, cursor_byte);
     let anchor_byte = clamp_text_boundary(text, anchor_byte);
     let cursor_grapheme_start = grapheme_start_for_offset(text, cursor_byte);
@@ -261,10 +295,18 @@ fn surrounding_text_window(
     if !(start..=end).contains(&anchor_byte) {
         return None;
     }
+    let composition_range = match composition_range {
+        Some(range) if range.start < start || range.end > end => return None,
+        Some(range) => Some(UiTextRange {
+            start: range.start - start,
+            end: range.end - start,
+        }),
+        None => None,
+    };
     let window = text.get(start..end)?;
     let cursor_byte = cursor_byte.saturating_sub(start);
     let anchor_byte = anchor_byte.saturating_sub(start);
-    Some((window, cursor_byte, anchor_byte))
+    Some((window, cursor_byte, anchor_byte, composition_range))
 }
 
 fn grapheme_adjacent_to_caret_exceeds_byte_limit(
@@ -348,6 +390,7 @@ mod tests {
             },
             composition: Some(UiTextComposition {
                 range: UiTextRange { start: 1, end: 2 },
+                preedit_clauses: Vec::new(),
                 text: "X".to_owned(),
                 restore_text: None,
             }),
@@ -359,6 +402,34 @@ mod tests {
         assert_eq!(surrounding.text, "aXb");
         assert_eq!(surrounding.cursor_byte, 1);
         assert_eq!(surrounding.anchor_byte, 1);
+    }
+
+    #[test]
+    fn surrounding_text_rebases_the_restored_composition_range() {
+        let state = UiEditableTextState {
+            text: "aWXYZQf".to_owned(),
+            caret: UiTextCaret {
+                offset: 6,
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+            composition: Some(UiTextComposition {
+                range: UiTextRange { start: 1, end: 6 },
+                preedit_clauses: Vec::new(),
+                text: "WXYZQ".to_owned(),
+                restore_text: Some("bcde".to_owned()),
+            }),
+            ..Default::default()
+        };
+
+        let surrounding = surrounding_text_for_state(&state).expect("committed surrounding text");
+
+        assert_eq!(surrounding.text, "abcdef");
+        assert_eq!(surrounding.cursor_byte, 5);
+        assert_eq!(surrounding.anchor_byte, 5);
+        assert_eq!(
+            surrounding.composition_range,
+            Some(zircon_runtime_interface::ui::dispatch::UiTextByteRange::new(1, 5))
+        );
     }
 }
 

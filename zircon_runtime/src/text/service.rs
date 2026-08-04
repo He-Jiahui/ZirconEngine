@@ -1,5 +1,5 @@
-use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::OnceLock;
 
 use crate::core::framework::text::{
     TextDirection, TextFontRequest, TextGlyph, TextGlyphFlags, TextGlyphRotation, TextLayoutError,
@@ -7,9 +7,9 @@ use crate::core::framework::text::{
     TextShapeRun, TextWritingMode,
 };
 
-use super::font::{FontDatabase, register_font_handle_batch, shared_font_database_generation};
+use super::font::{register_font_handle_batch, shared_font_database_generation, FontDatabase};
 use super::shaping::{
-    FallbackTextSpan, fallback_text_spans, resolve_bidi_base_direction, shape_text,
+    fallback_text_spans, resolve_bidi_base_direction, shape_text, FallbackTextSpan,
 };
 use super::{
     BackendShapeRequest, OpenTypeFeature, ShapedGlyph, ShapedGlyphRotation, ShapedGlyphRun,
@@ -285,9 +285,7 @@ fn project_shape_result(
     }
 }
 
-pub(crate) fn project_shaped_glyph_run_for_runtime(
-    shaped: &ShapedGlyphRun,
-) -> TextShapeResult {
+pub(crate) fn project_shaped_glyph_run_for_runtime(shaped: &ShapedGlyphRun) -> TextShapeResult {
     project_shape_result(
         shaped.clone(),
         shaped.direction,
@@ -363,8 +361,8 @@ mod tests {
     use super::*;
     use crate::core::framework::text::TextOpenTypeFeature;
     use crate::text::font::{
-        FontDatabase, font_handle_registry_report, force_publish_shared_font_database,
-        shared_font_database_snapshot, shared_font_database_test_serial_guard,
+        font_handle_registry_report, force_publish_shared_font_database,
+        shared_font_database_snapshot, shared_font_database_test_serial_guard, FontDatabase,
     };
 
     struct SharedFontDatabaseRestore(FontDatabase);

@@ -22,6 +22,29 @@ fn workbench_projection_uses_a_memoized_node_index() {
 }
 
 #[test]
+fn workbench_projection_keeps_property_and_style_domains_in_leaf_owners() {
+    let source = include_str!("../workbench_window_projection.rs");
+
+    for module in ["defaults", "properties", "selection_style", "status_right"] {
+        assert!(
+            source.contains(&format!("mod {module};")),
+            "window projection must retain the {module} leaf owner"
+        );
+    }
+    for root_implementation in [
+        "fn normalized_percent(",
+        "fn default_workbench_surface_variant(",
+        "fn normalize_workbench_selection_control_style_values(",
+        "fn inherited_status_right_numeric_property(",
+    ] {
+        assert!(
+            !source.contains(root_implementation),
+            "window projection root must not reclaim {root_implementation}"
+        );
+    }
+}
+
+#[test]
 fn workbench_projection_memoizes_collapsed_ancestor_visibility() {
     let mut parent = test_host_node("Panel", "panel", None, []);
     parent.node_id = "collapsed-parent".to_string();
@@ -52,6 +75,31 @@ fn workbench_projection_treats_parent_cycles_as_not_render_visible() {
 
     assert!(!node_index.render_visible(&first));
     assert!(!node_index.render_visible(&second));
+}
+
+#[test]
+fn status_right_inheritance_rejects_parent_cycles() {
+    let mut status = test_host_node("Label", "label", None, []);
+    status.node_id = "status-grid".to_string();
+    status.control_id = Some("WorkbenchStatusGrid".to_string());
+    status.parent_id = Some("cycle-first".to_string());
+    let mut first = test_host_node("Panel", "panel", None, []);
+    first.node_id = "cycle-first".to_string();
+    first.parent_id = Some("cycle-second".to_string());
+    let mut second = test_host_node("Panel", "panel", None, []);
+    second.node_id = "cycle-second".to_string();
+    second.parent_id = Some(first.node_id.clone());
+
+    let node_index = ProjectionNodeIndex::new([&status, &first, &second]);
+
+    assert_eq!(
+        status_right::inherited_status_right_numeric_property(
+            &status,
+            &node_index,
+            "status_right_offset_y",
+        ),
+        Some(-0.5),
+    );
 }
 
 #[test]

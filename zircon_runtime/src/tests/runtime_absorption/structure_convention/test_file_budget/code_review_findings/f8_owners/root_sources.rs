@@ -87,7 +87,6 @@ pub(super) fn folder_backed_child_source_blob() -> String {
 pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn f8_structure_guard_child_source_blob(
 ) -> String {
     let mut blob = folder_backed_child_source_blob();
-    blob.push_str(&read_runtime_src(F8_ROOT_STATUSES_CHILD));
     blob.push('\n');
     let review_sources = read_f8_review_sources();
     for (path, source) in review_sources.all_sources() {
@@ -97,12 +96,4 @@ pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget:
         blob.push('\n');
     }
     blob
-}
-
-pub(super) fn f8_status_row_source() -> String {
-    format!(
-        "{}\n{}",
-        read_runtime_src(STRUCTURE_GUARD_ROW_PARENT),
-        read_runtime_src(STRUCTURE_GUARD_ROWS),
-    )
 }

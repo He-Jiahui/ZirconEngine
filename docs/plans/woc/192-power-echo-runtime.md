@@ -1,6 +1,6 @@
 ---
 title: WOS192 Power Echo runtime
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -55,3 +55,9 @@ resolution.
 
 The WOS192 package must run only through `zr_vm:project`. No alternate runtime
 is permitted.
+
+## Status
+
+| Milestone | Scope | Status | Date | Evidence |
+|---|---|---|---|---|
+| WOS192 | Power Echo admission, durable aura, fixed-damage copy and direct-heal copy | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `state.zr` retains the level-14 off-GCD arm, WOS94/95 persistence, pre-target-effect fixed projectile and non-recursive direct-heal copy. `woc_m4_power_echo_runtime_tests.zrp` and `woc_m4_power_echo_heal_state_tests.zrp` now explicitly use `zr_vm:project`; `wos192_power_echo_runtime_static_guard.mjs` and `m4_power_echo_heal_source_check.mjs` passed. Review confirmed source `dealDamage` applies crit-vulnerability/Igite at each critical arrival while only the primary dispatch calls `noteSpellHit`; WOC preserves that split. Canonical `zr_vm:project` execution remains unavailable, so no dynamic result is claimed. |

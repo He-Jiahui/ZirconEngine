@@ -4,9 +4,9 @@ use std::sync::Arc;
 use super::render::ScreenSpaceUiTextBatch;
 use crate::core::math::UVec2;
 use crate::text::atlas::{
-    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
-    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
-    GlyphAtlasShelfAllocator, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasAllocation, GlyphAtlasDirtyPage,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageReservation,
+    GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasShelfAllocator,
 };
 use crate::text::sdf::{
     SdfAtlasGlyphGenerationFailure, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams,

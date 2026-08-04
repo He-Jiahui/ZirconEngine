@@ -24,15 +24,6 @@ fn review_f5_vm_plugin_management_policy_uses_typed_validation_errors() {
         include_str!("../../../../../../../docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
     let module_doc =
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "mod error;",
@@ -87,28 +78,5 @@ fn review_f5_vm_plugin_management_policy_uses_typed_validation_errors() {
                 "{label} should not keep lossy String validation branch `{forbidden}`"
             );
         }
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 VM plugin management policy typed errors",
-        "runtime_15_vm_plugin_management_policy_typed_errors_static_passed_cargo_deferred",
-        "review_f5_vm_plugin_management_policy_uses_typed_validation_errors",
-        "script/vm/plugin/management_policy/error.rs",
-        "VmPluginManagementPolicyError",
-        "VmPluginManagementPolicyResult",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_13_plan.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || host_reflection.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 VM plugin management policy docs/status should record `{doc_anchor}`"
-        );
     }
 }

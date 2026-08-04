@@ -47,11 +47,14 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
         ime_request_source,
         &[
             "ZrRuntimeImeHostRequestKindV1::SetCursorArea",
-            "ImeRequest::Update(",
-            "ime_logical_position(area)",
-            "ime_logical_size(area)",
+            "ime_logical_cursor_area(area)",
+            ".with_cursor_area(position, size)",
         ],
-        "IME cursor-area requests should become unscaled winit logical cursor-area updates",
+        "IME cursor-area requests should validate before becoming unscaled winit logical updates",
+    );
+    assert!(
+        ime_request_source.contains("runtime_ime_cursor_area_invalid"),
+        "invalid IME cursor-area geometry must fail closed before the window API"
     );
     assert_source_order(
         ime_request_source,

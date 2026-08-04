@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Protocol
@@ -15,6 +16,13 @@ from .validation_tickets import ValidationTicket, ValidationTicketService
 _COPY_LINK_EVENT = "validation.ticket_copy_linked"
 _RUN_LINK_EVENT = "validation.ticket_run_linked"
 _ACTIVE_COPY_STATES = frozenset({"planned", "materializing"})
+_SNAPSHOT_STALE_COPY_ERRORS = frozenset(
+    {
+        "validation_copy_attribution_stale",
+        "validation_copy_owned_source_missing",
+        "validation_copy_owned_source_reappeared",
+    }
+)
 
 
 class ValidationCopyExecutor(Protocol):
@@ -153,12 +161,17 @@ class ValidationTicketWorker:
         if status in _ACTIVE_COPY_STATES:
             return "materializing"
         if status == "failed":
+            terminal_status = (
+                "snapshot_stale"
+                if str(record.error_code) in _SNAPSHOT_STALE_COPY_ERRORS
+                else "failed"
+            )
             self.tickets.record_result(
                 ticket.ticket_id,
-                "failed",
+                terminal_status,
                 evidence=self._copy_failure(record, job_id),
             )
-            return "failed"
+            return terminal_status
         if status == "removed":
             return self._finish_from_run(ticket, job_id)
         if status == "running":
@@ -292,12 +305,19 @@ class ValidationTicketWorker:
         self.tickets.record_result(ticket.ticket_id, "failed", evidence=evidence)
 
     @staticmethod
-    def _manifest_drift(root: Path, manifest: Mapping[str, str]) -> list[str]:
+    def _manifest_drift(
+        root: Path, manifest: Mapping[str, str | None]
+    ) -> list[str]:
         drift: list[str] = []
         for relative, expected in manifest.items():
             source = root / relative
-            actual = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
-            if actual != expected:
+            if expected is None:
+                # A tombstone matches only an absent directory entry, including a dangling link.
+                drifted = os.path.lexists(source)
+            else:
+                actual = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
+                drifted = actual != expected
+            if drifted:
                 drift.append(relative)
                 if len(drift) == 64:
                     break

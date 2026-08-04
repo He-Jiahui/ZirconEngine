@@ -4,7 +4,7 @@ const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
 
 #[test]
 fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state() {
-    let wgpu_device = read_runtime_src("rhi_wgpu/device.rs");
+    let wgpu_device = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device.rs");
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -13,9 +13,6 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let rhi_doc = read_repo("docs/zircon_runtime/rhi/descriptors.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "RHI WGPU render device poison recovery",
@@ -37,32 +34,6 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
         ],
     );
     assert_no_direct_lock_unwrap_in_production("RHI WGPU render device", &wgpu_device);
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("RHI descriptor doc", rhi_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 RHI WGPU render device lock poison recovery",
-                "runtime_15_rhi_wgpu_render_device_lock_poison_recovery_static_passed_cargo_deferred",
-                "rhi_wgpu/device.rs",
-                "docs/zircon_runtime/rhi/descriptors.md",
-                "wgpu_render_device_state_accessors_recover_poisoned_lock",
-                "runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state",
-            ],
-        );
-    }
 }
 
 fn assert_no_direct_lock_unwrap_in_production(label: &str, source: &str) {

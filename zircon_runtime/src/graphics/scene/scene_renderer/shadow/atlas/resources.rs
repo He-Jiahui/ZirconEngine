@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::graphics::scene::scene_renderer::core::DEPTH_FORMAT;
 use crate::graphics::scene::scene_renderer::shadow::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_STRIDE,
+    GPU_SHADOW_SLOT_STRIDE, GpuShadowGlobals, GpuShadowSlot,
 };
 
 use super::ShadowAtlasConfig;

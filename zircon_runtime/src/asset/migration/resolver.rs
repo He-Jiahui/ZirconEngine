@@ -2,12 +2,12 @@ use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, Retir
 use zircon_runtime_interface::resource::AssetReference;
 use zircon_runtime_interface::resource::ResourceScheme;
 
-use crate::asset::ReferenceResolutionError;
 use crate::asset::reference_resolver::resolve_project_reference_from_lookup;
 use crate::asset::registry::AssetRegistryIndex;
+use crate::asset::ReferenceResolutionError;
 
-use super::AssetMigrationIssueKind;
 use super::resolver_index::MigrationResolverIndex;
+use super::AssetMigrationIssueKind;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct ResolutionFailure {

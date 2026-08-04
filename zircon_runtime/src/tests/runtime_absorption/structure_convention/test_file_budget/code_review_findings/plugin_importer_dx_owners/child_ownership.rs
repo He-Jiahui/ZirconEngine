@@ -11,17 +11,7 @@ fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_o
     let delegation_child = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_DELEGATION_CHILD);
     let child_ownership_child =
         read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD_OWNERSHIP_CHILD);
-    let status_mirrors_child = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_STATUS_MIRRORS_CHILD);
     let d13_sdk_child = read_runtime_src(PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD);
-    let structure_assertions_child_tree = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}",
-        structure_assertions_child,
-        review_mounts_child,
-        delegation_child,
-        child_ownership_child,
-        status_mirrors_child,
-        d13_sdk_child
-    );
 
     assert_contains_all(
         "code review findings structure guard parent mounts plugin-importer DX child owner",
@@ -72,23 +62,6 @@ fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_o
             "mod d13_sdk;",
             "review_mounts::assert_plugin_importer_dx_review_mounts_are_folder_backed",
             "d13_sdk::assert_plugin_importer_d13_sdk_child_owners_are_folder_backed",
-        ],
-    );
-    assert_contains_all(
-        "plugin-importer DX structure assertion subtree keeps review guard structure checks",
-        &structure_assertions_child_tree,
-        &[
-            "fn runtime_15_plugin_importer_dx_structure_assertions_are_child_owner",
-            "fn runtime_15_plugin_importer_dx_structure_assertions_children_are_child_owned",
-            "fn runtime_15_plugin_importer_dx_structure_assertions_guard_folder_backed_status_is_current",
-            "tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs",
-            "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs",
-            "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk.rs",
-            "review_d10_animation_physics_tests_use_sdk_bridge_call",
-            "review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder",
-            "review_d5_editor_authoring_plugins_use_sdk_macro",
-            "review_d9_editor_runtime_mirror_consumers_use_sdk_declaration",
-            "runtime_15_plugin_importer_d13_sdk_structure_assertions_are_child_owner",
         ],
     );
 

@@ -87,7 +87,12 @@ fn assert_template_assets_ready(session: &RuntimeDynamicSession) {
         .current_project_manager()
         .expect("F2 runtime must retain the opened project");
 
-    for uri in ["res://models/cube.obj", "res://materials/default.zmaterial"] {
+    for uri in [
+        "res://scenes/main.scene.toml",
+        "res://models/cube.obj",
+        "res://materials/default.zmaterial",
+        "res://shaders/pbr_shader",
+    ] {
         let uri = AssetUri::parse(uri).expect("F2 template asset URI");
         let record = project
             .registry()

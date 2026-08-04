@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentTicks, Resource, SystemParam, SystemParamAccess, SystemParamError,
 };
+use crate::scene::World;
 
 pub struct ResParam<T>(PhantomData<fn() -> T>);
 

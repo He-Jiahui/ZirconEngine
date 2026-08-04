@@ -93,12 +93,3 @@ pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget:
         .map(|(_, source)| source.matches("#[test]").count())
         .sum()
 }
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn late_api_cleanup_status_row_source(
-) -> String {
-    format!(
-        "{}\n{}",
-        read_runtime_src(STRUCTURE_GUARD_ROW_PARENT),
-        read_runtime_src(STRUCTURE_GUARD_ROWS),
-    )
-}

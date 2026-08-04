@@ -69,6 +69,14 @@ pub(super) fn wire_asset_reference_callbacks(
 
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
+    pane_surface_host.on_asset_reference_pointer_left(move |surface_mode: SharedString| {
+        dispatch_with_callback_source(&weak, &source_ui, |host| {
+            host.clear_asset_reference_pointer_hover(surface_mode.as_str());
+        });
+    });
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
     pane_surface_host.on_asset_reference_pointer_scrolled(
         move |surface_mode: SharedString, list_kind: SharedString, x, y, delta, width, height| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {

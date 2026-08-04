@@ -4,13 +4,13 @@ use zircon_runtime_interface::project::RelPath;
 
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 
-use super::document::{PendingDocument, migrate_document};
+use super::document::{migrate_document, PendingDocument};
 use super::resolver::MigrationResolver;
 use super::resolver_index::MigrationResolverIndex;
 use super::scan::MigrationInventory;
 use super::sidecar::preflight_sidecars;
 use super::transaction::{
-    CommitFault, apply_transaction, detect_pending_transactions, recover_pending_transactions,
+    apply_transaction, detect_pending_transactions, recover_pending_transactions, CommitFault,
 };
 use super::{
     AssetMigrationChange, AssetMigrationError, AssetMigrationIssue, AssetMigrationIssueKind,
@@ -50,23 +50,33 @@ fn migrate_project_assets_inner(
             path: paths.root().to_path_buf(),
             source,
         })?;
-    report.metrics.entry_visits = inventory.entry_visits();
-    report.metrics.directory_reads = inventory.directory_reads();
-    report.metrics.directory_sorts = inventory.directory_sorts();
     let recovery_targets = inventory.transaction_targets().to_vec();
     let pending_recovery =
         detect_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
     if options.mode == AssetMigrationMode::DryRun {
-        for journal in pending_recovery {
+        for journal in &pending_recovery {
             report.push_issue(AssetMigrationIssue::new(
                 AssetMigrationIssueKind::PendingRecovery,
-                Some(journal),
+                Some(journal.clone()),
                 "pending migration recovery requires apply mode",
             ));
         }
     } else if !pending_recovery.is_empty() {
         recover_pending_transactions(paths.root(), &root_paths, &recovery_targets)?;
     }
+    let inventory = if pending_recovery.is_empty() || options.mode == AssetMigrationMode::DryRun {
+        inventory
+    } else {
+        // Recovery removes transaction artifacts. Publish a fresh inventory so preflight and
+        // every resolver lookup use one post-recovery filesystem generation.
+        MigrationInventory::build(&roots).map_err(|source| AssetMigrationError::Scan {
+            path: paths.root().to_path_buf(),
+            source,
+        })?
+    };
+    report.metrics.entry_visits = inventory.entry_visits();
+    report.metrics.directory_reads = inventory.directory_reads();
+    report.metrics.directory_sorts = inventory.directory_sorts();
     let sidecars = match preflight_sidecars(&root_paths, &inventory) {
         Ok(sidecars) => sidecars,
         Err(issue) => {

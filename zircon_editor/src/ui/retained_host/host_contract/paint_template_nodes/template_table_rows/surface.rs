@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::identity::{is_table_selected, is_table_tail};
 use super::layers::separator_order;
@@ -15,6 +16,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     order: i32,
     opacity: f32,
 ) {
+    if intersect(rect, clip).is_none() {
+        return;
+    }
     let metrics = table_row_surface_metrics();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
@@ -28,13 +32,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     ));
     if !is_selected_row(node) {
         let separator_height = metrics.separator_height.min(rect.height).max(0.0);
+        let separator = FrameRect {
+            x: rect.x,
+            y: rect.y + (rect.height - separator_height).max(0.0),
+            width: rect.width,
+            height: separator_height,
+        };
+        if intersect(&separator, clip).is_none() {
+            return;
+        }
         commands.push(HostPaintCommand::quad(
-            FrameRect {
-                x: rect.x,
-                y: rect.y + (rect.height - separator_height).max(0.0),
-                width: rect.width,
-                height: separator_height,
-            },
+            separator,
             Some(clip.clone()),
             separator_order(order),
             Some(table_row_style(node).separator),

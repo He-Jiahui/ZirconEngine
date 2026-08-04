@@ -1,5 +1,8 @@
 Set-StrictMode -Version Latest
 
+$projectSaveEvidenceRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+Import-Module (Join-Path $projectSaveEvidenceRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
+
 function Get-MvpProjectSaveDiagnosticField {
     param(
         [Parameter(Mandatory)][string]$Line,
@@ -102,7 +105,12 @@ function Assert-MvpProjectSaveLifecycleEvidence {
 
     $started = [string]$startedLines[0].text
     $completed = [string]$completedLines[0].text
-    $expectedProject = [IO.Path]::GetFullPath($ExpectedProjectPath)
+    try {
+        $expectedProject = Resolve-ZirconWindowsPath -Path $ExpectedProjectPath
+    }
+    catch {
+        throw "Project save evidence has invalid expected project path '$ExpectedProjectPath': $($_.Exception.Message)"
+    }
     foreach ($diagnostic in @(
         @{ line = $started; label = 'Project save started diagnostic' },
         @{ line = $completed; label = 'Project save completed diagnostic' }
@@ -120,13 +128,13 @@ function Assert-MvpProjectSaveLifecycleEvidence {
             throw "$($diagnostic.label) project token '$encodedProject' does not use canonical percent encoding."
         }
         try {
-            $actualProject = [IO.Path]::GetFullPath($decodedProject)
+            $actualProject = Resolve-ZirconWindowsPath -Path $decodedProject
         }
         catch {
             throw "$($diagnostic.label) has invalid project path '$decodedProject'."
         }
-        if (-not $actualProject.Equals($expectedProject, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "$($diagnostic.label) project '$decodedProject' differs from staged project '$expectedProject'."
+        if (-not $actualProject.OperationalPath.Equals($expectedProject.OperationalPath, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "$($diagnostic.label) project '$($actualProject.DisplayPath)' differs from staged project '$($expectedProject.DisplayPath)'."
         }
     }
     $preSaveDirty = Get-MvpProjectSaveDiagnosticField `

@@ -1,6 +1,6 @@
 # WOS209: AoE Talent Scaling Runtime
 
-Status: planned
+Status: implemented_static_validation_pending
 
 ## Goal
 
@@ -80,3 +80,9 @@ selection snapshot and no WOS field is source-correct for this surface.
   selection change mid-channel affects subsequent ticks only.
 - RNG and target ordering stay byte-for-byte within their current owners.
 - No WOS schema or historical payload changes are introduced.
+
+## Status Record
+
+| Milestone | Scope | Status | Date | Evidence |
+|---|---|---|---|---|
+| WOS209 | Five retained AoE damage endpoint resolvers | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `aoe_talent_scaling_state.zr` owns source endpoint rounding, and `state.zr` routes Arcane Explosion, Flamestrike, Rain of Fire, Swipe and Hurricane through it. The runtime fixture verifies a Balance selection affects an active channel's subsequent tick only. `wos209_aoe_talent_scaling_runtime_static_guard.mjs` passed and the manifest uses `zr_vm:project`. Canonical plugin execution remains unavailable, so no dynamic result is claimed. |

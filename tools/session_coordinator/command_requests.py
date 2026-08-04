@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from sqlite3 import Connection
@@ -23,6 +24,8 @@ class CommandRequestJournal:
 
     def __init__(self, database: Database):
         self.database = database
+        self._deferred_failure_lock = threading.Lock()
+        self._deferred_failures: dict[str, CoordinatorError] = {}
 
     @staticmethod
     def _fingerprint(command: str, arguments: dict[str, Any]) -> str:
@@ -218,6 +221,122 @@ class CommandRequestJournal:
             after_commit()
         return response
 
+    def execute_accepted_transactionally(
+        self,
+        request_id: str,
+        command: str,
+        arguments: dict[str, Any],
+        callback: Callable[
+            [Connection], tuple[dict[str, Any], Callable[[], object] | None]
+        ],
+        *,
+        retention_class: str = "durable",
+    ) -> dict[str, Any]:
+        """Expose accepted work, then commit its mutation and terminal result together."""
+        request_id = self._validate_request_id(request_id)
+        retention_class = self._validate_retention_class(retention_class)
+        fingerprint = self._fingerprint(command, arguments)
+        now = utc_text()
+        existing = None
+        with self.database.transaction() as connection:
+            existing = connection.execute(
+                "SELECT * FROM command_requests WHERE request_id=?", (request_id,)
+            ).fetchone()
+            if existing is None:
+                connection.execute(
+                    """
+                    INSERT INTO command_requests(
+                        request_id, command, arguments_hash, status, received_at, accepted_at,
+                        retention_class
+                    ) VALUES (?, ?, ?, 'accepted', ?, ?, ?)
+                    """,
+                    (request_id, command, fingerprint, now, now, retention_class),
+                )
+            elif existing["command"] != command or existing["arguments_hash"] != fingerprint:
+                raise CoordinatorError(
+                    "command_request_conflict",
+                    "request_id is already bound to a different command payload",
+                    details={"requestId": request_id},
+                )
+
+        if existing is not None:
+            return self._replay(existing)
+
+        response: dict[str, Any] | None = None
+        after_commit: Callable[[], object] | None = None
+        failure: BaseException | None = None
+        terminal = None
+        try:
+            with self.database.transaction() as connection:
+                current = connection.execute(
+                    "SELECT * FROM command_requests WHERE request_id=?", (request_id,)
+                ).fetchone()
+                if current is None:
+                    raise CoordinatorError(
+                        "command_request_not_found",
+                        f"Unknown command request {request_id}",
+                        details={"requestId": request_id},
+                    )
+                if current["status"] != "accepted":
+                    terminal = current
+                else:
+                    connection.execute("SAVEPOINT command_admission")
+                    try:
+                        result, after_commit = callback(connection)
+                        if not isinstance(result, dict):
+                            raise CoordinatorError(
+                                "invalid_response", "Coordinator command returned a non-object response"
+                            )
+                        response = dict(result)
+                        response["requestId"] = request_id
+                        response_json = self._bounded_response_json(response)
+                    except BaseException as error:
+                        connection.execute("ROLLBACK TO command_admission")
+                        connection.execute("RELEASE command_admission")
+                        issue = (
+                            error
+                            if isinstance(error, CoordinatorError)
+                            else CoordinatorError("internal_error", str(error) or type(error).__name__)
+                        )
+                        connection.execute(
+                            """
+                            UPDATE command_requests
+                            SET status='failed', completed_at=?, error_json=?
+                            WHERE request_id=? AND status='accepted'
+                            """,
+                            (utc_text(), self._bounded_error(issue), request_id),
+                        )
+                        failure = error
+                    else:
+                        connection.execute("RELEASE command_admission")
+                        connection.execute(
+                            """
+                            UPDATE command_requests
+                            SET status='completed', completed_at=?, response_json=?
+                            WHERE request_id=? AND status='accepted'
+                            """,
+                            (utc_text(), response_json, request_id),
+                        )
+        except CoordinatorError as error:
+            self._record_or_defer_failure(request_id, error)
+            raise
+        except BaseException as error:
+            self._record_or_defer_failure(
+                request_id,
+                CoordinatorError("internal_error", str(error) or type(error).__name__),
+            )
+            raise
+
+        if terminal is not None:
+            return self._replay(terminal)
+        if failure is not None:
+            raise failure
+        if response is None:
+            raise CoordinatorError("invalid_response", "Command admission produced no response")
+        if after_commit is not None:
+            after_commit()
+        return response
+
     def get(self, request_id: str) -> dict[str, Any]:
         request_id = self._validate_request_id(request_id)
         with self.database.connect() as connection:
@@ -270,6 +389,27 @@ class CommandRequestJournal:
                     (completed_at, self._bounded_error(issue), request_id),
                 )
         return request_ids
+
+    def retry_deferred_failures(self) -> tuple[str, ...]:
+        """Retry terminal writes that failed after a request was accepted.
+
+        Only requests recorded by the failure path are retried. This avoids
+        terminalizing a different accepted request whose callback is live while
+        preserving startup reconciliation as the process-crash fallback.
+        """
+        with self._deferred_failure_lock:
+            pending = tuple(self._deferred_failures.items())
+        settled: list[str] = []
+        for request_id, error in pending:
+            try:
+                self._record_failure(request_id, error)
+            except Exception:
+                continue
+            with self._deferred_failure_lock:
+                if self._deferred_failures.get(request_id) is error:
+                    del self._deferred_failures[request_id]
+                    settled.append(request_id)
+        return tuple(settled)
 
     def prune(
         self,
@@ -413,6 +553,16 @@ class CommandRequestJournal:
                     ).fetchall()
                 )
         return changed
+
+    def _record_or_defer_failure(self, request_id: str, error: CoordinatorError) -> None:
+        try:
+            self._record_failure(request_id, error)
+        except Exception:
+            with self._deferred_failure_lock:
+                self._deferred_failures[request_id] = error
+        else:
+            with self._deferred_failure_lock:
+                self._deferred_failures.pop(request_id, None)
 
     def _record_failure(self, request_id: str, error: CoordinatorError) -> None:
         with self.database.transaction() as connection:

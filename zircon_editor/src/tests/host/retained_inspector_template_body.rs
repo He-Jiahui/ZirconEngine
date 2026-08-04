@@ -34,6 +34,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
             name: "Root".to_string(),
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
+            scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             plugin_components: Vec::new(),
         }),
         status_line: "Inspector ready".to_string(),

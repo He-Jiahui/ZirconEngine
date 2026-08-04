@@ -16,15 +16,6 @@ fn runtime_15_provider_registration_uses_shared_owner() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let provider_doc = read_repo("docs/zircon_runtime/graphics/runtime_provider/registration.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/asset_provider_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/asset_provider_cleanup.rs",
-    );
 
     assert_contains_all(
         "shared runtime provider registration owner",
@@ -109,31 +100,4 @@ fn runtime_15_provider_registration_uses_shared_owner() {
             ],
         );
     }
-    assert_contains_all_exact(
-        "provider registration status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 F13 provider registration shared owner",
-            "runtime_15_provider_registration_shared_owner_coremin_check_passed",
-            "graphics/runtime_provider/registration.rs",
-            "RuntimeProviderRegistration<P: ?Sized>",
-            "runtime_15_provider_registration_uses_shared_owner",
-        ],
-    );
-    assert_contains_all_exact(
-        "provider registration status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 F13 provider registration shared owner",
-            "runtime_15_provider_registration_shared_owner_coremin_check_passed",
-        ],
-    );
-    assert_contains_all_exact(
-        "provider registration status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 F13 provider registration shared owner",
-            "2026-06-22",
-        ],
-    );
 }

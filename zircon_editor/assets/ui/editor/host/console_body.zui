@@ -6,7 +6,7 @@ display_name = "console pane body"
 
 [imports]
 widgets = ["res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton"]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [root]
 node = "root"
@@ -27,7 +27,7 @@ children = [{ node = "level_counts" }]
 [nodes.level_counts]
 component = "HorizontalGroup"
 control_id = "ConsoleLevelCounts"
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 186.0, preferred = 204.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 186.0, preferred = 204.0, max = 214.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "level_all" }, { node = "level_error" }, { node = "level_warning" }, { node = "level_info" }]
 
 [nodes.level_all]

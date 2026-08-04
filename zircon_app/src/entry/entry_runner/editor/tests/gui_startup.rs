@@ -148,6 +148,17 @@ fn editor_host_startup_request_identifies_project_and_welcome_modes() {
     assert_eq!(editor_host_startup_request(None), "workspace:welcome");
 }
 
+#[cfg(windows)]
+#[test]
+fn editor_host_startup_request_hides_windows_verbatim_project_path_prefixes() {
+    let project = EditorGuiStartupRequest::open_project(r"\\?\C:\ZirconBuilds\project");
+
+    assert_eq!(
+        editor_host_startup_request(Some(&project)),
+        r"project:C:\ZirconBuilds\project"
+    );
+}
+
 #[test]
 fn create_startup_request_is_materialized_before_runtime_session_startup() {
     let unique = SystemTime::now()

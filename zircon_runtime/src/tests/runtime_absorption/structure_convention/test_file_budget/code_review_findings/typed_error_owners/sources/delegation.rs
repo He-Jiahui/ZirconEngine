@@ -9,8 +9,6 @@ mod parent_delegation;
 mod source_inventory_mounts;
 #[path = "delegation/source_ownership.rs"]
 mod source_ownership;
-#[path = "delegation/status_current.rs"]
-mod status_current;
 
 pub(super) fn assert_typed_error_source_inventory_is_child_owner(
     sources: &TypedErrorSourceInventorySources,

@@ -24,7 +24,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 ) -> WorkbenchButtonStyle {
     let state = resolved_state_for_node(node);
     let interaction = state.button_interaction_state();
-    let mut style = base_button_style(kind, interaction);
+    let focus_uses_hover_surface =
+        state.is_pointer_hot() || state.open || state.selected || state.checked;
+    let mut style = base_button_style(kind, interaction, focus_uses_hover_surface);
     style.interaction = interaction;
 
     if is_unavailable_button_interaction(interaction) {

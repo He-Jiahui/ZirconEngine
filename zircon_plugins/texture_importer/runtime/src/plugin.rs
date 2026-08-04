@@ -2,19 +2,19 @@ use zircon_plugin_sdk::ImporterRuntimeManifestBuilder;
 use zircon_runtime::asset::{
     AssetImporterDescriptor, AssetKind, DiagnosticOnlyAssetImporter, FunctionAssetImporter,
 };
+use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportTargetPlatform;
-use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
 
 use crate::{
-    import_cubemap_manifest, import_image, import_psd, import_texture_array_manifest,
-    import_texture_container, ARRAY_IMPORTER_CAPABILITY, CONTAINER_IMPORTER_CAPABILITY,
-    CUBEMAP_IMPORTER_CAPABILITY, IMAGE_IMPORTER_CAPABILITY, PLUGIN_ID, PSD_IMPORTER_CAPABILITY,
-    RUNTIME_CRATE_NAME, TEXTURE_IMPORTER_DECLARATION,
+    ARRAY_IMPORTER_CAPABILITY, CONTAINER_IMPORTER_CAPABILITY, CUBEMAP_IMPORTER_CAPABILITY,
+    IMAGE_IMPORTER_CAPABILITY, PLUGIN_ID, PSD_IMPORTER_CAPABILITY, RUNTIME_CRATE_NAME,
+    TEXTURE_IMPORTER_DECLARATION, import_cubemap_manifest, import_image, import_psd,
+    import_texture_array_manifest, import_texture_container,
 };
 
 pub const TEXTURE_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_texture_importer_dist";

@@ -17,15 +17,6 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let session_doc = include_str!("../../../../../../docs/zircon_runtime/dynamic_api/session.md");
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "mod error;",
@@ -109,26 +100,5 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
                 "{label} should not keep lossy String error transport `{forbidden}`"
             );
         }
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 dynamic API session typed errors",
-        "runtime_15_dynamic_api_session_typed_errors_static_passed_cargo_deferred",
-        "review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary",
-        "dynamic_api/session/error.rs",
-        "RuntimeDynamicSessionError::RenderBridgeStep",
-        "RuntimeProjectError::LoadDefaultScene",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || session_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 dynamic API typed-error docs/status should record `{doc_anchor}`"
-        );
     }
 }

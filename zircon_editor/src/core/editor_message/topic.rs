@@ -14,6 +14,14 @@ impl EditorTopic {
         Self(super::topics::TOPIC_TRANSACTION.to_owned())
     }
 
+    pub(crate) fn log() -> Self {
+        Self(super::topics::TOPIC_LOG.to_owned())
+    }
+
+    pub(crate) fn i18n() -> Self {
+        Self(super::topics::TOPIC_I18N.to_owned())
+    }
+
     pub fn parse(value: impl Into<String>) -> Result<Self, EditorTopicError> {
         let value = value.into();
         if value.is_empty() {
@@ -94,5 +102,15 @@ mod tests {
     #[test]
     fn built_in_document_topic_is_canonical_and_valid() {
         assert_eq!(EditorTopic::document().as_str(), "editor.document");
+    }
+
+    #[test]
+    fn built_in_log_topic_is_canonical_and_valid() {
+        assert_eq!(EditorTopic::log().as_str(), "editor.log");
+    }
+
+    #[test]
+    fn built_in_i18n_topic_is_canonical_and_valid() {
+        assert_eq!(EditorTopic::i18n().as_str(), "editor.i18n");
     }
 }

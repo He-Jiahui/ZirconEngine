@@ -23,7 +23,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
     }
 
     let avatar_rect = avatar_frame(rect);
-    if avatar_rect.width <= 0.0 || avatar_rect.height <= 0.0 {
+    if !avatar_rect.x.is_finite()
+        || !avatar_rect.y.is_finite()
+        || avatar_rect.width <= 0.0
+        || avatar_rect.height <= 0.0
+    {
         return true;
     }
 
@@ -62,4 +66,34 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_av
     );
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn non_finite_avatar_origins_do_not_emit_paint_commands() {
+        let node = TemplatePaneNodeData {
+            component_role: "avatar".to_owned(),
+            ..TemplatePaneNodeData::default()
+        };
+        let rect = FrameRect {
+            x: f32::INFINITY,
+            y: 8.0,
+            width: 24.0,
+            height: 24.0,
+        };
+        let mut commands = Vec::new();
+
+        assert!(push_avatar_primitive_commands(
+            &mut commands,
+            &node,
+            &rect,
+            &rect,
+            0,
+            1.0,
+        ));
+        assert!(commands.is_empty());
+    }
 }

@@ -61,6 +61,28 @@ fn alert_toast_component_visual_paints_tones_actions_focus_and_disabled() {
         ) > 0,
         "success alert should paint the tone mark glyph"
     );
+    assert!(
+        distinct_pixel_count(
+            &bytes,
+            78,
+            286,
+            166,
+            18,
+            &[ALERT_TOAST_ATLAS_BACKGROUND, alerts_panel, info_surface],
+        ) > 0,
+        "tall alert should paint its first Runtime Text line"
+    );
+    assert!(
+        distinct_pixel_count(
+            &bytes,
+            78,
+            304,
+            166,
+            18,
+            &[ALERT_TOAST_ATLAS_BACKGROUND, alerts_panel, info_surface],
+        ) > 0,
+        "tall alert should paint its wrapped Runtime Text line"
+    );
 
     let toast_panel = pixel_at(&bytes, 310, 92);
     let toast_surface = pixel_at(&bytes, 430, 144);
@@ -215,7 +237,7 @@ fn alert_toast_component_nodes() -> Vec<TemplatePaneNodeData> {
             10.0,
             "muted",
         ),
-        surface("AlertTonePanel", "panel", 18.0, 78.0, 260.0, 220.0),
+        surface("AlertTonePanel", "panel", 18.0, 78.0, 260.0, 260.0),
         surface("ToastPanel", "panel", 300.0, 78.0, 278.0, 220.0),
         surface("AlertToastStatePanel", "inset", 600.0, 78.0, 282.0, 220.0),
         label("AlertToneTitle", "Inline Alert", 36.0, 96.0, 120.0, 18.0, 11.0, ""),
@@ -259,6 +281,16 @@ fn alert_toast_component_nodes() -> Vec<TemplatePaneNodeData> {
             242.0,
             224.0,
             32.0,
+            AlertToastState::Normal,
+        ),
+        alert(
+            "WorkbenchInfoAlertMultiline",
+            "Asset import needs validation before opening.",
+            "info",
+            36.0,
+            284.0,
+            224.0,
+            48.0,
             AlertToastState::Normal,
         ),
         toast(

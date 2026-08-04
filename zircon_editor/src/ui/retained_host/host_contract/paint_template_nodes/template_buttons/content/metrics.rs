@@ -59,6 +59,36 @@ pub(super) fn button_label_font_size(node: &TemplatePaneNodeData, rect: &FrameRe
     button_label_font_size_from_metrics(node, rect, metrics)
 }
 
+pub(super) fn button_label_font_size_for_slot(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    label: &str,
+    text_style: UiTextRunPaintStyle,
+    glyph_width: f32,
+    chevron_width: f32,
+) -> f32 {
+    let font_size = button_label_font_size(node, rect);
+    if !node.overflow.eq_ignore_ascii_case("shrink") {
+        return font_size;
+    }
+
+    let available_ink_width = (max_label_slot_width(node, rect)
+        - glyph_width.max(0.0)
+        - chevron_width.max(0.0)
+        - button_content_metrics().text_clip_guard)
+        .max(0.0);
+    if available_ink_width <= 0.0 {
+        return font_size;
+    }
+
+    let measured_width = measured_label_ink_width(label, font_size, text_style);
+    if measured_width <= available_ink_width || measured_width <= 0.0 {
+        return font_size;
+    }
+
+    (font_size * available_ink_width / measured_width).max(0.0)
+}
+
 fn button_label_font_size_from_metrics(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -190,6 +220,52 @@ mod tests {
         assert_eq!(
             button_label_font_size_from_metrics(&node, &rect, metrics),
             METRICS.font_small
+        );
+    }
+
+    #[test]
+    fn button_label_font_size_shrinks_only_when_the_node_declares_shrink_overflow() {
+        let node = TemplatePaneNodeData {
+            overflow: "shrink".into(),
+            ..TemplatePaneNodeData::default()
+        };
+        let rect = FrameRect {
+            width: 72.0,
+            height: METRICS.control_default_height,
+            ..FrameRect::default()
+        };
+        let label = "Disabled";
+        let text_style = UiTextRunPaintStyle::default();
+        let base_font_size = button_label_font_size(&node, &rect);
+        let fitted_font_size =
+            button_label_font_size_for_slot(&node, &rect, label, text_style, 0.0, 0.0);
+        let available_ink_width = (max_label_slot_width(&node, &rect)
+            - button_content_metrics().text_clip_guard)
+            .max(0.0);
+
+        assert!(fitted_font_size < base_font_size);
+        assert!(
+            measured_label_ink_width(label, fitted_font_size, text_style)
+                <= available_ink_width + 0.01
+        );
+    }
+
+    #[test]
+    fn button_label_font_size_preserves_elide_overflow_at_the_declared_size() {
+        let node = TemplatePaneNodeData {
+            overflow: "elide".into(),
+            ..TemplatePaneNodeData::default()
+        };
+        let rect = FrameRect {
+            width: 72.0,
+            height: METRICS.control_default_height,
+            ..FrameRect::default()
+        };
+        let text_style = UiTextRunPaintStyle::default();
+
+        assert_eq!(
+            button_label_font_size_for_slot(&node, &rect, "Disabled", text_style, 0.0, 0.0,),
+            button_label_font_size(&node, &rect),
         );
     }
 }

@@ -47,11 +47,11 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
         .any(|template| template.id() == PARTICLES_PREVIEW_TEMPLATE_ID));
     assert!(registration
         .extensions
-        .component_drawers()
+        .inspector_customizations()
         .iter()
-        .any(|drawer| {
-            drawer.component_type() == PARTICLE_SYSTEM_COMPONENT_TYPE
-                && drawer.controller() == PARTICLES_COMPONENT_DRAWER_ID
+        .any(|customization| {
+            customization.target_type() == PARTICLE_SYSTEM_COMPONENT_TYPE
+                && customization.surface().controller() == PARTICLES_COMPONENT_DRAWER_ID
         }));
     let particle_type = registration
         .extensions

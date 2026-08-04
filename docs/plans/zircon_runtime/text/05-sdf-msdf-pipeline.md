@@ -90,6 +90,8 @@ last_refined: 2026-07-14
 - 当前剩余缺口已收束到 SM-M5 paragraph parity 和长期 atlas/fallback 完整性：真实 alpha bitmap atlas 统一 GPU upload、持久化 glyph cache/residency 完整淘汰闭环、broader glyph-level mixed fallback(Vertical/RTL/justify/wrapped)、independent oversized fallback、native/SDF paragraph bbox/advance/linebreak parity，以及窗口级 editor 字体一致性 QA。MSDF/MTSDF 动态生成、`.zsdf` 离线预生成和 SM-M4 effects/decorations/transformed sampling 已有生产实现与真实 WGPU 证据；SM-M4 仍需完成一次浮点容差修正复验和综合结构/target-client gate 后才能标记 complete。
 - 2026-07-02 首个竖排消费切片已让 `sdf_render.rs` 根据 `ScreenSpaceUiTextBatch.writing_mode` 在 `VerticalRl` 下沿 y 轴投影 glyph quads;这只关闭 render-path writing-mode consumption,不替代本计划的 screenPxRange、统一 atlas、MSDF/MTSDF 或离线 bake 工作。
 
+2026-08-03 状态校准：SM-M5 的确定性源码 parity gate 已实现于 `graphics/scene/scene_renderer/ui/render/tests/parity.rs`。`text_paragraph_parity_native_vs_sdf_bbox_advance_linebreak` 逐项比较 native 与 SDF/MSDF 的 source range、行分割、frame、glyph advances 与 batch，覆盖 Latin/CJK/混排/RTL 及 bitmap/SDF 阈值两侧；`text_paragraph_parity_vertical_rl` 覆盖 VerticalRl。该实现不替代真实 WGPU framebuffer/窗口 QA，也不提前关闭 alpha atlas 硬切、residency 淘汰或 broader mixed fallback；这些仍是当前 source/managed-validation 后续项。
+
 ## 3. 参考代码
 
 | 文件 | 应重点阅读 |

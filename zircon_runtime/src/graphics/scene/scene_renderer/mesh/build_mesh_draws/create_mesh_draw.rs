@@ -23,13 +23,14 @@ pub(super) fn create_mesh_draw(
     stable_instance_key: u64,
     source_draw_ordinal: u32,
     static_state: RenderMeshStaticState,
-    material_textures: MaterialTextureSet,
+    mut material_textures: MaterialTextureSet,
     material_uniform: Arc<GpuMaterialUniformResource>,
     standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pipeline_key: PipelineKey,
     common: &RendererCommon,
     disabled_passes: MaterialDisabledPasses,
     taa_reactive_mask_strength: f32,
+    half_resolution_transparency: bool,
     has_previous_velocity_transform: bool,
     mesh_lod: Option<RenderMeshLodSelection>,
     skinned: bool,
@@ -45,6 +46,7 @@ pub(super) fn create_mesh_draw(
     indirect_args_offset: u64,
     virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
 ) -> MeshDraw {
+    material_textures.prepare_sampler_variants(device);
     let gpu_scene_bind_group = (skinned_joint_palette_buffer.is_some()
         || previous_skinned_joint_palette_buffer.is_some())
     .then(|| {
@@ -91,6 +93,7 @@ pub(super) fn create_mesh_draw(
         common.cast_shadows,
         disabled_passes,
         taa_reactive_mask_strength,
+        half_resolution_transparency,
         gpu_scene_bind_group,
         has_previous_velocity_transform,
         mesh_lod,

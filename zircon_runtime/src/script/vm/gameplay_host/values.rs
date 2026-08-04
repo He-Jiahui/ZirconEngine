@@ -2,10 +2,10 @@ use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, Scrip
 use crate::core::math::Vec3;
 use crate::core::resource::{AssetUuid, ResourceHandle, ResourceId};
 
-pub(super) fn expect_string(
-    context: &ScriptHostCallFrame<'_>,
+pub(super) fn expect_string<'a>(
+    context: &'a ScriptHostCallFrame<'a>,
     index: usize,
-) -> Result<&str, ScriptHostError> {
+) -> Result<&'a str, ScriptHostError> {
     match context.arguments.get(index) {
         Some(ScriptHostValue::String(value)) => Ok(value),
         Some(value) => Err(ScriptHostError::new(format!(

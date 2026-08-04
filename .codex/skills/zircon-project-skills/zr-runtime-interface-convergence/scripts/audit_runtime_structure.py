@@ -148,12 +148,6 @@ from runtime_structure_audits.runtime_naming_boundary import (
 from runtime_structure_audits.runtime_naming_markdown import (
     render_runtime_naming_boundary_markdown,
 )
-from runtime_structure_audits.runtime_plan_status_boundary import (
-    runtime_plan_status_boundary_audit,
-)
-from runtime_structure_audits.runtime_plan_status_markdown import (
-    render_runtime_plan_status_boundary_markdown,
-)
 from runtime_structure_audits.runtime_root_surface import runtime_root_surface_audit
 from runtime_structure_audits.runtime_root_surface_markdown import (
     render_runtime_root_surface_markdown,
@@ -243,7 +237,6 @@ def main() -> int:
         "core_spine_root_generated_boundary": core_spine_root_generated_boundary_audit(root),
         "runtime_scene_editor_surface": runtime_scene_editor_surface_audit(root),
         "scene_project_serialization_boundary": scene_project_serialization_boundary_audit(root),
-        "runtime_plan_status_boundary": runtime_plan_status_boundary_audit(root),
         "dynamic_api_test_boundary": dynamic_api_test_boundary_audit(root),
         "runtime_api_boundary": runtime_api_boundary_audit(root),
         "dynamic_runtime_api_boundary": dynamic_runtime_api_boundary_audit(root),
@@ -327,12 +320,6 @@ def main() -> int:
 
     for line in render_scene_project_serialization_boundary_markdown(
         report["scene_project_serialization_boundary"]
-    ):
-        print(line)
-    print()
-
-    for line in render_runtime_plan_status_boundary_markdown(
-        report["runtime_plan_status_boundary"]
     ):
         print(line)
     print()

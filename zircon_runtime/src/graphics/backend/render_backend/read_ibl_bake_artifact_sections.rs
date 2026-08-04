@@ -177,20 +177,26 @@ impl IblBakeArtifactWgpuReadbackBatch {
             return Ok(IblBakeArtifactReadbackSections::new(descriptor));
         }
 
-        queue.submit([self.encoder.finish()]);
+        let Self {
+            encoder,
+            pmrem,
+            sh9,
+            irradiance_cube,
+        } = self;
+        queue.submit([encoder.finish()]);
         let (sender, receiver) = mpsc::channel();
-        if let Some(readback) = self.pmrem.as_ref() {
+        if let Some(readback) = pmrem.as_ref() {
             readback.map_async(sender.clone());
         }
-        if let Some(readback) = self.sh9.as_ref() {
+        if let Some(readback) = sh9.as_ref() {
             readback.map_async(sender.clone());
         }
-        if let Some(readback) = self.irradiance_cube.as_ref() {
+        if let Some(readback) = irradiance_cube.as_ref() {
             readback.map_async(sender.clone());
         }
         drop(sender);
         if let Err(error) = device.poll(wgpu::PollType::wait_indefinitely()) {
-            self.unmap_all();
+            Self::unmap_all(&pmrem, &sh9, &irradiance_cube);
             return Err(GraphicsError::BufferMap(error.to_string()));
         }
         let mut mapping_error = None;
@@ -206,31 +212,35 @@ impl IblBakeArtifactWgpuReadbackBatch {
             }
         }
         if let Some(error) = mapping_error {
-            self.unmap_all();
+            Self::unmap_all(&pmrem, &sh9, &irradiance_cube);
             return Err(error);
         }
 
         let mut sections = IblBakeArtifactReadbackSections::new(descriptor);
-        if let Some(readback) = self.pmrem {
+        if let Some(readback) = pmrem {
             sections = sections.with_pmrem_rgba16f_bytes(readback.into_bytes());
         }
-        if let Some(readback) = self.sh9 {
+        if let Some(readback) = sh9 {
             sections = sections.with_irradiance_sh9_bytes(readback.into_bytes());
         }
-        if let Some(readback) = self.irradiance_cube {
+        if let Some(readback) = irradiance_cube {
             sections = sections.with_irradiance_cube_rgba16f_bytes(readback.into_bytes());
         }
         Ok(sections)
     }
 
-    fn unmap_all(&self) {
-        if let Some(readback) = self.pmrem.as_ref() {
+    fn unmap_all(
+        pmrem: &Option<CubeMipChainReadback>,
+        sh9: &Option<BufferReadback>,
+        irradiance_cube: &Option<CubeMipChainReadback>,
+    ) {
+        if let Some(readback) = pmrem.as_ref() {
             readback.unmap();
         }
-        if let Some(readback) = self.sh9.as_ref() {
+        if let Some(readback) = sh9.as_ref() {
             readback.unmap();
         }
-        if let Some(readback) = self.irradiance_cube.as_ref() {
+        if let Some(readback) = irradiance_cube.as_ref() {
             readback.unmap();
         }
     }

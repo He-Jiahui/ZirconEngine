@@ -20,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
     {
         return;
     }
-    commands.push(HostPaintCommand::text(
+    commands.push(HostPaintCommand::wrapped_text(
         FrameRect {
             x: text_rect.x,
             y: text_rect.y,
@@ -54,6 +54,7 @@ fn is_paintable_font(font_size: f32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::retained_host::host_contract::paint_text::HostTextLayoutPolicy;
 
     #[test]
     fn template_node_text_command_uses_shared_runtime_line_height() {
@@ -91,6 +92,10 @@ mod tests {
         assert_eq!(commands[0].clip_frame.as_ref(), Some(&clip));
         assert_eq!(commands[0].z_index, 7);
         assert_eq!(commands[0].text.as_deref(), Some("Caption"));
+        assert_eq!(
+            commands[0].text_layout_policy,
+            HostTextLayoutPolicy::WordWrap
+        );
         assert!(commands[0].text_style.code);
         assert_eq!(
             commands[0].line_height,

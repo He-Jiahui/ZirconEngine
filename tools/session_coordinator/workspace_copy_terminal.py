@@ -54,6 +54,46 @@ class ValidationCopyTerminalLifecycle:
             self._capture_stream_tail(stderr_full),
         )
 
+    def latest_for_job(
+        self, *, session_id: str, job_id: str
+    ) -> ValidationRunEvidence | None:
+        with self._database.connect() as connection:
+            row = connection.execute(
+                """SELECT run_id, job_id, command_json, exit_code,
+                          stdout_text, stderr_text
+                   FROM validation_copy_runs
+                   WHERE session_id = ? AND job_id = ?
+                   ORDER BY completed_at DESC, run_id DESC
+                   LIMIT 1""",
+                (session_id, job_id),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            command = json.loads(str(row["command_json"]))
+        except (TypeError, ValueError) as error:
+            raise CoordinatorError(
+                "validation_copy_terminal_evidence_invalid",
+                "Validation-copy terminal evidence contains invalid command JSON",
+                details={"runId": str(row["run_id"])},
+            ) from error
+        if not isinstance(command, list) or not all(
+            isinstance(part, str) for part in command
+        ):
+            raise CoordinatorError(
+                "validation_copy_terminal_evidence_invalid",
+                "Validation-copy terminal evidence command must be a string array",
+                details={"runId": str(row["run_id"])},
+            )
+        return ValidationRunEvidence(
+            run_id=str(row["run_id"]),
+            job_id=str(row["job_id"]),
+            command=tuple(command),
+            exit_code=int(row["exit_code"]),
+            stdout=str(row["stdout_text"]),
+            stderr=str(row["stderr_text"]),
+        )
+
     def persist(
         self,
         *,

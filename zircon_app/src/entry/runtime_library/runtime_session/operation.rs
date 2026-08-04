@@ -1,14 +1,14 @@
 use std::{mem::MaybeUninit, slice};
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZrByteSlice, ZrOwnedByteBuffer,
-    ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
-    ZrRuntimeOperationSubmitRequestV1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
 
 use super::{
-    RuntimeLibraryError, RuntimeSession, ensure_status, ensure_status_releasing_output_on_error,
-    release_owned_buffer_after_result, validate_owned_buffer_releasing_on_error,
+    ensure_status, ensure_status_releasing_output_on_error, release_owned_buffer_after_result,
+    validate_owned_buffer_releasing_on_error, RuntimeLibraryError, RuntimeSession,
 };
 
 impl RuntimeSession {
@@ -138,9 +138,9 @@ mod tests {
         ensure_operation_status,
     };
     use zircon_runtime_interface::{
-        ZIRCON_RUNTIME_ABI_VERSION_V1, ZrByteSlice, ZrOwnedByteBuffer,
-        ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
-        ZrRuntimeOperationStatusV2, ZrStatus, ZrStatusCode,
+        ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
+        ZrRuntimeOperationPhase, ZrRuntimeOperationStatusV2, ZrStatus, ZrStatusCode,
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
     };
 
     const OPERATION_RELEASE_DIAGNOSTIC: &[u8] = b"operation allocation still in use";

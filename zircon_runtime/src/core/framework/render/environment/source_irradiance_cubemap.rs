@@ -1,7 +1,8 @@
 use super::{
-    CubemapFace, SourceCubemapMipChain, cubemap_direction_from_scaled_uv,
-    cubemap_face_scaled_uv_from_direction, cubemap_texel_direction, cubemap_texel_solid_angle,
-    source_cubemap_face_mip_offset, source_cubemap_irradiance_mip_level, source_cubemap_mip_size,
+    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
+    cubemap_texel_direction, cubemap_texel_solid_angle, source_cubemap_face_mip_offset,
+    source_cubemap_irradiance_mip_level, source_cubemap_mip_size, CubemapFace,
+    SourceCubemapMipChain,
 };
 use crate::core::math::Real;
 use std::sync::Arc;

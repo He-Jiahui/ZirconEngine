@@ -1,5 +1,7 @@
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
+use std::path::Path;
+use zircon_runtime::asset::project::ProjectPaths;
 
 #[derive(Debug)]
 pub(super) struct EditorStartupDiagnosticError {
@@ -130,6 +132,7 @@ pub(super) fn editor_startup_argument_summary(args: &[String]) -> String {
     }
 
     let mut redact_next = false;
+    let mut display_path_next = false;
     args.iter()
         .map(|argument| {
             if redact_next {
@@ -137,9 +140,19 @@ pub(super) fn editor_startup_argument_summary(args: &[String]) -> String {
                 return "<redacted>".to_string();
             }
             if argument.starts_with("--args=") {
+                display_path_next = false;
                 return "--args=<redacted>".to_string();
             }
-            redact_next = argument == "--args";
+            if argument == "--args" {
+                display_path_next = false;
+                redact_next = true;
+                return argument.clone();
+            }
+            if display_path_next {
+                display_path_next = false;
+                return editor_startup_path_display(argument);
+            }
+            display_path_next = editor_startup_argument_is_path_flag(argument);
             argument.clone()
         })
         .collect::<Vec<_>>()
@@ -148,6 +161,7 @@ pub(super) fn editor_startup_argument_summary(args: &[String]) -> String {
 
 fn redact_editor_startup_argument_cause(args: &[String], mut cause: String) -> String {
     let mut redact_next = false;
+    let mut display_path_next = false;
     for argument in args {
         if redact_next {
             if !argument.is_empty() {
@@ -157,12 +171,29 @@ fn redact_editor_startup_argument_cause(args: &[String], mut cause: String) -> S
             continue;
         }
         if argument == "--args" {
+            display_path_next = false;
             redact_next = true;
         } else if argument.starts_with("--args=") {
+            display_path_next = false;
             cause = cause.replace(argument, "--args=<redacted>");
+        } else if display_path_next {
+            cause = cause.replace(argument, &editor_startup_path_display(argument));
+            display_path_next = false;
+        } else {
+            display_path_next = editor_startup_argument_is_path_flag(argument);
         }
     }
     cause
+}
+
+fn editor_startup_argument_is_path_flag(argument: &str) -> bool {
+    matches!(argument, "--project" | "--automation" | "--location")
+}
+
+fn editor_startup_path_display(argument: &str) -> String {
+    ProjectPaths::display_path(Path::new(argument))
+        .display()
+        .to_string()
 }
 
 pub(super) fn editor_host_startup_error(

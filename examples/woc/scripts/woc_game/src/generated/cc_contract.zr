@@ -21,9 +21,16 @@ pub motionAuraKindCode(kind: string): uint {
     if (kind == "faerie_fire") { return <uint>11; }
     if (kind == "buff_ap") { return <uint>12; }
     if (kind == "lockout") { return <uint>13; }
+    if (kind == "buff_rage_gen") { return <uint>14; }
+    if (kind == "buff_reckless") { return <uint>15; }
+    if (kind == "battle_stance") { return <uint>16; }
+    if (kind == "next_attack_crit") { return <uint>17; }
+    if (kind == "buff_haste") { return <uint>18; }
+    if (kind == "bleed_vuln") { return <uint>19; }
+    if (kind == "buff_dr") { return <uint>20; }
     return <uint>0;
 }
-pub isMotionAuraKindCode(code: uint): bool { return code >= <uint>1 && code <= <uint>13; }
+pub isMotionAuraKindCode(code: uint): bool { return code >= <uint>1 && code <= <uint>20; }
 pub isMotionStunnedKindCode(code: uint): bool {
     return code == <uint>1 || code == <uint>2 ||
         code == <uint>3 || code == <uint>4;

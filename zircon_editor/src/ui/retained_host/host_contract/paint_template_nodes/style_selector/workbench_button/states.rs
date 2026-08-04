@@ -13,6 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use unavai
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn base_button_style(
     kind: WorkbenchButtonKind,
     interaction: ButtonInteractionState,
+    focus_uses_hover_surface: bool,
 ) -> WorkbenchButtonStyle {
     match interaction {
         ButtonInteractionState::Disabled | ButtonInteractionState::Loading => {
@@ -21,6 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn base_bu
         ButtonInteractionState::Normal => normal_button_style(kind, interaction),
         ButtonInteractionState::Hover => hover_button_style(kind, interaction),
         ButtonInteractionState::Pressed => pressed_button_style(kind, interaction),
-        ButtonInteractionState::Focused => focused_button_style(kind, interaction),
+        ButtonInteractionState::Focused => {
+            focused_button_style(kind, interaction, focus_uses_hover_surface)
+        }
     }
 }

@@ -153,17 +153,21 @@ fn external_effects_are_typed_sorted_and_independently_clearable() {
     );
     assert!(snapshot.is_dirty());
 
-    assert!(registry
-        .clear_external_effect(
-            document,
-            &effect("asset.import_settings"),
-            settings_revision,
-        )
-        .unwrap());
+    assert!(
+        registry
+            .clear_external_effect(
+                document,
+                &effect("asset.import_settings"),
+                settings_revision,
+            )
+            .unwrap()
+    );
     assert!(registry.snapshot(document).unwrap().is_dirty());
-    assert!(registry
-        .clear_external_effect(document, &effect("ui.source_buffer"), source_revision)
-        .unwrap());
+    assert!(
+        registry
+            .clear_external_effect(document, &effect("ui.source_buffer"), source_revision)
+            .unwrap()
+    );
     assert!(!registry.snapshot(document).unwrap().is_dirty());
 }
 
@@ -189,9 +193,11 @@ fn remarking_an_effect_advances_its_revision() {
             .external_revision(&effect),
         Some(second)
     );
-    assert!(!registry
-        .clear_external_effect(document, &effect, first)
-        .unwrap());
+    assert!(
+        !registry
+            .clear_external_effect(document, &effect, first)
+            .unwrap()
+    );
     assert_eq!(
         registry
             .snapshot(document)
@@ -199,9 +205,11 @@ fn remarking_an_effect_advances_its_revision() {
             .external_revision(&effect),
         Some(second)
     );
-    assert!(registry
-        .clear_external_effect(document, &effect, second)
-        .unwrap());
+    assert!(
+        registry
+            .clear_external_effect(document, &effect, second)
+            .unwrap()
+    );
 }
 
 #[test]
@@ -355,6 +363,21 @@ fn ten_thousand_document_stable_and_single_change_work_is_delta_bounded() {
     assert_eq!(delta.snapshots().len(), 1);
     assert_eq!(delta.snapshots()[0].document(), changed);
     assert_eq!(registry.take_journal_visits_for_test(), 1);
+}
+
+#[test]
+fn dirty_delta_dispatches_optional_cursors_without_expect_invariants() {
+    let source = include_str!("registry.rs");
+    let changes_since = source
+        .split("pub fn changes_since")
+        .nth(1)
+        .and_then(|body| body.split("fn snapshot_with_effects").next())
+        .expect("dirty delta implementation should remain available");
+
+    assert!(changes_since.contains("let cursor_generation = cursor.map"));
+    assert!(changes_since.contains("let transaction_cursor = cursor.map"));
+    assert!(!changes_since.contains("cursor checked above"));
+    assert!(!changes_since.contains(".expect("));
 }
 
 #[test]

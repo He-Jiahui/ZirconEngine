@@ -108,6 +108,91 @@ fn workbench_position_commit_dispatches_a_typed_inspector_transaction() {
 }
 
 #[test]
+fn workbench_scale_commit_dispatches_a_typed_inspector_transaction() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_scale_commit");
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("workbench surface should build");
+
+    let effects = dispatch_componentized_workbench_transform_axis_commit(
+        &runtime.runtime,
+        &bridge,
+        "WorkbenchTransformScaleX",
+        "Inspector/TransformScaleXCommit",
+        "X 2.5",
+    )
+    .expect("scale X commit should be recognized")
+    .expect("scale X commit should dispatch");
+
+    assert!(effects.render_dirty);
+    assert!(effects.presentation_dirty);
+    let committed_x = {
+        let shell = runtime.runtime.shell().lock();
+        let selected = shell
+            .state
+            .viewport_controller
+            .selection()
+            .active_primary()
+            .expect("default cube should be selected");
+        shell
+            .state
+            .world
+            .try_with_world(|scene| scene.find_node(selected).unwrap().transform.scale.x)
+            .expect("default world should remain loaded")
+    };
+    assert_eq!(committed_x, 2.5);
+    assert!(runtime.runtime.editor_snapshot().can_undo);
+}
+
+#[test]
+fn workbench_scale_commit_rejects_non_finite_scalars_before_dispatch() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_scale_non_finite");
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("workbench surface should build");
+
+    let error = dispatch_componentized_workbench_transform_axis_commit(
+        &runtime.runtime,
+        &bridge,
+        "WorkbenchTransformScaleX",
+        "Inspector/TransformScaleXCommit",
+        "X NaN",
+    )
+    .expect("scale X commit route should be recognized")
+    .expect_err("non-finite scale input must be rejected before runtime dispatch");
+
+    assert_eq!(
+        error,
+        "Inspector transform X value `NaN` must be a finite number"
+    );
+    assert!(runtime.runtime.journal().records().is_empty());
+}
+
+#[test]
+fn workbench_position_commit_rejects_non_finite_scalars_before_dispatch() {
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_transform_non_finite");
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("workbench surface should build");
+
+    let error = dispatch_componentized_workbench_transform_axis_commit(
+        &runtime.runtime,
+        &bridge,
+        "WorkbenchTransformPositionX",
+        "Inspector/TransformPositionXCommit",
+        "X NaN",
+    )
+    .expect("position X commit route should be recognized")
+    .expect_err("non-finite position input must be rejected before runtime dispatch");
+
+    assert_eq!(
+        error,
+        "Inspector transform X value `NaN` must be a finite number"
+    );
+    assert!(runtime.runtime.journal().records().is_empty());
+}
+
+#[test]
 fn workbench_position_commit_publishes_only_inspection_generation_and_property_delta() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_transform_inspection_delta");

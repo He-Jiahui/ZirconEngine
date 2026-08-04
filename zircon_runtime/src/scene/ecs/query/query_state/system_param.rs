@@ -1,8 +1,8 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, QueryDataAccess, QueryFilter, SystemParam, SystemParamAccess,
     SystemParamError,
 };
+use crate::scene::World;
 
 use super::QueryState;
 

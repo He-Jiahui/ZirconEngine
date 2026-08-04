@@ -4,6 +4,7 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
+use zircon_runtime::core::resource::ResourceState;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, SceneProjectError};
 
 use crate::core::editing::command::EditorCommand;
@@ -195,6 +196,29 @@ fn editor_project_document_roundtrips_world_and_workspace() {
             .unwrap(),
         reopened_mesh.material.id()
     );
+    for reference in [&reopened_mesh.model, &reopened_mesh.material] {
+        let record = reopened_project
+            .registry()
+            .get_by_locator(&reference.locator)
+            .unwrap_or_else(|| {
+                panic!(
+                    "the reopened project generation must retain resource {}",
+                    reference.locator
+                )
+            });
+        assert_eq!(
+            record.state,
+            ResourceState::Ready,
+            "the reopened project resource {} must import successfully: {}",
+            reference.locator,
+            record.failure_reason().unwrap_or("no import diagnostic")
+        );
+        assert!(
+            record.artifact_locator().is_some(),
+            "the reopened project resource {} must retain an artifact locator",
+            reference.locator
+        );
+    }
     assert_eq!(
         loaded.world.find_node(camera.id),
         Some(&camera),

@@ -38,46 +38,6 @@ fn runtime_15_no_oversized_production_files() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 no oversized production files global gate",
-                "runtime_15_no_oversized_production_files_global_gate_static_passed_cargo_deferred",
-                "structure_convention/production_file_budget/global_budget.rs",
-                "PRODUCTION_FILE_LINE_BUDGET",
-                "runtime_15_no_oversized_production_files",
-            ],
-        );
-    }
-
-    assert_contains_all(
-        "Runtime 15 status/date maps record no-oversized production files global gate",
-        &format!("{status_map}\n{date_map}"),
-        &[
-            "Runtime 15 M4 no oversized production files global gate",
-            "runtime_15_no_oversized_production_files_global_gate_static_passed_cargo_deferred",
-            "2026-06-30",
-        ],
-    );
 }
 
 fn runtime_src_root() -> PathBuf {

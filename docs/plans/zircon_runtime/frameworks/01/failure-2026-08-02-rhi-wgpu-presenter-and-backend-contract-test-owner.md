@@ -10,11 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/frameworks/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/lib.rs
-  - zircon_runtime/src/rhi/mod.rs
-  - zircon_runtime/src/rhi/tests
-  - zircon_runtime/src/rhi_wgpu/mod.rs
-  - zircon_runtime/src/rhi_wgpu/tests.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
+  - zircon_runtime/src/rhi.rs
+  - zircon_runtime/crates/zr_rhi
+  - zircon_runtime/crates/zr_rhi_wgpu
   - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_command_list.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_device_contract.rs
@@ -124,6 +122,45 @@ topology already provides the correct owners:
 
 ## 修复结果与回传
 
-Open state: `frameworks01_m2_physical_rhi_backend_split_required`. Frameworks05 keeps the
-`rhi -> rhi_wgpu` seam open and continues dependency-independent work; no RHI source move, test
-migration, managed validation, fixed return, or Frameworks01 milestone acceptance is claimed here.
+Resolving state: `frameworks01_m2_physical_rhi_backend_split_implemented_validation_pending`.
+
+- 2026-08-03: created physical workspace members `zr_rhi` and `zr_rhi_wgpu` under
+  `zircon_runtime/crates/`. `zr_rhi` owns neutral descriptors, handles, device/command contracts,
+  native surface target and UI surface contracts; its manifest contains no WGPU dependency. Runtime
+  compiles this lightweight contract crate unconditionally because the always-on `RenderFramework`
+  trait names its native surface target, while only `zr_rhi_wgpu` remains graphics-optional.
+- `zr_rhi_wgpu` now depends downward on `zr_rhi`, owns the WGPU presenter plus shared GPU timer and
+  readback implementation, and exposes only the backend primitives consumed by Runtime graphics.
+  The Runtime facade keeps the canonical `zircon_runtime::rhi::*` projection and the single default
+  presenter factory; the neutral crate does not construct or re-export the backend.
+- Deleted both monolithic source directories (`zircon_runtime/src/rhi/` and
+  `zircon_runtime/src/rhi_wgpu/`). Current production source has zero `crate::rhi_wgpu` references
+  and `zircon_runtime/src/lib.rs` has no `mod rhi_wgpu` declaration.
+- Moved all 12 deterministic-backend test modules and their child owners to folder-backed
+  `zr_rhi_wgpu/src/tests/`; `zr_rhi` retains only boundary, capabilities, descriptors and neutral UI
+  tests. The three former flat backend-root tests are mounted from
+  `zr_rhi_wgpu/src/tests/capabilities.rs` and the existing backend child modules.
+- Updated Runtime15 path guards, server feature-boundary checks and dependency-domain inventory to
+  the physical paths. Non-Cargo evidence is GREEN: Rust 1.94.1 exact-scope `rustfmt` passed,
+  `python -m unittest tools.tests.test_frameworks_03_server_feature_boundary` passed 13/13, and
+  final independent re-review reran `python tools/runtime_domain_dependency_audit.py --repo-root .`
+  with 2,586 production references / 70 domain edges and no Runtime `rhi_wgpu` domain.
+- The first four independent review passes reported `C0/I3/M1`, `C0/I1/M1`, `C0/I1/M0` and
+  `C0/I1/M0`: they
+  found stale backend `include_str!` depths, two deleted-path Runtime15 guards, an incomplete
+  reverse-dependency guard, a dotted-key dependency-detector gap, missing non-Cargo coverage for
+  that detector, and stale executable documentation owners. Every finding is repaired; all audited
+  literal and manifest-anchored include targets resolve, deleted Runtime test-reader scans are
+  absent, and obsolete current owner paths and executable documentation commands are removed. The
+  final independent re-review returned `C0/I0/M0`; its fresh dependency audit confirmed 2,586
+  production references / 70 domain edges, `asset -> text = 0`, `rhi -> rhi_wgpu = 0`, and only the
+  separately owned `scene -> animation = 2` reverse seam remains.
+- Locked metadata and the read-only neutral `cargo tree` are GREEN. Coordinator snapshot `1462`
+  accepted the implementation manifest, and validation-copy request
+  `bb3618ddccc74633b654c29cf727df38` created managed job
+  `d863427f3d904bde8ad07e09a050c3d0` for the Rust 1.94.1 `zr_rhi`/`zr_rhi_wgpu` focused test batch.
+  This is an accepted receipt only, not a GREEN result; the status-only record correction on this
+  file occurred after that immutable validation copy and therefore requires a refreshed commit
+  snapshot. Runtime/Editor guards and immutable Runtime/Editor lib checks also remain pending.
+  Therefore this failure is not yet `fixed`, no fixed return is emitted, and Frameworks01 M2 is not
+  accepted.

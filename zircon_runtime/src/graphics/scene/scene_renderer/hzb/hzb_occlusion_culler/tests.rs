@@ -1,5 +1,5 @@
 use super::*;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 
 use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
 use crate::graphics::backend::RenderBackend;
@@ -8,17 +8,16 @@ use crate::graphics::resource_limits::{
     HZB_OCCLUSION_PASS_STORAGE_BUFFERS_PER_SHADER_STAGE,
 };
 use crate::graphics::scene::gpu_scene::{
-    GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GPU_PRIMITIVE_FLAG_VISIBLE,
-    GPU_SCENE_INVALID_PAYLOAD_SLOT,
+    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT, GpuInstanceData, GpuPrimitiveData,
+    GpuScene, GpuSceneEntry,
 };
 use crate::graphics::scene::resources::default_pipeline_key;
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    DrawInstanceSource, MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle,
-    MeshIndirectArgsSnapshot, MeshIndirectDrawExecution, MeshPassPipelineKind,
-    MeshPipelineVariantId, INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
-    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-};
 use crate::graphics::scene::scene_renderer::mesh::IndexedIndirectArgs;
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
+    DrawInstanceSource, INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
+    MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle, MeshIndirectArgsSnapshot,
+    MeshIndirectDrawExecution, MeshPassPipelineKind, MeshPipelineVariantId,
+};
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 
 const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
@@ -160,24 +159,40 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
 fn hzb_occlusion_culler_shader_declares_expected_bindings() {
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@group(0) @binding(0) var<uniform> scene"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@group(1) @binding(0) var previous_hzb"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(2) var<storage, read> source_indirect_args"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(3) var<storage, read> compaction_metadata"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(4) var<storage, read_write> visible_instance_indices"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(5) var<storage, read_write> draw_counts"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(6) var<storage, read_write> compacted_indirect_args"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(1) @binding(7) var<storage, read_write> occlusion_stats"));
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(2) var<storage, read> source_indirect_args")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(3) var<storage, read> compaction_metadata")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(4) var<storage, read_write> visible_instance_indices")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(5) var<storage, read_write> draw_counts")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(6) var<storage, read_write> compacted_indirect_args")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(1) @binding(7) var<storage, read_write> occlusion_stats")
+    );
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("atomicAdd(&occlusion_stats.culled_arg_count"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("atomicAdd(&draw_counts"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data"));
-    assert!(HZB_OCCLUSION_CULL_SHADER
-        .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap"));
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data")
+    );
+    assert!(
+        HZB_OCCLUSION_CULL_SHADER
+            .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap")
+    );
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@compute @workgroup_size(64, 1, 1)"));
 }
 
@@ -411,6 +426,8 @@ fn test_primitive_data() -> GpuPrimitiveData {
         first_instance_index: u32::MAX,
         instance_count: u32::MAX,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        material_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        material_payload_padding: [0; 3],
     }
 }
 

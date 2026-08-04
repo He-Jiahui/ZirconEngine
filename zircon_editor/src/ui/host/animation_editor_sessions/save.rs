@@ -36,13 +36,13 @@ impl EditorUiHost {
                 .session
                 .save()
                 .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-            entry.route.asset_locator().to_string()
+            entry.route.asset_locator().clone()
         };
         let source_path = self.resolve_asset_locator_path(&asset_locator)?;
         let written_bytes = fs::metadata(source_path)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?
             .len();
-        let _ = self.asset_manager()?.import_asset(&asset_locator);
+        let _ = self.asset_manager()?.import_asset(&asset_locator.to_string());
         self.sync_animation_editor_instance(instance_id)?;
         Ok(written_bytes)
     }

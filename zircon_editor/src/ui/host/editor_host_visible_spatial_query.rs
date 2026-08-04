@@ -7,7 +7,7 @@ impl EditorHostEventController {
         &self,
         snapshot: Option<RenderVisibleSpatialQuerySnapshot>,
     ) {
-        self.shell
+        self.shell()
             .lock()
             .state
             .sync_renderer_visible_spatial_snapshot(snapshot);

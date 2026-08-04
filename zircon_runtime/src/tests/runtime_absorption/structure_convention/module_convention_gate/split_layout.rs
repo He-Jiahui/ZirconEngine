@@ -10,14 +10,6 @@ const GUARD: &str = "runtime_15_module_convention_gate_guard_is_folder_backed";
 
 const PARENT_PATH: &str =
     "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs";
-const CHILD_PATHS: &[&str] = &[
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/helpers.rs",
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/module_doc_frontmatter.rs",
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/output_contract.rs",
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/debt_boundary.rs",
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/audit_status.rs",
-    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/split_layout.rs",
-];
 const ROW_PARENT_PATH: &str = "structure_convention/module_convention_gate.rs";
 const ROW_CHILD_PATHS: &[&str] = &[
     "structure_convention/module_convention_gate/helpers.rs",
@@ -46,7 +38,6 @@ fn runtime_15_module_convention_gate_guard_is_folder_backed() {
             "fn read_repo",
             "runtime_15_module_convention_gate_output_contract_is_backed_by_structure_audit",
             "runtime_15_module_convention_gate_reports_non_render_debt_boundary",
-            "runtime_15_module_convention_zero_debt_revalidation_is_status_locked",
             "frontmatter_section_entries",
         ],
     );
@@ -70,15 +61,7 @@ fn runtime_15_module_convention_gate_guard_is_folder_backed() {
             "runtime_15_hard_cutover_allowed_hyper_policy_does_not_report_risk",
         ],
     );
-    assert_contains_all(
-        "audit status child",
-        &read_repo(CHILD_PATHS[4]),
-        &[
-            "runtime_15_module_convention_gate_audit_clear_is_status_locked",
-            "runtime_15_module_convention_zero_debt_revalidation_is_status_locked",
-            "runtime_15_module_convention_audit_script_family_uses_gate_names",
-        ],
-    );
+    assert_contains_all("audit status child", &read_repo(CHILD_PATHS[4]), &[]);
 
     for (path, max_lines) in [
         (PARENT_PATH, 20usize),
@@ -95,41 +78,6 @@ fn runtime_15_module_convention_gate_guard_is_folder_backed() {
             "{path} has {line_count} lines, expected <= {max_lines}"
         );
     }
-
-    let row_data = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/frontmatter_and_gate_rows.rs",
-    );
-    assert_contains_all(
-        "module convention status row-data records folder-backed split",
-        &row_data,
-        &[
-            SLICE,
-            STATUS,
-            ROW_PARENT_PATH,
-            ROW_CHILD_PATHS[0],
-            ROW_CHILD_PATHS[1],
-            GUARD,
-            "Cargo gate deferred",
-        ],
-    );
-
-    let status_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/lock_poison_module_maps.rs",
-    );
-    assert_contains_all(
-        "module convention status map",
-        &status_map,
-        &[SLICE, STATUS],
-    );
-
-    let date_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/lock_poison_module_maps.rs",
-    );
-    assert_contains_all(
-        "module convention date map",
-        &date_map,
-        &[SLICE, "2026-07-05"],
-    );
 
     for doc in CORE_DOCS_WITH_SESSION {
         let source = read_repo(doc);

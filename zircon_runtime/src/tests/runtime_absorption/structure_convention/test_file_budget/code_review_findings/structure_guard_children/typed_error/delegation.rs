@@ -53,7 +53,6 @@ pub(super) fn assert_typed_error_structure_guard_delegation_is_current() {
             "runtime_15_code_review_findings_structure_guard_typed_error_top_level_checks_are_child_owned",
             "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_are_child_owned",
             "runtime_15_code_review_findings_structure_guard_typed_error_children_line_budgets_are_current",
-            "runtime_15_code_review_findings_structure_guard_typed_error_folder_backed_status_is_current",
         ],
     );
     for (_, child_path, anchor) in STRUCTURE_GUARD_TYPED_ERROR_CHILDREN {

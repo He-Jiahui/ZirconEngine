@@ -65,7 +65,6 @@ pub(super) fn assert_review_guard_group_children_are_mounted() {
             "runtime_15_p0_robustness_structure_guard_is_folder_backed",
             "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/delegation.rs",
             "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/status_mirrors.rs",
             "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/budgets.rs",
             "tests/runtime_absorption/code_review_findings/p0_robustness.rs",
             "tests/runtime_absorption/code_review_findings/p0_robustness/native_host_callbacks.rs",

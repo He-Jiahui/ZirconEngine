@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    source_cubemap_face_mip_offset, source_cubemap_sample_count, IblBakeArtifactContents,
-    ProceduralSkyParams,
+    IblBakeArtifactContents, ProceduralSkyParams, source_cubemap_face_mip_offset,
+    source_cubemap_sample_count,
 };
 
 use super::*;

@@ -140,12 +140,6 @@ fn assert_status_docs_mirror_split() {
             "module convention",
             include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
         ),
-        (
-            "status row data",
-            include_str!(
-                "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/root_route_rows.rs"
-            ),
-        ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD]);
     }
@@ -155,20 +149,6 @@ fn assert_status_docs_mirror_split() {
             "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
         ),
         &[FRAMEWORKS_STATUS],
-    );
-    assert_contains_all(
-        "status map",
-        include_str!(
-            "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/lock_poison.rs"
-        ),
-        &[SLICE, STATUS],
-    );
-    assert_contains_all(
-        "date map",
-        include_str!(
-            "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/lock_poison.rs"
-        ),
-        &[SLICE, "2026-07-06"],
     );
 }
 

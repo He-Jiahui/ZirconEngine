@@ -9,7 +9,9 @@ use std::time::Duration;
 use super::{
     AutosaveAdmissionError, AutosaveDocumentId, AutosaveDocumentRequest, AutosaveDocumentState,
     AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy, AutosaveScheduler,
-    AutosaveSnapshot, AutosaveSnapshotSource, AutosaveStore,
+    AutosaveSnapshot, AutosaveSnapshotSource, AutosaveStore, RestoreAction, RestoreCandidate,
+    RestoreFlow, RestoreFlowError, RestoreResolution, RestoreStartup, SessionGuard,
+    SessionGuardError, SessionLockDurability, SessionLockInspection,
 };
 use crate::core::jobs::{
     EditorJob, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
@@ -22,6 +24,17 @@ fn document_id(value: &str) -> AutosaveDocumentId {
 
 fn extension(value: &str) -> AutosaveExtension {
     AutosaveExtension::parse(value).expect("test extension should be valid")
+}
+
+fn expected_lock_durability() -> SessionLockDurability {
+    #[cfg(windows)]
+    {
+        SessionLockDurability::PublishedWithDurabilityUncertainty
+    }
+    #[cfg(not(windows))]
+    {
+        SessionLockDurability::Published
+    }
 }
 
 #[test]
@@ -396,6 +409,325 @@ fn autosave_adapter_advances_after_a_write_failure_and_shutdown_rejects_new_work
             )],
         ),
         Err(AutosaveAdmissionError::ShuttingDown)
+    ));
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn session_guard_persists_heartbeat_and_requires_explicit_residual_takeover() {
+    let root = temporary_root("session-guard");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
+    let mut guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let initial = guard.record().clone();
+    assert!(matches!(
+        SessionGuard::inspect(&root).unwrap(),
+        SessionLockInspection::Residual(record) if record == initial
+    ));
+    assert!(matches!(
+        SessionGuard::acquire_at(&root, start),
+        Err(SessionGuardError::AlreadyHeld { .. })
+    ));
+
+    assert_eq!(
+        guard
+            .refresh_heartbeat_at(start + Duration::from_secs(1))
+            .unwrap(),
+        expected_lock_durability()
+    );
+    assert_eq!(guard.record().heartbeat_unix_millis(), 11_000);
+    assert_eq!(guard.release().unwrap(), expected_lock_durability());
+    assert!(guard.is_released());
+    assert_eq!(
+        SessionGuard::inspect(&root).unwrap(),
+        SessionLockInspection::Missing
+    );
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn residual_takeover_failure_keeps_the_selected_lock() {
+    let root = temporary_root("session-guard-takeover-failure");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
+    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let expected = guard.record().clone();
+    drop(guard);
+
+    assert!(matches!(
+        SessionGuard::replace_residual_at(
+            &root,
+            &expected,
+            std::time::UNIX_EPOCH - Duration::from_secs(1),
+        ),
+        Err(SessionGuardError::ClockBeforeUnixEpoch)
+    ));
+    assert!(matches!(
+        SessionGuard::inspect(&root).unwrap(),
+        SessionLockInspection::Residual(record) if record == expected
+    ));
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn residual_takeover_persists_a_new_guard_record() {
+    let root = temporary_root("session-guard-takeover-success");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
+    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let expected = guard.record().clone();
+    drop(guard);
+
+    let mut replacement =
+        SessionGuard::replace_residual_at(&root, &expected, start + Duration::from_secs(1))
+            .unwrap();
+    let replacement_record = replacement.record().clone();
+    assert_ne!(replacement_record, expected);
+    assert!(matches!(
+        SessionGuard::inspect(&root).unwrap(),
+        SessionLockInspection::Residual(record) if record == replacement_record
+    ));
+
+    assert_eq!(replacement.release().unwrap(), expected_lock_durability());
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn concurrent_residual_takeover_keeps_exactly_one_live_guard() {
+    let root = temporary_root("session-guard-concurrent-takeover");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
+    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let expected = Arc::new(guard.record().clone());
+    drop(guard);
+
+    let start_takeover = Arc::new(Barrier::new(3));
+    let hold_results = Arc::new(Barrier::new(3));
+    let (sender, receiver) = mpsc::channel();
+    let first_root = root.clone();
+    let first_expected = Arc::clone(&expected);
+    let first_start_takeover = Arc::clone(&start_takeover);
+    let first_hold_results = Arc::clone(&hold_results);
+    let first_sender = sender.clone();
+    let first = thread::spawn(move || {
+        first_start_takeover.wait();
+        let result = SessionGuard::replace_residual_at(
+            &first_root,
+            &first_expected,
+            start + Duration::from_secs(1),
+        );
+        first_sender.send(result.is_ok()).unwrap();
+        first_hold_results.wait();
+    });
+    let second_root = root.clone();
+    let second_expected = Arc::clone(&expected);
+    let second_start_takeover = Arc::clone(&start_takeover);
+    let second_hold_results = Arc::clone(&hold_results);
+    let second = thread::spawn(move || {
+        second_start_takeover.wait();
+        let result = SessionGuard::replace_residual_at(
+            &second_root,
+            &second_expected,
+            start + Duration::from_secs(2),
+        );
+        sender.send(result.is_ok()).unwrap();
+        second_hold_results.wait();
+    });
+
+    start_takeover.wait();
+    let successes = [receiver.recv().unwrap(), receiver.recv().unwrap()]
+        .into_iter()
+        .filter(|success| *success)
+        .count();
+    assert_eq!(successes, 1);
+    hold_results.wait();
+    first.join().unwrap();
+    second.join().unwrap();
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn live_guard_rejects_takeover_before_heartbeat_and_release() {
+    let root = temporary_root("session-guard-live-owner");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(10);
+    let residual = SessionGuard::acquire_at(&root, start).unwrap();
+    let expected = residual.record().clone();
+    drop(residual);
+
+    let mut guard =
+        SessionGuard::replace_residual_at(&root, &expected, start + Duration::from_secs(1))
+            .unwrap();
+    let successor = guard.record().clone();
+    assert!(matches!(
+        SessionGuard::replace_residual_at(&root, &expected, start + Duration::from_secs(2)),
+        Err(SessionGuardError::AlreadyHeld { .. })
+    ));
+    assert_eq!(
+        guard
+            .refresh_heartbeat_at(start + Duration::from_secs(3))
+            .unwrap(),
+        expected_lock_durability()
+    );
+    assert_eq!(guard.release().unwrap(), expected_lock_durability());
+    assert!(matches!(
+        SessionGuard::replace_residual_at(&root, &successor, start + Duration::from_secs(4)),
+        Err(SessionGuardError::OwnershipLost { .. })
+    ));
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn session_guard_rejects_duplicate_persisted_record_fields() {
+    let root = temporary_root("session-guard-duplicate-fields");
+    let directory = root.join(".zircon");
+    fs::create_dir_all(&directory).unwrap();
+    fs::write(
+        directory.join("session.lock"),
+        "version=1\nprocess_id=1\nprocess_id=2\ninstance_id=1-10-1\nheartbeat_unix_millis=10000\n",
+    )
+    .unwrap();
+
+    assert!(matches!(
+        SessionGuard::inspect(&root),
+        Err(SessionGuardError::InvalidRecord { .. })
+    ));
+    remove_temporary_root(&root);
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_session_guard_lease_uses_the_cross_session_namespace() {
+    let root = temporary_root("session-guard-global-namespace");
+    let name = super::session_guard::session_mutex_name_for_test(&root);
+
+    assert!(name.starts_with("Global\\ZirconEngineProjectSession-"));
+}
+
+#[test]
+fn restore_flow_requires_a_residual_lock_and_one_explicit_action_per_document() {
+    let root = temporary_root("restore-flow");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(20);
+    let mut guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let lock = SessionGuard::inspect(&root).unwrap();
+    let newer = RestoreCandidate::new(
+        document_id("scene_main"),
+        root.join("scene.zscene"),
+        root.join(".zircon/autosave/scene_main/3.zscene"),
+        Some(start),
+        start + Duration::from_secs(1),
+    );
+    let older = RestoreCandidate::new(
+        document_id("scene_old"),
+        root.join("old.zscene"),
+        root.join(".zircon/autosave/scene_old/2.zscene"),
+        Some(start + Duration::from_secs(2)),
+        start + Duration::from_secs(1),
+    );
+    let startup = RestoreFlow::detect(lock, [newer.clone(), older]).unwrap();
+    assert!(matches!(
+        startup,
+        RestoreStartup::RecoveryRequired { ref candidates, .. }
+            if candidates == &vec![newer.clone()]
+    ));
+    assert!(matches!(
+        RestoreFlow::plan(&startup, std::iter::empty::<RestoreResolution>()),
+        Err(RestoreFlowError::MissingResolution { .. })
+    ));
+    let plan = RestoreFlow::plan(
+        &startup,
+        [RestoreResolution::new(
+            document_id("scene_main"),
+            RestoreAction::OpenComparison,
+        )],
+    )
+    .unwrap();
+    assert_eq!(plan.resolutions().len(), 1);
+    assert_eq!(
+        plan.resolutions()[0].action(),
+        RestoreAction::OpenComparison
+    );
+    assert_eq!(
+        RestoreFlow::detect(SessionLockInspection::Missing, [newer]).unwrap(),
+        RestoreStartup::NoRecoveryNeeded
+    );
+    assert_eq!(guard.release().unwrap(), expected_lock_durability());
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn restore_flow_rejects_duplicate_and_unexpected_document_choices() {
+    let root = temporary_root("restore-flow-invalid-choices");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(20);
+    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let lock = SessionGuard::inspect(&root).unwrap();
+    drop(guard);
+    let candidate = RestoreCandidate::new(
+        document_id("scene_main"),
+        root.join("scene.zscene"),
+        root.join(".zircon/autosave/scene_main/3.zscene"),
+        Some(start),
+        start + Duration::from_secs(1),
+    );
+
+    assert!(matches!(
+        RestoreFlow::detect(lock.clone(), [candidate.clone(), candidate.clone()]),
+        Err(RestoreFlowError::DuplicateCandidate { .. })
+    ));
+
+    let startup = RestoreFlow::detect(lock, [candidate]).unwrap();
+    let document = document_id("scene_main");
+    assert!(matches!(
+        RestoreFlow::plan(
+            &startup,
+            [
+                RestoreResolution::new(document.clone(), RestoreAction::RestoreAutosave),
+                RestoreResolution::new(document.clone(), RestoreAction::DiscardAutosave),
+            ],
+        ),
+        Err(RestoreFlowError::DuplicateResolution { .. })
+    ));
+    assert!(matches!(
+        RestoreFlow::plan(
+            &startup,
+            [
+                RestoreResolution::new(document, RestoreAction::RestoreAutosave),
+                RestoreResolution::new(document_id("unexpected"), RestoreAction::OpenComparison,),
+            ],
+        ),
+        Err(RestoreFlowError::UnexpectedResolution { .. })
+    ));
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn restore_flow_preserves_residual_takeover_without_candidates() {
+    let root = temporary_root("restore-flow-residual-takeover");
+    let start = std::time::UNIX_EPOCH + Duration::from_secs(20);
+    let guard = SessionGuard::acquire_at(&root, start).unwrap();
+    let expected = guard.record().clone();
+    let lock = SessionGuard::inspect(&root).unwrap();
+    drop(guard);
+    let candidate = RestoreCandidate::new(
+        document_id("scene_main"),
+        root.join("scene.zscene"),
+        root.join(".zircon/autosave/scene_main/3.zscene"),
+        Some(start + Duration::from_secs(1)),
+        start,
+    );
+
+    let startup = RestoreFlow::detect(lock, [candidate]).unwrap();
+    assert!(matches!(
+        startup,
+        RestoreStartup::ResidualTakeoverRequired { ref residual_lock }
+            if residual_lock == &expected
+    ));
+    assert_eq!(startup.residual_lock(), Some(&expected));
+    assert!(RestoreFlow::plan(&startup, std::iter::empty::<RestoreResolution>()).is_ok());
+    assert!(matches!(
+        RestoreFlow::plan(
+            &startup,
+            [RestoreResolution::new(
+                document_id("unexpected"),
+                RestoreAction::DiscardAutosave,
+            )],
+        ),
+        Err(RestoreFlowError::UnexpectedResolution { .. })
     ));
     remove_temporary_root(&root);
 }

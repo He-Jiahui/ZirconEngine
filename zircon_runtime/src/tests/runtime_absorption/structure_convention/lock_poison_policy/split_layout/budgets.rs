@@ -139,7 +139,6 @@ fn runtime_15_lock_poison_split_layout_guard_is_folder_backed() {
             "mod folder_backing;",
             "mod mounts;",
             "mod sources;",
-            "mod status_mirrors;",
         ],
     );
     assert!(
@@ -167,10 +166,6 @@ fn runtime_15_lock_poison_split_layout_guard_is_folder_backed() {
         (
             "structure_convention/lock_poison_policy/split_layout/budgets.rs",
             include_str!("budgets.rs"),
-        ),
-        (
-            "structure_convention/lock_poison_policy/split_layout/status_mirrors.rs",
-            include_str!("status_mirrors.rs"),
         ),
     ] {
         let line_count = source.lines().count();

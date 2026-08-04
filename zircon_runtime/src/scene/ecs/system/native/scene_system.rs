@@ -1,10 +1,10 @@
 use std::fmt;
 
-use crate::scene::World;
 use crate::scene::ecs::{
     SceneSystemMetadata, SceneSystemThreadAffinity, SystemOrderingConstraint, SystemParamAccess,
     SystemSetId, SystemStage, WorkerCommandBuffer,
 };
+use crate::scene::World;
 
 pub type BoxedSceneSystem = Box<dyn SceneSystem>;
 

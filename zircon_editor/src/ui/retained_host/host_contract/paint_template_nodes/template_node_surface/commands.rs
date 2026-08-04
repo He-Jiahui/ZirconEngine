@@ -7,7 +7,7 @@ use super::super::template_style::{
     template_border_width, template_corner_radius,
 };
 use super::eligibility::draws_border;
-use crate::ui::retained_host::host_contract::paint_geometry::corner_radius_for_frame;
+use crate::ui::retained_host::host_contract::paint_geometry::{corner_radius_for_frame, intersect};
 
 const ASSET_THUMBNAIL_NAME_AREA_SURFACE: &str = "asset-thumbnail-name-area";
 const MATERIAL_ELEVATION_SHADOW_OPACITY: f32 = 0.72;
@@ -20,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_su
     order: i32,
     opacity: f32,
 ) {
-    if !has_paintable_surface_extent(rect) || !frame_is_within(rect, clip) {
+    if !has_paintable_surface_extent(rect) || intersect(rect, clip).is_none() {
         return;
     }
     let border_width = template_border_width(node);
@@ -90,25 +90,6 @@ fn has_paintable_surface_extent(rect: &FrameRect) -> bool {
         && rect.height.is_finite()
         && rect.width > 0.0
         && rect.height > 0.0
-}
-
-fn frame_is_within(inner: &FrameRect, outer: &FrameRect) -> bool {
-    if !has_paintable_surface_extent(inner) || !has_paintable_surface_extent(outer) {
-        return false;
-    }
-
-    let inner_right = inner.x + inner.width;
-    let inner_bottom = inner.y + inner.height;
-    let outer_right = outer.x + outer.width;
-    let outer_bottom = outer.y + outer.height;
-    inner_right.is_finite()
-        && inner_bottom.is_finite()
-        && outer_right.is_finite()
-        && outer_bottom.is_finite()
-        && inner.x >= outer.x
-        && inner.y >= outer.y
-        && inner_right <= outer_right
-        && inner_bottom <= outer_bottom
 }
 
 fn draws_asset_thumbnail_name_area_surface(
@@ -342,11 +323,40 @@ mod tests {
 
         push_surface_commands(&mut commands, &node, &rect, &rect, 7, 1.0);
 
-        assert!(
-            commands
-                .iter()
-                .all(|command| command.corner_radius <= rect.width * 0.5)
+        assert!(commands
+            .iter()
+            .all(|command| command.corner_radius <= rect.width * 0.5));
+    }
+
+    #[test]
+    fn surface_overlapping_clip_keeps_paint_commands() {
+        let rect = FrameRect {
+            x: 11.0,
+            y: 20.0,
+            width: 96.0,
+            height: 42.0,
+        };
+        let clip = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 96.0,
+            height: 42.0,
+        };
+        let mut commands = Vec::new();
+
+        push_surface_commands(
+            &mut commands,
+            &TemplatePaneNodeData::default(),
+            &rect,
+            &clip,
+            7,
+            1.0,
         );
+
+        assert!(!commands.is_empty());
+        assert!(commands
+            .iter()
+            .all(|command| command.clip_frame.as_ref() == Some(&clip)));
     }
 
     #[test]
@@ -358,7 +368,7 @@ mod tests {
             height: 42.0,
         };
         let clip = FrameRect {
-            x: 10.0,
+            x: 108.0,
             y: 20.0,
             width: 96.0,
             height: 42.0,

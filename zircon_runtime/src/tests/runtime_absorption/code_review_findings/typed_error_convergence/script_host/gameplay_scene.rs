@@ -17,15 +17,6 @@ fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary() {
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let host_doc =
         include_str!("../../../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     assert!(
         gameplay_host.contains("mod error;"),
@@ -69,27 +60,6 @@ fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary() {
             );
         }
     }
-
-    for doc_anchor in [
-        "Runtime 15 F5 gameplay host typed errors",
-        "runtime_15_gameplay_host_typed_errors_static_passed_cargo_deferred",
-        "review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary",
-        "script/vm/gameplay_host/error.rs",
-        "GameplayHostError",
-        "GameplayHostResult",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || host_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 gameplay host docs/status should record `{doc_anchor}`"
-        );
-    }
 }
 
 #[test]
@@ -109,15 +79,6 @@ fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary() {
         include_str!("../../../../../../../docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
     let module_doc =
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     assert!(
         scene_hook.contains("mod error;"),
@@ -166,28 +127,6 @@ fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary() {
         assert!(
             !scene_hook.contains(forbidden),
             "script scene hook should not keep lossy String-error branch `{forbidden}`"
-        );
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 script scene hook typed errors",
-        "runtime_15_script_scene_hook_typed_errors_static_passed_cargo_deferred",
-        "review_f5_script_scene_hook_uses_typed_errors_before_core_boundary",
-        "script/vm/scene_hook/error.rs",
-        "ScriptSceneHookError",
-        "ScriptSceneHookResult",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || host_reflection.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 script scene hook docs/status should record `{doc_anchor}`"
         );
     }
 }

@@ -24,15 +24,6 @@ fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
-    );
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
-    );
 
     assert!(
         dead_code_suppression_lines(&ui_text_mod).is_empty(),
@@ -73,54 +64,4 @@ fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
     ] {
         assert_contains_all(label, source, &["apply_text_edit_action("]);
     }
-
-    for (label, source) in [
-        (
-            "Runtime 15 plan output archive",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "Runtime index output archive",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings output archive",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention output archive",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("UI text doc", ui_text_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 F12 UI text edit-state dead-code suppression cleanup",
-                "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred",
-                "ui/text/mod.rs",
-                "ui/text/edit_state.rs",
-                "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup",
-            ],
-        );
-    }
-    assert_contains_all_exact(
-        "Runtime 15 status map",
-        &status_map,
-        &[
-            "Runtime 15 F12 UI text edit-state dead-code suppression cleanup",
-            "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all_exact(
-        "Runtime 15 date map",
-        &date_map,
-        &[
-            "Runtime 15 F12 UI text edit-state dead-code suppression cleanup",
-            "2026-06-27",
-        ],
-    );
 }

@@ -358,6 +358,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 RenderGraphResourceAccessKind::Write,
                 mip_level,
             )?;
+            let pipeline_statistics_scope = self.reserve_pipeline_statistics_scope(pass_name);
             stack.post_process.execute_hzb_build_mip(
                 self.device,
                 self.encoder,
@@ -368,6 +369,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 mip_level,
                 scene_depth_sample_count,
                 &params_upload_buffer,
+                pipeline_statistics_scope.as_ref(),
             );
         }
         let dispatch_groups = hzb_build_dispatch_groups(plan.hzb_size);

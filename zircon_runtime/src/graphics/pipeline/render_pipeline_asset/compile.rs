@@ -20,10 +20,14 @@ use crate::graphics::pipeline::declarations::{
     RenderPipelineCompileOptions, ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME,
     TRANSMISSION_MESH_EXECUTOR_IDS, TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
+use crate::graphics::scene::HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID;
 
 use super::super::validation::validate_renderer_asset;
 use super::descriptor_filtering::{feature_descriptor, feature_descriptor_for_options};
 use super::graph_resources::pipeline_graph_resources;
+use super::half_resolution_transparency::{
+    half_resolution_transparency_enabled, maybe_insert_half_resolution_transparency_passes,
+};
 use super::pass_authoring::author_render_graph;
 
 const CORE_SCENE_PARTICLE_DESCRIPTOR_NAME: &str = "scene_particles";
@@ -121,6 +125,12 @@ impl RenderPipelineAsset {
         maybe_insert_transmission_passes(extract, &mut enabled_descriptors)?;
         apply_pass_resource_extensions(&self.renderer.stages, &mut enabled_descriptors)?;
         apply_pass_replacements(&mut enabled_descriptors)?;
+        maybe_insert_half_resolution_transparency_passes(
+            extract,
+            options,
+            &self.renderer.stages,
+            &mut enabled_descriptors,
+        )?;
 
         let mut required_extract_sections = BTreeSet::new();
         let mut capability_requirements = Vec::new();
@@ -173,6 +183,8 @@ impl RenderPipelineAsset {
                 capability_requirements,
                 history_bindings,
                 environment_ibl_bake_request: options.environment_ibl_bake_request,
+                half_resolution_transparency_depth_sigma: options
+                    .half_resolution_transparency_depth_sigma,
                 graph: authored_graph.graph,
             },
         ))
@@ -490,6 +502,22 @@ fn maybe_insert_core_scene_particle_descriptor(
         return;
     }
 
+    let half_resolution = half_resolution_transparency_enabled(extract, options, declared_stages);
+    let color_resource = if half_resolution {
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR
+    } else {
+        PostProcessGraphResourceNames::SCENE_COLOR
+    };
+    let depth_resource = if half_resolution {
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH
+    } else {
+        PostProcessGraphResourceNames::SCENE_DEPTH
+    };
+    let executor_id = if half_resolution {
+        HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID
+    } else {
+        CORE_SCENE_PARTICLE_EXECUTOR_ID
+    };
     descriptors.push(RenderFeatureDescriptor::new(
         CORE_SCENE_PARTICLE_DESCRIPTOR_NAME,
         vec![
@@ -503,9 +531,9 @@ fn maybe_insert_core_scene_particle_descriptor(
             CORE_SCENE_PARTICLE_PASS_NAME,
             QueueLane::Graphics,
         )
-        .with_executor_id(CORE_SCENE_PARTICLE_EXECUTOR_ID)
-        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-        .write_texture(PostProcessGraphResourceNames::SCENE_COLOR)],
+        .with_executor_id(executor_id)
+        .read_texture(depth_resource)
+        .write_texture(color_resource)],
     ));
 }
 

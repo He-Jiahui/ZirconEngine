@@ -1,7 +1,9 @@
 use crate::asset::assets::{ImportedAsset, TextureAsset};
 use crate::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, decode_texture_source_image,
+    decode_texture_source_image, AssetImportContext, AssetImportError, AssetImportOutcome,
 };
+use crate::core::framework::render::TextureMetadataDiagnosticSeverity;
+use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity};
 
 pub(crate) fn import_texture(
     context: &AssetImportContext,
@@ -16,8 +18,31 @@ pub(crate) fn import_texture(
                     context.source_path.display()
                 ))
             })?;
-    Ok(AssetImportOutcome::new(
-        context.uri.clone(),
-        ImportedAsset::Texture(texture),
-    ))
+    let mut warnings = Vec::new();
+    let mut errors = Vec::new();
+    for diagnostic in texture
+        .texture_descriptor()
+        .validate_metadata(&context.uri.to_string())
+    {
+        match diagnostic.severity {
+            TextureMetadataDiagnosticSeverity::Error => errors.push(diagnostic.message),
+            TextureMetadataDiagnosticSeverity::Warning => warnings.push(diagnostic.message),
+        }
+    }
+    if !errors.is_empty() {
+        return Err(AssetImportError::Parse(format!(
+            "validate texture metadata {}: {}",
+            context.uri,
+            errors.join("; ")
+        )));
+    }
+
+    let mut outcome = AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Texture(texture));
+    for message in warnings {
+        outcome = outcome.with_diagnostic(ResourceDiagnostic {
+            severity: ResourceDiagnosticSeverity::Warning,
+            message,
+        });
+    }
+    Ok(outcome)
 }

@@ -525,29 +525,29 @@ fn source_hash_words(bytes: &[u8], face_size: u32, mip_count: u32) -> [u32; 4] {
     hasher.update(&mip_count.to_le_bytes());
     let digest = hasher.finalize();
     let bytes = digest.as_bytes();
-    std::array::from_fn(|index| {
-        let offset = index * 4;
-        u32::from_le_bytes(
-            bytes[offset..offset + 4]
-                .try_into()
-                .expect("four-byte hash word"),
-        )
-    })
+    [
+        u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+        u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+        u32::from_le_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]),
+        u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]),
+    ]
 }
 
 fn source_revision(bytes: &[u8]) -> u64 {
     let digest = blake3::hash(bytes);
-    u64::from_le_bytes(
-        digest.as_bytes()[..8]
-            .try_into()
-            .expect("eight-byte source revision"),
-    )
+    let bytes = digest.as_bytes();
+    u64::from_le_bytes([
+        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+    ])
     .max(1)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{sample_equirect_bilinear, source_hash_words, DecodedTextureImageRgba32F};
+    use super::{
+        DecodedTextureImageRgba32F, sample_equirect_bilinear, source_hash_words,
+        source_revision,
+    };
 
     #[test]
     fn environment_equirect_bilinear_sampling_clamps_poles_to_edge_rows() {
@@ -601,5 +601,15 @@ mod tests {
             source_hash_words(source, 256, 9),
             source_hash_words(source, 256, 9)
         );
+    }
+
+    #[test]
+    fn environment_source_revision_is_stable_and_nonzero() {
+        let source = b"same HDR source bytes";
+        let revision = source_revision(source);
+
+        assert_ne!(revision, 0);
+        assert_eq!(revision, source_revision(source));
+        assert_ne!(revision, source_revision(b"changed HDR source bytes"));
     }
 }

@@ -1,5 +1,5 @@
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_row_metrics::{WorkbenchRowPalette, workbench_row_palette};
+use super::super::super::template_row_metrics::{workbench_row_palette, WorkbenchRowPalette};
 use super::super::layers::field_text_order;
 use super::super::layout::{scalar_field_rect, value_text_rect};
 use super::super::text::text_command;
@@ -25,14 +25,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sc
         value_field_border_color(node, palette),
         opacity,
     );
-    commands.push(text_command(
+    let Some(command) = text_command(
         value_text_rect(&field_rect),
         clip,
         field_text_order(order),
         value,
         palette.property_value_text,
         opacity,
-    ));
+    ) else {
+        return;
+    };
+    commands.push(command);
 }
 
 fn value_field_border_color(node: &TemplatePaneNodeData, palette: WorkbenchRowPalette) -> [u8; 4] {

@@ -41,8 +41,10 @@ mod tests {
         assert!(
             POST_PROCESS_SHADER.contains("fn fs_screen_space_reflection_reflection_pyramid_coarse")
         );
-        assert!(POST_PROCESS_SHADER
-            .contains("resolve_screen_space_reflection_reflection_pyramid_coarse"));
+        assert!(
+            POST_PROCESS_SHADER
+                .contains("resolve_screen_space_reflection_reflection_pyramid_coarse")
+        );
         assert!(
             POST_PROCESS_SHADER.contains("screen_space_reflection_reflection_pyramid_coarse_tex")
         );

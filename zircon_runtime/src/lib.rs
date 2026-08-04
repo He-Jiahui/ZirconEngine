@@ -28,8 +28,6 @@ pub mod graphics;
 pub mod render_graph;
 #[cfg(feature = "graphics")]
 pub mod rhi;
-#[cfg(feature = "graphics")]
-mod rhi_wgpu;
 
 pub mod builtin;
 pub mod foundation;

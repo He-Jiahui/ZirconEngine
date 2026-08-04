@@ -4,12 +4,12 @@ use crate::render_graph::RenderGraphComputeDispatchExtent;
 
 use super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
 use super::ibl_bake_wgpu_binding::{
-    create_ibl_bake_wgpu_bind_group, create_ibl_bake_wgpu_params_buffer,
-    IblBakeWgpuOutputBindingResource,
+    IblBakeWgpuOutputBindingResource, create_ibl_bake_wgpu_bind_group,
+    create_ibl_bake_wgpu_params_buffer,
 };
 use super::ibl_bake_wgpu_command_plan::{
-    ibl_bake_wgpu_command_plan_for_request, ibl_bake_wgpu_prefilter_command_for_slice,
-    IblBakeWgpuCommandPlan,
+    IblBakeWgpuCommandPlan, ibl_bake_wgpu_command_plan_for_request,
+    ibl_bake_wgpu_prefilter_command_for_slice,
 };
 use super::ibl_bake_wgpu_dispatch::encode_ibl_bake_wgpu_compute_dispatch;
 use super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
@@ -61,11 +61,8 @@ impl RealtimeIblWgpuRecorder {
         let compute_request = (*request).with_required_contents(IblBakeArtifactContents::PMREM_SH9);
         let mut dispatch_groups = Vec::with_capacity(plan.passes.len());
         let capture = &self.capture;
-        let timestamp_recorder = Self::timestamp_recorder(
-            &mut self.timestamps,
-            device,
-            gpu_timing_enabled,
-        );
+        let timestamp_recorder =
+            Self::timestamp_recorder(&mut self.timestamps, device, gpu_timing_enabled);
         if let Some(timestamps) = timestamp_recorder {
             timestamps.write_start(encoder);
         }
@@ -203,11 +200,7 @@ fn fixed_dispatch_groups(extent: &RenderGraphComputeDispatchExtent) -> Result<[u
 
 const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
     let shifted = base_size >> mip_level;
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 #[cfg(test)]

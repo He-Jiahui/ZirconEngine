@@ -1,7 +1,7 @@
 use super::super::data::{FrameRect, HostClosePromptData};
 use super::super::paint_theme::HostControlMetrics;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct PromptTextLayout {
     pub(super) title_x: f32,
     pub(super) title_y: f32,

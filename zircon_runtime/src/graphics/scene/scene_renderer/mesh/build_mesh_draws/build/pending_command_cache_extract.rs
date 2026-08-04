@@ -27,8 +27,8 @@ mod tests;
 mod visibility_tests;
 
 use extract_item::{
-    cacheable_phases_for_extract_item, can_skip_pending_mesh_draw_for_cached_commands,
-    pending_mesh_command_cache_extract_item, PendingMeshCommandCacheExtractItem,
+    PendingMeshCommandCacheExtractItem, cacheable_phases_for_extract_item,
+    can_skip_pending_mesh_draw_for_cached_commands, pending_mesh_command_cache_extract_item,
 };
 pub(super) use remainder::PendingMeshDrawRemainder;
 

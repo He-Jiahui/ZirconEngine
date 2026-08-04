@@ -21,6 +21,7 @@ pub struct EditorState {
     pub(crate) name_field: String,
     pub(crate) parent_field: String,
     pub(crate) transform_fields: [String; 3],
+    pub(crate) scale_fields: [String; 3],
     pub(crate) inspector_dynamic_fields: BTreeMap<String, String>,
     pub(crate) mesh_import_path: String,
     pub(crate) asset_workspace: AssetWorkspaceState,

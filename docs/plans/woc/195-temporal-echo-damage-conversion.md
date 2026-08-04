@@ -1,6 +1,6 @@
 ---
 title: WOS195 Temporal Echo damage conversion
-status: in_progress
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -80,3 +80,11 @@ damage conversion.
 
 `examples/woc/scripts/woc_game/woc_m4_temporal_echo_conversion_runtime_tests.zrp`
 must run only through `zr_vm:project`. No alternate runtime is permitted.
+
+## Second Review
+
+2026-08-03: second static review confirmed source-scoped marks, post-absorb
+effective-damage conversion, separate single/area rates, resolved no-crit
+healing, and no RNG or recursive conversion path. The focused fixture declares
+`zr_vm:project`, and `node tools/wos195_temporal_echo_conversion_static_guard.mjs`
+passed from `examples/woc`. Dynamic ZrVM execution remains pending.

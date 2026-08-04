@@ -75,6 +75,8 @@ pub struct ImeSurroundingText {
     pub value: String,
     pub cursor: usize,
     pub anchor: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composition_range: Option<ImeCursorRange>,
 }
 
 impl ImeSurroundingText {
@@ -83,7 +85,13 @@ impl ImeSurroundingText {
             value: value.into(),
             cursor,
             anchor,
+            composition_range: None,
         }
+    }
+
+    pub fn with_composition_range(mut self, composition_range: Option<ImeCursorRange>) -> Self {
+        self.composition_range = composition_range;
+        self
     }
 }
 

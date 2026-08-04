@@ -1,11 +1,11 @@
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    RenderImageColorSpace, RenderImageDimension, RenderSamplerAddressMode, RenderSamplerDescriptor,
-    RenderSamplerFilter, TextureMetadata, MAX_COLOR_LOOKUP_TEXTURE_SIZE,
-    MIN_COLOR_LOOKUP_TEXTURE_SIZE,
+    MAX_COLOR_LOOKUP_TEXTURE_SIZE, MIN_COLOR_LOOKUP_TEXTURE_SIZE, RenderImageColorSpace,
+    RenderImageDimension, RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+    TextureMetadata,
 };
 
-use super::{TextureAsset, TextureAssetDescriptor, RGBA8_UNORM_FORMAT};
+use super::{RGBA8_UNORM_FORMAT, TextureAsset, TextureAssetDescriptor};
 
 pub fn texture_asset_from_cube_lut(
     uri: AssetUri,

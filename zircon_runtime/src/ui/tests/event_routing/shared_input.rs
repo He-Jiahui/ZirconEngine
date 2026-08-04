@@ -46,6 +46,7 @@ fn shared_input_dispatch_routes_keyboard_text_ime_and_preserves_scroll_diagnosti
                 kind: UiImeInputEventKind::Cancel,
                 text: String::new(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )
@@ -209,6 +210,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                         preedit.len() as u32,
                     ),
                 ),
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )
@@ -240,6 +242,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::Cancel,
                 text: String::new(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )
@@ -263,6 +266,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::Preedit,
                 text: preedit.to_string(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )
@@ -276,6 +280,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::Commit,
                 text: preedit.to_string(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )
@@ -306,6 +311,7 @@ fn shared_ime_preedit_commit_and_cancel_mutate_editable_composition() {
                 kind: UiImeInputEventKind::DeleteSurrounding,
                 text: String::new(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: Some(UiImeDeleteSurrounding::new(1, 1)),
             }),
         )
@@ -342,6 +348,7 @@ fn shared_input_dispatch_rejects_invalid_owners_and_hidden_ancestors() {
                 kind: UiImeInputEventKind::Preedit,
                 text: "draft".to_string(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )

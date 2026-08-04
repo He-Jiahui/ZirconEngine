@@ -191,6 +191,8 @@ fn render_text_native_bitmap_layout_product_framebuffer() {
         warm_report.visible_raster_glyph_count
     );
     assert!(warm_prepare_report.upload_request_count > 0);
+    assert_eq!(warm_prepare_report.upload_plan_build_count, 1);
+    assert_eq!(warm_prepare_report.upload_plan_skip_count, 0);
     assert!(warm_prepare_report.upload_ready_to_write_texture);
     assert_eq!(warm_prepare_report.upload_requeued_count, 0);
     assert_eq!(warm_prepare_report.upload_failure_count, 0);
@@ -262,6 +264,8 @@ fn render_text_native_bitmap_layout_product_framebuffer() {
         stable_report.visible_raster_glyph_count
     );
     assert_eq!(stable_prepare_report.upload_request_count, 0);
+    assert_eq!(stable_prepare_report.upload_plan_build_count, 0);
+    assert_eq!(stable_prepare_report.upload_plan_skip_count, 1);
     assert_eq!(stable_prepare_report.upload_requeued_count, 0);
     assert_eq!(stable_prepare_report.upload_failure_count, 0);
     assert_eq!(stable_prepare_report.instance_buffer_reallocation_count, 0);

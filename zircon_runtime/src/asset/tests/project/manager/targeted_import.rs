@@ -248,6 +248,11 @@ fn targeted_compound_import_rejects_changed_member_topology() {
     meta.included_files = vec![AssetUri::parse("res://bundles/source_bundle/first.json").unwrap()];
     meta.save(assets.join("bundles/source_bundle.zmeta"))
         .unwrap();
+    #[cfg(windows)]
+    let manager_root = root.to_string_lossy().to_ascii_uppercase();
+    #[cfg(windows)]
+    let manager = ProjectManager::open(std::path::Path::new(&manager_root)).unwrap();
+    #[cfg(not(windows))]
     let manager = ProjectManager::open(&root).unwrap();
 
     manager

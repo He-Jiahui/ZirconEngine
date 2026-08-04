@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ttf_parser::{Face, GlyphId, Style as TtfStyle, name_id};
+use ttf_parser::{name_id, Face, GlyphId, Style as TtfStyle};
 
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
 use crate::text::{FontFamilyName, FontStretch, FontStyle, FontWeight, VariationCoords};

@@ -343,6 +343,7 @@ impl MaterialAsset {
             material_queue: self.material_queue(),
             depth_bias: self.depth_bias(),
             taa_reactive_mask_strength: self.taa_reactive_mask_strength(),
+            separate_translucency: self.separate_translucency(),
             advanced_features,
             subsurface_profile_index: self.subsurface_profile_index(),
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
@@ -506,6 +507,11 @@ impl MaterialAsset {
 
     pub fn taa_reactive_mask_strength(&self) -> f32 {
         self.taa_reactive_mask_strength_from_property()
+            .unwrap_or_default()
+    }
+
+    pub fn separate_translucency(&self) -> bool {
+        self.separate_translucency_from_property()
             .unwrap_or_default()
     }
 
@@ -677,6 +683,10 @@ impl MaterialAsset {
 
     fn taa_reactive_mask_strength_from_property(&self) -> Option<f32> {
         material_control::taa_reactive_mask_strength(&self.property_values)
+    }
+
+    fn separate_translucency_from_property(&self) -> Option<bool> {
+        material_control::separate_translucency(&self.property_values)
     }
 
     fn readiness_report_from_texture_slots(

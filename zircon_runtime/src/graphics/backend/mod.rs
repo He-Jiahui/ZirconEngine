@@ -19,7 +19,9 @@ pub(crate) use render_backend::{
     read_texture_rgba, GraphicsDebuggerCaptureStop, OffscreenTarget, RenderBackend, ViewportSurface,
 };
 pub(crate) use render_backend::{
-    GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
+    GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
+    GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
+    GpuPipelineStatisticsTimer, GpuTimerFrameResult, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
     DEFAULT_GPU_TIMER_MAX_PASSES,
 };
 pub(crate) use render_backend::{GpuReadbackQueue, ReadbackPollStats};
@@ -27,8 +29,10 @@ pub(crate) use render_backend::{GpuReadbackQueue, ReadbackPollStats};
 #[cfg(test)]
 mod tests {
     use super::{
-        GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
-        DEFAULT_GPU_TIMER_MAX_PASSES,
+        GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
+        GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
+        GpuPipelineStatisticsTimer, GpuTimerFrameResult,
+        DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
     };
 
     #[test]
@@ -38,9 +42,15 @@ mod tests {
             std::mem::size_of::<GpuPassTimestampScope>(),
             std::mem::size_of::<GpuPassTiming>(),
             std::mem::size_of::<GpuTimerFrameResult>(),
+            std::mem::size_of::<GpuPipelineStatisticsTimer>(),
+            std::mem::size_of::<GpuPipelineStatisticsScope>(),
+            std::mem::size_of::<GpuPipelineStatistics>(),
+            std::mem::size_of::<GpuPassPipelineStatistics>(),
+            std::mem::size_of::<GpuPipelineStatisticsFrameResult>(),
         ];
 
         assert!(projected_type_sizes.iter().all(|size| *size > 0));
         assert!(DEFAULT_GPU_TIMER_MAX_PASSES > 0);
+        assert!(DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES > 0);
     }
 }

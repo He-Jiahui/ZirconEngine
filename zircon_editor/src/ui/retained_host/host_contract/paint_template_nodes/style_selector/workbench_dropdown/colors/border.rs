@@ -29,7 +29,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdow
             | UiPainterResolvedState::Normal => palette.border,
         }
     };
-    if is_unavailable_dropdown_state(state) {
+    let accepts_normal_border_override =
+        matches!(
+            state,
+            UiPainterResolvedState::Checked
+                | UiPainterResolvedState::Selected
+                | UiPainterResolvedState::Normal
+        ) && !matches!(node.validation_level.as_str(), "error" | "danger");
+    if !accepts_normal_border_override {
         color
     } else {
         declared_style_color(node.button_style.element.border_color.as_ref()).unwrap_or(color)

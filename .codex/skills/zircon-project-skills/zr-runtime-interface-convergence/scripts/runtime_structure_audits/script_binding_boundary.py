@@ -47,7 +47,6 @@ RUNTIME_13_GUARD_FILES = (
     "zircon_runtime/src/tests/runtime_absorption/script_binding/gameplay_host.rs",
     "zircon_runtime/src/tests/runtime_absorption/script_binding/mirror_docs.rs",
     "zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_13.rs",
 )
 FIXED_HOST_MODULES = (
     "zr.zircon.foundation",
@@ -196,10 +195,6 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
         root / "zircon_runtime/src/tests/runtime_absorption/script_binding.rs"
     )
     gameplay_host_tests = root / "zircon_runtime/src/script/vm/gameplay_host/tests.rs"
-    cargo_gate_guard = (
-        root
-        / "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late.rs"
-    )
     runtime_13_plan = (
         root
         / "docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
@@ -222,9 +217,6 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
     )
     gameplay_host_tests_source = (
         _read_text(gameplay_host_tests) if gameplay_host_tests.exists() else ""
-    )
-    cargo_gate_guard_source = (
-        _read_text(cargo_gate_guard) if cargo_gate_guard.exists() else ""
     )
     guard_paths = tuple(root / path for path in RUNTIME_13_GUARD_FILES)
     missing_guard_files = [

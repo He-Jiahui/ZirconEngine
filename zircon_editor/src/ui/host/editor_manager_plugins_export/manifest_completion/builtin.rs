@@ -14,7 +14,8 @@ impl EditorManager {
             self.runtime_plugin_catalog()
                 .complete_project_manifest(&manifest.plugins, RuntimeTargetMode::EditorHost),
         );
-        let editor_packages = self.editor_plugin_catalog().package_manifests();
+        let editor_catalog = self.editor_plugin_catalog();
+        let editor_packages = editor_catalog.package_manifests();
         for package in editor_packages {
             if completed
                 .plugins

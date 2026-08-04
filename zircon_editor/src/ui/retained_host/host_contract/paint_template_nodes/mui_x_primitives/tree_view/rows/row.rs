@@ -71,7 +71,7 @@ fn tree_view_marker_frame(row_rect: &FrameRect, metrics: TreeViewRowMetrics) -> 
     }
 
     Some(FrameRect {
-        x: (row_rect.x + metrics.marker_inset).min(row_rect.right() - marker_size),
+        x: (row_rect.x + metrics.marker_inset).min(row_rect.x + row_rect.width - marker_size),
         y: row_rect.y + (row_rect.height - marker_size) * 0.5,
         width: marker_size,
         height: marker_size,

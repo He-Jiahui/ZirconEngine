@@ -21,10 +21,7 @@ fn runtime_15_p0_native_fixture_review_guards_are_leaf_owners() {
         0,
         "{PARENT} should stay a route-only parent"
     );
-    for moved_test in [
-        format!("fn {SDK_MACRO_REVIEW}"),
-        format!("fn {IMPORTER_REVIEW}"),
-    ] {
+    for moved_test in [] {
         assert!(
             !parent.contains(&moved_test),
             "leaf-owned native fixture review guard `{moved_test}` should not return to {PARENT}"

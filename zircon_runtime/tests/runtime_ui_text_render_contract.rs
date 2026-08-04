@@ -21,6 +21,9 @@ use zircon_runtime_interface::ui::surface::{
 
 mod support;
 
+const TEXT_RASTER_SETTLE_MAX_FRAMES: u64 = 120;
+const TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS: u64 = 2;
+
 #[test]
 fn native_runtime_ui_text_renders_sparse_glyph_pixels_without_placeholder_band() {
     let capture = render_text_frame(UiTextRenderMode::Native, "Native Glyphs");
@@ -339,6 +342,20 @@ fn template_surface_text_opacity_modulates_glyph_delta_through_formal_ui_pipelin
     );
 }
 
+#[test]
+fn text_capture_settle_requires_two_consecutive_clean_raster_frames() {
+    assert!(text_raster_frame_is_settled(0, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(1, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 1, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 1, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 1, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 1, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 1));
+    assert!(!text_raster_capture_is_stable(false, true));
+    assert!(!text_raster_capture_is_stable(true, false));
+    assert!(text_raster_capture_is_stable(true, true));
+}
+
 fn render_text_frame(
     text_render_mode: UiTextRenderMode,
     text: &str,
@@ -417,16 +434,82 @@ fn render_ui_extract_frame(
         )
         .unwrap();
 
-    server
-        .submit_frame_extract_with_ui(viewport, empty_extract(viewport_size), Some(ui))
-        .unwrap();
+    let contains_text = ui
+        .list
+        .commands
+        .iter()
+        .any(|command| command.text.is_some());
+    let settle_frame_limit = if contains_text {
+        TEXT_RASTER_SETTLE_MAX_FRAMES
+    } else {
+        1
+    };
+    let mut final_stats = None;
+    let mut raster_was_settled = false;
+    let mut capture_is_stable = false;
+    for frame_index in 0..settle_frame_limit {
+        server
+            .submit_frame_extract_with_ui(
+                viewport,
+                empty_extract(viewport_size, frame_index + 1),
+                Some(ui.clone()),
+            )
+            .unwrap();
+        let stats = server.query_stats().unwrap();
+        let raster_is_settled = text_raster_frame_is_settled(
+            stats.last_ui_text_raster_worker_pending_count,
+            stats.last_ui_text_raster_worker_failed_count,
+            stats.last_ui_text_visible_missing_raster_image_count,
+            stats.last_ui_text_visible_raster_placeholder_count,
+            stats.last_ui_text_raster_renderer_upload_requeued_count,
+            stats.last_ui_text_raster_renderer_upload_failure_count,
+        );
+        final_stats = Some(stats);
+        capture_is_stable = text_raster_capture_is_stable(raster_was_settled, raster_is_settled);
+        if contains_text && capture_is_stable {
+            break;
+        }
+        raster_was_settled = contains_text && raster_is_settled;
+        if frame_index + 1 < settle_frame_limit {
+            std::thread::sleep(std::time::Duration::from_millis(
+                TEXT_RASTER_SETTLE_FRAME_DELAY_MILLIS,
+            ));
+        }
+    }
 
-    let stats = server.query_stats().unwrap();
+    let stats = final_stats.expect("the settle loop submits at least one frame");
+    assert!(
+        !contains_text || capture_is_stable,
+        "runtime UI text capture must observe two consecutive successful raster frames before capture: {stats:#?}"
+    );
     let capture = server
         .capture_frame(viewport)
         .unwrap()
         .expect("text submission should produce a capturable frame");
     (capture, stats)
+}
+
+fn text_raster_frame_is_settled(
+    pending_count: usize,
+    failed_count: usize,
+    visible_missing_image_count: usize,
+    visible_placeholder_count: usize,
+    renderer_upload_requeued_count: usize,
+    renderer_upload_failure_count: usize,
+) -> bool {
+    pending_count == 0
+        && failed_count == 0
+        && visible_missing_image_count == 0
+        && visible_placeholder_count == 0
+        && renderer_upload_requeued_count == 0
+        && renderer_upload_failure_count == 0
+}
+
+fn text_raster_capture_is_stable(
+    previous_frame_settled: bool,
+    current_frame_settled: bool,
+) -> bool {
+    previous_frame_settled && current_frame_settled
 }
 
 fn render_extract_from_asset_source(
@@ -564,7 +647,7 @@ stretch = "Fixed"
     )
 }
 
-fn empty_extract(viewport_size: UVec2) -> RenderFrameExtract {
+fn empty_extract(viewport_size: UVec2, snapshot_id: u64) -> RenderFrameExtract {
     let mut camera = ViewportCameraSnapshot {
         transform: Transform {
             translation: zircon_runtime::core::math::Vec3::new(0.0, 0.0, 4.0),
@@ -576,7 +659,7 @@ fn empty_extract(viewport_size: UVec2) -> RenderFrameExtract {
     camera.apply_viewport_size(viewport_size);
 
     RenderFrameExtract::from_snapshot(
-        RenderWorldSnapshotHandle::new(1),
+        RenderWorldSnapshotHandle::new(snapshot_id),
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
                 camera,

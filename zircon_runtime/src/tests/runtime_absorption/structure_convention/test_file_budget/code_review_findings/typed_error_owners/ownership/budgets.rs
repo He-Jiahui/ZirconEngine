@@ -32,10 +32,6 @@ pub(super) fn assert_typed_error_child_ownership_budgets_are_focused(
             sources.child_ownership_structure_child.as_str(),
         ),
         (
-            TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD,
-            sources.status_mirrors_child.as_str(),
-        ),
-        (
             TYPED_ERROR_NATIVE_STRUCTURE_CHILD,
             sources.native_plugin_loader_child.as_str(),
         ),

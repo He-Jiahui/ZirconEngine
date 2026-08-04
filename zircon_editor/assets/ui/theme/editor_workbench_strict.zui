@@ -1298,7 +1298,7 @@ radius = "$editor.control.radius.control"
 [[stylesheets.rules]]
 selector = ".workbench-popup-menu"
 [stylesheets.rules.set.self]
-background_color = "$workbench_panel_raised"
+background_color = "$editor.popup"
 foreground_color = "$workbench_text"
 border_color = "$workbench_border"
 border_width = "$editor.control.border_width"

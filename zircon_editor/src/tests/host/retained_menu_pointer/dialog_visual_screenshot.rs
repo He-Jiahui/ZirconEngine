@@ -14,6 +14,7 @@ const DIALOG_ATLAS_BACKGROUND: [u8; 4] = [17, 20, 22, 255];
 const DIALOG_ERROR: [u8; 4] = EditorPaletteTokens::WORKBENCH_ERROR;
 const DIALOG_WARNING: [u8; 4] = EditorPaletteTokens::WORKBENCH_WARNING;
 const DIALOG_DISABLED_TEXT: [u8; 4] = EditorPaletteTokens::WORKBENCH_TEXT_DISABLED;
+const STANDARD_DIALOG_BODY: &str = "Project defaults use the active rendering profile.";
 
 #[test]
 fn dialog_component_visual_paints_surface_content_actions_severity_and_disabled() {
@@ -45,7 +46,18 @@ fn dialog_component_visual_paints_surface_content_actions_severity_and_disabled(
             22,
             &[DIALOG_ATLAS_BACKGROUND, standard_panel, standard_surface],
         ) > 0,
-        "ordinary dialog should paint body copy through the shared text path"
+        "ordinary dialog should paint the first Runtime Text body line"
+    );
+    assert!(
+        distinct_pixel_count(
+            &bytes,
+            58,
+            170,
+            176,
+            16,
+            &[DIALOG_ATLAS_BACKGROUND, standard_panel, standard_surface],
+        ) > 0,
+        "ordinary dialog should paint a wrapped Runtime Text body line"
     );
     assert!(
         distinct_pixel_count(
@@ -210,7 +222,7 @@ fn dialog_component_nodes() -> Vec<TemplatePaneNodeData> {
         dialog(DialogFixture {
             control_id: "WorkbenchDialog",
             title: "Scene Settings",
-            body: "Review project defaults.",
+            body: STANDARD_DIALOG_BODY,
             role: "Dialog",
             component_role: "dialog",
             variant: "",

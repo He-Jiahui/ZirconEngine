@@ -6,7 +6,7 @@ display_name = "Showcase Collections Section"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.ShowcaseCollectionsSection]
 root = "collections_section_root"
@@ -16,7 +16,7 @@ default_classes = ["showcase-panel", "material-surface"]
 component = "Label"
 control_id = "ComponentShowcaseCollectionsSectionTitle"
 classes = ["showcase-section-title"]
-props = { text = "Collections and Inspector Structures", font_size = 13.0, font_weight = 700 }
+props = { text = "Collections and Inspector Structures", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 
 [nodes.group_demo]
@@ -87,7 +87,7 @@ events = [
 component = "ListRow"
 control_id = "ListRowDemo"
 classes = ["showcase-field", "material-control"]
-props = { text = "List Row", value = "selected", selected = true, focused = true, hovered = true, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { text = "List Row", value = "selected", selected = true, focused = true, hovered = true, pressed = false, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ListRowClicked", event = "Click", route = "component_lab.showcase.select.list_row" },
@@ -99,14 +99,14 @@ events = [
 component = "TableRow"
 control_id = "TableRowDemo"
 classes = ["showcase-field", "material-control"]
-props = { text = "Table Row", value = "row-42", selected = true, focused = true, hovered = false, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { text = "Table Row", value = "row-42", selected = true, focused = true, hovered = false, pressed = false, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.virtual_list_demo]
 component = "VirtualList"
 control_id = "VirtualListDemo"
 classes = ["showcase-field", "material-control"]
-props = { items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/VirtualListScrolled", event = "Scroll", route = "component_lab.showcase.set_visible_range.virtual_list" },
@@ -147,7 +147,7 @@ events = [
 component = "ContextActionMenu"
 control_id = "ContextActionMenuDemo"
 classes = ["showcase-field", "material-control"]
-props = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_spacing = "$editor.density.gap.small", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ContextActionMenuChanged", event = "Change", route = "component_lab.showcase.select_option.context_action_menu" },

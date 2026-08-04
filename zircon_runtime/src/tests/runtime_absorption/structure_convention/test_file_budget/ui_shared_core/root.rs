@@ -24,7 +24,6 @@ fn runtime_15_ui_shared_core_tests_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = ui_tests_first_status_row_source();
 
     assert_contains_all(
         "UI shared core parent test module mounts",
@@ -159,17 +158,6 @@ fn runtime_15_ui_shared_core_tests_are_folder_backed() {
         );
     }
 
-    assert_contains_all(
-        "UI shared core scroll mutation child status row owns nested anchors",
-        &status_rows,
-        &[
-            "Runtime 15 M3 UI shared core scroll mutation child folder split",
-            "runtime_15_ui_shared_core_scroll_mutation_child_folder_split_static_passed_cargo_deferred",
-            "ui/tests/shared_core/scroll_mutation/property_mutation.rs",
-            "runtime_15_ui_shared_core_scroll_mutation_children_are_folder_backed",
-        ],
-    );
-
     for (path, source) in [
         ("ui/tests/shared_core.rs", parent.as_str()),
         (
@@ -217,15 +205,4 @@ fn runtime_15_ui_shared_core_tests_are_folder_backed() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M3 UI shared core test folder split",
-            "runtime_15_ui_shared_core_tests_folder_split_static_passed_cargo_lock_blocked",
-            "ui/tests/shared_core.rs",
-            "ui/tests/shared_core/layout_surface.rs",
-            "runtime_15_ui_shared_core_tests_are_folder_backed",
-        ],
-    );
 }

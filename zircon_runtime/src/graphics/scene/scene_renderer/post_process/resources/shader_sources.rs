@@ -10,6 +10,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process) const OUTPUT_TRANSF
     include_str!("../shaders/output_transfer.wgsl");
 pub(in crate::graphics::scene::scene_renderer::post_process) const UPSCALE_SHADER: &str =
     include_str!("../shaders/upscale.wgsl");
+pub(in crate::graphics::scene::scene_renderer::post_process) const HALF_RES_TRANSPARENCY_SHADER:
+    &str = include_str!("../shaders/half_res_transparency.wgsl");
 pub(in crate::graphics::scene::scene_renderer::post_process) const FXAA_SHADER: &str =
     include_str!("../shaders/fxaa.wgsl");
 pub(in crate::graphics::scene::scene_renderer::post_process) const SMAA_SHADER: &str =
@@ -18,8 +20,9 @@ pub(in crate::graphics::scene::scene_renderer::post_process) const SMAA_SHADER: 
 #[cfg(test)]
 mod tests {
     use super::{
-        FXAA_SHADER, OUTPUT_TRANSFER_SHADER, POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER,
-        POST_PROCESS_SHADER, SMAA_SHADER, UPSCALE_SHADER,
+        FXAA_SHADER, HALF_RES_TRANSPARENCY_SHADER, OUTPUT_TRANSFER_SHADER,
+        POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER, POST_PROCESS_SHADER, SMAA_SHADER,
+        UPSCALE_SHADER,
     };
 
     const POST_PROCESS_BASE_SHADER: &str = include_str!("../shaders/post_process.wgsl");
@@ -50,6 +53,16 @@ mod tests {
         assert!(UPSCALE_SHADER.contains("@binding(0) var source_tex"));
         assert!(UPSCALE_SHADER.contains("@binding(1) var source_sampler"));
         assert!(UPSCALE_SHADER.contains("textureSampleLevel(source_tex"));
+    }
+
+    #[test]
+    fn half_resolution_transparency_shader_declares_conservative_depth_and_bilateral_composite() {
+        assert!(HALF_RES_TRANSPARENCY_SHADER.contains("fn fs_depth_downsample"));
+        assert!(HALF_RES_TRANSPARENCY_SHADER.contains("min(min(depth00, depth10)"));
+        assert!(HALF_RES_TRANSPARENCY_SHADER.contains("fn fs_composite"));
+        assert!(HALF_RES_TRANSPARENCY_SHADER.contains("fn depth_weight"));
+        assert!(HALF_RES_TRANSPARENCY_SHADER.contains("depth_sigma: f32"));
+        assert!(HALF_RES_TRANSPARENCY_SHADER.contains("@binding(4) var<uniform>"));
     }
 
     #[test]

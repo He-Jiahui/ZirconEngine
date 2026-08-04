@@ -3,6 +3,7 @@ use crate::core::framework::render::{
 };
 
 pub(crate) const STANDARD_MATERIAL_SURFACE_ENTRY_POINT: &str = "standard_material_surface";
+const NORMAL_INCLUDE_DIRECTIVE: &str = "#include <zr_normal.wgsl>\n";
 
 const STANDARD_MATERIAL_SURFACE_SOURCE: &str = r#"
 struct StandardMaterialPropertyUniform {
@@ -243,17 +244,16 @@ const STANDARD_MATERIAL_NORMAL_UV: &str = r#"
 
 const STANDARD_MATERIAL_NORMAL_TEXTURE_HELPER: &str = r#"
 fn standard_material_sampled_normal(input: ZrVertexOutput, normal_uv: vec2<f32>) -> vec3<f32> {
-    let geometric_normal = standard_material_normalize_or_fallback(
-        input.normal_ws,
-        vec3<f32>(0.0, 0.0, 1.0),
+    let frame = standard_material_tangent_frame(input, input.normal_ws);
+    let sampled_normal = zr_reconstruct_bc5_normal(
+        textureSampleBias(
+            standard_material_normal_tex,
+            standard_material_normal_sampler,
+            normal_uv,
+            scene.camera_world_position.w,
+        ).xy,
+        ZR_NORMAL_CONVENTION_DX,
     );
-    let frame = standard_material_tangent_frame(input, geometric_normal);
-    let sampled_normal = textureSampleBias(
-        standard_material_normal_tex,
-        standard_material_normal_sampler,
-        normal_uv,
-        scene.camera_world_position.w,
-    ).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
     return standard_material_tangent_normal(sampled_normal, frame);
 }
 "#;
@@ -297,12 +297,15 @@ fn standard_material_sampled_clearcoat_normal(
     normal_uv: vec2<f32>,
 ) -> vec3<f32> {
     let frame = standard_material_tangent_frame(input, input.normal_ws);
-    let sampled_normal = textureSampleBias(
-        standard_material_clearcoat_normal_tex,
-        standard_material_clearcoat_normal_sampler,
-        normal_uv,
-        scene.camera_world_position.w,
-    ).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
+    let sampled_normal = zr_reconstruct_bc5_normal(
+        textureSampleBias(
+            standard_material_clearcoat_normal_tex,
+            standard_material_clearcoat_normal_sampler,
+            normal_uv,
+            scene.camera_world_position.w,
+        ).xy,
+        ZR_NORMAL_CONVENTION_DX,
+    );
     return standard_material_tangent_normal(sampled_normal, frame);
 }
 "#;
@@ -422,8 +425,13 @@ pub(crate) fn standard_material_surface_source_for_features(
         .replace("__ZR_CLEARCOAT_NORMAL_ASSIGNMENT__", clearcoat_source.2);
     StandardMaterialSurfaceSource {
         source: format!(
-            "const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = {};\n{}",
+            "const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = {};\n{}{}",
             format_wgsl_f32(clamp_alpha_cutoff(alpha_cutoff)),
+            if needs_tangent_normal {
+                NORMAL_INCLUDE_DIRECTIVE
+            } else {
+                ""
+            },
             surface_source
         ),
         entry_point: STANDARD_MATERIAL_SURFACE_ENTRY_POINT,

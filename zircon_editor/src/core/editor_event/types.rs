@@ -229,32 +229,72 @@ pub enum EditorAnimationEvent {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum EditorViewportEvent {
-    PointerMoved { x: f32, y: f32 },
+    PointerMoved {
+        x: f32,
+        y: f32,
+    },
     LeftPressed {
         x: f32,
         y: f32,
         selection_mutation: SelectionMutation,
     },
     LeftReleased,
-    RightPressed { x: f32, y: f32 },
+    RightPressed {
+        x: f32,
+        y: f32,
+    },
     RightReleased,
-    MiddlePressed { x: f32, y: f32 },
+    MiddlePressed {
+        x: f32,
+        y: f32,
+    },
     MiddleReleased,
-    Scrolled { delta: f32 },
-    Resized { width: u32, height: u32 },
-    ActivateSceneMode { mode: SceneModeActivation },
-    SetTransformSpace { space: TransformSpace },
-    SetProjectionMode { mode: ProjectionMode },
-    AlignView { orientation: ViewOrientation },
-    SetDisplayMode { mode: DisplayMode },
-    SetGridMode { mode: GridMode },
-    SetTranslateSnap { step: f32 },
-    SetRotateSnapDegrees { step: f32 },
-    SetScaleSnap { step: f32 },
-    SetPreviewLighting { enabled: bool },
-    SetPreviewSkybox { enabled: bool },
-    SetGizmosEnabled { enabled: bool },
-    ToggleOverlayProvider { provider_id: String },
+    Scrolled {
+        delta: f32,
+    },
+    Resized {
+        width: u32,
+        height: u32,
+    },
+    ActivateSceneMode {
+        mode: SceneModeActivation,
+    },
+    SetTransformSpace {
+        space: TransformSpace,
+    },
+    SetProjectionMode {
+        mode: ProjectionMode,
+    },
+    AlignView {
+        orientation: ViewOrientation,
+    },
+    SetDisplayMode {
+        mode: DisplayMode,
+    },
+    SetGridMode {
+        mode: GridMode,
+    },
+    SetTranslateSnap {
+        step: f32,
+    },
+    SetRotateSnapDegrees {
+        step: f32,
+    },
+    SetScaleSnap {
+        step: f32,
+    },
+    SetPreviewLighting {
+        enabled: bool,
+    },
+    SetPreviewSkybox {
+        enabled: bool,
+    },
+    SetGizmosEnabled {
+        enabled: bool,
+    },
+    ToggleOverlayProvider {
+        provider_id: String,
+    },
     FrameSelection,
 }
 

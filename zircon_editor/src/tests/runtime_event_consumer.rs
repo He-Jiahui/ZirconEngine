@@ -422,8 +422,32 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
     let session_stop = enter
         .find("play_sessions().request_stop()")
         .expect("enter failure should stop the play session after successful cleanup");
+    let compensated_shell_exit = enter
+        .find("shell.state.exit_play_mode()")
+        .expect("a successful compensating stop should restore the editor state");
     assert!(pending < session_stop);
+    assert!(session_stop < compensated_shell_exit);
     assert!(enter.contains("runtime remains active so Exit Play can retry cleanup"));
+    assert!(
+        enter.contains("failed to stop play session, runtime remains active"),
+        "a failed compensating stop must preserve the play session instead of pretending it exited"
+    );
+    assert!(
+        !enter.contains("let _ = controller.play_sessions().request_stop()"),
+        "enter-play compensation must not discard a backend-stop failure"
+    );
+    assert!(
+        enter.contains("play session stopped but failed to restore editor state"),
+        "a successful compensating stop must still report an editor-state restore failure"
+    );
+    assert!(
+        !enter.contains("let _ = shell.state.exit_play_mode()"),
+        "enter-play rollback must not discard an editor-state restore failure"
+    );
+    assert!(
+        enter.contains("backend startup failed but editor state could not be restored"),
+        "a failed backend start must report an editor-state restore failure"
+    );
 
     let exit = source
         .split("MenuAction::ExitPlayMode =>")
@@ -442,4 +466,55 @@ fn menu_action_keeps_runtime_alive_until_event_consumer_cleanup_succeeds() {
     assert!(consumer_end < session_stop);
     assert!(session_stop < shell_exit);
     assert!(exit.contains("runtime remains active for retry"));
+}
+
+#[test]
+fn runtime_event_pump_reports_editor_restore_failures_after_backend_stop() {
+    let source = include_str!("../ui/host/editor_host_event_controller.rs");
+    let stopped = source
+        .split("if backend_transition.changed && backend_transition.mode == PlayModeKind::Edit")
+        .nth(1)
+        .and_then(|body| {
+            body.split("return Ok(EditorRuntimeFrameDemand::OnDemand);")
+                .next()
+        })
+        .expect("runtime-stop transition branch");
+
+    assert!(
+        stopped.contains("let editor_state_exit_error ="),
+        "runtime-stop handling should retain the editor-state restore result"
+    );
+    assert!(
+        stopped.contains("let pending_edit_decision_error ="),
+        "runtime-stop handling should retain a decision-publication failure until state recovery runs"
+    );
+    assert!(
+        !stopped.contains("let _ = shell.state.exit_play_mode()"),
+        "runtime-stop handling must not discard an editor-state restore failure"
+    );
+    assert!(
+        stopped.contains("editor state remains in play mode for retry"),
+        "runtime-stop handling should expose a retryable editor-state restore failure"
+    );
+    let reflection = stopped
+        .find("self.refresh_reflection()")
+        .expect("runtime-stop handling should refresh reflection state");
+    let error = stopped
+        .find("if let Some(message) = editor_state_exit_error")
+        .expect("runtime-stop handling should return the retained restore error");
+    assert!(
+        reflection < error,
+        "reflection should observe the backend stop even when editor-state restoration fails"
+    );
+    let decision_error = stopped
+        .find("if let Some(decision_error) = pending_edit_decision_error")
+        .expect("runtime-stop handling should return a retained decision-publication failure");
+    assert!(
+        reflection < decision_error,
+        "a failed decision publication must not prevent state restoration and reflection refresh"
+    );
+    assert!(
+        stopped.contains("play.stop.reconcile"),
+        "dual decision and state-recovery failures should remain observable together"
+    );
 }

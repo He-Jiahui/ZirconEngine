@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::resource::ResourceLocator;
 
-use super::ShaderAssetKind;
 use super::variant_key::ShaderPassType;
+use super::ShaderAssetKind;
 
 pub const SHADER_IDE_ENV_SCHEMA_VERSION: u32 = 1;
 pub const SHADER_IDE_ENV_CACHE_DIR: &str = "shader_ide/v1";

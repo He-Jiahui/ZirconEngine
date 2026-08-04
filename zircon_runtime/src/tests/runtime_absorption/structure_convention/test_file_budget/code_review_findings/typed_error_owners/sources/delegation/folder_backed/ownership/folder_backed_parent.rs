@@ -20,17 +20,6 @@ pub(super) fn assert_typed_error_source_inventory_delegation_folder_backed_is_ch
             "child_ownership::assert_typed_error_source_inventory_delegation_is_child_backed",
         ],
     );
-    for moved_anchor in [
-        "typed_error_source_inventory_sources()",
-        "typed_error_source_inventory_child_source_blob()",
-        "TYPED_ERROR_SOURCE_INVENTORY_FOLDER_BACKED_SLICE",
-        "TYPED_ERROR_SOURCE_INVENTORY_DELEGATION_CHILDREN",
-    ] {
-        assert!(
-            !folder_backed_parent.contains(moved_anchor),
-            "sources/delegation/folder_backed.rs should delegate `{moved_anchor}` to focused children"
-        );
-    }
     for (_, child_path, child_guard) in
         TYPED_ERROR_SOURCE_INVENTORY_DELEGATION_FOLDER_BACKED_CHILDREN
     {

@@ -9,12 +9,12 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention
+  - tools/tests/test_runtime_receipt_hard_cut.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - docs/engine-architecture/runtime-architecture-review-m0.md
 tests:
-  - Get-ChildItem -LiteralPath zircon_runtime/src/tests/runtime_absorption/plan_status -Recurse -Filter *.rs
+  - python -m unittest tools.tests.test_runtime_receipt_hard_cut tools.tests.test_runtime_schedule_frame_loop_audit
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter runtime_absorption
 ---
 
@@ -57,17 +57,13 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `receipt_tree_detached_from_runtime_lib_test_hard_delete_pending_concurrent_gate_merge`。
-`runtime_absorption/mod.rs` no longer mounts `mod plan_status;`, which is the lone Rust module
-entrance for the 710-file receipt subtree. The plan-status checks therefore no longer participate in
-the Runtime lib-test compilation graph, while all four concurrently modified Cargo-gate files remain
-preserved on disk for their current owners. Non-plan runtime absorption and structure modules remain
-mounted unchanged; callers that use receipt data only through `include_str!` continue to see the
-same source text until the planned tooling migration removes those guards.
+Open state: `receipt_tree_and_status_mirror_hard_delete_implemented_review_green_managed_validation_pending`。
 
-The hard cut is not complete: `plan_status.rs`, the full `plan_status/` subtree, status-shaped
-structure guards, and their M0 document inventory must still be deleted or moved to repository
-tooling after the concurrent gate edits are integrated. Static evidence for this forward step is
-`mod plan_status` count 0, scoped Rustfmt clean, and scoped `git diff --check` with only the
-repository line-ending warning. No Cargo validation was started and no fixed/accepted result is
-claimed.
+- `mod plan_status;`、receipt root、row-data/status-slice 镜像与仅维护这些形状的结构守卫已直接删除；未新增 facade、archive fallback、alias、re-export、`cfg` 或空壳。
+- `assert_contains_all` 只检查显式 source；专用 plan-status Python 审计模块及总审计器入口已删除，计划 lifecycle 由编号文档与 Coordinator/Python 工具持有。
+- M0、模块规范与 Runtime15 计划的退役路径元数据和 receipt-only 历史章节已清理；生产 owner、模块预算、禁止 API、dead-code 与 lock-poison 守卫继续保留。
+- 本地精确 Python 回归通过 5/5；Python 模块语法检查通过。全量 `audit_runtime_structure.py --json` 的本地 125 秒运行超时，未作为 GREEN/RED 证据。
+- 独立二次审查已完成，结果为 Critical/Important/Minor = `0/0/0`；仍待 managed Runtime lib-test、handoff validator、plan-output audit 与原子提交回执，在这些证据完成前不宣称 fixed/accepted。
+- 静态 M0.3 审计发现并删除 `naming_boundary/split_layout.rs` 对退役 `support/status_evidence.rs` 的最后一个 `include_str!`；receipt guard 现在扫描所有存活 Rust 的六类退役 route fragment，红测精确命中后回归恢复 5/5，未恢复旧文件。
+- current-source validation manifest 已冻结为 1,865 路径，其中 1,858 个 JSON `null` 删除墓碑、7 个存活验证输入，canonical JSON 为 305,657 bytes，SHA-256 为 `856cec8429e8fb16d3391fd33be7cc60c568271c299b57121ceb81cfc1fb4237`。该 manifest 不纳入记录自身或其他 failure 记录，避免状态回写造成自引用哈希漂移；所有实际编译/静态验证输入仍完整封存。
+- 该 manifest 超过 Windows process command-line 上限，标准 CLI 尚不能提交；最低控制面原因已交接到 Coordinator01 的 [validation ticket large-manifest CLI transport](../../../zircon_tooling/session_coordinator/01/failure-2026-08-03-validation-ticket-large-manifest-cli-transport.md)。在 stdin transport fixed return 前没有 Runtime lib-test ticket，failure 保持 `open`，且不省略任何删除路径。

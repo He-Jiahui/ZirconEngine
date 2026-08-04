@@ -1,4 +1,5 @@
 pub(super) const SEARCH_GLYPH_OFFSET: i32 = 1;
+pub(super) const SEARCH_CLEAR_ACTION_OFFSET: i32 = 2;
 pub(super) const STEPPER_OFFSET: i32 = 2;
 pub(super) const TEXT_OFFSET: i32 = 3;
 

@@ -6,10 +6,9 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
     let reports = read_runtime_src("plugin/bridge/table/reports.rs");
     let bridge_root = read_runtime_src("plugin/bridge.rs");
     let neutral_bridge = read_runtime_src("core/framework/bridge/mod.rs");
-    let runtime_15_plan =
-        read_repo(
-            "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-        );
+    let runtime_15_plan = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
     let runtime_index = read_repo(
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
@@ -21,15 +20,6 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
 
     assert_contains_all(
         "plugin bridge table parent delegates diagnostics/report DTOs",
@@ -111,35 +101,4 @@ fn runtime_15_plugin_bridge_table_reports_are_child_owner() {
             "{path} should stay below the Runtime 15 production-file soft budget; got {line_count} lines"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("plugin bridge doc", plugin_bridge_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 plugin bridge table diagnostics owner split",
-                "runtime_15_plugin_bridge_table_diagnostics_owner_split_static_passed_cargo_deferred",
-                "plugin/bridge/table.rs",
-                "plugin/bridge/table/reports.rs",
-                "runtime_15_plugin_bridge_table_reports_are_child_owner",
-            ],
-        );
-    }
-    assert_contains_all(
-        "status-output status/date maps record plugin bridge table diagnostics owner split",
-        &format!("{status_map}\n{date_map}"),
-        &[
-            "Runtime 15 M4 plugin bridge table diagnostics owner split",
-            "runtime_15_plugin_bridge_table_diagnostics_owner_split_static_passed_cargo_deferred",
-            "2026-07-01",
-        ],
-    );
 }

@@ -1,9 +1,5 @@
 use crate::core::math::UVec2;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RenderNativeSurfaceTarget {
-    Win32 { hwnd: u64, hinstance: Option<u64> },
-}
+use zr_rhi::RenderNativeSurfaceTarget;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderViewportSurfaceDescriptor {

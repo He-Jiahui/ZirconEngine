@@ -1,6 +1,6 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::{
-    WorkbenchStatusSignalKind as StatusSignalKind, select_workbench_status_signal_style,
+    select_workbench_status_signal_style, WorkbenchStatusSignalKind as StatusSignalKind,
 };
 use super::super::super::template_node_labels::template_node_label;
 use super::super::super::template_status_control_geometry::{
@@ -9,6 +9,7 @@ use super::super::super::template_status_control_geometry::{
 };
 use super::super::super::template_status_glyphs::push_status_signal_icon;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_signal_item(
@@ -26,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
         return;
     }
     let icon_paint = status_signal_icon_paint_rect(node, &icon, kind);
-    if frame_is_within(rect, &icon_paint) {
+    if frame_is_within(rect, &icon_paint) && intersect(&icon_paint, clip).is_some() {
         push_status_signal_icon(commands, &icon_paint, clip, order, kind, style, opacity);
     }
     let label = template_node_label(node, None);
@@ -34,7 +35,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
         return;
     }
     let text_rect = status_signal_text_rect(node, rect, &icon);
-    if !frame_is_within(rect, &text_rect) {
+    if !frame_is_within(rect, &text_rect) || intersect(&text_rect, clip).is_none() {
         return;
     }
     commands.push(HostPaintCommand::text(

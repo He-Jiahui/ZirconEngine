@@ -24,15 +24,6 @@ fn review_f5_native_live_host_registration_replay_uses_typed_error() {
     let module_convention = include_str!(
         "../../../../../../../../../docs/zircon_runtime/structure/module-convention.md"
     );
-    let status_rows = include_str!(
-        "../../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativePluginRegistrationReplayResult<T>",
@@ -98,28 +89,6 @@ fn review_f5_native_live_host_registration_replay_uses_typed_error() {
         assert!(
             registration_replay_tests.contains(required_test),
             "native live-host registration replay tests should contain `{required_test}`"
-        );
-    }
-
-    for doc_anchor in [
-        "Runtime 15 F5 native live-host registration replay typed errors",
-        "runtime_15_native_live_host_registration_replay_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_live_host_registration_replay_uses_typed_error",
-        "plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs",
-        "NativePluginRegistrationReplayError::RegisterNativeSystem",
-        "native live-host registration replay keeps string diagnostics at public replay report boundaries",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native live-host registration replay docs/status should record `{doc_anchor}`"
         );
     }
 }

@@ -48,8 +48,6 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../asset_worker_policy.rs"),
         include_str!("../asset_worker_policy/worker_pool.rs"),
         include_str!("mirror_docs.rs"),
-        include_str!("../plan_status/cargo_gates/early.rs"),
-        include_str!("../plan_status/cargo_gates/early/runtime_04.rs"),
         include_str!("../../../asset/facade/load_state.rs"),
     ]
     .join("\n");

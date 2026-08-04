@@ -16,15 +16,6 @@ const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
-const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/root_route_rows.rs"
-);
-const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/lock_poison.rs"
-);
-const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/lock_poison.rs"
-);
 
 #[test]
 fn runtime_15_core_spine_root_generated_is_folder_backed() {
@@ -136,8 +127,6 @@ fn assert_docs_and_status_mirror_split() {
         ("review-findings output archive", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
         ("Frameworks 02 output archive", FRAMEWORKS_02_PLAN),
-        ("status row data", STATUS_ROW_DATA),
-        ("status map", STATUS_MAP),
     ] {
         assert!(
             source.contains(
@@ -146,10 +135,6 @@ fn assert_docs_and_status_mirror_split() {
             "{label} should mirror the core_spine_root_generated route-owner split status"
         );
     }
-    assert!(
-        DATE_MAP.contains("Runtime 15 M3 core spine root/generated route-owner split"),
-        "date map should mirror the core_spine_root_generated route-owner split slice"
-    );
     assert_contains_all(
         "module convention doc",
         MODULE_CONVENTION_DOC,

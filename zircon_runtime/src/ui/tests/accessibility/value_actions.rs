@@ -433,14 +433,14 @@ fn accessibility_set_value_updates_editable_text_property() {
         Some("accessibility.set_value")
     );
     assert!(has_note(&result, "status=accepted"));
-    assert_eq!(result.binding_reports.len(), 8);
+    assert_eq!(result.binding_reports.len(), 9);
     assert_eq!(
         result
             .binding_reports
             .iter()
             .map(|report| report.applied_count)
             .sum::<u64>(),
-        16
+        18
     );
     assert!(result
         .binding_reports

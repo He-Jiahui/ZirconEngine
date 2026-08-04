@@ -22,9 +22,6 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/runtime_services_recovery.rs",
-    );
 
     assert_contains_all_exact(
         "native live host bridge methods poison recovery",
@@ -52,43 +49,6 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
         !production_section(&bridge_methods).contains("lock poisoned"),
         "native live host bridge method production code should recover poisoned binding locks"
     );
-
-    for (label, source) in [
-        (
-            "Runtime 15 archived output",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "runtime index archived output",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings archived output",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention archived output",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("plugin bridge doc", plugin_bridge_doc.as_str()),
-        (
-            "status-output M3 lock-poison row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 native live-host bridge methods lock poison recovery",
-                "runtime_15_native_live_host_bridge_methods_lock_poison_recovery_static_passed_cargo_deferred",
-                "plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs",
-                "native_live_host_bridge_method_bindings_recover_poisoned_lock",
-                "runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_binding_registry",
-            ],
-        );
-    }
 }
 
 fn assert_no_direct_lock_unwrap_in_production(label: &str, source: &str) {

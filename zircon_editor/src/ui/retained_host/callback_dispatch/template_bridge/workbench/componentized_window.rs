@@ -19,21 +19,19 @@ use crate::ui::retained_host::callback_dispatch::constants::DOCUMENT_TABS_CONTRO
 use crate::ui::retained_host::callback_dispatch::template_bridge::projection_support::{
     binding_for_control, build_bindings_by_id, project_builtin_document_with_runtime,
 };
-use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostProjection, WORKBENCH_WINDOW_DOCUMENT_ID,
 };
 use crate::ui::workbench::reference::{
-    build_editor_workbench_template_surface, EditorWorkbenchReferenceMetrics,
-    EditorWorkbenchTemplateControlIds, EditorWorkbenchTemplateFrames,
-    EditorWorkbenchTemplateSurface,
+    EditorWorkbenchReferenceMetrics, EditorWorkbenchTemplateControlIds,
+    EditorWorkbenchTemplateFrames, EditorWorkbenchTemplateSurface,
+    build_editor_workbench_template_surface,
 };
 
 use super::super::popup_primitives::toml_value_string_list;
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
 use super::asset_creation_menu::AssetCreationMenuState;
-use super::blend_space_transport::is_animation_transport_action;
 use super::drawer_layout::{
     BOTTOM_DRAWER_CONTENT_CONTROL_ID, BOTTOM_DRAWER_HEADER_CONTROL_ID,
     BOTTOM_DRAWER_SHELL_CONTROL_ID, LEFT_DRAWER_CONTENT_CONTROL_ID, LEFT_DRAWER_HEADER_CONTROL_ID,
@@ -42,25 +40,15 @@ use super::drawer_layout::{
 };
 use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::extension_module_navigation::{
-    is_workbench_extension_action, workbench_extension_panel_command_control_id,
-    workbench_extension_panel_command_group, workbench_extension_panel_row_control_id,
-    workbench_extension_panel_row_group, workbench_extension_panel_tab_control_id,
-    workbench_extension_panel_tab_group, workbench_extension_workspace_control_id,
-    EXTENSION_MODULE_WORKSPACE_CONTROLS,
+    EXTENSION_MODULE_WORKSPACE_CONTROLS, workbench_extension_workspace_control_id,
 };
-use super::generated_bottom_panel_navigation::is_workbench_generated_bottom_action;
 use super::layout_frames::{
-    bottom_resize_splitter_frame_from_drawer_shell, left_resize_splitter_frame_from_drawer_shell,
-    right_resize_splitter_frame_from_drawer_shell, union_visible_frames,
-    BuiltinWorkbenchWindowLayoutFrames,
+    BuiltinWorkbenchWindowLayoutFrames, bottom_resize_splitter_frame_from_drawer_shell,
+    left_resize_splitter_frame_from_drawer_shell, right_resize_splitter_frame_from_drawer_shell,
+    union_visible_frames,
 };
 use super::module_navigation::{
-    is_workbench_module_action, workbench_module_command_control_id,
-    workbench_module_panel_command_control_id, workbench_module_panel_row_control_id,
-    workbench_module_panel_row_group, workbench_module_panel_tab_control_id,
-    workbench_module_panel_tab_group, workbench_module_tab_control_id,
-    workbench_module_workspace_control_id, MODULE_COMMAND_CONTROLS, MODULE_PANEL_COMMAND_CONTROLS,
-    MODULE_TAB_CONTROLS, MODULE_WORKSPACE_CONTROLS,
+    MODULE_TAB_CONTROLS, MODULE_WORKSPACE_CONTROLS, workbench_module_workspace_control_id,
 };
 
 mod refresh_layout;
@@ -344,179 +332,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(Some(binding))
     }
 
-    fn apply_reference_menu_action(
-        &mut self,
-        source_control_id: &str,
-        action_id: &str,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        if self.apply_workbench_window_menu_action(source_control_id, action_id)? {
-            return Ok(());
-        }
-        match action_id {
-            "component_lab.input_dropdown.open" => {
-                self.toggle_popup(source_control_id)?;
-            }
-            "component_lab.button_dropdown.open" => {
-                self.toggle_popup(source_control_id)?;
-            }
-            "component_lab.input_segment.select" => {
-                self.cycle_string_property(
-                    "WorkbenchInputSegmented",
-                    "value",
-                    &["left", "center", "right"],
-                )?;
-                self.set_selected("WorkbenchInputSegmented", true)?;
-            }
-            "component_lab.icon_toggle_segment.select" => {
-                self.cycle_string_property(
-                    "WorkbenchIconToggleSegmented",
-                    "value",
-                    &["grid", "list", "columns"],
-                )?;
-                self.set_selected("WorkbenchIconToggleSegmented", true)?;
-            }
-            "component_lab.labs_tab_one.select" => {
-                self.select_exclusive(LABS_TAB_CONTROLS, "WorkbenchLabsTabOne")?;
-            }
-            "component_lab.labs_tab_two.select" => {
-                self.select_exclusive(LABS_TAB_CONTROLS, "WorkbenchLabsTabTwo")?;
-            }
-            "component_lab.labs_tab_three.select" => {
-                self.select_exclusive(LABS_TAB_CONTROLS, "WorkbenchLabsTabThree")?;
-            }
-            "component_lab.checkbox_on.toggle" => {
-                self.toggle_checked("WorkbenchCheckboxOn")?;
-            }
-            "component_lab.checkbox_off.toggle" => {
-                self.toggle_checked("WorkbenchCheckboxOff")?;
-            }
-            "component_lab.radio_on.select" => {
-                self.select_exclusive(RADIO_CONTROLS, "WorkbenchRadioOn")?;
-            }
-            "component_lab.radio_off.select" => {
-                self.select_exclusive(RADIO_CONTROLS, "WorkbenchRadioOff")?;
-            }
-            "component_lab.switch.toggle" => {
-                self.toggle_checked("WorkbenchToggleOn")?;
-            }
-            "component_lab.list_item.select" => {
-                self.select_exclusive_selected(LIST_CONTROLS, "WorkbenchListItem")?;
-            }
-            "component_lab.list_selected.select" => {
-                self.select_exclusive_selected(LIST_CONTROLS, "WorkbenchListSelected")?;
-            }
-            "component_lab.table_item.select" => {
-                self.select_exclusive_selected(TABLE_CONTROLS, "WorkbenchTableItem")?;
-            }
-            "component_lab.table_selected.select" => {
-                self.select_exclusive_selected(TABLE_CONTROLS, "WorkbenchTableSelected")?;
-            }
-            "component_lab.table_tail.select" => {
-                self.select_exclusive_selected(TABLE_CONTROLS, "WorkbenchTableTail")?;
-            }
-            "scene_tree.scene_tab.select" => {
-                self.select_exclusive(PANEL_SCENE_TAB_CONTROLS, "WorkbenchSceneTabScene")?;
-            }
-            "scene_tree.layers_tab.select" => {
-                self.select_exclusive(PANEL_SCENE_TAB_CONTROLS, "WorkbenchSceneTabLayers")?;
-            }
-            "inspector.main_tab.select" => {
-                self.select_exclusive(
-                    PANEL_INSPECTOR_TAB_CONTROLS,
-                    "WorkbenchInspectorTabInspector",
-                )?;
-            }
-            "inspector.history_tab.select" => {
-                self.select_exclusive(
-                    PANEL_INSPECTOR_TAB_CONTROLS,
-                    "WorkbenchInspectorTabHistory",
-                )?;
-            }
-            "component_drawer.components_tab.select" => {
-                self.select_exclusive(
-                    PANEL_COMPONENT_DRAWER_TAB_CONTROLS,
-                    "WorkbenchDrawerTabComponents",
-                )?;
-                self.set_visible("WorkbenchComponentDrawerBody", true)?;
-                self.set_visible("WorkbenchComponentDrawerConsoleBody", false)?;
-            }
-            "component_drawer.console_tab.select" => {
-                self.select_exclusive(
-                    PANEL_COMPONENT_DRAWER_TAB_CONTROLS,
-                    "WorkbenchDrawerTabConsole",
-                )?;
-                self.set_visible("WorkbenchComponentDrawerBody", false)?;
-                self.set_visible("WorkbenchComponentDrawerConsoleBody", true)?;
-            }
-            action_id if is_workbench_module_action(action_id) => {
-                if let Some(control_id) = workbench_module_tab_control_id(action_id) {
-                    self.select_exclusive(MODULE_TAB_CONTROLS, control_id)?;
-                    self.apply_workbench_module_workspace(action_id)?;
-                } else if let Some(control_id) = workbench_module_command_control_id(action_id) {
-                    self.select_exclusive(MODULE_COMMAND_CONTROLS, control_id)?;
-                    if action_id == "workbench.module.browse.invoke" {
-                        self.select_exclusive(MODULE_TAB_CONTROLS, "WorkbenchModuleAssets")?;
-                        self.apply_workbench_module_workspace("workbench.module.assets.select")?;
-                    }
-                } else if let Some(control_id) = workbench_module_panel_tab_control_id(action_id) {
-                    self.select_exclusive(workbench_module_panel_tab_group(action_id), control_id)?;
-                } else if let Some(control_id) = workbench_module_panel_row_control_id(action_id) {
-                    self.select_exclusive_selected(
-                        workbench_module_panel_row_group(action_id),
-                        control_id,
-                    )?;
-                } else if let Some(control_id) =
-                    workbench_module_panel_command_control_id(action_id)
-                {
-                    self.select_exclusive(MODULE_PANEL_COMMAND_CONTROLS, control_id)?;
-                } else if self
-                    .should_open_dropdown_for_module_field_action(source_control_id, action_id)
-                {
-                    self.toggle_popup(source_control_id)?;
-                }
-                self.apply_workbench_module_command_feedback(action_id)?;
-            }
-            action_id if is_animation_transport_action(action_id) => {
-                self.apply_blend_space_transport_action(action_id)?;
-            }
-            action_id if is_workbench_extension_action(action_id) => {
-                if workbench_extension_workspace_control_id(action_id).is_some() {
-                    self.apply_workbench_extension_workspace(action_id)?;
-                }
-                if let Some(control_id) = workbench_extension_panel_tab_control_id(action_id) {
-                    self.select_exclusive(
-                        workbench_extension_panel_tab_group(action_id),
-                        control_id,
-                    )?;
-                } else if let Some(control_id) = workbench_extension_panel_row_control_id(action_id)
-                {
-                    self.select_exclusive_selected(
-                        workbench_extension_panel_row_group(action_id),
-                        control_id,
-                    )?;
-                } else if let Some(control_id) =
-                    workbench_extension_panel_command_control_id(action_id)
-                {
-                    self.select_exclusive(
-                        workbench_extension_panel_command_group(action_id),
-                        control_id,
-                    )?;
-                } else if self
-                    .should_open_dropdown_for_module_field_action(source_control_id, action_id)
-                {
-                    self.toggle_popup(source_control_id)?;
-                }
-                self.apply_workbench_extension_module_command_feedback(action_id)?;
-            }
-            action_id if is_workbench_generated_bottom_action(action_id) => {
-                self.apply_workbench_generated_bottom_action(source_control_id, action_id)?;
-            }
-            action_id if matches_reference_menu_action(action_id) => {}
-            _ => {}
-        }
-        Ok(())
-    }
-
     pub(super) fn select_exclusive(
         &mut self,
         controls: &[&str],
@@ -539,7 +354,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
-    fn apply_workbench_module_workspace(
+    pub(super) fn apply_workbench_module_workspace(
         &mut self,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -559,7 +374,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
-    fn apply_workbench_extension_workspace(
+    pub(super) fn apply_workbench_extension_workspace(
         &mut self,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -631,7 +446,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
-    fn toggle_checked(
+    pub(super) fn toggle_checked(
         &mut self,
         control_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -684,7 +499,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
-    fn cycle_string_property(
+    pub(super) fn cycle_string_property(
         &mut self,
         control_id: &str,
         property: &str,
@@ -860,25 +675,6 @@ const RAIL_CONTROLS: &[&str] = &[
     "WorkbenchRailCode",
 ];
 
-const RADIO_CONTROLS: &[&str] = &["WorkbenchRadioOn", "WorkbenchRadioOff"];
-const LABS_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchLabsTabOne",
-    "WorkbenchLabsTabTwo",
-    "WorkbenchLabsTabThree",
-];
-const LIST_CONTROLS: &[&str] = &["WorkbenchListItem", "WorkbenchListSelected"];
-const TABLE_CONTROLS: &[&str] = &[
-    "WorkbenchTableItem",
-    "WorkbenchTableSelected",
-    "WorkbenchTableTail",
-];
-const PANEL_SCENE_TAB_CONTROLS: &[&str] = &["WorkbenchSceneTabScene", "WorkbenchSceneTabLayers"];
-const PANEL_INSPECTOR_TAB_CONTROLS: &[&str] = &[
-    "WorkbenchInspectorTabInspector",
-    "WorkbenchInspectorTabHistory",
-];
-const PANEL_COMPONENT_DRAWER_TAB_CONTROLS: &[&str] =
-    &["WorkbenchDrawerTabComponents", "WorkbenchDrawerTabConsole"];
 fn scene_mode_control_id(mode: &SceneModeActivation) -> &'static str {
     match mode {
         SceneModeActivation::Select | SceneModeActivation::Custom(_) => "WorkbenchToolSelect",
@@ -962,10 +758,6 @@ fn authored_primary_activation_event(
                 .iter()
                 .any(|binding| binding.event == *event_kind)
         })
-}
-
-fn matches_reference_menu_action(action_id: &str) -> bool {
-    is_workbench_preview_action(action_id)
 }
 
 fn binding_path_action_id(binding_id: &str) -> String {

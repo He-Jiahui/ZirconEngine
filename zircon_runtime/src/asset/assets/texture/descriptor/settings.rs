@@ -1,7 +1,8 @@
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageUsage,
     RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
-    TextureCompressionTarget, TextureMipPolicy, TextureNormalConvention, TextureUsageHint,
+    TextureCompressionTarget, TextureMipFilter, TextureMipPolicy, TextureNormalConvention,
+    TextureUsageHint,
 };
 
 use super::{TextureArrayLayout, TextureDescriptorError, TextureDescriptorResult};
@@ -26,6 +27,22 @@ pub(super) fn u32_setting(name: &str, value: &toml::Value) -> TextureDescriptorR
         return Err(TextureDescriptorError::setting_type(name, "an integer"));
     };
     u32::try_from(value).map_err(|_| TextureDescriptorError::setting_u32_overflow(name))
+}
+
+pub(super) fn u8_setting(name: &str, value: &toml::Value) -> TextureDescriptorResult<u8> {
+    let value = u32_setting(name, value)?;
+    u8::try_from(value).map_err(|_| TextureDescriptorError::setting_u8_overflow(name))
+}
+
+pub(super) fn f32_setting(name: &str, value: &toml::Value) -> TextureDescriptorResult<f32> {
+    let value = value
+        .as_float()
+        .or_else(|| value.as_integer().map(|value| value as f64))
+        .ok_or_else(|| TextureDescriptorError::setting_type(name, "a number"))?;
+    if !value.is_finite() || value < f32::MIN as f64 || value > f32::MAX as f64 {
+        return Err(TextureDescriptorError::setting_f32_range(name));
+    }
+    Ok(value as f32)
 }
 
 pub(super) fn bool_setting(name: &str, value: &toml::Value) -> TextureDescriptorResult<bool> {
@@ -158,6 +175,14 @@ pub(super) fn parse_mip_policy(value: &str) -> TextureDescriptorResult<TextureMi
         "generate_runtime" => Ok(TextureMipPolicy::GenerateRuntime),
         "none" => Ok(TextureMipPolicy::None),
         _ => Err(TextureDescriptorError::unsupported("mip_policy", value)),
+    }
+}
+
+pub(super) fn parse_mip_filter(value: &str) -> TextureDescriptorResult<TextureMipFilter> {
+    match normalized_token(value).as_str() {
+        "kaiser" => Ok(TextureMipFilter::Kaiser),
+        "box" => Ok(TextureMipFilter::Box),
+        _ => Err(TextureDescriptorError::unsupported("mip_filter", value)),
     }
 }
 

@@ -1,4 +1,46 @@
 use super::*;
+use crate::scene::components::{ActiveInHierarchy, WorldMatrix};
+
+#[test]
+fn derived_world_matrix_uses_component_storage_without_a_fixed_owner() {
+    let mut world = World::new();
+    let entity = world.active_camera();
+    let projected = world
+        .world_matrix(entity)
+        .expect("active camera must have a derived world matrix");
+
+    assert!(world.contains_component::<WorldMatrix>(entity));
+    assert_eq!(
+        world.get::<WorldMatrix>(entity).map(|matrix| matrix.0),
+        Some(projected)
+    );
+    assert!(!world.has_fixed_component_owner::<WorldMatrix>());
+    assert!(world.contains_component::<ActiveInHierarchy>(entity));
+    assert!(!world.has_fixed_component_owner::<ActiveInHierarchy>());
+}
+
+#[test]
+fn world_clone_rebuilds_derived_component_storage() {
+    let world = World::new();
+    let entity = world.active_camera();
+    let expected_matrix = world
+        .world_matrix(entity)
+        .expect("active camera must have a derived world matrix");
+
+    let mut cloned = world.clone();
+    cloned.flush_pending_scene_systems();
+
+    assert!(cloned.contains_component::<WorldMatrix>(entity));
+    assert!(cloned.contains_component::<ActiveInHierarchy>(entity));
+    assert_eq!(
+        cloned.get::<WorldMatrix>(entity).map(|matrix| matrix.0),
+        Some(expected_matrix)
+    );
+    assert_eq!(
+        cloned.active_in_hierarchy(entity),
+        world.active_in_hierarchy(entity)
+    );
+}
 
 #[test]
 fn derived_state_projected_reads_use_direct_parent_branches() {
@@ -76,9 +118,24 @@ fn derived_state_projected_value_reads_use_direct_branches() {
         .nth(1)
         .and_then(|text| text.split("pub(super) fn project_node_for_read").next())
         .expect("read project_world_transform body");
+    let world_owner = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("world.rs"),
+    );
+    let fixed_owner = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("typed_api")
+            .join("fixed_components.rs"),
+    );
 
     assert!(
-        active_read.contains("let Some(active) = self.active_in_hierarchy.get(&entity) else")
+        active_read.contains("let Some(active) = self.get::<ActiveInHierarchy>(entity) else")
             && active_read.contains("return Some(active.0);")
             && active_read.contains("if !self.contains_entity(entity)")
             && active_read
@@ -88,7 +145,7 @@ fn derived_state_projected_value_reads_use_direct_branches() {
         "projected active reads must branch directly for cached and dirty paths"
     );
     assert!(
-        world_transform.contains("let Some(world) = self.world_matrices.get(&entity) else")
+        world_transform.contains("let Some(world) = self.get::<WorldMatrix>(entity) else")
             && world_transform.contains("return Some(matrix_to_transform(world.0));")
             && world_transform.contains(
                 "let Some(world_matrix) = self.project_world_matrix_for_read(entity) else"
@@ -97,6 +154,18 @@ fn derived_state_projected_value_reads_use_direct_branches() {
             && !world_transform.contains(".map(|world| matrix_to_transform(world.0))")
             && !world_transform.contains(".map(matrix_to_transform)"),
         "projected world-transform reads must branch directly for cached and dirty paths"
+    );
+    assert!(
+        source.contains("self.replace_derived_component(entity, WorldMatrix(world));")
+            && source.contains("self.replace_derived_component(entity, ActiveInHierarchy(active));")
+            && !source.contains("self.world_matrices")
+            && !world_owner.contains("world_matrices:")
+            && !world_owner.contains("active_in_hierarchy:")
+            && !fixed_owner.contains("world_matrices")
+            && !fixed_owner.contains("active_in_hierarchy")
+            && !fixed_owner.contains("TypeId::of::<WorldMatrix>()")
+            && !fixed_owner.contains("TypeId::of::<ActiveInHierarchy>()"),
+        "derived components must have ComponentStorage as their only body owner instead of restoring fixed-component maps or dispatch branches"
     );
 }
 

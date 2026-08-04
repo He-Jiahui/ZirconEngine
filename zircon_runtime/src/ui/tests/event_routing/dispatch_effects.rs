@@ -330,6 +330,7 @@ fn input_method_request_rejects_invalid_surrounding_text_before_host_request() {
             text: "你好".to_string(),
             cursor_byte: 1,
             anchor_byte: 1,
+            composition_range: None,
         }),
     };
 

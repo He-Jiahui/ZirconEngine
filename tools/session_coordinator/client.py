@@ -164,31 +164,19 @@ class CoordinatorClient:
                 break
             time.sleep(min(_COMMAND_RECONCILIATION_POLL_INTERVAL_SECONDS, remaining))
 
-        if (
-            submission == "unknown"
-            and last_query_error is not None
-            and last_query_error.code == "command_request_not_found"
-        ):
-            raise CoordinatorClientError(
-                "command_post_not_accepted",
-                "Coordinator did not accept the command before reconciliation completed",
-                details={
-                    "requestId": request_id,
-                    "phase": "post_response",
-                    "submission": "not_accepted",
-                    "recovery": f"GET /command/requests/{request_id}",
-                },
-            )
+        details = {
+            "requestId": request_id,
+            "phase": "post_response",
+            "submission": submission,
+            "recovery": f"GET /command/requests/{request_id}",
+        }
+        if last_query_error is not None:
+            details["lastQueryError"] = last_query_error.code
 
         raise CoordinatorClientError(
             "command_post_timeout",
-            "Coordinator command remains accepted but has no terminal result",
-            details={
-                "requestId": request_id,
-                "phase": "post_response",
-                "submission": submission,
-                "recovery": f"GET /command/requests/{request_id}",
-            },
+            "Coordinator command has no terminal result after reconciliation",
+            details=details,
         )
 
     def command(self, command: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:

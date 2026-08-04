@@ -5,6 +5,7 @@ mod contract;
 mod detached;
 mod error;
 mod handle;
+mod highlight_set;
 mod in_process;
 mod session;
 
@@ -12,12 +13,13 @@ pub use capabilities::{
     PluginActivationState, PluginSummaryEntry, RuntimeCapabilities, SessionProfileKind,
 };
 pub use contract::{
-    EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeGateway,
-    EditorRuntimePluginEventPage,
+    EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeGateway, EditorRuntimePluginEventPage,
 };
+pub(crate) use contract::EditorRuntimeFramePixels;
 pub use detached::DetachedEditorRuntimeGateway;
 pub use error::GatewayError;
 pub use handle::EditorRuntimeGatewayHandle;
+pub use highlight_set::EditorRuntimeHighlightSet;
 pub use in_process::InProcessGateway;
 pub use session::SessionGateway;
 

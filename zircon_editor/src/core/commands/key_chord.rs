@@ -149,7 +149,8 @@ enum KeyboardInputKey<'a> {
 impl KeyboardInputKey<'_> {
     fn write_signature(self, hasher: &mut KeyChordSignatureHasher) {
         match self {
-            Self::Fixed(value) | Self::Raw(value) => hasher.write_bytes(value.as_bytes()),
+            Self::Fixed(value) => hasher.write_bytes(value.as_bytes()),
+            Self::Raw(value) => hasher.write_bytes(value.as_bytes()),
             Self::AsciiUpper(value) => {
                 for byte in value.bytes() {
                     hasher.write_byte(byte.to_ascii_uppercase());
@@ -165,7 +166,8 @@ impl KeyboardInputKey<'_> {
 
     fn matches(self, stored_key: &str) -> bool {
         match self {
-            Self::Fixed(value) | Self::Raw(value) => stored_key == value,
+            Self::Fixed(value) => stored_key == value,
+            Self::Raw(value) => stored_key == value,
             Self::AsciiUpper(value) => {
                 stored_key.len() == value.len()
                     && stored_key
@@ -182,7 +184,8 @@ impl KeyboardInputKey<'_> {
 
     fn to_owned_key(self) -> String {
         match self {
-            Self::Fixed(value) | Self::Raw(value) => value.to_string(),
+            Self::Fixed(value) => value.to_string(),
+            Self::Raw(value) => value.to_string(),
             Self::AsciiUpper(value) => value.to_ascii_uppercase(),
             Self::AsciiByte(byte) => char::from(byte).to_string(),
             Self::FunctionKey(number) => {

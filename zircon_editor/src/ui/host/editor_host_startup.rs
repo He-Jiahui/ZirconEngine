@@ -1,10 +1,12 @@
 use std::error::Error;
+use std::io::{Error as IoError, ErrorKind};
 use std::sync::Arc;
 
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime_interface::math::UVec2;
 
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
+use crate::core::play::ProcessPlayBackend;
 use crate::core::project::NewProjectDraft;
 use crate::ui::retained_host::build_startup_state;
 use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
@@ -38,7 +40,7 @@ impl EditorHostStartupSession {
             None => resolve_editor_startup_session(editor_manager.as_ref(), startup_request)?,
         };
         let state = build_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
-        Ok(Self::from_parts(startup_session, state, editor_manager))
+        Self::from_parts(startup_session, state, editor_manager)
     }
 
     pub fn controller(&self) -> &EditorHostEventController {
@@ -57,11 +59,20 @@ impl EditorHostStartupSession {
         startup_session: EditorStartupSessionDocument,
         state: EditorState,
         editor_manager: Arc<EditorManager>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, Box<dyn Error>> {
+        let controller = EditorHostEventController::new(state, editor_manager);
+        let backend = ProcessPlayBackend::for_current_install().map_err(|error| {
+            IoError::new(
+                ErrorKind::Other,
+                format!("failed to configure the runtime play backend: {error}"),
+            )
+        })?;
+        controller.set_play_backend(Arc::new(backend));
+
+        Ok(Self {
             startup_session,
-            controller: EditorHostEventController::new(state, editor_manager),
-        }
+            controller,
+        })
     }
 }
 
@@ -89,5 +100,26 @@ pub(crate) fn resolve_editor_startup_session(
             editor_manager.create_project_and_open(draft)
         }
         None => editor_manager.resolve_startup_session(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn product_startup_installs_the_process_play_backend() {
+        let source = include_str!("editor_host_startup.rs");
+        let product_source = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("product startup source should precede its tests");
+
+        let backend = product_source
+            .find("ProcessPlayBackend::for_current_install")
+            .expect("product startup should construct the process play backend");
+        let install = product_source
+            .find("controller.set_play_backend")
+            .expect("product startup should install the process play backend");
+
+        assert!(backend < install);
     }
 }

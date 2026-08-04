@@ -9,28 +9,8 @@ pub(super) const REVIEW_GUARDS: &[&str] = &[
     "review_priority_recommendation_tracks_current_remaining_work",
 ];
 
-pub(super) const FOLDER_BACKED_CHILDREN: &[(&str, &str, &str)] = &[
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/delegation.rs
-    ("delegation", P0_DELEGATION_CHILD, FOLDER_BACKED_GUARD),
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership.rs
-    ("route_ownership", P0_ROUTE_OWNERSHIP_CHILD, GUARD),
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/status_mirrors.rs
-    (
-        "status_mirrors",
-        P0_STATUS_MIRRORS_CHILD,
-        FOLDER_BACKED_STATUS_GUARD,
-    ),
-    // tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/budgets.rs
-    ("budgets", P0_BUDGETS_CHILD, BUDGET_GUARD),
-];
-
 pub(super) const P0_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
     ("root_paths", P0_ROOT_PATHS_CHILD, "P0_ROOT_PATHS_CHILD"),
-    (
-        "root_statuses",
-        P0_ROOT_STATUSES_CHILD,
-        P0_ROOT_INVENTORY_STATUS,
-    ),
     (
         "root_child_rows",
         P0_ROOT_CHILD_ROWS_CHILD,
@@ -40,10 +20,5 @@ pub(super) const P0_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
         "root_sources",
         P0_ROOT_SOURCES_CHILD,
         "read_p0_robustness_sources",
-    ),
-    (
-        "root_inventory",
-        P0_ROOT_INVENTORY_CHILD,
-        P0_ROOT_INVENTORY_GUARD,
     ),
 ];

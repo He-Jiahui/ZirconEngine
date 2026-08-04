@@ -1,6 +1,6 @@
 use crate::core::framework::render::{FrameHistoryHandle, RenderViewportHandle};
 
-use crate::graphics::scene::scene_renderer::core::ViewportAsyncCaptureSubmission;
+use crate::graphics::scene::ViewportAsyncCaptureSubmission;
 
 use super::super::super::viewport_record::{ViewportCameraHistoryKey, ViewportRecord};
 use super::super::frame_submission_context::FrameSubmissionContext;

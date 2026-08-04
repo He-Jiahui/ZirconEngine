@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 
 use crate::scene::ecs::{ChangeTick, ComponentTicks, InternalEntity};
 
@@ -7,7 +6,9 @@ use super::entry::{RawRemoveResult, StoredComponent};
 
 #[derive(Default)]
 pub(in crate::scene::ecs::storage) struct SparseComponentStorage {
-    entries: HashMap<InternalEntity, SparseEntry>,
+    entities: Vec<InternalEntity>,
+    entries: Vec<SparseEntry>,
+    indices: HashMap<InternalEntity, usize>,
 }
 
 struct SparseEntry {
@@ -22,27 +23,26 @@ impl SparseComponentStorage {
         value: StoredComponent,
         tick: ChangeTick,
     ) -> Option<StoredComponent> {
-        match self.entries.entry(entity) {
-            Entry::Occupied(mut occupied) => {
-                let entry = occupied.get_mut();
-                entry.ticks.set_changed(tick);
-                Some(std::mem::replace(&mut entry.value, value))
-            }
-            Entry::Vacant(vacant) => {
-                vacant.insert(SparseEntry {
-                    value,
-                    ticks: ComponentTicks::new(tick),
-                });
-                None
-            }
+        if let Some(row) = self.indices.get(&entity).copied() {
+            let entry = &mut self.entries[row];
+            entry.ticks.set_changed(tick);
+            return Some(std::mem::replace(&mut entry.value, value));
         }
+        let row = self.entries.len();
+        self.entities.push(entity);
+        self.entries.push(SparseEntry {
+            value,
+            ticks: ComponentTicks::new(tick),
+        });
+        self.indices.insert(entity, row);
+        None
     }
 
     pub(super) fn get<T>(&self, entity: InternalEntity) -> Option<&T>
     where
         T: 'static + Send + Sync,
     {
-        let entry = self.entries.get(&entity)?;
+        let entry = self.entry(entity)?;
         entry.value.downcast_ref::<T>()
     }
 
@@ -50,7 +50,7 @@ impl SparseComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        let entry = self.entries.get(&entity)?;
+        let entry = self.entry(entity)?;
         let value = entry.value.downcast_ref::<T>()?;
         Some((value, entry.ticks))
     }
@@ -59,7 +59,7 @@ impl SparseComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        let entry = self.entries.get_mut(&entity)?;
+        let entry = self.entry_mut(entity)?;
         entry.value.downcast_mut::<T>()
     }
 
@@ -71,7 +71,7 @@ impl SparseComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        let entry = self.entries.get_mut(&entity)?;
+        let entry = self.entry_mut(entity)?;
         entry.ticks.set_changed(tick);
         entry.value.downcast_mut::<T>()
     }
@@ -83,15 +83,21 @@ impl SparseComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        let SparseEntry { value, ticks } = self.entries.get_mut(&entity)?;
+        let SparseEntry { value, ticks } = self.entry_mut(entity)?;
         let value = value.downcast_mut::<T>()?;
         Some((value, ticks))
     }
 
     pub(super) fn remove(&mut self, entity: InternalEntity) -> Option<RawRemoveResult> {
-        let Some(entry) = self.entries.remove(&entity) else {
-            return None;
-        };
+        let row = self.indices.remove(&entity)?;
+        let last_row = self.entries.len() - 1;
+        let entry = self.entries.swap_remove(row);
+        let removed_entity = self.entities.swap_remove(row);
+        debug_assert_eq!(removed_entity, entity);
+        if row != last_row {
+            let swapped_entity = self.entities[row];
+            self.indices.insert(swapped_entity, row);
+        }
         Some(RawRemoveResult {
             value: entry.value,
             swapped_entity: None,
@@ -99,16 +105,16 @@ impl SparseComponentStorage {
     }
 
     pub(super) fn contains(&self, entity: InternalEntity) -> bool {
-        self.entries.contains_key(&entity)
+        self.indices.contains_key(&entity)
     }
 
     pub(super) fn ticks(&self, entity: InternalEntity) -> Option<ComponentTicks> {
-        let entry = self.entries.get(&entity)?;
+        let entry = self.entry(entity)?;
         Some(entry.ticks)
     }
 
     pub(super) fn mark_changed(&mut self, entity: InternalEntity, tick: ChangeTick) {
-        if let Some(entry) = self.entries.get_mut(&entity) {
+        if let Some(entry) = self.entry_mut(entity) {
             entry.ticks.set_changed(tick);
         }
     }
@@ -118,8 +124,18 @@ impl SparseComponentStorage {
     }
 
     pub(super) fn for_each_entity(&self, mut visit: impl FnMut(InternalEntity)) {
-        for entity in self.entries.keys().copied() {
+        for entity in self.entities.iter().copied() {
             visit(entity);
         }
+    }
+
+    fn entry(&self, entity: InternalEntity) -> Option<&SparseEntry> {
+        let row = *self.indices.get(&entity)?;
+        self.entries.get(row)
+    }
+
+    fn entry_mut(&mut self, entity: InternalEntity) -> Option<&mut SparseEntry> {
+        let row = *self.indices.get(&entity)?;
+        self.entries.get_mut(row)
     }
 }

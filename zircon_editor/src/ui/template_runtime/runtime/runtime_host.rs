@@ -454,7 +454,7 @@ impl EditorUiHostRuntime {
             .action_for_token(token, |document_id| {
                 plugin_v2_documents
                     .get(document_id)
-                    .map(|document| document.owner.clone())
+                    .map(|document| document.owner().clone())
             })
             .map(|action| dispatch(&action))
     }

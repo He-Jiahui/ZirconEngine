@@ -27,6 +27,7 @@ impl EditorManager {
         path: impl AsRef<Path>,
     ) -> Result<EditorProjectDocument, EditorError> {
         let document = self.host.open_project(path)?;
+        self.configure_project_diagnostics(&document.root_path)?;
         self.apply_project_plugin_manifest_or_close(&document.root_path, &document.manifest)?;
         let activation = self
             .document_lifecycle
@@ -37,10 +38,15 @@ impl EditorManager {
 
     pub fn close_project(&self) -> Result<Option<std::path::PathBuf>, EditorError> {
         let closed_root = self.host.close_project()?;
+        if closed_root.is_some() {
+            self.context().logs().disable_rolling_file();
+            self.context().settings().clear_project_layer();
+        }
         self.clear_project_plugin_status();
         let registration_cleanup = if closed_root.is_some() {
-            self.plugin_manager
+            self.plugin_manager()
                 .clear_project_registration_reports()
+                .map(|_| ())
                 .map_err(|error| {
                     EditorError::Project(format!(
                         "project-native editor registrations cannot be cleared after close: {error}"
@@ -94,7 +100,7 @@ impl EditorManager {
         Installer: AuthoringSceneInstaller,
         Installer::Error: Display,
     {
-        self.route_project_scene(ticket, |route| route.open(request, installer))
+        self.route_project_scene::<Installer, _>(ticket, |route| route.open(request, installer))
     }
 
     /// Creates and opens a picker-confirmed project scene through the same document route.
@@ -112,7 +118,9 @@ impl EditorManager {
             self.host.asset_manager()?,
             self.host.editor_asset_manager()?,
         );
-        self.route_project_scene(ticket, |route| route.create(request, installer, &catalog))
+        self.route_project_scene::<Installer, _>(ticket, |route| {
+            route.create(request, installer, &catalog)
+        })
     }
 
     /// Issues the project-session capability that a scene picker must preserve until submit.
@@ -139,6 +147,7 @@ impl EditorManager {
         let Some(document) = session.project.as_ref() else {
             return Ok(());
         };
+        self.configure_project_diagnostics(&document.root_path)?;
         self.apply_project_plugin_manifest_or_close(&document.root_path, &document.manifest)?;
         let activation = self
             .document_lifecycle
@@ -154,8 +163,12 @@ impl EditorManager {
     ) -> Result<(), EditorError> {
         if let Err(plugin_error) = self.apply_project_plugin_manifest(project_root, manifest) {
             self.clear_project_plugin_status();
-            let cleared = self.plugin_manager.clear_project_registration_reports();
-            return match (self.host.close_project(), cleared) {
+            let cleared = self.plugin_manager().clear_project_registration_reports();
+            let close_result = self.host.close_project();
+            if close_result.is_ok() {
+                self.context().logs().disable_rolling_file();
+            }
+            return match (close_result, cleared) {
                 (Ok(_), Ok(_)) => Err(plugin_error),
                 (Err(close_error), _) => Err(EditorError::Project(format!(
                     "project plugin manifest synchronization failed: {plugin_error}; \
@@ -168,6 +181,18 @@ impl EditorManager {
             };
         }
         Ok(())
+    }
+
+    fn configure_project_diagnostics(&self, project_root: &Path) -> Result<(), EditorError> {
+        self.context()
+            .logs()
+            .configure_workspace_diagnostics(project_root)
+            .map_err(|error| {
+                EditorError::Project(format!(
+                    "editor diagnostics cannot be configured for `{}`: {error}",
+                    project_root.display()
+                ))
+            })
     }
 
     fn apply_project_plugin_manifest(
@@ -184,14 +209,14 @@ impl EditorManager {
                 &native_report,
                 &completed.plugins,
             );
-        self.plugin_manager
+        self.plugin_manager()
             .publish_project_registration_reports(native_reports)
             .map_err(|error| {
                 EditorError::Project(format!(
                     "project-native editor registrations cannot be published: {error}"
                 ))
             })?;
-        self.plugin_manager
+        self.plugin_manager()
             .apply_project_manifest(&completed.plugins)
             .map_err(|error| {
                 EditorError::Project(format!(

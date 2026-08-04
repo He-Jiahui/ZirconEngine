@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use zircon_runtime_interface::ui::{
-    dispatch::{UiImeDeleteSurrounding, UiTextByteRange},
+    dispatch::{UiImeDeleteSurrounding, UiImePreeditClause, UiTextByteRange},
     surface::{UiEditableTextState, UiTextEditAction, UiTextRange, UiTextSelection},
 };
 
@@ -45,6 +45,7 @@ pub(super) fn preedit_text_state(
     editable: UiEditableTextState,
     preedit: &str,
     cursor_range: Option<UiTextByteRange>,
+    preedit_clauses: &[UiImePreeditClause],
     constraints: TextInputConstraints,
 ) -> UiEditableTextState {
     let range = editable
@@ -56,14 +57,20 @@ pub(super) fn preedit_text_state(
             start: editable.caret.offset,
             end: editable.caret.offset,
         });
-    let preedit = constraints.sanitize_replacement(&editable.text, range, preedit);
+    let sanitized_preedit = constraints.sanitize_replacement(&editable.text, range, preedit);
+    let preedit_clauses = (sanitized_preedit == preedit)
+        .then(|| preedit_clauses.to_vec())
+        .unwrap_or_default();
     let mut next = apply_text_edit_action(
         editable,
         UiTextEditAction::SetComposition {
             range,
-            text: preedit,
+            text: sanitized_preedit,
         },
     );
+    if let Some(composition) = next.composition.as_mut() {
+        composition.preedit_clauses = preedit_clauses;
+    }
 
     if let Some(cursor_range) = cursor_range {
         if let Some(composition) = next.composition.as_ref() {
@@ -233,6 +240,7 @@ mod tests {
             },
             composition: Some(UiTextComposition {
                 range: UiTextRange { start: 1, end: 2 },
+                preedit_clauses: Vec::new(),
                 text: "X".to_owned(),
                 restore_text: None,
             }),

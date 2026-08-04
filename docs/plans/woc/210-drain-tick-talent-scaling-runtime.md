@@ -1,6 +1,6 @@
 ---
 title: WOS210 drain-tick talent scaling runtime closure
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -77,3 +77,9 @@ landing.
   spell-power bonus and exact existing heal/threat semantics.
 - WOS107 round-trips required snapshot/endpoints; WOS106 cannot silently
   discard a required snapshot.
+
+## Status Record
+
+| Milestone | Scope | Status | Date | Evidence |
+|---|---|---|---|---|
+| WOS210 | Drain Life and Mind Flay endpoint scaling with launch snapshot | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `drain_tick_talent_scaling_state.zr` limits scaling to school/global and ability damage percentages; `state.zr` captures each queued channel tick's endpoint range and rejects tampering against the retained WOS107 selection snapshot. The regression proves a later selection changes a later tick but not an already-launched one. `wos210_drain_tick_talent_scaling_runtime_static_guard.mjs` passed after its WOS106/WOS107 assertions were made CRLF-safe; the manifest uses `zr_vm:project`. Canonical plugin execution remains unavailable, so no dynamic result is claimed. |

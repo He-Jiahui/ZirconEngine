@@ -1,8 +1,0 @@
-pub(in super::super::super) const TYPED_ERROR_STRUCTURE_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_docs.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_CHILD_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/child_sources.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_DOC_MIRRORS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_SOURCE_HELPER_OWNERSHIP_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/source_helper_ownership.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_SOURCE_HELPER_STATUS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/source_helper_status.rs";
-pub(in super::super::super) const TYPED_ERROR_STATUS_DOCS_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/sources.rs";

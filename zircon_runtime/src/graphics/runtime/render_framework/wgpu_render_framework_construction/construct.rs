@@ -188,6 +188,7 @@ impl WgpuRenderFramework {
             virtual_geometry_runtime_providers,
             Vec::new(),
             Vec::new(),
+            Vec::new(),
             compute_task_pool,
         )
     }

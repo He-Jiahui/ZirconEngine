@@ -422,7 +422,9 @@ fn split_top_level_whitespace<'a>(
                     parts.push(&value[start_index..index]);
                 }
             }
-            _ => start.get_or_insert(index),
+            _ => {
+                start.get_or_insert(index);
+            }
         }
     }
 

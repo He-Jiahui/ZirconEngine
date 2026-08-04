@@ -1,6 +1,6 @@
 ---
 title: WOS205 HoT talent scaling runtime closure
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -69,3 +69,4 @@ existing Plugins08 runtime handoff.
 
 | Milestone | Scope | Status | Date | Evidence |
 |---|---|---|---|---|
+| WOS205 | HoT talent total scaling, application-time snapshot and retained ticks | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `hot_talent_scaling_state.zr` resolves `total * healMult * hotMult + flat` before profile subdivision; pure/hybrid profiles preserve source spell-power ordering and `state.zr` snapshots the resulting tick. `hotTalentRuntimeStateTest` covers Restoration Rejuvenation 66, Regrowth 9 and Holy Renew 64 across respec, restore and zero-RNG tick. `wos205_hot_talent_scaling_runtime_static_guard.mjs` passed; its fixture explicitly declares `backend: "zr_vm:project"`. Canonical plugin execution is unavailable, so no dynamic result is claimed. |

@@ -350,6 +350,13 @@ impl PlaySessionController {
         self.edit_protection.pending_decision_prompt()
     }
 
+    pub(crate) fn with_pending_edit_decision_prompt<E>(
+        &self,
+        publish: impl FnOnce(&PendingEditDecisionPrompt) -> Result<(), E>,
+    ) -> Result<bool, E> {
+        self.edit_protection.with_pending_decision_prompt(publish)
+    }
+
     pub fn apply_pending_edits<E>(
         &self,
         budget: PendingEditApplyBudget,

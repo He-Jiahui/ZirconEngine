@@ -13,7 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
 }
 
 fn list_row_background_from_palette(
-    node: &TemplatePaneNodeData,
+    _node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     marked: bool,
     palette: WorkbenchListRowPalette,
@@ -23,11 +23,7 @@ fn list_row_background_from_palette(
     } else if state == UiPainterResolvedState::Pressed {
         Some(palette.pressed_surface)
     } else if marked {
-        if node.hovered {
-            Some(palette.marked_hot_surface)
-        } else {
-            Some(palette.marked_surface)
-        }
+        Some(palette.marked_surface)
     } else {
         match state {
             UiPainterResolvedState::Open

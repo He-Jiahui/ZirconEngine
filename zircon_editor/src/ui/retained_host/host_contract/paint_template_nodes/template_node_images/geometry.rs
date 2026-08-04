@@ -42,6 +42,9 @@ fn image_rect_for_node_with_metrics(
     image_height: u32,
     metrics: TemplateNodeImageGeometryMetrics,
 ) -> FrameRect {
+    if !has_paintable_image_extent(rect) {
+        return non_paintable_image_rect(rect);
+    }
     if is_icon_node(node) {
         let label = template_node_label(node, None);
         if !label.is_empty() && !is_icon_only_node(node) {
@@ -101,8 +104,8 @@ fn template_node_image_geometry_metrics_from_host(
 }
 
 fn fitted_image_rect(rect: &FrameRect, image_width: u32, image_height: u32) -> FrameRect {
-    if image_width == 0 || image_height == 0 || rect.width <= 0.0 || rect.height <= 0.0 {
-        return rect.clone();
+    if image_width == 0 || image_height == 0 {
+        return non_paintable_image_rect(rect);
     }
     let image_aspect = image_width as f32 / image_height as f32;
     let rect_aspect = rect.width / rect.height;
@@ -124,6 +127,24 @@ fn fitted_image_rect(rect: &FrameRect, image_width: u32, image_height: u32) -> F
             width,
             height,
         }
+    }
+}
+
+fn has_paintable_image_extent(rect: &FrameRect) -> bool {
+    rect.x.is_finite()
+        && rect.y.is_finite()
+        && rect.width.is_finite()
+        && rect.height.is_finite()
+        && rect.width > 0.0
+        && rect.height > 0.0
+}
+
+fn non_paintable_image_rect(rect: &FrameRect) -> FrameRect {
+    FrameRect {
+        x: rect.x.is_finite().then_some(rect.x).unwrap_or(0.0),
+        y: rect.y.is_finite().then_some(rect.y).unwrap_or(0.0),
+        width: 0.0,
+        height: 0.0,
     }
 }
 
@@ -228,5 +249,42 @@ mod tests {
         assert_eq!(image.width, 120.0);
         assert_eq!(image.height, 60.0);
         assert_eq!(image.y, 10.0);
+    }
+
+    #[test]
+    fn image_geometry_rejects_non_finite_or_collapsed_containers() {
+        let node = TemplatePaneNodeData {
+            role: "Image".into(),
+            ..TemplatePaneNodeData::default()
+        };
+        let invalid_frames = [
+            FrameRect {
+                x: f32::NAN,
+                y: 0.0,
+                width: 80.0,
+                height: 60.0,
+            },
+            FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: f32::INFINITY,
+                height: 60.0,
+            },
+            FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: 80.0,
+                height: 0.0,
+            },
+        ];
+
+        for rect in invalid_frames {
+            let image = image_rect_for_node_with_metrics(&node, &rect, 200, 100, metrics());
+
+            assert_eq!(image.width, 0.0);
+            assert_eq!(image.height, 0.0);
+            assert!(image.x.is_finite());
+            assert!(image.y.is_finite());
+        }
     }
 }

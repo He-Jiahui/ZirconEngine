@@ -13,6 +13,9 @@ use crate::container::support::{
 use zircon_runtime::asset::{AssetImportContext, AssetImportError};
 
 mod dfd;
+mod supercompression;
+
+use supercompression::{expand_standard_supercompressed_levels, level_entry_offset};
 
 pub(super) fn parse(
     context: &AssetImportContext,
@@ -174,8 +177,17 @@ pub(super) fn parse(
     let dimension = texture_dimension_from_header(raw_height, raw_depth);
     let array_layers = texture_array_layers(dimension, parsed_layers);
 
+    let upload_bytes =
+        expand_standard_supercompressed_levels(context, level_count, supercompression)?;
+    let upload_supercompression = if upload_bytes.is_some() {
+        KTX2_SUPERCOMPRESSION_NONE
+    } else {
+        supercompression
+    };
+
     Ok(TextureContainerInfo {
-        format: format!("ktx2/vk-{vk_format}/supercompression-{supercompression}"),
+        format: format!("ktx2/vk-{vk_format}/supercompression-{upload_supercompression}"),
+        upload_bytes,
         width,
         height,
         dimension,
@@ -267,18 +279,7 @@ fn validate_level_payload_ranges(
     let mut occupied_ranges = Vec::new();
     let mut has_non_empty_payload = false;
     for level_index in 0..level_count {
-        let entry_offset = KTX2_HEADER_SIZE
-            .checked_add(
-                usize::try_from(level_index)
-                    .expect("u32 level index always fits usize")
-                    .checked_mul(KTX2_LEVEL_INDEX_ENTRY_SIZE)
-                    .ok_or_else(|| {
-                        parse_error_value(context, "ktx2 level index entry offset overflows usize")
-                    })?,
-            )
-            .ok_or_else(|| {
-                parse_error_value(context, "ktx2 level index entry offset overflows usize")
-            })?;
+        let entry_offset = level_entry_offset(context, level_index)?;
         let level_byte_offset = read_u64_le(context, entry_offset)?;
         let level_byte_length = read_u64_le(context, entry_offset + 8)?;
         let level_uncompressed_byte_length = read_u64_le(context, entry_offset + 16)?;

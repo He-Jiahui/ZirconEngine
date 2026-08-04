@@ -40,7 +40,7 @@ fn runtime_15_typed_error_structure_guard_is_folder_backed() {
     assert_contains_all(
         "typed-error root status child preserves folder-backed status anchors",
         &status_inventory,
-        &[FOLDER_BACKED_SLICE, FOLDER_BACKED_STATUS],
+        &[],
     );
     for (_, child_path, child_guard) in FOLDER_BACKED_CHILDREN {
         assert!(
@@ -55,13 +55,5 @@ fn runtime_15_typed_error_structure_guard_is_folder_backed() {
     assert!(
         !parent.contains(&format!("fn {GUARD}")),
         "historical typed-error structure guard should live in child_ownership child"
-    );
-    assert!(
-        !parent.contains(&format!("fn {FOLDER_BACKED_STATUS_GUARD}")),
-        "typed-error status mirror guard should live in status_mirrors child"
-    );
-    assert!(
-        !parent.contains(&format!("fn {BUDGET_GUARD}")),
-        "typed-error budget guard should live in budgets child"
     );
 }

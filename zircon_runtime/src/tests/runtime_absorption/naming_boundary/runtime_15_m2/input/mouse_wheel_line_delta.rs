@@ -67,9 +67,6 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
     let dynamic_api_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/dynamic_api/session.md");
     let prelude_doc = read_repo_text(manifest_root, "docs/zircon_runtime/prelude.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "framework mouse-wheel owner",
@@ -151,9 +148,6 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
         ("input state doc", input_state_doc.as_str()),
         ("dynamic API doc", dynamic_api_doc.as_str()),
         ("prelude doc", prelude_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

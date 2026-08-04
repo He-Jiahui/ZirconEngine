@@ -190,8 +190,9 @@ fn translate_ime_event(
                 }),
             ),
         )),
-        Ime::Commit(text) => Some(input_event(UiWindowPlatformInputEvent::text(
+        Ime::Commit(text) => Some(input_event(UiWindowPlatformInputEvent::ime(
             context,
+            zircon_runtime_interface::ui::dispatch::UiImeInputEventKind::Commit,
             text.clone(),
         ))),
         Ime::Disabled => Some(input_event(UiWindowPlatformInputEvent::ime(
@@ -471,13 +472,16 @@ mod tests {
         assert_eq!(preedit.text, "a b");
         assert_eq!(preedit.cursor_range.unwrap().start_byte, 1);
         assert_eq!(preedit.cursor_range.unwrap().end_byte, 3);
+        assert!(preedit.preedit_clauses.is_empty());
 
         let commit = translate_ime_event(input_context(), &Ime::Commit("text".to_string()))
             .expect("commit should translate");
-        let UiWindowInputPumpEvent::Input(UiInputEvent::Text(commit)) = commit else {
-            panic!("IME commit should produce text input");
+        let UiWindowInputPumpEvent::Input(UiInputEvent::Ime(commit)) = commit else {
+            panic!("IME commit should preserve its input-method semantics");
         };
+        assert_eq!(commit.kind, UiImeInputEventKind::Commit);
         assert_eq!(commit.text, "text");
+        assert_eq!(commit.cursor_range, None);
 
         let disabled = translate_ime_event(input_context(), &Ime::Disabled)
             .expect("disabled should translate");

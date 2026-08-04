@@ -22,7 +22,10 @@ pub(crate) fn apply_text_edit_action(
         UiTextEditAction::SetSelection { anchor, focus } => {
             let anchor = clamp_boundary(&state.text, anchor);
             let focus = clamp_boundary(&state.text, focus);
-            state.caret.offset = focus;
+            state.caret = UiTextCaret {
+                offset: focus,
+                affinity: UiTextCaretAffinity::Downstream,
+            };
             state.selection = Some(UiTextSelection { anchor, focus });
         }
         UiTextEditAction::SetComposition { range, text } if !state.read_only => {
@@ -52,6 +55,7 @@ pub(crate) fn apply_text_edit_action(
                     start: range.start,
                     end: range.start + text.len(),
                 },
+                preedit_clauses: Vec::new(),
                 text,
                 restore_text: Some(restore_text),
             });

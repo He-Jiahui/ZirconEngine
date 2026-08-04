@@ -38,7 +38,6 @@ pub(super) fn assert_typed_error_structure_assertion_checks_are_current() {
             "mod native_plugin_loader;",
             "fn runtime_15_typed_error_structure_assertions_are_child_owner",
             "fn runtime_15_typed_error_structure_assertions_children_are_child_owned",
-            "fn runtime_15_typed_error_structure_assertions_guard_folder_backed_status_is_current",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs",
@@ -85,7 +84,6 @@ pub(super) fn assert_typed_error_structure_assertion_checks_are_current() {
         "typed-error source inventory child keeps fine-grained typed-error source paths",
         &typed_error_source_inventory_child,
         &[
-            "fn runtime_15_typed_error_source_inventory_is_child_owner",
             "const TYPED_ERROR_SOURCE_PATHS",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/texture.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/zshader.rs",

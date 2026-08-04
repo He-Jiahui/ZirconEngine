@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::super::font_assets::{ensure_font_asset_record, UiFontAssetCacheStatus};
+use super::super::font_assets::{UiFontAssetCacheStatus, ensure_font_asset_record};
 use super::super::*;
 use super::support::{RuntimeFontAssetGuard, TextFontProject};
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager};

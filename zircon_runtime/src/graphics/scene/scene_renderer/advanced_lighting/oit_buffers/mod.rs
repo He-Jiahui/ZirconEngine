@@ -21,8 +21,10 @@ mod tests {
         assert!(OIT_DRAW_SHADER_SOURCE.contains("pack4x8unorm"));
         assert!(OIT_DRAW_SHADER_SOURCE.contains("bitcast<u32>(position.z)"));
         assert!(OIT_DRAW_SHADER_SOURCE.contains("physical_pixel - origin"));
-        assert!(OIT_DRAW_SHADER_SOURCE
-            .contains("@group(4) @binding(0) var<storage, read_write> oit_layers"));
+        assert!(
+            OIT_DRAW_SHADER_SOURCE
+                .contains("@group(4) @binding(0) var<storage, read_write> oit_layers")
+        );
         assert!(!OIT_DRAW_SHADER_SOURCE.contains("@group(3)"));
     }
 

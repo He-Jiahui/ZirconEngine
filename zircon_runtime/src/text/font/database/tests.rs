@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use glyphon::{FontSystem, fontdb};
-use ttf2woff2::{BrotliQuality, encode};
+use glyphon::{fontdb, FontSystem};
+use ttf2woff2::{encode, BrotliQuality};
 
 use super::*;
 use crate::asset::{FontAsset, FontAssetFaceStyle, FontAssetFamilyMember, FontAssetRenderStrategy};

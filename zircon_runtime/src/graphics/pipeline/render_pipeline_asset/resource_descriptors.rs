@@ -147,6 +147,9 @@ pub(super) fn buffer_desc_for(
 
 fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
     match name {
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR => {
+            Some(TextureFormat::Rgba16Float)
+        }
         PostProcessGraphResourceNames::SCENE_VELOCITY => Some(post_process_texture_format(
             RenderPostProcessTextureFormat::Rg16Float,
         )),
@@ -223,6 +226,10 @@ const fn post_process_texture_format(format: RenderPostProcessTextureFormat) -> 
 
 fn post_process_intermediate_size(name: &str, width: u32, height: u32) -> (u32, u32) {
     match name {
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR
+        | PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH => {
+            (half_extent(width), half_extent(height))
+        }
         PostProcessGraphResourceNames::HZB_FURTHEST => {
             let plan = HzbBuilder::new(UVec2::new(width, height)).build_plan();
             (plan.hzb_size.x, plan.hzb_size.y)
@@ -274,6 +281,8 @@ fn is_single_sample_graph_product(name: &str) -> bool {
     matches!(
         name,
         PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
+            | PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR
+            | PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH
             | PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR
             | PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
             | PostProcessGraphResourceNames::SSS_DIFFUSE

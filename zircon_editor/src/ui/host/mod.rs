@@ -63,7 +63,7 @@ pub use editor_error::EditorError;
 pub use editor_host_event_controller::EditorHostEventController;
 pub(crate) use editor_host_startup::resolve_editor_startup_session;
 pub use editor_host_startup::EditorHostStartupSession;
-pub use editor_manager::EditorManager;
+pub use editor_manager::{EditorKeymapService, EditorManager};
 pub(crate) use editor_manager_layout::DirtyDocumentToolkitView;
 pub use editor_manager_plugins_export::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,

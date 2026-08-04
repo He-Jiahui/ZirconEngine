@@ -3,8 +3,8 @@ use crate::core::play::PendingEditApplyBudget;
 use crate::ui::host::EditorHostEventController;
 
 use super::{
-    PlayPendingEditApplyFailure, PlayPendingEditDecisionOutcome, PLAY_PENDING_EDITS_APPLY_OPTION,
-    PLAY_PENDING_EDITS_DISCARD_OPTION,
+    PLAY_PENDING_EDITS_APPLY_OPTION, PLAY_PENDING_EDITS_DISCARD_OPTION,
+    PlayPendingEditApplyFailure, PlayPendingEditDecisionOutcome,
 };
 
 impl EditorHostEventController {
@@ -17,7 +17,9 @@ impl EditorHostEventController {
             .notifications()
             .decisions()
             .map_err(|error| error.to_string())?;
-        let receipt = self.play_pending_decisions.resolve(center, selection_id)?;
+        let receipt = self
+            .play_pending_decisions()
+            .resolve(center, selection_id)?;
         if !receipt.newly_resolved() {
             return Ok(PlayPendingEditDecisionOutcome::AlreadyResolved {
                 selected_option: receipt.receipt().option_id().as_str().to_string(),
@@ -45,17 +47,9 @@ impl EditorHostEventController {
                 let failures = report
                     .failures
                     .into_iter()
-                    .map(|failure| {
-                        PlayPendingEditApplyFailure::new(
-                            failure.intent.id.value(),
-                            failure.intent.invocation.operation_id.to_string(),
-                            failure.error,
-                        )
-                    })
+                    .map(|failure| PlayPendingEditApplyFailure::new(failure.intent, failure.error))
                     .collect::<Vec<_>>();
-                self.publish_pending_edit_decision(
-                    self.play_sessions().pending_edit_decision_prompt().as_ref(),
-                )?;
+                self.reconcile_pending_play_decision(center)?;
                 Ok(PlayPendingEditDecisionOutcome::Applied {
                     applied_count: report.applied.len(),
                     failures,
@@ -66,6 +60,7 @@ impl EditorHostEventController {
                     .play_sessions()
                     .discard_pending_edits()
                     .map_err(|error| format!("failed to discard queued play edits: {error}"))?;
+                self.reconcile_pending_play_decision(center)?;
                 Ok(PlayPendingEditDecisionOutcome::Discarded {
                     discarded_count: report.discarded_count,
                 })

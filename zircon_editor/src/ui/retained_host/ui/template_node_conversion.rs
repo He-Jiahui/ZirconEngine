@@ -77,6 +77,8 @@ pub(crate) fn to_host_contract_template_node(
         popup_anchor_y: 0.0,
         selection_state: "".into(),
         search_query: "".into(),
+        has_clear_action: false,
+        layout_stepper: false,
         selected: data.selected,
         tree_depth: 0,
         tree_indent_px: 0.0,
@@ -217,8 +219,8 @@ pub(crate) fn to_host_contract_template_nodes(
 #[cfg(test)]
 mod tests {
     use std::sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
+        Arc,
     };
 
     use super::*;

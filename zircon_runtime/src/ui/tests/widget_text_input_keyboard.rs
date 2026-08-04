@@ -158,6 +158,7 @@ fn dispatch_ime(
                 kind,
                 text: text.to_string(),
                 cursor_range,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )

@@ -13,7 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     let metrics = status_signal_metrics();
     let size = metrics.signal_marker_size;
     let left_inset = if node.component_variant.as_str() == WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT {
-        metrics.gap_s
+        metrics.text_inset
     } else {
         metrics.signal_icon_left
     };

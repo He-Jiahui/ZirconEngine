@@ -1,7 +1,8 @@
 use std::any::TypeId;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::fmt;
+use std::marker::PhantomData;
 
 use crate::scene::ecs::{ChangeTick, ComponentId, ComponentTicks, InternalEntity, StorageType};
 
@@ -17,6 +18,20 @@ pub struct ComponentStorage {
     component_types: HashMap<ComponentId, TypeId>,
     table_components: HashMap<ComponentId, TableComponentStorage>,
     sparse_components: HashMap<ComponentId, SparseComponentStorage>,
+}
+
+/// Proves that a component insert's id and storage representation were
+/// validated before a structural transaction publishes its entity row.
+pub(crate) struct PreflightedComponentInsert<T> {
+    component_id: ComponentId,
+    storage_type: StorageType,
+    marker: PhantomData<fn() -> T>,
+}
+
+impl<T> PreflightedComponentInsert<T> {
+    pub(crate) fn component_id(&self) -> ComponentId {
+        self.component_id
+    }
 }
 
 impl ComponentStorage {
@@ -68,6 +83,89 @@ impl ComponentStorage {
             return Ok(None);
         };
         Ok(Some(downcast_component(component_id, old)?))
+    }
+
+    /// Publishes a value whose storage identity was already validated by
+    /// [`ComponentStorage::preflight_insert`].
+    pub(crate) fn insert_preflighted_at_tick<T>(
+        &mut self,
+        preflight: PreflightedComponentInsert<T>,
+        entity: InternalEntity,
+        value: T,
+        tick: ChangeTick,
+    ) -> bool
+    where
+        T: 'static + Send + Sync,
+    {
+        let PreflightedComponentInsert {
+            component_id,
+            storage_type,
+            marker: _,
+        } = preflight;
+        self.storage_types
+            .entry(component_id)
+            .or_insert(storage_type);
+        self.component_types
+            .entry(component_id)
+            .or_insert(TypeId::of::<T>());
+        match storage_type {
+            StorageType::Table => self
+                .table_components
+                .entry(component_id)
+                .or_default()
+                .insert(entity, Box::new(value), tick)
+                .is_some(),
+            StorageType::SparseSet => self
+                .sparse_components
+                .entry(component_id)
+                .or_default()
+                .insert(entity, Box::new(value), tick)
+                .is_some(),
+        }
+    }
+
+    /// Checks whether an insert can be committed without changing storage
+    /// ownership. Batch mutation planning uses this before it publishes any
+    /// component row.
+    pub(crate) fn validate_insert<T>(
+        &self,
+        component_id: ComponentId,
+        storage_type: StorageType,
+    ) -> Result<(), StorageError>
+    where
+        T: 'static + Send + Sync,
+    {
+        if let Some(existing) = self.storage_types.get(&component_id).copied() {
+            if existing != storage_type {
+                return Err(StorageError::StorageTypeMismatch {
+                    component_id,
+                    existing,
+                    requested: storage_type,
+                });
+            }
+        }
+        if let Some(existing) = self.component_types.get(&component_id) {
+            if *existing != TypeId::of::<T>() {
+                return Err(StorageError::ComponentTypeMismatch { component_id });
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn preflight_insert<T>(
+        &self,
+        component_id: ComponentId,
+        storage_type: StorageType,
+    ) -> Result<PreflightedComponentInsert<T>, StorageError>
+    where
+        T: 'static + Send + Sync,
+    {
+        self.validate_insert::<T>(component_id, storage_type)?;
+        Ok(PreflightedComponentInsert {
+            component_id,
+            storage_type,
+            marker: PhantomData,
+        })
     }
 
     pub fn get<T>(&self, component_id: ComponentId, entity: InternalEntity) -> Option<&T>
@@ -308,6 +406,35 @@ impl ComponentStorage {
             }
             None => {}
         }
+    }
+
+    pub(crate) fn remove_entity_components(
+        &mut self,
+        entity: InternalEntity,
+        component_ids: &[ComponentId],
+    ) -> Vec<ComponentId> {
+        let mut removed = Vec::with_capacity(component_ids.len());
+        for component_id in component_ids {
+            let removed_component = match self.storage_types.get(component_id).copied() {
+                Some(StorageType::Table) => {
+                    let Some(storage) = self.table_components.get_mut(component_id) else {
+                        continue;
+                    };
+                    storage.remove(entity)
+                }
+                Some(StorageType::SparseSet) => {
+                    let Some(storage) = self.sparse_components.get_mut(component_id) else {
+                        continue;
+                    };
+                    storage.remove(entity)
+                }
+                None => None,
+            };
+            if removed_component.is_some() {
+                removed.push(*component_id);
+            }
+        }
+        removed
     }
 
     pub fn remove_entity(&mut self, entity: InternalEntity) -> Vec<ComponentId> {

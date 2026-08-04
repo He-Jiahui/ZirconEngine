@@ -4,8 +4,13 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use image::ImageEncoder;
+use zircon_runtime::asset::project::ProjectPaths;
 
 static NEXT_CAPTURE_STAGING_ID: AtomicU64 = AtomicU64::new(1);
+
+fn frame_capture_display_path(path: &Path) -> PathBuf {
+    ProjectPaths::display_path(path)
+}
 
 trait FrameCaptureSync {
     fn sync_frame_capture(&self) -> std::io::Result<()>;
@@ -43,7 +48,7 @@ pub(super) fn write_runtime_frame_png(
         std::fs::create_dir_all(parent).map_err(|error| {
             format!(
                 "create frame capture directory {}: {error}",
-                parent.display()
+                frame_capture_display_path(parent).display()
             )
         })?;
     }
@@ -56,8 +61,8 @@ pub(super) fn write_runtime_frame_png(
             &staging_path,
             format!(
                 "commit frame capture {} from {}: {error}",
-                path.display(),
-                staging_path.display()
+                frame_capture_display_path(path).display(),
+                frame_capture_display_path(&staging_path).display()
             ),
         ));
     }
@@ -126,9 +131,12 @@ fn replace_existing_frame_capture_file(
 fn reserve_frame_capture_staging_file(path: &Path) -> Result<(PathBuf, std::fs::File), String> {
     const MAX_STAGING_ATTEMPTS: usize = 64;
 
-    let file_name = path
-        .file_name()
-        .ok_or_else(|| format!("frame capture path {} has no file name", path.display()))?;
+    let file_name = path.file_name().ok_or_else(|| {
+        format!(
+            "frame capture path {} has no file name",
+            frame_capture_display_path(path).display()
+        )
+    })?;
     for _ in 0..MAX_STAGING_ATTEMPTS {
         let id = NEXT_CAPTURE_STAGING_ID.fetch_add(1, Ordering::Relaxed);
         let mut staging_name = OsString::from(file_name);
@@ -144,14 +152,14 @@ fn reserve_frame_capture_staging_file(path: &Path) -> Result<(PathBuf, std::fs::
             Err(error) => {
                 return Err(format!(
                     "create frame capture staging file {}: {error}",
-                    staging_path.display()
+                    frame_capture_display_path(&staging_path).display()
                 ));
             }
         }
     }
     Err(format!(
         "could not reserve a frame capture staging file beside {} after {MAX_STAGING_ATTEMPTS} attempts",
-        path.display()
+        frame_capture_display_path(path).display()
     ))
 }
 
@@ -165,7 +173,12 @@ fn encode_frame_capture_staging_file(
     let mut writer = BufWriter::new(staging_file);
     image::codecs::png::PngEncoder::new(&mut writer)
         .write_image(rgba, width, height, image::ExtendedColorType::Rgba8)
-        .map_err(|error| format!("encode frame capture {}: {error}", final_path.display()))?;
+        .map_err(|error| {
+            format!(
+                "encode frame capture {}: {error}",
+                frame_capture_display_path(final_path).display()
+            )
+        })?;
     // Buffered encoder success is not durable until both userspace and filesystem writes finish.
     flush_frame_capture_writer(&mut writer, final_path)?;
     sync_frame_capture_writer(writer.get_ref(), final_path)?;
@@ -173,18 +186,24 @@ fn encode_frame_capture_staging_file(
 }
 
 fn flush_frame_capture_writer(writer: &mut impl Write, final_path: &Path) -> Result<(), String> {
-    writer
-        .flush()
-        .map_err(|error| format!("flush frame capture {}: {error}", final_path.display()))
+    writer.flush().map_err(|error| {
+        format!(
+            "flush frame capture {}: {error}",
+            frame_capture_display_path(final_path).display()
+        )
+    })
 }
 
 fn sync_frame_capture_writer(
     writer: &impl FrameCaptureSync,
     final_path: &Path,
 ) -> Result<(), String> {
-    writer
-        .sync_frame_capture()
-        .map_err(|error| format!("sync frame capture {}: {error}", final_path.display()))
+    writer.sync_frame_capture().map_err(|error| {
+        format!(
+            "sync frame capture {}: {error}",
+            frame_capture_display_path(final_path).display()
+        )
+    })
 }
 
 fn remove_staging_after_failure(staging_path: &Path, failure: String) -> String {
@@ -193,7 +212,7 @@ fn remove_staging_after_failure(staging_path: &Path, failure: String) -> String 
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => failure,
         Err(error) => format!(
             "{failure}; cleanup frame capture staging file {} failed: {error}",
-            staging_path.display()
+            frame_capture_display_path(staging_path).display()
         ),
     }
 }
@@ -203,8 +222,8 @@ mod tests {
     use std::io::Write;
 
     use super::{
-        FrameCaptureSync, flush_frame_capture_writer, sync_frame_capture_writer,
-        write_runtime_frame_png,
+        flush_frame_capture_writer, frame_capture_display_path, sync_frame_capture_writer,
+        write_runtime_frame_png, FrameCaptureSync,
     };
 
     struct FlushFailureWriter;
@@ -357,6 +376,17 @@ mod tests {
         assert_eq!(
             sync_error,
             "sync frame capture runtime-first-frame.png: sync unavailable"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn frame_capture_error_paths_hide_windows_verbatim_prefixes() {
+        assert_eq!(
+            frame_capture_display_path(std::path::Path::new(
+                r"\\?\C:\zircon\evidence\runtime-first-frame.png"
+            )),
+            std::path::PathBuf::from(r"C:\zircon\evidence\runtime-first-frame.png")
         );
     }
 }

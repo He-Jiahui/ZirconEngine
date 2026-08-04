@@ -66,11 +66,11 @@ impl EditorManager {
     }
 
     pub fn editor_plugin_catalog(&self) -> Arc<EditorPluginCatalogSnapshot> {
-        self.plugin_manager.catalog_snapshot()
+        self.plugin_manager().catalog_snapshot()
     }
 
     /// Returns one immutable manager generation for plugin-panel consumers.
     pub fn plugin_panel_source(&self) -> EditorPluginPanelSource {
-        EditorPluginPanelSource::from_manager(&self.plugin_manager)
+        EditorPluginPanelSource::from_manager(self.plugin_manager())
     }
 }

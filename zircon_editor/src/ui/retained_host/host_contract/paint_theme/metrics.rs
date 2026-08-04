@@ -1,7 +1,7 @@
 use std::sync::{OnceLock, RwLock};
 
 use zircon_runtime_interface::ui::design_tokens::{
-    EditorDensityTokens, EditorDesignTokens, EditorTypographyTokens,
+    EditorControlTokens, EditorDensityTokens, EditorDesignTokens, EditorTypographyTokens,
 };
 
 // Shared retained-host control metrics keep Slate-like primitive controls on one
@@ -88,39 +88,67 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_metrics(
     let controls = &tokens.controls;
     let density = &tokens.density;
     let typography = &tokens.typography;
+    let control_default_height =
+        finite_positive_or(controls.default_height, METRICS.control_default_height);
+    let control_large_height =
+        finite_positive_or(controls.large_height, METRICS.control_large_height);
+    let radius_control = finite_non_negative_or(controls.small_radius, METRICS.radius_control);
+    let border_width = finite_non_negative_or(controls.border_width, METRICS.border_width);
+    let font_small = finite_positive_or(typography.caption_size, METRICS.font_small);
+    let font_body = finite_positive_or(typography.body_size, METRICS.font_body);
+    let font_large = finite_positive_or(typography.title_size, METRICS.font_large);
+    let line_height_ratio = finite_positive_or(typography.line_height, METRICS.line_height_ratio);
+    let gap_small = finite_non_negative_or(density.gap_small, METRICS.gap_s);
+    let gap_medium = finite_non_negative_or(density.gap_medium, METRICS.gap_m);
+    let gap_large = finite_non_negative_or(density.gap_large, METRICS.gap_l);
+    let row_height = finite_positive_or(density.row_height, METRICS.row_height);
+    let dense_height = finite_positive_or(
+        controls.dense_height,
+        EditorControlTokens::workbench_dense().dense_height,
+    );
     HostControlMetrics {
-        control_default_height: controls.default_height,
-        control_large_height: controls.large_height,
-        radius_control: controls.small_radius,
-        border_width: controls.border_width,
-        font_small: typography.caption_size,
-        font_body: typography.body_size,
-        font_large: typography.title_size,
-        line_height_ratio: typography.line_height,
-        button_pad_x: density.gap_large,
-        button_icon_gap: (density.gap_medium - controls.border_width).max(0.0),
-        button_chevron_reserve: (controls.dense_height - density.gap_large
-            + controls.border_width * 2.0)
-            .max(0.0),
-        text_clip_guard: (density.gap_medium - controls.border_width * 2.0).max(0.0),
-        button_pressed_offset_y: controls.border_width,
+        control_default_height,
+        control_large_height,
+        radius_control,
+        border_width,
+        font_small,
+        font_body,
+        font_large,
+        line_height_ratio,
+        button_pad_x: gap_large,
+        button_icon_gap: (gap_medium - border_width).max(0.0),
+        button_chevron_reserve: (dense_height - gap_large + border_width * 2.0).max(0.0),
+        text_clip_guard: (gap_medium - border_width * 2.0).max(0.0),
+        button_pressed_offset_y: border_width,
         input_pad: [
-            density.gap_medium,
-            density.gap_medium,
-            (density.gap_small - controls.border_width).max(0.0),
-            density.gap_small,
+            gap_medium,
+            gap_medium,
+            (gap_small - border_width).max(0.0),
+            gap_small,
         ],
-        segment_text_inset_y: density.gap_small,
-        segment_selected_inset: controls.border_width * 2.0,
-        tab_underline_height: controls.border_width * 2.0,
-        selection_indicator_width: controls.border_width * 2.0,
-        scrollbar_thickness: density.gap_medium.max(controls.border_width * 4.0),
-        scrollbar_min_thumb_length: density.row_height.max(density.gap_medium * 2.0),
-        gap_s: density.gap_small,
-        gap_m: density.gap_medium,
-        gap_l: density.gap_large,
-        row_height: density.row_height,
+        segment_text_inset_y: gap_small,
+        segment_selected_inset: border_width * 2.0,
+        tab_underline_height: border_width * 2.0,
+        selection_indicator_width: border_width * 2.0,
+        scrollbar_thickness: gap_medium.max(border_width * 4.0),
+        scrollbar_min_thumb_length: row_height.max(gap_medium * 2.0),
+        gap_s: gap_small,
+        gap_m: gap_medium,
+        gap_l: gap_large,
+        row_height,
     }
+}
+
+fn finite_non_negative_or(value: f32, fallback: f32) -> f32 {
+    (value.is_finite() && value >= 0.0)
+        .then_some(value)
+        .unwrap_or(fallback)
+}
+
+fn finite_positive_or(value: f32, fallback: f32) -> f32 {
+    (value.is_finite() && value > 0.0)
+        .then_some(value)
+        .unwrap_or(fallback)
 }
 
 fn host_metrics() -> &'static RwLock<HostControlMetrics> {
@@ -178,5 +206,46 @@ mod tests {
         assert_eq!(metrics.row_height, 26.0);
         assert_eq!(metrics.scrollbar_thickness, 7.0);
         assert_eq!(metrics.scrollbar_min_thumb_length, 26.0);
+    }
+
+    #[test]
+    fn host_control_metrics_fail_closed_for_invalid_token_geometry() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.controls.default_height = f32::NAN;
+        tokens.controls.large_height = -1.0;
+        tokens.controls.dense_height = f32::INFINITY;
+        tokens.controls.small_radius = f32::NEG_INFINITY;
+        tokens.controls.border_width = f32::NAN;
+        tokens.typography.caption_size = 0.0;
+        tokens.typography.body_size = f32::NEG_INFINITY;
+        tokens.typography.title_size = f32::INFINITY;
+        tokens.typography.line_height = f32::NAN;
+        tokens.density.gap_small = -1.0;
+        tokens.density.gap_medium = f32::NAN;
+        tokens.density.gap_large = f32::INFINITY;
+        tokens.density.row_height = 0.0;
+
+        let metrics = project_host_metrics(&tokens);
+
+        assert_eq!(metrics, METRICS);
+    }
+
+    #[test]
+    fn host_control_metrics_preserve_zero_border_and_spacing_tokens() {
+        let mut tokens = EditorDesignTokens::workbench_dark();
+        tokens.controls.border_width = 0.0;
+        tokens.controls.small_radius = 0.0;
+        tokens.density.gap_small = 0.0;
+        tokens.density.gap_medium = 0.0;
+        tokens.density.gap_large = 0.0;
+
+        let metrics = project_host_metrics(&tokens);
+
+        assert_eq!(metrics.border_width, 0.0);
+        assert_eq!(metrics.radius_control, 0.0);
+        assert_eq!(metrics.gap_s, 0.0);
+        assert_eq!(metrics.gap_m, 0.0);
+        assert_eq!(metrics.gap_l, 0.0);
+        assert_eq!(metrics.button_icon_gap, 0.0);
     }
 }

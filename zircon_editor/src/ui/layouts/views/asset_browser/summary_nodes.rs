@@ -2,10 +2,11 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 
 use super::labels::asset_state_label;
-use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
-use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
+use super::name_compaction::{RuntimeFileNameCompaction, compact_file_like_display_name};
+use super::name_lines::{RuntimeNameLineSplit, split_display_name_lines};
 
 const SUMMARY_NAME_CONTROL_ID: &str = "AssetBrowserContentPreviewName";
 const SUMMARY_NAME_CONTINUATION_CONTROL_ID: &str = "AssetBrowserContentPreviewNameContinuation";
@@ -13,10 +14,11 @@ const SUMMARY_TYPE_BADGE_CONTROL_ID: &str = "AssetBrowserContentPreviewTypeBadge
 const SUMMARY_TYPE_CONTROL_ID: &str = "AssetBrowserContentPreviewType";
 const SUMMARY_STATE_CONTROL_ID: &str = "AssetBrowserContentPreviewState";
 const SUMMARY_REVISION_CONTROL_ID: &str = "AssetBrowserContentPreviewRevision";
-const SUMMARY_NAME_FONT_SIZE: f32 = 10.0;
+const SUMMARY_NAME_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
 const SUMMARY_NAME_FONT_WEIGHT: i32 = 600;
-const SUMMARY_NAME_CONTINUATION_FONT_SIZE: f32 = 9.0;
+const SUMMARY_NAME_CONTINUATION_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const SUMMARY_NAME_CONTINUATION_FONT_WEIGHT: i32 = 500;
+const SUMMARY_META_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const SUMMARY_FILE_NAME_MAX_WIDTH: f32 = 220.0;
 const SUMMARY_FILE_NAME_MIN_PREFIX_CHARS: usize = 8;
 const SUMMARY_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 4;
@@ -56,7 +58,7 @@ pub(super) fn append_asset_browser_summary_nodes(
         "asset_browser.content_preview.type",
         SUMMARY_TYPE_CONTROL_ID,
         selected_asset.map(summary_type_label).unwrap_or_default(),
-        8.0,
+        SUMMARY_META_FONT_SIZE,
         700,
         "accent",
     ));
@@ -67,7 +69,7 @@ pub(super) fn append_asset_browser_summary_nodes(
             .map(asset_state_label)
             .unwrap_or("Select asset")
             .to_string(),
-        9.0,
+        SUMMARY_META_FONT_SIZE,
         400,
         "muted",
     ));
@@ -77,7 +79,7 @@ pub(super) fn append_asset_browser_summary_nodes(
         selected_asset
             .map(summary_revision_label)
             .unwrap_or_default(),
-        9.0,
+        SUMMARY_META_FONT_SIZE,
         400,
         "muted",
     ));
@@ -256,7 +258,7 @@ mod tests {
             node.control_id == SUMMARY_TYPE_CONTROL_ID
                 && node.text == "UI Layout"
                 && node.text_tone == "accent"
-                && node.font_size == 8.0
+                && node.font_size == SUMMARY_META_FONT_SIZE
                 && node.font_weight == 700
         }));
         assert!(nodes.iter().any(|node| {
@@ -312,19 +314,30 @@ mod tests {
             .iter()
             .find(|node| node.control_id == "AssetBrowserContentPreviewNameContinuation")
             .expect("summary continuation node should exist");
-        assert_eq!(name.text.as_str(), "NavigationSettings");
-        assert_eq!(name.font_size, 10.0);
+        let expected_lines = split_display_name_lines(
+            "NavigationSettingsRuntimeProfile",
+            RuntimeNameLineSplit {
+                max_width: SUMMARY_FILE_NAME_MAX_WIDTH,
+                primary_font_size: SUMMARY_NAME_FONT_SIZE,
+                continuation_font_size: SUMMARY_NAME_CONTINUATION_FONT_SIZE,
+            },
+        );
+        assert_eq!(name.text.as_str(), expected_lines.primary.as_str());
+        assert_eq!(name.font_size, SUMMARY_NAME_FONT_SIZE);
         assert_eq!(name.font_weight, 600);
-        assert_eq!(continuation.text.as_str(), "RuntimeProfile");
+        assert_eq!(
+            continuation.text.as_str(),
+            expected_lines.continuation.as_str()
+        );
         assert_eq!(continuation.role.as_str(), "Label");
-        assert_eq!(continuation.font_size, 9.0);
+        assert_eq!(continuation.font_size, SUMMARY_NAME_CONTINUATION_FONT_SIZE);
         assert_eq!(continuation.font_weight, 500);
         assert_eq!(continuation.text_tone.as_str(), "muted");
     }
 
     #[test]
     fn summary_nodes_keep_width_fitting_short_wide_names_on_single_line() {
-        let wide_name = "WWWWWWWWWWWWWWWWWW";
+        let wide_name = "WWWWWWWWWWWW";
         assert!(
             measure_runtime_text_width(wide_name, SUMMARY_NAME_FONT_SIZE)
                 <= SUMMARY_FILE_NAME_MAX_WIDTH + 0.01
@@ -462,14 +475,20 @@ mod tests {
 
         sync_asset_browser_summary_nodes(&mut nodes, &snapshot);
 
-        assert!(nodes
-            .iter()
-            .all(|node| node.control_id != "AssetBrowserContentPreviewCard"));
-        assert!(nodes
-            .iter()
-            .all(|node| node.control_id != "AssetBrowserContentPreviewName"));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "AssetBrowserContentPanel"));
+        assert!(
+            nodes
+                .iter()
+                .all(|node| node.control_id != "AssetBrowserContentPreviewCard")
+        );
+        assert!(
+            nodes
+                .iter()
+                .all(|node| node.control_id != "AssetBrowserContentPreviewName")
+        );
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "AssetBrowserContentPanel")
+        );
     }
 }

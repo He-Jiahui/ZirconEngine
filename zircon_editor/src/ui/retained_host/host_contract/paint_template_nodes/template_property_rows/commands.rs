@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_property_axis_values::property_axis_values;
 use super::fields::{push_axis_value_commands, push_scalar_value_commands};
@@ -24,6 +25,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
     if label.is_empty() && value.is_empty() {
         return false;
     }
+    let Some(clip) = intersect(rect, clip) else {
+        return true;
+    };
 
     let label_width = property_label_width(node, rect);
     if !label.is_empty() {
@@ -31,7 +35,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
             commands,
             node,
             rect,
-            clip,
+            &clip,
             order,
             label,
             label_width,
@@ -50,14 +54,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
             commands,
             &axis_values,
             &value_area,
-            clip,
+            &clip,
             value_group_order(order),
             opacity,
         );
     } else {
         push_scalar_value_commands(
             commands,
-            clip,
+            &clip,
             node,
             &value_area,
             value_group_order(order),

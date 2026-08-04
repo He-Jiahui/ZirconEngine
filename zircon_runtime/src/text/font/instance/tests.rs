@@ -100,13 +100,11 @@ fn text_font_effective_instance_cache_evicts_lru_without_a_full_table_scan() {
             EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64 + 1
         ))
     );
-    assert!(
-        cache
-            .get(effective_instance_key(
-                EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64
-            ))
-            .is_some()
-    );
+    assert!(cache
+        .get(effective_instance_key(
+            EFFECTIVE_INSTANCE_CACHE_CAPACITY as u64
+        ))
+        .is_some());
     let report = cache.report();
     assert_eq!(report.entry_count, EFFECTIVE_INSTANCE_CACHE_CAPACITY);
     assert_eq!(report.eviction_count, 1);

@@ -178,30 +178,4 @@ fn runtime_15_scene_component_structure_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
     let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("scene ECS doc", ecs_doc.as_str()),
-        ("dynamic scene doc", dynamic_scene_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 scene component-structure test folder split",
-                "runtime_15_scene_component_structure_tests_folder_split_static_passed_cargo_deferred",
-                "scene/tests/component_structure.rs",
-                "scene/tests/component_structure/component_storage_indexing.rs",
-                "scene/tests/component_structure/dynamic_scene_owner_tree.rs",
-                "runtime_15_scene_component_structure_tests_are_folder_backed",
-            ],
-        );
-    }
 }

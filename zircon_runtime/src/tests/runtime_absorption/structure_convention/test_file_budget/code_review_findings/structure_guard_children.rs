@@ -18,10 +18,6 @@ mod root_inventory;
 mod root_paths;
 #[path = "structure_guard_children/root_sources.rs"]
 mod root_sources;
-#[path = "structure_guard_children/root_statuses.rs"]
-mod root_statuses;
-#[path = "structure_guard_children/status_docs.rs"]
-mod status_docs;
 #[path = "structure_guard_children/typed_error.rs"]
 mod typed_error;
 
@@ -29,10 +25,6 @@ pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
 pub(super) use root_statuses::*;
-
-pub(super) fn review_guard_status_rows_source() -> String {
-    super::status_docs::review_guard_status_rows_source()
-}
 
 pub(super) fn assert_nested_structure_children_are_mounted() {
     folder_backed_summary::assert_folder_backed_summary_structure_children_are_mounted();

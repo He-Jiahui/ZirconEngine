@@ -28,6 +28,7 @@ fn runtime_session_archive_named_mutation_commits_preserve_preview_boundaries() 
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual"]
     );
+    let revision_before_rename = archive.revision();
 
     archive
         .rename_slot("manual", " manual-renamed ")
@@ -36,6 +37,8 @@ fn runtime_session_archive_named_mutation_commits_preserve_preview_boundaries() 
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual-renamed"]
     );
+    assert_eq!(archive.revision(), revision_before_rename + 1);
+    let revision_after_rename = archive.revision();
 
     let duplicate = archive.rename_slot("manual-renamed", " autosave ");
     assert!(matches!(
@@ -46,6 +49,7 @@ fn runtime_session_archive_named_mutation_commits_preserve_preview_boundaries() 
         archive.slot_ids().collect::<Vec<_>>(),
         vec!["autosave", "manual-renamed"]
     );
+    assert_eq!(archive.revision(), revision_after_rename);
 
     let metadata_preview = archive
         .preview_update_slot_metadata(

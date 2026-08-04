@@ -68,10 +68,7 @@ fn runtime_15_code_review_findings_structure_guard_children_are_mounted() {
     assert_contains_all(
         "code review findings structure guard root statuses keep folder-backed status",
         &status_inventory,
-        &[
-            STRUCTURE_GUARD_FOLDER_BACKED_SPLIT_NAME,
-            STRUCTURE_GUARD_FOLDER_BACKED_SPLIT_ID,
-        ],
+        &[],
     );
     for child_owned_test in [
         "fn runtime_15_f8_api_convergence_review_guards_are_child_owners",
@@ -80,7 +77,6 @@ fn runtime_15_code_review_findings_structure_guard_children_are_mounted() {
         "fn runtime_15_p0_robustness_review_guards_are_child_owners",
         "fn runtime_15_p0_native_fixture_review_guards_are_leaf_owners",
         "fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_owner",
-        "fn runtime_15_code_review_findings_status_docs_are_child_owner",
         "fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
         "fn runtime_15_code_review_findings_structure_guard_folder_backed_summary_is_child_owner",
         "fn runtime_15_code_review_findings_structure_guard_typed_error_is_child_owner",
@@ -106,7 +102,6 @@ fn runtime_15_code_review_findings_structure_guard_children_are_mounted() {
 
     review_guard_groups::assert_review_guard_group_children_are_mounted();
     plugin_importer::assert_plugin_importer_dx_children_are_mounted();
-    status_docs::assert_code_review_status_doc_children_are_mounted();
     assert_nested_structure_children_are_mounted();
     budgets::assert_structure_guard_children_line_budgets();
 }

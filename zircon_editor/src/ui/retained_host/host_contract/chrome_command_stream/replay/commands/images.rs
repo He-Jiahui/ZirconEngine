@@ -17,7 +17,7 @@ pub(super) fn paint_image_command(
 ) {
     let rgba = payload.rgba.as_deref().or_else(|| {
         stream
-            .image_resource(payload.resource_key.as_str())
+            .image_resource(payload.resource_key.as_str(), payload.resource_generation)
             .map(|resource| resource.rgba.as_slice())
     });
     let Some(rgba) = rgba else {

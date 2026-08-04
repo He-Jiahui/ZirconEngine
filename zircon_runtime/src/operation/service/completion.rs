@@ -7,7 +7,7 @@ use zircon_runtime_interface::{
 use super::{RuntimeOperationPrepareCompletion, RuntimeOperationService};
 
 impl RuntimeOperationService {
-    fn drain_prepare_completions(&self) {
+    pub(super) fn drain_prepare_completions(&self) {
         let mut terminal_transition = false;
         loop {
             let (completion, lost_batches) = self.take_prepare_completion();

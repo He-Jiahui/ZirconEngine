@@ -56,11 +56,21 @@ impl RenderBudgetKey {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RenderPassPipelineStatistics {
+    pub vertex_shader_invocations: u64,
+    pub clipper_invocations: u64,
+    pub clipper_primitives_out: u64,
+    pub fragment_shader_invocations: u64,
+    pub compute_shader_invocations: u64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderPassProfileEntry {
     pub pass_name: String,
     pub executor_id: String,
     pub budget_key: RenderBudgetKey,
     pub gpu_time_us: Option<u64>,
+    pub pipeline_statistics: Option<RenderPassPipelineStatistics>,
     pub draw_count: u32,
     pub instance_count: u32,
     pub state_change_count: u32,
@@ -87,6 +97,8 @@ pub struct RenderFrameProfile {
     pub transient_texture_peak_bytes: u64,
     pub transient_buffer_peak_bytes: u64,
     pub staging_total_bytes: u64,
+    /// Persistent scene texture residency, independent of graph-owned transient attachments.
+    pub persistent_texture_resident_bytes: u64,
     pub compiled_graph_cache_hit: bool,
     pub variant_miss_count: u32,
     pub store_lint_count: u32,

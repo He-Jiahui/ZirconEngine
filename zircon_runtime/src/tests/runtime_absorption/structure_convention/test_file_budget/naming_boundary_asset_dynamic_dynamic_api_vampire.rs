@@ -72,15 +72,6 @@ fn runtime_15_asset_dynamic_dynamic_api_vampire_guard_is_child_owner() {
         "docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/naming_guard_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/naming_guard_maps.rs",
-    );
 
     assert_contains_all_exact(
         "Runtime 15 dynamic-API filter current child owner",
@@ -92,27 +83,5 @@ fn runtime_15_asset_dynamic_dynamic_api_vampire_guard_is_child_owner() {
             "tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs",
             "tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/dynamic_api_vampire.rs",
         ],
-    );
-    for (label, source) in [
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                SLICE,
-                STATUS,
-                GUARD,
-                "tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs",
-                "tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/dynamic_api_vampire.rs",
-            ],
-        );
-    }
-
-    assert_contains_all(
-        "Runtime 15 status/date maps record asset-dynamic dynamic-API vampire child owner",
-        &format!("{status_map}\n{date_map}"),
-        &[SLICE, STATUS, "2026-06-30"],
     );
 }

@@ -45,9 +45,10 @@ pub(super) fn push_timeline_text(
             commands,
             FrameRect {
                 x: geometry.track.x + metrics.inset * 2.0,
-                y: geometry.track.y + (geometry.track.height - metrics.line_height) * 0.5,
-                width: (geometry.track.width * 0.45).max(1.0),
-                height: metrics.line_height,
+                y: geometry.track.y
+                    + finite_non_negative(geometry.track.height - metrics.line_height) * 0.5,
+                width: finite_non_negative(geometry.track.width * 0.45),
+                height: finite_non_negative(metrics.line_height).min(geometry.track.height),
             },
             clip,
             order + 7,
@@ -69,9 +70,10 @@ pub(super) fn push_timeline_text(
         commands,
         FrameRect {
             x: geometry.footer.x + geometry.footer.width * 0.52,
-            y: geometry.footer.y + (geometry.footer.height - metrics.line_height) * 0.5,
-            width: geometry.footer.width * 0.46,
-            height: metrics.line_height,
+            y: geometry.footer.y
+                + finite_non_negative(geometry.footer.height - metrics.line_height) * 0.5,
+            width: finite_non_negative(geometry.footer.width * 0.46),
+            height: finite_non_negative(metrics.line_height).min(geometry.footer.height),
         },
         clip,
         order + 7,
@@ -92,6 +94,16 @@ fn push_text(
     metrics: TimelineStripMetrics,
     opacity: f32,
 ) {
+    if text.trim().is_empty()
+        || !frame.x.is_finite()
+        || !frame.y.is_finite()
+        || !frame.width.is_finite()
+        || !frame.height.is_finite()
+        || frame.width <= f32::EPSILON
+        || frame.height <= f32::EPSILON
+    {
+        return;
+    }
     commands.push(HostPaintCommand::text(
         frame,
         Some(clip.clone()),
@@ -113,7 +125,16 @@ fn timeline_tick_label_frame(
     label: &str,
     metrics: TimelineStripMetrics,
 ) -> FrameRect {
-    let ruler_right = ruler.x + ruler.width.max(1.0);
+    let ruler_width = finite_non_negative(ruler.width);
+    let ruler_height = finite_non_negative(ruler.height);
+    if !ruler.x.is_finite()
+        || !ruler.y.is_finite()
+        || ruler_width <= f32::EPSILON
+        || ruler_height <= f32::EPSILON
+    {
+        return empty_text_frame(ruler);
+    }
+    let ruler_right = ruler.x + ruler_width;
     let left_limit = previous_x
         .map(|previous| (previous + tick_x) * 0.5)
         .unwrap_or(ruler.x)
@@ -123,16 +144,41 @@ fn timeline_tick_label_frame(
         .unwrap_or(ruler_right)
         .min(ruler_right)
         .max(left_limit);
+    let available_width = finite_non_negative(right_limit - left_limit);
     let width = measure_runtime_text_width(label, metrics.font_size)
         .ceil()
-        .clamp(1.0, (right_limit - left_limit).max(1.0));
+        .max(0.0)
+        .min(available_width);
+    let line_height = finite_non_negative(metrics.line_height).min(finite_non_negative(
+        ruler.y + ruler_height - (ruler.y + metrics.inset),
+    ));
+    if width <= f32::EPSILON || line_height <= f32::EPSILON {
+        return empty_text_frame(ruler);
+    }
     let x = (tick_x - width * 0.5).clamp(left_limit, (right_limit - width).max(left_limit));
 
     FrameRect {
         x,
         y: ruler.y + metrics.inset,
         width,
-        height: metrics.line_height,
+        height: line_height,
+    }
+}
+
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn empty_text_frame(anchor: &FrameRect) -> FrameRect {
+    FrameRect {
+        x: if anchor.x.is_finite() { anchor.x } else { 0.0 },
+        y: if anchor.y.is_finite() { anchor.y } else { 0.0 },
+        width: 0.0,
+        height: 0.0,
     }
 }
 
@@ -177,9 +223,32 @@ mod tests {
         let available_width = 60.0;
         let expected_width = measure_runtime_text_width(label, 12.0)
             .ceil()
-            .clamp(1.0, available_width);
+            .max(0.0)
+            .min(available_width);
         assert_eq!(frame.width, expected_width);
         assert!(frame.x >= 30.0);
         assert!(frame.x + frame.width <= 90.0);
+    }
+
+    #[test]
+    fn collapsed_or_invalid_rulers_do_not_produce_tick_label_frames() {
+        for ruler in [
+            FrameRect {
+                x: 0.0,
+                y: 4.0,
+                width: 0.0,
+                height: 20.0,
+            },
+            FrameRect {
+                x: f32::NAN,
+                y: 4.0,
+                width: 120.0,
+                height: 20.0,
+            },
+        ] {
+            let frame = timeline_tick_label_frame(&ruler, 60.0, None, None, "1.0", metrics());
+            assert_eq!(frame.width, 0.0);
+            assert_eq!(frame.height, 0.0);
+        }
     }
 }

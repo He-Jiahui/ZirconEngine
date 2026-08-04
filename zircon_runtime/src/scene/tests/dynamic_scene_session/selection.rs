@@ -33,6 +33,43 @@ fn runtime_session_archive_selector_resolves_in_memory_slots() {
     );
     assert_eq!(latest_manual.summary.metadata.tags, vec!["manual"]);
 
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::latest_updated())
+            .expect("latest archive slot should resolve from the updated index")
+            .selected_slot_id,
+        "manual-new"
+    );
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::oldest_updated())
+            .expect("oldest archive slot should resolve from the updated index")
+            .selected_slot_id,
+        "manual-old"
+    );
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::oldest_updated_with_tag(
+                "manual"
+            ))
+            .expect("oldest tagged slot should resolve from the updated tag index")
+            .selected_slot_id,
+        "manual-old"
+    );
+
+    let selected = RuntimeSessionSlotSelector::latest_updated_with_tag("manual")
+        .resolve_slot(&archive)
+        .expect("selector should return a borrowed generation-bound slot handle");
+    assert_eq!(selected.archive_generation(), archive.generation());
+    assert_eq!(selected.archive_revision(), archive.revision());
+    assert_eq!(selected.slot().slot_id, "manual-new");
+    assert!(std::ptr::eq(
+        selected.slot(),
+        archive
+            .slot("manual-new")
+            .expect("selected slot should stay borrowed")
+    ));
+
     let explicit = archive
         .select_slot(RuntimeSessionSlotSelector::slot_id("autosave"))
         .expect("explicit slot id should resolve");
@@ -47,6 +84,33 @@ fn runtime_session_archive_selector_resolves_in_memory_slots() {
         Err(RuntimeSessionArchiveError::MissingSlot { slot_id })
             if slot_id == "<latest-updated tag=\"missing\">"
     ));
+}
+
+#[test]
+fn runtime_session_archive_updated_indexes_break_ties_by_slot_id() {
+    let source = World::empty();
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "tie-a", "manual", 50),
+        tagged_slot(&source, "tie-z", "manual", 50),
+    ])
+    .expect("archive should validate updated-index tie fixtures");
+
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::oldest_updated())
+            .expect("oldest tie should resolve from the updated index")
+            .selected_slot_id,
+        "tie-a"
+    );
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::latest_updated_with_tag(
+                "manual"
+            ))
+            .expect("latest tagged tie should resolve from the updated tag index")
+            .selected_slot_id,
+        "tie-z"
+    );
 }
 
 #[test]
@@ -198,6 +262,61 @@ fn runtime_session_archive_selected_metadata_update_targets_resolved_slot() {
             .metadata
             .tags,
         vec!["manual"]
+    );
+
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::latest_updated_with_tag(
+                "manual"
+            ))
+            .expect("metadata update must refresh the manual tag index")
+            .selected_slot_id,
+        "manual-new"
+    );
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::latest_updated_with_tag(
+                "archived"
+            ))
+            .expect("metadata update must publish the archived tag index")
+            .selected_slot_id,
+        "manual-old"
+    );
+}
+
+#[test]
+fn runtime_session_archive_live_slot_indexes_follow_rename_and_remove() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "manual-old", "manual", 10),
+        tagged_slot(&source, "manual-new", "manual", 50),
+    ])
+    .expect("archive should validate live index fixture slots");
+
+    archive
+        .rename_slot("manual-new", "manual-current")
+        .expect("rename should update the live slot id index");
+    assert!(archive.slot("manual-new").is_none());
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::latest_updated_with_tag(
+                "manual"
+            ))
+            .expect("rename must preserve the tag index row")
+            .selected_slot_id,
+        "manual-current"
+    );
+
+    assert!(archive.remove_slot("manual-current").is_some());
+    assert!(archive.slot("manual-current").is_none());
+    assert_eq!(
+        archive
+            .select_slot(RuntimeSessionSlotSelector::latest_updated_with_tag(
+                "manual"
+            ))
+            .expect("remove must retire the removed tag index row")
+            .selected_slot_id,
+        "manual-old"
     );
 }
 

@@ -1,11 +1,12 @@
-use crate::text::{
-    SharedTextLayoutSession, build_resolved_text_glyph_artifact,
-    register_resolved_text_glyph_artifact, text_style,
-};
 use crate::text::layout::{
     TextLineMetrics, line_metrics_with_provider,
     measure_text_size_with_provider as measure_backend_text_size_with_provider,
     measure_text_source_range_width_with_provider as measure_backend_text_source_range_width_with_provider,
+};
+use crate::text::{
+    SharedTextLayoutSession, TextDocumentKey, build_resolved_text_glyph_artifact,
+    build_resolved_text_glyph_artifact_with_shared_source, register_resolved_text_glyph_artifact,
+    text_style,
 };
 use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
@@ -29,14 +30,20 @@ mod rich_inline;
 mod rich_inline_vertical;
 mod rich_table;
 mod vertical;
+mod viewport;
 mod visual_order;
 mod wrapping;
 
+use super::resolved_layout::UiTextViewport;
 use ellipsis::{
     ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
-use line_box::{MIN_TEXT_FONT_SIZE, aligned_x, resolve_line_widths_with_provider, text_advance};
+use line_box::{
+    MIN_TEXT_FONT_SIZE, aligned_x, available_wrap_extent,
+    materialize_arabic_tatweels_for_justified_line, resolve_line_widths_with_provider,
+};
+use viewport::visible_plain_text_lines;
 use wrapping::wrap_source_runs_with_provider;
 
 pub(crate) use direction::resolve_direction as resolve_text_direction;
@@ -79,6 +86,36 @@ pub(crate) fn measure_text_size_with_provider(
     measure_backend_text_size_with_provider(parsed.text(), &text_style(style), provider).into()
 }
 
+pub(crate) fn measure_unwrapped_text_height(text: &str, style: &UiResolvedStyle) -> Option<f32> {
+    let mut session = SharedTextLayoutSession::new();
+    measure_unwrapped_text_height_with_provider(text, style, &mut session)
+}
+
+pub(crate) fn measure_unwrapped_text_height_with_provider(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut SharedTextLayoutSession,
+) -> Option<f32> {
+    if text.is_empty()
+        || !matches!(
+            style.rich_text_format,
+            zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
+        )
+        || !matches!(style.wrap, UiTextWrap::None)
+        || !matches!(style.text_overflow, UiTextOverflow::Clip)
+        || matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
+    {
+        return None;
+    }
+
+    let line_height = line_metrics_with_provider(&text_style(style), provider).line_height;
+    let line_count = provider
+        .hard_line_count_and_window(text, None, 0..0)
+        .0
+        .max(1) as f32;
+    Some(line_height * line_count)
+}
+
 pub(crate) fn measure_text_source_range_width(
     text: &str,
     style: &UiResolvedStyle,
@@ -111,8 +148,89 @@ pub(crate) fn layout_text_with_provider(
     clip_frame: Option<UiFrame>,
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
+    layout_text_with_provider_and_optional_viewport(
+        text, style, frame, clip_frame, None, None, provider,
+    )
+}
+
+pub(crate) fn layout_text_with_viewport(
+    text: &str,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: UiTextViewport,
+) -> UiResolvedTextLayout {
+    let mut provider = SharedTextLayoutSession::new();
+    layout_text_with_provider_and_optional_viewport(
+        text,
+        style,
+        frame,
+        clip_frame,
+        Some(viewport),
+        None,
+        &mut provider,
+    )
+}
+
+pub(crate) fn layout_text_with_provider_and_viewport(
+    text: &str,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: UiTextViewport,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
+    layout_text_with_provider_and_optional_viewport(
+        text,
+        style,
+        frame,
+        clip_frame,
+        Some(viewport),
+        document_key,
+        provider,
+    )
+}
+
+fn layout_text_with_provider_and_optional_viewport(
+    text: &str,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: Option<UiTextViewport>,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     let parsed = parse_source_text(text, style.rich_text_format.into());
-    let mut layout = layout_parsed_text_with_provider(&parsed, style, frame, clip_frame, provider);
+    layout_parsed_text_with_provider_and_viewport(
+        &parsed,
+        style,
+        frame,
+        clip_frame,
+        viewport,
+        document_key,
+        provider,
+    )
+}
+
+pub(super) fn layout_parsed_text_with_provider_and_viewport(
+    parsed: &super::rich_text::UiParsedText,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: Option<UiTextViewport>,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
+    let mut layout = layout_parsed_text_without_artifacts_with_viewport(
+        parsed,
+        style,
+        frame,
+        clip_frame,
+        viewport,
+        document_key,
+        provider,
+    );
     if !matches!(
         style.rich_text_format,
         zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
@@ -120,9 +238,16 @@ pub(crate) fn layout_text_with_provider(
         layout.rich_text_artifact = Some(register_compiled_rich_text_artifact(Arc::clone(
             &parsed.rich,
         )));
-    } else if let Some(artifact) =
+    } else if let Some(artifact) = if viewport.is_some() && parsed.source_offset() == 0 {
+        build_resolved_text_glyph_artifact_with_shared_source(
+            parsed.rich.shared_text(),
+            style,
+            &layout,
+            provider,
+        )
+    } else {
         build_resolved_text_glyph_artifact(parsed.text(), style, &layout, provider)
-    {
+    } {
         layout.rich_text_artifact = Some(register_resolved_text_glyph_artifact(Arc::new(artifact)));
     }
     layout
@@ -135,12 +260,34 @@ pub(super) fn layout_parsed_text_with_provider(
     clip_frame: Option<UiFrame>,
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
+    layout_parsed_text_with_provider_and_viewport(
+        parsed, style, frame, clip_frame, None, None, provider,
+    )
+}
+
+fn layout_parsed_text_without_artifacts_with_viewport(
+    parsed: &super::rich_text::UiParsedText,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: Option<UiTextViewport>,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     if let Some(layout) =
         rich_table::layout_rich_tables_with_provider(parsed, style, frame, clip_frame, provider)
     {
         return layout;
     }
-    layout_parsed_text_without_tables_with_provider(parsed, style, frame, clip_frame, provider)
+    layout_parsed_text_without_tables_with_viewport(
+        parsed,
+        style,
+        frame,
+        clip_frame,
+        viewport,
+        document_key,
+        provider,
+    )
 }
 
 pub(super) fn layout_parsed_text_without_tables_with_provider(
@@ -148,6 +295,20 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
+    layout_parsed_text_without_tables_with_viewport(
+        parsed, style, frame, clip_frame, None, None, provider,
+    )
+}
+
+fn layout_parsed_text_without_tables_with_viewport(
+    parsed: &super::rich_text::UiParsedText,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: Option<UiTextViewport>,
+    document_key: Option<TextDocumentKey>,
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
     let visible_text = parsed.text();
@@ -170,18 +331,61 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
         return layout;
     }
     let source_runs = &parsed.runs;
-    let max_width = frame.width.max(text_advance(font_size));
+    let max_width = available_wrap_extent(frame.width);
     let block_layout = paragraph_layout::has_block_layout(&parsed);
-    let mut lines = if block_layout {
-        paragraph_layout::wrap_block_paragraphs_with_provider(&parsed, style, frame.width, provider)
+    let (mut lines, line_index_offset, total_line_count, virtualized) = viewport
+        .and_then(|viewport| {
+            visible_plain_text_lines(
+                &parsed,
+                style,
+                viewport,
+                line_height,
+                document_key,
+                provider,
+            )
+        })
+        .map(|window| {
+            (
+                window.lines,
+                window.first_line,
+                window.total_line_count,
+                true,
+            )
+        })
+        .unwrap_or_else(|| {
+            let lines = if block_layout {
+                paragraph_layout::wrap_block_paragraphs_with_provider(
+                    &parsed, style, max_width, provider,
+                )
+            } else {
+                wrap_source_runs_with_provider(source_runs, style.wrap, max_width, style, provider)
+            };
+            let total_line_count = lines.len();
+            (lines, 0, total_line_count, false)
+        });
+    let line_constraints = if block_layout {
+        paragraph_layout::resolve_paragraph_line_constraints_with_provider(
+            &parsed,
+            style,
+            frame.width,
+            provider,
+        )
+        .for_candidates(&lines)
     } else {
-        wrap_source_runs_with_provider(source_runs, style.wrap, max_width, style, provider)
+        vec![
+            paragraph_layout::LineConstraints {
+                inset: 0.0,
+                max_width: frame.width.max(0.0),
+                align: style.text_align,
+            };
+            lines.len()
+        ]
     };
     let clip = clip_frame.unwrap_or(frame);
     let line_capacity = (frame.height.max(line_height) / line_height)
         .floor()
         .max(1.0) as usize;
-    let mut overflow_clipped = lines.len() > line_capacity;
+    let mut overflow_clipped = total_line_count > line_capacity;
     if is_ellipsis_overflow(style.text_overflow) && overflow_clipped {
         if matches!(
             style.text_overflow,
@@ -191,9 +395,7 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
         }
         lines.truncate(line_capacity);
         let last_index = lines.len().saturating_sub(1);
-        let available_width =
-            block_line_constraints(&parsed, style, frame.width, &lines, last_index, provider)
-                .max_width;
+        let available_width = line_constraints[last_index].max_width;
         if let Some(last) = lines.last_mut() {
             ellipsize_line_with_provider(
                 last,
@@ -206,9 +408,7 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
     }
     if is_ellipsis_overflow(style.text_overflow) {
         for index in 0..lines.len() {
-            let available_width =
-                block_line_constraints(&parsed, style, frame.width, &lines, index, provider)
-                    .max_width;
+            let available_width = line_constraints[index].max_width;
             let line = &mut lines[index];
             if !line.ellipsized
                 && line_overflows_horizontally_with_provider(line, available_width, style, provider)
@@ -224,16 +424,30 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
             }
         }
     }
+    for index in 0..lines.len() {
+        let line_index = line_index_offset.saturating_add(index);
+        let is_last_line = line_index.saturating_add(1) == total_line_count;
+        let constraints = line_constraints[index];
+        let mut line_style = style.clone();
+        line_style.text_align = constraints.align;
+        materialize_arabic_tatweels_for_justified_line(
+            &mut lines[index],
+            &line_style,
+            constraints.max_width,
+            is_last_line,
+            provider,
+        );
+    }
     for line in &mut lines {
         visual_order::apply_visual_order(line, visible_text, direction);
     }
 
     let mut resolved_lines = Vec::new();
     for (index, line) in lines.iter().enumerate() {
-        let y = frame.y + index as f32 * line_height;
-        let is_last_line = index + 1 == lines.len();
-        let constraints =
-            block_line_constraints(&parsed, style, frame.width, &lines, index, provider);
+        let line_index = line_index_offset.saturating_add(index);
+        let y = frame.y + line_index as f32 * line_height;
+        let is_last_line = line_index.saturating_add(1) == total_line_count;
+        let constraints = line_constraints[index];
         let line_align = constraints.align;
         let mut line_style = style.clone();
         line_style.text_align = line_align;
@@ -277,7 +491,11 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
         .iter()
         .map(|line| line.measured_width)
         .fold(0.0_f32, f32::max);
-    let measured_height = resolved_lines.len() as f32 * line_height;
+    let measured_height = if virtualized {
+        total_line_count as f32 * line_height
+    } else {
+        resolved_lines.len() as f32 * line_height
+    };
     UiResolvedTextLayout {
         text_align: style.text_align,
         wrap: style.wrap,
@@ -298,32 +516,6 @@ pub(super) fn layout_parsed_text_without_tables_with_provider(
         editable: None,
         rich_text_artifact: None,
     }
-}
-
-fn block_line_constraints(
-    parsed: &super::rich_text::UiParsedText,
-    style: &UiResolvedStyle,
-    frame_width: f32,
-    lines: &[candidate_line::CandidateLine],
-    index: usize,
-    provider: &mut SharedTextLayoutSession,
-) -> paragraph_layout::LineConstraints {
-    let line = &lines[index];
-    let paragraph_start =
-        paragraph_layout::physical_paragraph_start(parsed.text(), line.source_range.start);
-    let first_physical_line = index == 0
-        || paragraph_layout::physical_paragraph_start(
-            parsed.text(),
-            lines[index - 1].source_range.start,
-        ) != paragraph_start;
-    paragraph_layout::line_constraints_with_provider(
-        parsed,
-        style,
-        frame_width,
-        line.source_range.start,
-        first_physical_line,
-        provider,
-    )
 }
 
 fn resolve_overflow_style_with_provider(

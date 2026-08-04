@@ -1,6 +1,6 @@
 use super::config::RenderBackendConfig;
 use crate::rhi::{RenderAdapterInfo, RenderBackendCaps, RenderDeviceLimits};
-use crate::rhi_wgpu::wgpu_backend_caps;
+use zr_rhi_wgpu::wgpu_backend_caps;
 
 pub(crate) struct RenderBackend {
     pub(crate) instance: wgpu::Instance,
@@ -47,6 +47,10 @@ impl RenderBackend {
             max_texture_array_layers: device_limits.max_texture_array_layers,
             max_sampled_textures_per_shader_stage: device_limits
                 .max_sampled_textures_per_shader_stage,
+            max_binding_array_elements_per_shader_stage: device_limits
+                .max_binding_array_elements_per_shader_stage,
+            max_binding_array_sampler_elements_per_shader_stage: device_limits
+                .max_binding_array_sampler_elements_per_shader_stage,
             max_storage_buffers_per_shader_stage: device_limits
                 .max_storage_buffers_per_shader_stage,
             max_storage_buffer_binding_size: u64::from(

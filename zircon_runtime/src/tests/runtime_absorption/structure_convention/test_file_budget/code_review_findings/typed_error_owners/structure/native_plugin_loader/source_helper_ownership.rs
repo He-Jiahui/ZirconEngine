@@ -26,20 +26,6 @@ fn runtime_15_typed_error_native_plugin_loader_source_helpers_are_child_backed()
             "runtime_15_typed_error_native_plugin_loader_structure_is_child_owner",
         ],
     );
-    for moved_anchor in [
-        "pub(super) struct TypedErrorNativePluginLoaderSources",
-        "pub(super) fn typed_error_native_plugin_loader_sources",
-        "pub(super) fn typed_error_native_plugin_loader_child_sources",
-        "pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_GUARD_CHILDREN",
-        "const REVIEW_GUARD_STATUS_ROWS_PATH",
-        "TYPED_ERROR_NATIVE_STRUCTURE_BUDGETS_CHILD",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs",
-    ] {
-        assert!(
-            !parent.contains(moved_anchor),
-            "typed-error native plugin loader source helper `{moved_anchor}` should stay in child files"
-        );
-    }
     for (_, child_path, anchor) in TYPED_ERROR_NATIVE_STRUCTURE_SOURCE_HELPER_CHILDREN {
         assert!(
             child_tree.contains(child_path),

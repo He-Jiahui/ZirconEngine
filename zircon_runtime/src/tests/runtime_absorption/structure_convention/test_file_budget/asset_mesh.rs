@@ -17,9 +17,6 @@ fn runtime_15_asset_mesh_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let render_asset_doc = read_repo("docs/zircon_runtime/asset/render-assets.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
-    );
 
     assert_contains_all(
         "asset mesh parent test module mounts",
@@ -156,29 +153,6 @@ fn runtime_15_asset_mesh_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("render asset doc", render_asset_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 asset mesh test root split",
-                "runtime_15_asset_mesh_tests_root_split_static_passed_cargo_deferred",
-                "asset/tests/assets/mesh.rs",
-                "asset/tests/assets/mesh/document_roundtrip.rs",
-                "asset/tests/assets/mesh/conversion_import.rs",
-                "runtime_15_asset_mesh_tests_are_folder_backed",
-            ],
         );
     }
 }

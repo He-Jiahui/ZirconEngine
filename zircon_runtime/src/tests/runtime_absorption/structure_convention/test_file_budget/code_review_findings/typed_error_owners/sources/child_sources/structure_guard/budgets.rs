@@ -9,11 +9,6 @@ pub(in super::super) fn assert_typed_error_source_inventory_child_sources_struct
         read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_CHILD),
     )];
     budget_sources.extend(
-        TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_CHILDREN
-            .iter()
-            .map(|(_, path, _)| (*path, read_runtime_src(path))),
-    );
-    budget_sources.extend(
         TYPED_ERROR_SOURCE_INVENTORY_CHILD_SOURCES_STRUCTURE_GUARD_CHILDREN
             .iter()
             .map(|(_, path, _)| (*path, read_runtime_src(path))),

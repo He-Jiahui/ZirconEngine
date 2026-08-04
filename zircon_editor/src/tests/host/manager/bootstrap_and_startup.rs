@@ -2,9 +2,12 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use crate::core::plugin::EditorPluginState;
-use crate::core::project::{NewProjectDraft, NewProjectTemplate, RecentProjectValidation};
-use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::core::project::{
+    NewProjectDraft, NewProjectTemplate, ProjectAuthority, RecentProjectValidation,
+    StoredRecentProjectEntry, StoredStartupSession,
+};
 use crate::ui::host::EditorManager;
+use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
     ActivityWindowId, ActivityWindowLayout, DocumentNode, MainHostPageLayout, MainPageId,
@@ -615,6 +618,65 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
     let _ = fs::remove_dir_all(location);
+}
+
+#[test]
+fn restored_legacy_manifest_recent_path_is_migrated_to_the_project_root() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_startup_manifest_recent_migration");
+    let project_root = unique_temp_dir("zircon_editor_startup_manifest_recent_project");
+    create_project_with_default_world(&project_root);
+    let manifest_path = project_root.join("zircon-project.toml");
+    let manifest_path_string = manifest_path.to_string_lossy().into_owned();
+    let summary = ProjectAuthority::default()
+        .probe_project(&manifest_path)
+        .unwrap()
+        .summary()
+        .clone();
+    let runtime = editor_runtime_with_config_path(&path);
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
+    let legacy_session = StoredStartupSession {
+        last_project_path: Some(manifest_path_string.clone()),
+        recent_projects: vec![StoredRecentProjectEntry {
+            summary,
+            path: manifest_path_string,
+            last_opened_unix_ms: 42,
+        }],
+    };
+    config
+        .set_value(
+            "editor.startup.session",
+            serde_json::to_value(&legacy_session).unwrap(),
+        )
+        .unwrap();
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let restored = manager.resolve_startup_session().unwrap();
+    let saved = ProjectAuthority::default()
+        .decode_startup_session(serde_json::Value::from(
+            config
+                .get_value("editor.startup.session")
+                .expect("restored session must be saved"),
+        ))
+        .unwrap();
+    let project_root = project_root.to_string_lossy().into_owned();
+
+    assert_eq!(restored.mode, EditorSessionMode::Project);
+    assert_eq!(restored.recent_projects.len(), 1);
+    assert_eq!(restored.recent_projects[0].path, project_root);
+    assert_eq!(
+        saved.last_project_path.as_deref(),
+        Some(project_root.as_str())
+    );
+    assert_eq!(saved.recent_projects.len(), 1);
+    assert_eq!(saved.recent_projects[0].path, project_root);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
 }
 
 #[test]

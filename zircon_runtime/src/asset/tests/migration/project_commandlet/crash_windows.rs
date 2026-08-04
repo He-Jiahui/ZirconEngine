@@ -62,12 +62,10 @@ fn write_legacy_material(
 }
 
 fn assert_transaction_artifacts_cleared(root: &std::path::Path, owner: &std::path::Path) {
-    assert!(
-        !fs::read_dir(owner)
-            .unwrap()
-            .filter_map(Result::ok)
-            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
-    );
+    assert!(!fs::read_dir(owner)
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
     assert_eq!(
         fs::read_dir(root.join(".zircon/asset-migration"))
             .unwrap()
@@ -108,23 +106,24 @@ fn post_stage_pre_journal_activation_crash_is_detected_and_converges_on_apply() 
     ))
     .unwrap();
     assert!(!dry_run.succeeded());
-    assert!(
-        dry_run
-            .issues()
-            .iter()
-            .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery)
-    );
+    assert!(dry_run
+        .issues()
+        .iter()
+        .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery));
     assert_eq!(directory_snapshot(material.parent().unwrap()), before);
 
     let report =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();
     assert!(report.succeeded());
-    assert!(
-        fs::read_to_string(&material)
-            .unwrap()
-            .contains("kind = \"project\"")
+    assert_eq!(
+        report.metrics().entry_visits(),
+        3,
+        "the published post-recovery inventory must exclude cleared stage and backup artifacts"
     );
+    assert!(fs::read_to_string(&material)
+        .unwrap()
+        .contains("kind = \"project\""));
     assert_transaction_artifacts_cleared(&root, material.parent().unwrap());
     fs::remove_dir_all(root).unwrap();
 }

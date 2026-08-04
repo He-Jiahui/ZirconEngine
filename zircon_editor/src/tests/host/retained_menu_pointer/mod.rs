@@ -27,5 +27,6 @@ mod surface_contract;
 mod surface_media_visual_screenshot;
 mod tooltip_visual_screenshot;
 mod transform_visual_screenshot;
+mod viewport_scene_visual_screenshot;
 mod visual_screenshot;
 mod welcome_visual_screenshot;

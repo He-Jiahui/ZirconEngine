@@ -25,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
     let style = popup_row_text_command_style(color, &metrics);
     let text_rect = popup_row_label_rect(row_rect, &metrics, adornment.is_some());
     if !frame_is_within(row_rect, &text_rect)
-        || !frame_is_within(clip, &text_rect)
+        || intersect(&text_rect, clip).is_none()
         || text_rect.height < style.line_height
     {
         return;

@@ -3,6 +3,8 @@ use crate::ui::retained_host::primitives::{Color, Image};
 // Projection bundle for value-oriented retained-host fields.
 pub(in super::super) struct ProjectedValueMedia {
     pub(in super::super) value_text: String,
+    pub(in super::super) has_clear_action: bool,
+    pub(in super::super) layout_stepper: bool,
     pub(in super::super) value_number: f64,
     pub(in super::super) value_percent: f32,
     pub(in super::super) value_color: Color,

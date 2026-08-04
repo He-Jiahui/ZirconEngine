@@ -1,5 +1,8 @@
 Set-StrictMode -Version Latest
 
+$projectOpenEvidenceRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+Import-Module (Join-Path $projectOpenEvidenceRepoRoot 'tools\WindowsPathResolver.psm1') -ErrorAction Stop
+
 function Get-MvpProjectOpenEvidenceValue {
     param(
         [Parameter(Mandatory)]$Value,
@@ -74,11 +77,13 @@ function Get-MvpProjectOpenRelativePath {
         [Parameter(Mandatory)][string]$ProjectRoot
     )
 
-    $resolvedStagingRoot = [IO.Path]::GetFullPath($StagingRoot).TrimEnd([char[]]@('\', '/'))
-    $resolvedProjectRoot = [IO.Path]::GetFullPath($ProjectRoot)
+    $stagingResolution = Resolve-ZirconWindowsPath -Path $StagingRoot
+    $projectResolution = Resolve-ZirconWindowsPath -Path $ProjectRoot
+    $resolvedStagingRoot = $stagingResolution.OperationalPath.TrimEnd([char[]]@('\', '/'))
+    $resolvedProjectRoot = $projectResolution.OperationalPath
     $prefix = $resolvedStagingRoot + [IO.Path]::DirectorySeparatorChar
     if (-not $resolvedProjectRoot.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Editor project-open diagnostic project root '$resolvedProjectRoot' escapes staging root '$resolvedStagingRoot'."
+        throw "Editor project-open diagnostic project root '$($projectResolution.DisplayPath)' escapes staging root '$($stagingResolution.DisplayPath)'."
     }
     return $resolvedProjectRoot.Substring($prefix.Length).Replace('\', '/')
 }
@@ -106,15 +111,16 @@ function Get-MvpEditorProjectOpenEvidence {
     $reportedProjectRoot = ConvertFrom-MvpProjectOpenDiagnosticToken `
         -Value (Get-MvpProjectOpenDiagnosticToken -Diagnostic $diagnostic -Name 'project_root') `
         -Name 'project_root'
-    $expectedProjectRoot = if ([string]::IsNullOrWhiteSpace($ExpectedProjectRoot)) {
-        [IO.Path]::GetFullPath($ProjectRoot)
+    $expectedProjectRootInput = if ([string]::IsNullOrWhiteSpace($ExpectedProjectRoot)) {
+        $ProjectRoot
     }
     else {
-        [IO.Path]::GetFullPath($ExpectedProjectRoot)
+        $ExpectedProjectRoot
     }
-    $resolvedReportedProjectRoot = [IO.Path]::GetFullPath($reportedProjectRoot)
+    $expectedProjectRoot = (Resolve-ZirconWindowsPath -Path $expectedProjectRootInput).OperationalPath
+    $resolvedReportedProjectRoot = (Resolve-ZirconWindowsPath -Path $reportedProjectRoot).OperationalPath
     if (-not $resolvedReportedProjectRoot.Equals($expectedProjectRoot, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Editor project-open diagnostic project_root '$reportedProjectRoot' differs from staged project '$expectedProjectRoot'."
+        throw "Editor project-open diagnostic project_root '$reportedProjectRoot' differs from staged project '$expectedProjectRootInput'."
     }
 
     $manifestIdentity = ConvertFrom-MvpProjectOpenDiagnosticToken `

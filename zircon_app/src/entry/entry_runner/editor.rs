@@ -22,7 +22,7 @@ use zircon_editor::{
     RuntimeCapabilities, SessionProfileKind, EDITOR_MANAGER_NAME,
 };
 #[cfg(feature = "target-editor-host")]
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime::core::math::UVec2;
 #[cfg(feature = "target-editor-host")]
@@ -126,7 +126,7 @@ impl EntryRunner {
             {
                 let requested_automation = format!(
                     "project_automation:project={}",
-                    automation.project_root.display()
+                    ProjectPaths::display_path(&automation.project_root).display()
                 );
                 let report = project_automation::execute_project_automation(
                     automation.project_root,
@@ -565,7 +565,10 @@ fn editor_host_startup_request(request: Option<&EditorGuiStartupRequest>) -> Str
             format!("builtin_view:{descriptor_id}")
         }
         Some(EditorGuiStartupRequest::OpenProject { project_path }) => {
-            format!("project:{}", project_path.display())
+            format!(
+                "project:{}",
+                ProjectPaths::display_path(project_path).display()
+            )
         }
         Some(EditorGuiStartupRequest::CreateProject(_)) => "project:create".to_string(),
         None => "workspace:welcome".to_string(),

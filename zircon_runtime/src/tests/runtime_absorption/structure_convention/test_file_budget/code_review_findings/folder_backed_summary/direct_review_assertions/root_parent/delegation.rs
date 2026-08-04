@@ -44,10 +44,8 @@ fn runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner
             ROOT_PARENT_DIRECT_ASSERTIONS_PARENT_MOUNTS_CHILD,
             ROOT_PARENT_DIRECT_ASSERTIONS_BACKFLOW_CHILD,
             ROOT_PARENT_DIRECT_ASSERTIONS_BUDGETS_CHILD,
-            ROOT_PARENT_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD,
             "runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner",
             ROOT_PARENT_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            ROOT_PARENT_DIRECT_ASSERTIONS_STATUS_GUARD,
         ],
     );
     assert_contains_all(

@@ -64,9 +64,9 @@ mod tests {
             .any(|contribution| contribution.asset_type().as_str() == EXPORT_PROFILE_ASSET_KIND));
         assert!(registration
             .extensions
-            .component_drawers()
+            .inspector_customizations()
             .iter()
-            .any(|drawer| drawer.component_type() == EXPORT_PROFILE_COMPONENT));
+            .any(|customization| customization.target_type() == EXPORT_PROFILE_COMPONENT));
     }
 
     #[test]
@@ -281,11 +281,14 @@ mod tests {
 
         let profile_drawer = registration
             .extensions
-            .component_drawers()
+            .inspector_customizations()
             .into_iter()
-            .find(|drawer| drawer.component_type() == EXPORT_PROFILE_COMPONENT)
-            .expect("desktop export profile drawer");
-        assert_eq!(profile_drawer.ui_document(), EXPORT_PROFILE_DRAWER_DOCUMENT);
+            .find(|customization| customization.target_type() == EXPORT_PROFILE_COMPONENT)
+            .expect("desktop export profile customization");
+        assert_eq!(
+            profile_drawer.surface().ui_document(),
+            EXPORT_PROFILE_DRAWER_DOCUMENT
+        );
         assert_component_template_asset(EXPORT_PROFILE_DRAWER_DOCUMENT, "ExportProfileDrawer");
     }
 

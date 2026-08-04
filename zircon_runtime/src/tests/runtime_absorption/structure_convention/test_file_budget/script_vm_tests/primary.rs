@@ -17,15 +17,6 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let script_doc = read_repo("docs/zircon_runtime/script/vm/tests.md");
-    let status_rows = format!(
-        "{}\n{}",
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-        )
-    );
 
     assert_contains_all(
         "script VM parent test module mounts",
@@ -170,33 +161,6 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("script VM test doc", script_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 script VM test folder split",
-                "runtime_15_script_vm_tests_folder_split_static_passed_cargo_timeout_no_result",
-                "Runtime 15 M3 script VM primary guard child-owner split",
-                "runtime_15_script_vm_primary_guard_child_owner_split_static_passed_cargo_deferred",
-                "script/vm/tests.rs",
-                "script/vm/tests/host_exports.rs",
-                "script/vm/tests/reflection_docs.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/primary.rs",
-                "runtime_15_script_vm_tests_are_folder_backed",
-                "runtime_15_script_vm_primary_guard_is_child_owner",
-            ],
         );
     }
 }

@@ -522,6 +522,12 @@ mod tests {
 }
 
 impl<'a> RenderPassPostProcessStackContext<'a> {
+    pub(in crate::graphics::scene::scene_renderer) fn post_process(
+        &self,
+    ) -> &'a ScenePostProcessResources {
+        self.post_process
+    }
+
     pub(super) fn hybrid_gi_history_available(self) -> bool {
         self.history_textures
             .is_some_and(SceneFrameHistoryTextures::global_illumination_history_valid)

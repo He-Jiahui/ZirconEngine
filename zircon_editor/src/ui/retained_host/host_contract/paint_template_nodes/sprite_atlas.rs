@@ -29,7 +29,7 @@ struct AtlasResolution {
     uv: HostPaintImageUvRect,
 }
 
-pub(in crate::ui::retained_host) fn invalidate_editor_sprite_atlas_cache() {
+pub(crate) fn invalidate_editor_sprite_atlas_cache() {
     if let Some(cache) = ATLAS_RESOLUTION_CACHE.get() {
         cache
             .lock()
@@ -40,7 +40,7 @@ pub(in crate::ui::retained_host) fn invalidate_editor_sprite_atlas_cache() {
     image::clear_atlas_rgba_cache();
 }
 
-pub(in crate::ui::retained_host) fn copy_editor_sprite_atlas_rgba(
+pub(crate) fn copy_editor_sprite_atlas_rgba(
     resource_key: &str,
     generation: u64,
 ) -> Option<Vec<u8>> {
@@ -63,6 +63,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
         resource_generation: decoded.generation,
         width: resolved.width,
         height: resolved.height,
+        rgba: None,
         uv: resolved.uv,
     })
 }

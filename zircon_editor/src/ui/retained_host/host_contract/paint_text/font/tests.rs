@@ -145,6 +145,25 @@ fn host_font_cache_key_includes_collection_index_for_collection_faces() {
 }
 
 #[test]
+fn host_font_cache_key_distinguishes_distinct_font_bytes_with_the_same_shape() {
+    let request = HostTextFontRequest {
+        face: HostTextFontFace::Ui,
+        family: "DengXian".to_string(),
+        weight: 400,
+    };
+    let first = [0x00, 0x11, 0xFF];
+    let second = [0x00, 0x22, 0xFF];
+
+    let first_key = host_text_font_cache_key(&request, "DengXian", &first, 0);
+    let second_key = host_text_font_cache_key(&request, "DengXian", &second, 0);
+
+    assert_ne!(
+        first_key, second_key,
+        "glyph caches must distinguish distinct font payloads even when their length and edges match"
+    );
+}
+
+#[test]
 fn runtime_text_style_for_face_projects_resolved_font_family() {
     let style = runtime_text_style_for_face(
         HostTextFontFace::UiStrong,

@@ -18,11 +18,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_t
         .map(|icon| icon.x + icon.width + metrics.text_gap)
         .unwrap_or(rect.x + metrics.icon_left);
     let text_right = rect.x + rect.width - metrics.text_right_inset;
+    let multiline_height = (rect.height - metrics.text_vertical_inset * 2.0).max(0.0);
+    let uses_multiline_band = multiline_height >= metrics.line_height * 2.0;
     (text_right > text_left).then(|| FrameRect {
         x: text_left,
-        y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,
+        y: if uses_multiline_band {
+            rect.y + metrics.text_vertical_inset
+        } else {
+            rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5
+        },
         width: text_right - text_left,
-        height: metrics.line_height,
+        height: if uses_multiline_band {
+            multiline_height
+        } else {
+            metrics.line_height
+        },
     })
 }
 
@@ -84,5 +94,23 @@ mod tests {
         assert_eq!(compact_icon.y, 7.5);
         assert_eq!(compact_icon.width, 4.0);
         assert_eq!(compact_icon.height, 4.0);
+    }
+
+    #[test]
+    fn tall_alert_allocates_a_relative_multiline_content_band() {
+        let metrics = super::super::metrics::alert_metrics_from_host(METRICS);
+        let rect = FrameRect {
+            x: 5.0,
+            y: 7.0,
+            width: 200.0,
+            height: metrics.line_height * 3.0,
+        };
+
+        let text =
+            alert_text_rect(&rect, None, metrics).expect("a tall alert has a text content band");
+
+        assert!(text.height >= metrics.line_height * 2.0);
+        assert!(text.y > rect.y);
+        assert!(text.y + text.height < rect.y + rect.height);
     }
 }

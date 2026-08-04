@@ -11,7 +11,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
 };
 
-use super::{commands_for_extract_item, PendingMeshCommandCacheExtractItem};
+use super::{PendingMeshCommandCacheExtractItem, commands_for_extract_item};
 
 #[test]
 fn pending_command_cache_extract_defers_rebuild_batch_on_full_hit() {

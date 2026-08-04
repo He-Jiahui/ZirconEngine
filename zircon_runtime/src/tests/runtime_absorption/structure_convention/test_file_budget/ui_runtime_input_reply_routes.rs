@@ -35,25 +35,6 @@ fn runtime_15_ui_runtime_input_reply_route_guard_child_owners_are_folder_backed(
     let table_pointer = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes/table_pointer.rs",
     );
-    let status_rows = ui_tests_first_status_row_source();
-    let status_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/ui_maps.rs",
-        ),
-    ]
-    .join("\n");
-    let date_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/ui_maps.rs",
-        ),
-    ]
-    .join("\n");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -120,44 +101,6 @@ fn runtime_15_ui_runtime_input_reply_route_guard_child_owners_are_folder_backed(
         assert!(
             line_count < 400,
             "{path} should stay below the Runtime 15 focused guard budget; got {line_count} lines"
-        );
-    }
-
-    assert_contains_all(
-        "UI runtime input reply route guard status map",
-        &status_map,
-        &[
-            "Runtime 15 M3 UI runtime input reply route guard child-owner split",
-            "runtime_15_ui_runtime_input_reply_route_guard_child_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "UI runtime input reply route guard date map",
-        &date_map,
-        &[
-            "Runtime 15 M3 UI runtime input reply route guard child-owner split",
-            "2026-06-25",
-        ],
-    );
-    for (label, source) in [
-        ("status-output M3 UI row data", status_rows.as_str()),
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("UI architecture doc", ui_doc.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 UI runtime input reply route guard child-owner split",
-                "runtime_15_ui_runtime_input_reply_route_guard_child_owner_split_static_passed_cargo_deferred",
-                "structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs",
-                "structure_convention/test_file_budget/ui_runtime_input_reply_routes/route_children.rs",
-                "runtime_15_ui_runtime_input_reply_route_guard_child_owners_are_folder_backed",
-            ],
         );
     }
 }

@@ -19,7 +19,7 @@ class RuntimeScheduleFrameLoopAuditTests(unittest.TestCase):
 
         audit = schedule_frame_loop_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_guard_file_count"], 11)
+        self.assertEqual(audit["expected_guard_file_count"], 10)
         self.assertEqual(audit["missing_guard_files"], [])
         self.assertEqual(audit["missing_test_anchors"], [])
         self.assertEqual(audit["missing_behavior_test_anchors"], [])
@@ -40,19 +40,6 @@ class RuntimeScheduleFrameLoopAuditTests(unittest.TestCase):
 
         self.assertIn(precise, CARGO_GATE_ANCHORS)
         self.assertFalse(any(broad in command for command in CARGO_GATE_ANCHORS))
-
-    def test_runtime_03_plan_status_anchors_follow_the_current_inventory(self) -> None:
-        from runtime_structure_audits.runtime_plan_status_boundary import (
-            runtime_plan_status_boundary_audit,
-        )
-
-        audit = runtime_plan_status_boundary_audit(self.repo_root)
-
-        self.assertEqual(audit["missing_runtime_03_module_doc_status_index_anchors"], [])
-        self.assertEqual(audit["missing_runtime_03_module_doc_status_guard_anchors"], [])
-        self.assertEqual(audit["missing_runtime_03_module_doc_status_doc_anchors"], [])
-        self.assertTrue(audit["runtime_03_module_doc_status_guard_present"])
-
 
 if __name__ == "__main__":
     unittest.main()

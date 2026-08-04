@@ -12,6 +12,8 @@ const WELCOME_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
 const WELCOME_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
 const WELCOME_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
 const WELCOME_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
+const WELCOME_TOKENS_STYLE_ASSET_PATH: &str = "/assets/ui/editor/theme/editor_tokens.zui";
+const WELCOME_TOKENS_STYLE_ASSET_ID: &str = "res://ui/editor/theme/editor_tokens.zui";
 
 pub(crate) fn welcome_pane_nodes(size: UiSize) -> ModelRc<ViewTemplateNodeData> {
     model_rc(
@@ -23,6 +25,10 @@ pub(crate) fn welcome_pane_nodes(size: UiSize) -> ModelRc<ViewTemplateNodeData> 
                 (
                     WELCOME_MATERIAL_STYLE_ASSET_ID,
                     WELCOME_MATERIAL_STYLE_ASSET_PATH,
+                ),
+                (
+                    WELCOME_TOKENS_STYLE_ASSET_ID,
+                    WELCOME_TOKENS_STYLE_ASSET_PATH,
                 ),
             ],
             size,

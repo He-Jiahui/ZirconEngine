@@ -14,18 +14,10 @@ struct HzbDepthRange {
     closest: f32,
 };
 
-fn furthest_depth(a: f32, b: f32) -> f32 {
-    return max(a, b);
-}
-
-fn closest_depth(a: f32, b: f32) -> f32 {
-    return min(a, b);
-}
-
 fn combine_depth_ranges(a: HzbDepthRange, b: HzbDepthRange) -> HzbDepthRange {
     return HzbDepthRange(
-        furthest_depth(a.furthest, b.furthest),
-        closest_depth(a.closest, b.closest),
+        zr_reduce_max_f32(a.furthest, b.furthest),
+        zr_reduce_min_f32(a.closest, b.closest),
     );
 }
 

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 #[cfg(test)]
@@ -11,11 +11,14 @@ use crate::graphics::material::{
     builtin_shading_model_registry, shading_model_registry_with_plugin_descriptors,
     ShadingModelRegistry,
 };
+use crate::graphics::scene::scene_renderer::mip_gen::RuntimeMipGenPass;
 use crate::graphics::GraphicsError;
 use crate::plugin::ShaderModuleSourceBinding;
 
 use super::super::fallback::{create_fallback_normal_texture, create_fallback_texture};
-use super::super::{GpuMaterialUniformResource, OutputTargetWritebackConverter};
+use super::super::{
+    GpuMaterialUniformResource, OutputTargetWritebackConverter, TextureSamplerCache,
+};
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -87,6 +90,19 @@ impl ResourceStreamer {
         shading_model_registry: ShadingModelRegistry,
         shader_module_sources: BTreeMap<String, ShaderModuleSourceBinding>,
     ) -> Self {
+        let texture_sampler_cache = Arc::new(TextureSamplerCache::new());
+        let fallback_texture = Arc::new(create_fallback_texture(
+            device,
+            queue,
+            texture_layout,
+            Arc::clone(&texture_sampler_cache),
+        ));
+        let fallback_normal_texture = Arc::new(create_fallback_normal_texture(
+            device,
+            queue,
+            texture_layout,
+            Arc::clone(&texture_sampler_cache),
+        ));
         Self {
             asset_manager_access: asset_manager,
             shading_model_registry,
@@ -95,15 +111,16 @@ impl ResourceStreamer {
             meshes: HashMap::new(),
             materials: HashMap::new(),
             textures: HashMap::new(),
+            mip_streaming_states: HashMap::new(),
+            mip_streaming_visible_instance_keys: HashSet::new(),
+            mip_streaming_visibility: Vec::new(),
+            mip_streaming_residency_budget_bytes: u64::MAX,
             output_target_textures: HashMap::new(),
             post_process_lut_textures: HashMap::new(),
             shaders: HashMap::new(),
-            fallback_texture: Arc::new(create_fallback_texture(device, queue, texture_layout)),
-            fallback_normal_texture: Arc::new(create_fallback_normal_texture(
-                device,
-                queue,
-                texture_layout,
-            )),
+            texture_sampler_cache,
+            fallback_texture,
+            fallback_normal_texture,
             fallback_material_uniform: Arc::new(GpuMaterialUniformResource::from_payload(
                 device,
                 &RenderMaterialPropertyUniformPayload::default(),
@@ -111,6 +128,7 @@ impl ResourceStreamer {
             fallback_standard_material_uniform: Arc::new(
                 GpuMaterialUniformResource::fallback_standard_material(device),
             ),
+            runtime_mip_gen_pass: RuntimeMipGenPass::new(device),
             output_target_writeback_converter: OutputTargetWritebackConverter::new(device),
             last_material_count: 0,
             last_material_ready_count: 0,
@@ -185,7 +203,7 @@ impl ResourceStreamer {
 fn shader_module_source_map(
     sources: impl IntoIterator<Item = ShaderModuleSourceBinding>,
 ) -> Result<BTreeMap<String, ShaderModuleSourceBinding>, GraphicsError> {
-    let mut sources_by_import_path = BTreeMap::new();
+    let mut sources_by_import_path: BTreeMap<String, ShaderModuleSourceBinding> = BTreeMap::new();
     for source in sources {
         let actual_content_hash = blake3::hash(source.source.as_bytes()).to_hex().to_string();
         if source.content_hash != actual_content_hash {

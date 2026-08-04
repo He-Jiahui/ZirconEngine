@@ -82,7 +82,6 @@ pub(super) fn assert_typed_error_structure_subtree_is_child_owned(
             "#[path = \"structure/native_plugin_loader.rs\"]",
             "mod native_plugin_loader;",
             "fn runtime_15_typed_error_structure_assertions_children_are_child_owned",
-            "fn runtime_15_typed_error_structure_assertions_guard_folder_backed_status_is_current",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs",

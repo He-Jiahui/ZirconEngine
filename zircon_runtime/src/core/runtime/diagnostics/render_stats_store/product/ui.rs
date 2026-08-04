@@ -61,6 +61,13 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.ui.text.raster.visible_missing_image_count",
+        frame_index,
+        stats.last_ui_text_visible_missing_raster_image_count,
+        &["render", "ui", "text", "raster"],
+    );
+    record_count(
+        store,
         "render.ui.text.raster.visible_placeholder_count",
         frame_index,
         stats.last_ui_text_visible_raster_placeholder_count,

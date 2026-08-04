@@ -5,7 +5,9 @@ use zircon_runtime_interface::ui::surface::{
     UiResolvedTextLayout, UiResolvedTextLine, UiTextDirection, UiTextRange,
 };
 
-use crate::text::resolve_resolved_text_glyph_artifact;
+use crate::text::{
+    resolve_resolved_text_glyph_artifact, resolved_text_line_requires_visual_fallback,
+};
 
 use super::ScreenSpaceUiGlyphArtifactLine;
 
@@ -43,7 +45,7 @@ pub(super) fn logical_text_batches(
                         font_generation: artifact.font_generation,
                     }),
                 });
-            } else if line.ellipsized {
+            } else if resolved_text_line_requires_visual_fallback(line) {
                 append_visual_line_batch(&mut batches, line);
             } else {
                 return None;
@@ -51,7 +53,11 @@ pub(super) fn logical_text_batches(
         }
         return Some(batches);
     }
-    if layout.lines.iter().any(|line| !line.ellipsized) {
+    if layout
+        .lines
+        .iter()
+        .any(|line| !resolved_text_line_requires_visual_fallback(line))
+    {
         return None;
     }
     for line in &layout.lines {
@@ -82,7 +88,8 @@ mod tests {
         register_resolved_text_glyph_artifact,
     };
     use zircon_runtime_interface::ui::surface::{
-        UiResolvedStyle, UiResolvedTextLine, UiTextAlign, UiTextOverflow, UiTextWrap,
+        UiResolvedStyle, UiResolvedTextLine, UiResolvedTextRun, UiTextAlign, UiTextOverflow,
+        UiTextRunKind, UiTextWrap,
     };
 
     #[test]
@@ -121,6 +128,50 @@ mod tests {
         assert_eq!(batches.len(), 1);
         assert_eq!(batches[0].text, "ab…");
         assert_eq!(batches[0].source_range, UiTextRange { start: 0, end: 6 });
+    }
+
+    #[test]
+    fn virtual_source_run_keeps_its_synthetic_visual_text() {
+        let layout = UiResolvedTextLayout {
+            text_align: UiTextAlign::Justify,
+            wrap: UiTextWrap::None,
+            direction: UiTextDirection::RightToLeft,
+            writing_mode: UiTextWritingMode::HorizontalTb,
+            overflow: UiTextOverflow::Clip,
+            font_size: 12.0,
+            line_height: 14.0,
+            measured_width: 12.0,
+            measured_height: 14.0,
+            source_range: UiTextRange { start: 0, end: 2 },
+            lines: vec![UiResolvedTextLine {
+                text: "ـ".to_string(),
+                frame: UiFrame::new(4.0, 8.0, 12.0, 14.0),
+                source_range: UiTextRange { start: 0, end: 2 },
+                visual_range: UiTextRange { start: 0, end: 2 },
+                measured_width: 12.0,
+                glyph_advances: vec![12.0],
+                baseline: 10.0,
+                direction: UiTextDirection::RightToLeft,
+                runs: vec![UiResolvedTextRun {
+                    kind: UiTextRunKind::Plain,
+                    text: "ـ".to_string(),
+                    source_range: UiTextRange { start: 2, end: 2 },
+                    visual_range: UiTextRange { start: 0, end: 2 },
+                    direction: UiTextDirection::RightToLeft,
+                }],
+                ellipsized: false,
+            }],
+            boxes: Vec::new(),
+            overflow_clipped: false,
+            editable: None,
+            rich_text_artifact: None,
+        };
+
+        let batches = logical_text_batches(&layout).expect("virtual text uses visual fallback");
+
+        assert_eq!(batches.len(), 1);
+        assert_eq!(batches[0].text, "ـ");
+        assert!(batches[0].glyph_artifact_line.is_none());
     }
 
     #[test]

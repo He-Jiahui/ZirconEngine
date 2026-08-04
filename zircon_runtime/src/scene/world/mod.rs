@@ -39,6 +39,7 @@ pub use compiled_binding::{
 };
 pub use component_type_registry::ComponentTypeRegistry;
 pub use dynamic_components::DynamicComponentInstance;
+pub(in crate::scene) use dynamic_components::json_from_scene_property_value;
 pub use error::{SceneError, SceneResult};
 pub use project_io::SceneProjectError;
 pub use world::World;

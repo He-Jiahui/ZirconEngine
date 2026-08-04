@@ -64,3 +64,77 @@ Execution and evidence validation have separate owners, but the acceptance schem
 2026-08-02 current-source hardening further makes the immutable evidence boundary explicit. `Invoke-MvpAcceptance.ps1` now publishes a no-follow staging snapshot before validation and holds its identity through a snapshot lease. The lease pins the root and staged entries, creates exclusive delete-on-close markers for the root and each visited directory, revalidates root and child identities during traversal, and excludes those held markers from the archived evidence tree. `tools/tests/mvp-acceptance-staging-snapshot.Tests.ps1` covers publication, replacement/reparse rejection, held-marker cleanup protection, and marker exclusion; it remains a focused source contract rather than workflow evidence.
 
 Open state: `MVP06 implementation and focused PowerShell gates are green; fixed return still requires the corrected workflow in a clean coordinator validation copy and inspection of its uploaded bounded artifact.`
+
+## 2026-08-03 product-validation continuation
+
+The requested Windows product run was attempted before acceptance publication. The only
+permitted build path was:
+
+```powershell
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_app -NoDefaultFeatures -Features target-client -SkipTest
+```
+
+The current source tree did not produce `zircon_runtime.exe` or `zircon_editor.exe`. A targeted
+search of the repository and the managed target directory found no reusable executable. After
+forward fixes for three immediate compile blockers in `zircon_runtime_interface` and `zr_rhi_wgpu`,
+the same controlled client build reached `zircon_runtime` and failed with 164 source errors across
+independent rendering, resource, capture, and borrow/const-contract modules. Representative
+remaining errors include missing mesh-pipeline submodule re-exports, invalid render capture imports,
+non-Send WGPU error-scope futures retained by `MeshPipelineCache`, and Rust 2021 const/borrow
+violations. Product staging, desktop launch, and PNG capture were therefore not executed; no
+product screenshot is claimed by this continuation.
+
+Forward direction: restore the missing module boundaries and resolve the independent runtime
+compile errors until the controlled client build produces fresh runtime and editor-host binaries,
+then rerun `Stage-MvpProducts.ps1` from a durable evidence root and publish with
+`Invoke-MvpAcceptance.ps1`. This is a current-source product-build blocker, not an acceptance
+waiver or rollback request.
+
+The focused evidence-boundary regression
+`tools/tests/mvp-acceptance-staging-snapshot.Tests.ps1` completed with exit code 0 under the
+default warning policy after this continuation. Its expected warning capture confirms that
+identity-mismatched cleanup skips a replacement root; this source-level result does not claim a
+product run or screenshot.
+
+2026-08-03 forward repair update: the same repository-controlled Windows client build completed
+after the first two runtime-support repair batches and reduced the compiler error count from 164
+to 110. The completed repairs cover missing facade re-exports, retained WGPU capture visibility,
+temporary resource-manager borrows, stable `const fn` clamps, text-cache/module visibility, and
+several local ownership defects. The build still fails in current source, so it produced no fresh
+runtime/editor executable; product staging, desktop launch, and PNG capture remain unexecuted.
+The next forward slice is the remaining restricted re-exports, script host lifetime contracts,
+readback ownership, and the gameplay-host world-operation inference root cause.
+
+2026-08-03 forward repair update: a third runtime batch reduced the same controlled build's
+observed source-error count from 110 to 68 before the next compiler rerun. It repairs additional
+facade boundaries, IBL dispatch context ownership, GPU timestamp-safe graph recording, pipeline
+manifest adaptation, and targeted type/borrow failures. The graph recorder now excludes timestamp
+and IBL-owner stages from its parallel path instead of capturing non-Send WGPU state in a worker
+closure. The remaining known direct compile root in the renderer's capture admission is a missing
+boolean argument, but its source file is currently held by another writer and was deliberately not
+overwritten.
+
+The controlled validator also exposed a Windows PowerShell compatibility defect before Cargo
+started: `validate-matrix.ps1` required `System.Text.Json.JsonDocument`, unavailable in the active
+host although the coordinator response was a single JSON object. The strict parser now uses
+`ConvertFrom-Json` and retains the object-only contract. A subsequent `-DryRun` exceeded the
+non-blocking command window, so this parser repair and the 68-error source state still require one
+completed managed build result. No fresh runtime/editor executable exists from this continuation;
+staging, desktop launch, and PNG screenshot evidence remain explicitly unexecuted.
+
+2026-08-03 product-validation repair update: consecutive completed managed client builds exposed
+three later compile roots. The runtime fallback presenter retained a captured frame while it called
+back into `RuntimeEntryApp` (`E0502`); it now releases that frame before the first-frame completion
+path re-borrows the app. The UI image-resource call site was concurrently advanced to include
+`payload.resource_generation`, matching the generation-aware resource-table lookup. Finally, the
+WGPU image cache required the resource table to discard transferred CPU payloads at the end of a
+present; `UiSurfaceImageResourceTable::clear` now owns that operation, with a focused
+multiple-generation regression test. The next controlled build request was rejected before Cargo
+started because its coordinator admission checkpoint was stale. Per the coordination rule, this
+continuation did not poll, recover, or bypass the coordinator with a direct Cargo command.
+
+The self-executing snapshot contract
+`tools/tests/mvp-acceptance-staging-snapshot.Tests.ps1` passed with exit code 0. An attempt to run
+the broader `tools/tests/mvp-staging.Tests.ps1` exceeded the local 60-second command window, so it
+is deliberately not recorded as passing or failing. There is still no fresh product executable,
+desktop launch, staged project, or PNG screenshot from this source state.

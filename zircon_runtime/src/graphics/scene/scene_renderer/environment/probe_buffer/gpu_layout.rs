@@ -153,8 +153,8 @@ impl ReflectionProbeGpuBindings {
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer) fn reflection_probe_bind_group_layout_entries(
-) -> [wgpu::BindGroupLayoutEntry; 5] {
+pub(in crate::graphics::scene::scene_renderer) fn reflection_probe_bind_group_layout_entries()
+-> [wgpu::BindGroupLayoutEntry; 5] {
     [
         wgpu::BindGroupLayoutEntry {
             binding: REFLECTION_PROBE_STORAGE_BINDING,

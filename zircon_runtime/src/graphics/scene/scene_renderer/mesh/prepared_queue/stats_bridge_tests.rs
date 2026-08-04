@@ -135,10 +135,18 @@ fn prepared_queue_stats_carry_mesh_draw_replay_counts() {
     let stats =
         PreparedMeshQueueStats::default().with_mesh_draw_replay_stats(MeshDrawReplayStats {
             draw_call_count: 12,
+            indirect_count_draw_call_count: 1,
+            fixed_multi_draw_call_count: 2,
+            per_draw_indirect_draw_call_count: 3,
+            direct_draw_call_count: 6,
             state_change_count: 4,
             bind_skip_count: 7,
         });
 
+    assert_eq!(stats.indirect_count_draw_call_count, 1);
+    assert_eq!(stats.fixed_multi_draw_call_count, 2);
+    assert_eq!(stats.per_draw_indirect_draw_call_count, 3);
+    assert_eq!(stats.direct_draw_call_count, 6);
     assert_eq!(stats.state_change_count, 4);
     assert_eq!(stats.bind_skip_count, 7);
 }

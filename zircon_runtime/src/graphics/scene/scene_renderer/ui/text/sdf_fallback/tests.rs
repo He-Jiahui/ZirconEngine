@@ -115,6 +115,7 @@ fn sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend() {
             fallback_text_batch_count: 1,
             whole_batch_fallback_text_batch_count: 1,
             fallback_native_overlay_batch_count: 0,
+            sdf_layout_fidelity_retained_text_batch_count: 0,
             mixed_overlay_unsupported_text_batch_count: 1,
             mixed_overlay_empty_span_text_batch_count: 0,
             mixed_overlay_missing_advances_text_batch_count: 1,
@@ -189,6 +190,7 @@ fn sdf_atlas_fallback_overlays_failed_spans_for_horizontal_ltr_text() {
             fallback_text_batch_count: 1,
             whole_batch_fallback_text_batch_count: 0,
             fallback_native_overlay_batch_count: 1,
+            sdf_layout_fidelity_retained_text_batch_count: 0,
             mixed_overlay_unsupported_text_batch_count: 0,
             mixed_overlay_empty_span_text_batch_count: 0,
             mixed_overlay_missing_advances_text_batch_count: 0,
@@ -573,6 +575,87 @@ fn sdf_atlas_generation_failure_uses_normal_native_overlay_path() {
     assert_eq!(report.fallback_source_byte_count, 1);
     assert_eq!(report.page_limit_glyph_count, 0);
     assert_eq!(report.oversized_glyph_count, 0);
+    assert!(report.needs_sdf_cpu_rebuild());
+}
+
+#[test]
+fn sdf_atlas_failure_retains_exact_visual_advance_batch_in_sdf() {
+    let mut exact_sdf = text_batch("سـلا");
+    exact_sdf.source_range = Some(UiTextRange { start: 0, end: 6 });
+    exact_sdf.glyph_advances = vec![7.0, 10.0, 8.0, 12.0];
+    let mut native_texts = Vec::new();
+    let mut sdf_texts = vec![exact_sdf];
+
+    let report = apply_sdf_atlas_fallbacks(
+        &mut native_texts,
+        &mut sdf_texts,
+        &[SdfAtlasRun {
+            glyph_slot_indices: vec![Some(0), None, Some(1), Some(2)],
+            glyph_failure_reasons: vec![
+                None,
+                Some(SdfAtlasAllocationFailureReason::PageLimit),
+                None,
+                None,
+            ],
+            allocation_failure_count: 1,
+            page_limit_failure_count: 1,
+            oversized_failure_count: 0,
+            ..Default::default()
+        }],
+        &[vec![7.0, 10.0, 8.0, 12.0]],
+    );
+
+    assert!(native_texts.is_empty());
+    assert_eq!(sdf_texts.len(), 1);
+    assert_eq!(sdf_texts[0].text, "سـلا");
+    assert_eq!(report.fallback_text_batch_count, 0);
+    assert_eq!(report.whole_batch_fallback_text_batch_count, 0);
+    assert_eq!(report.fallback_native_overlay_batch_count, 0);
+    assert_eq!(report.sdf_layout_fidelity_retained_text_batch_count, 1);
+    assert_eq!(report.fallback_glyph_count, 1);
+    assert_eq!(report.page_limit_span_count, 1);
+    assert!(!report.needs_sdf_cpu_rebuild());
+}
+
+#[test]
+fn sdf_layout_fidelity_retention_keeps_matching_cpu_run_cached() {
+    let mut exact_sdf = text_batch("سـلا");
+    exact_sdf.source_range = Some(UiTextRange { start: 0, end: 6 });
+    exact_sdf.glyph_advances = vec![7.0, 10.0, 8.0, 12.0];
+    let mut native_texts = Vec::new();
+    let mut sdf_texts = vec![exact_sdf];
+    let mut native_decoration_metrics = Vec::new();
+    let mut cpu_runs = vec![SdfRunCpuPreparation {
+        glyph_advances: vec![7.0, 10.0, 8.0, 12.0],
+        ..Default::default()
+    }];
+
+    let report = apply_sdf_atlas_fallbacks_with_cpu_runs(
+        &mut native_texts,
+        &mut sdf_texts,
+        &[SdfAtlasRun {
+            glyph_slot_indices: vec![Some(0), None, Some(1), Some(2)],
+            glyph_failure_reasons: vec![
+                None,
+                Some(SdfAtlasAllocationFailureReason::PageLimit),
+                None,
+                None,
+            ],
+            allocation_failure_count: 1,
+            page_limit_failure_count: 1,
+            ..Default::default()
+        }],
+        &mut cpu_runs,
+        &mut native_decoration_metrics,
+    );
+
+    assert!(native_texts.is_empty());
+    assert_eq!(sdf_texts.len(), 1);
+    assert_eq!(cpu_runs.len(), 1);
+    assert_eq!(cpu_runs[0].glyph_advances, vec![7.0, 10.0, 8.0, 12.0]);
+    assert!(native_decoration_metrics.is_empty());
+    assert_eq!(report.sdf_layout_fidelity_retained_text_batch_count, 1);
+    assert!(!report.needs_sdf_cpu_rebuild());
 }
 
 fn text_batch(text: &str) -> ScreenSpaceUiTextBatch {

@@ -4,16 +4,15 @@ use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::{
-    World, compiled_binding::SceneBindingGenerations, generation::WorldGeneration,
-    world::QueryCacheRevision,
+    compiled_binding::SceneBindingGenerations, generation::WorldGeneration,
+    world::QueryCacheRevision, World,
 };
-use crate::scene::EntityId;
 use crate::scene::components::{
-    ActiveInHierarchy, ActiveSelf, AmbientLight, CameraComponent, DirectionalLight, Hierarchy,
-    LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight, RectLight, RenderLayerMask,
-    SpotLight, default_render_layer_mask,
+    default_render_layer_mask, ActiveSelf, AmbientLight, CameraComponent, DirectionalLight,
+    MeshRenderer, Mobility, Name, NodeKind, NodeRecord, PointLight, RectLight, SpotLight,
 };
 use crate::scene::ecs::Schedule;
+use crate::scene::EntityId;
 
 impl World {
     pub fn empty() -> Self {
@@ -24,7 +23,6 @@ impl World {
             names: HashMap::new(),
             hierarchy: HashMap::new(),
             local_transforms: HashMap::new(),
-            world_matrices: HashMap::new(),
             cameras: HashMap::new(),
             mesh_renderers: HashMap::new(),
             sprite_2d: HashMap::new(),
@@ -45,7 +43,6 @@ impl World {
             animation_graph_players: HashMap::new(),
             animation_state_machine_players: HashMap::new(),
             active_self: HashMap::new(),
-            active_in_hierarchy: HashMap::new(),
             render_layer_masks: HashMap::new(),
             mobility: HashMap::new(),
             dynamic_components: HashMap::new(),
@@ -101,93 +98,89 @@ impl World {
     pub fn spawn_node(&mut self, kind: NodeKind) -> EntityId {
         let id = self.next_id;
         self.next_id += 1;
-        let default_name = default_name(&kind, self.ordinal_for(kind));
-        self.register_stable_entity(id)
-            .expect("spawned scene entity must have a unique stable id");
-        self.entities.push(id);
-        self.kinds.insert(id, kind);
-        self.record_node_kind_added(kind);
-        self.names.insert(id, Name(default_name));
-        self.hierarchy.insert(id, Hierarchy::default());
-        self.active_self.insert(id, ActiveSelf::default());
-        self.active_in_hierarchy
-            .insert(id, ActiveInHierarchy::default());
-        self.render_layer_masks
-            .insert(id, RenderLayerMask(default_render_layer_mask()));
-        self.mobility.insert(id, Mobility::default());
-
-        match kind {
-            NodeKind::Empty => {
-                self.local_transforms.insert(id, LocalTransform::default());
-            }
-            NodeKind::Camera => {
-                self.local_transforms.insert(
-                    id,
-                    LocalTransform {
-                        transform: Transform::looking_at(
-                            Vec3::new(3.0, 2.0, 5.0),
-                            Vec3::ZERO,
-                            Vec3::Y,
-                        ),
-                    },
-                );
-                self.cameras.insert(id, CameraComponent::default());
-                if self.active_camera == 0 {
-                    self.active_camera = id;
-                }
-            }
-            NodeKind::Cube => {
-                self.local_transforms.insert(id, LocalTransform::default());
-                self.mesh_renderers.insert(id, MeshRenderer::default());
-            }
-            NodeKind::Mesh => {
-                self.local_transforms.insert(id, LocalTransform::default());
-                self.mesh_renderers.insert(id, MeshRenderer::default());
-            }
-            NodeKind::AmbientLight => {
-                self.local_transforms.insert(id, LocalTransform::default());
-                self.ambient_lights.insert(id, AmbientLight::default());
-            }
-            NodeKind::DirectionalLight => {
-                let mut transform = Transform::default();
-                transform.translation = Vec3::new(1.5, 2.0, 1.5);
-                transform.rotation = Quat::from_rotation_x(-45.0_f32.to_radians());
-                self.local_transforms
-                    .insert(id, LocalTransform { transform });
-                self.directional_lights
-                    .insert(id, DirectionalLight::default());
-            }
-            NodeKind::PointLight => {
-                let mut transform = Transform::default();
-                transform.translation = Vec3::new(0.0, 2.0, 0.0);
-                self.local_transforms
-                    .insert(id, LocalTransform { transform });
-                self.point_lights.insert(id, PointLight::default());
-            }
-            NodeKind::RectLight => {
-                let mut transform = Transform::default();
-                transform.translation = Vec3::new(0.0, 3.0, 0.0);
-                transform.rotation = Quat::from_rotation_x(-90.0_f32.to_radians());
-                self.local_transforms
-                    .insert(id, LocalTransform { transform });
-                self.rect_lights.insert(id, RectLight::default());
-            }
-            NodeKind::SpotLight => {
-                let mut transform = Transform::default();
-                transform.translation = Vec3::new(0.0, 4.0, 0.0);
-                self.local_transforms
-                    .insert(id, LocalTransform { transform });
-                self.spot_lights.insert(id, SpotLight::default());
-            }
-        }
-
-        self.rebuild_fixed_component_presence_for_entity(id);
+        let record = self.default_node_record(id, kind);
+        let prior_lifecycle_staging =
+            std::mem::replace(&mut self.record_staged_lifecycle_events, true);
+        let lifecycle_start = self.staged_lifecycle_events.len();
+        self.insert_prevalidated_node_record_without_archetype(record);
+        self.rebuild_fixed_component_presence_into_final_archetype(id);
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
         self.advance_scene_binding_generations_for_new_descendant(id);
+        self.record_staged_lifecycle_events = prior_lifecycle_staging;
+        if !prior_lifecycle_staging {
+            let lifecycle_events = self.staged_lifecycle_events.split_off(lifecycle_start);
+            for event in lifecycle_events {
+                self.dispatch_component_lifecycle(event);
+            }
+        }
         id
+    }
+
+    pub(super) fn default_node_record(&self, id: EntityId, kind: NodeKind) -> NodeRecord {
+        let mut record = NodeRecord {
+            id,
+            name: default_name(&kind, self.ordinal_for(kind)),
+            kind,
+            parent: None,
+            transform: Transform::default(),
+            camera: None,
+            mesh: None,
+            sprite_2d: None,
+            mesh_2d: None,
+            ambient_light: None,
+            directional_light: None,
+            point_light: None,
+            rect_light: None,
+            spot_light: None,
+            active: ActiveSelf::default().0,
+            render_layer_mask: default_render_layer_mask(),
+            mobility: Mobility::default(),
+            rigid_body: None,
+            collider: None,
+            joint: None,
+            animation_skeleton: None,
+            animation_player: None,
+            animation_sequence_player: None,
+            animation_graph_player: None,
+            animation_state_machine_player: None,
+        };
+
+        match kind {
+            NodeKind::Empty => {}
+            NodeKind::Camera => {
+                record.transform =
+                    Transform::looking_at(Vec3::new(3.0, 2.0, 5.0), Vec3::ZERO, Vec3::Y);
+                record.camera = Some(CameraComponent::default());
+            }
+            NodeKind::Cube | NodeKind::Mesh => {
+                record.mesh = Some(MeshRenderer::default());
+            }
+            NodeKind::AmbientLight => {
+                record.ambient_light = Some(AmbientLight::default());
+            }
+            NodeKind::DirectionalLight => {
+                record.transform.translation = Vec3::new(1.5, 2.0, 1.5);
+                record.transform.rotation = Quat::from_rotation_x(-45.0_f32.to_radians());
+                record.directional_light = Some(DirectionalLight::default());
+            }
+            NodeKind::PointLight => {
+                record.transform.translation = Vec3::new(0.0, 2.0, 0.0);
+                record.point_light = Some(PointLight::default());
+            }
+            NodeKind::RectLight => {
+                record.transform.translation = Vec3::new(0.0, 3.0, 0.0);
+                record.transform.rotation = Quat::from_rotation_x(-90.0_f32.to_radians());
+                record.rect_light = Some(RectLight::default());
+            }
+            NodeKind::SpotLight => {
+                record.transform.translation = Vec3::new(0.0, 4.0, 0.0);
+                record.spot_light = Some(SpotLight::default());
+            }
+        }
+        record
     }
 
     pub fn spawn_mesh_node(

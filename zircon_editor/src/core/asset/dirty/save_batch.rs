@@ -252,13 +252,14 @@ fn apply_one_completion(
 ) -> (u64, SaveDirtyViewOutcomeStatus) {
     let document = intent.document_id();
     let generation = intent.dirty_generation();
-    let SaveDirtyViewCompletion::Saved { written_bytes } = completion else {
-        let status = match completion {
-            SaveDirtyViewCompletion::Failed(failure) => SaveDirtyViewOutcomeStatus::Failed(failure),
-            SaveDirtyViewCompletion::Cancelled => SaveDirtyViewOutcomeStatus::Cancelled,
-            SaveDirtyViewCompletion::Saved { .. } => unreachable!(),
-        };
-        return (generation, status);
+    let written_bytes = match completion {
+        SaveDirtyViewCompletion::Saved { written_bytes } => written_bytes,
+        SaveDirtyViewCompletion::Failed(failure) => {
+            return (generation, SaveDirtyViewOutcomeStatus::Failed(failure));
+        }
+        SaveDirtyViewCompletion::Cancelled => {
+            return (generation, SaveDirtyViewOutcomeStatus::Cancelled);
+        }
     };
     if let Err(error) = transactions.mark_saved_if_unchanged(
         crate::core::editing::engine::HistoryContextId::Document(document),

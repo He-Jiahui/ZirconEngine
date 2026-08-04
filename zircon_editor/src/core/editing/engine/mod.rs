@@ -20,13 +20,14 @@ pub use history::{
     TransactionRecord,
 };
 pub use journal::{
-    CommandJournalPayload, CommandJournalUnavailable, TransactionJournal, TransactionJournalError,
-    TransactionJournalReadError, TransactionJournalSchemaError, TRANSACTION_JOURNAL_SCHEMA_VERSION,
+    CommandJournalPayload, CommandJournalUnavailable, TRANSACTION_JOURNAL_SCHEMA_VERSION,
+    TransactionJournal, TransactionJournalError, TransactionJournalReadError,
+    TransactionJournalSchemaError,
 };
 pub use routing::resolve_history_context;
 pub(crate) use transaction::ExclusiveTransition;
 pub use transaction::{
     EditorTransactionEngine, HistoryDirtyBatch, HistoryDirtyBatchKind, HistoryDirtyCursor,
-    HistoryDirtyState, MergeMode, OperationTransactionResult, TransactionScope,
-    MAX_HISTORY_DETAIL_PAGE_SIZE,
+    HistoryDirtyState, MAX_HISTORY_DETAIL_PAGE_SIZE, MergeMode, OperationTransactionResult,
+    TransactionScope,
 };

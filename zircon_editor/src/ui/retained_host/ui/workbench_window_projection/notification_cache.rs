@@ -3,9 +3,8 @@ use std::rc::Rc;
 use crate::ui::retained_host::{
     TemplatePaneNodeData, TemplatePaneOptionData,
     primitives::{ModelRc, SharedString},
+    ui::pane_data_conversion::NotificationCenterMetadata,
 };
-
-use super::NotificationCenterMetadata;
 
 pub(super) struct ReusedNotificationRows {
     pub options_text: Rc<String>,

@@ -19,7 +19,9 @@ mod pane_projection;
 mod scene_projection;
 mod shell_presentation;
 
-pub(crate) use floating_windows::collect_floating_windows;
+pub(crate) use floating_windows::{
+    collect_floating_windows, collect_floating_windows_with_template_v2_data,
+};
 pub(crate) use frame_rect::frame_rect;
 pub(crate) use host_data::{
     AnimationEditorPaneViewData, AssetBrowserPaneViewData, AssetsActivityPaneViewData,
@@ -45,6 +47,8 @@ pub(crate) use pane_presentation::{
     build_pane_body_presentation, PaneActionPresentation, PaneBodyPresentation,
     PaneEmptyStatePresentation, PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
-pub(crate) use pane_projection::document_pane;
+pub(crate) use pane_projection::{
+    document_pane, document_pane_with_template_v2_data, side_pane_with_template_v2_data,
+};
 pub(crate) use scene_projection::{build_host_scene_data, build_native_floating_surface_data};
 pub(crate) use shell_presentation::ShellPresentation;

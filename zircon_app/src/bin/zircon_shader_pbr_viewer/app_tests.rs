@@ -3,9 +3,12 @@ use std::time::Duration;
 use zircon_runtime::asset::importer::EnvironmentIblSourceStagingStatus;
 
 use super::{
+    base_pipeline_recheck_deadline, base_pipeline_recheck_interval, base_pipeline_recheck_is_due,
     consume_ready_title_update, load_status_refresh_deadline, load_status_refresh_is_due,
-    loading_window_title, ready_window_title, request_redraw_transition, OrbitCamera,
-    PbrMirrorSceneIblLoadReport,
+    loading_window_title, one_shot_base_pipeline_wait_deadline,
+    one_shot_base_pipeline_wait_is_expired, ready_window_title, request_redraw_transition,
+    OrbitCamera, PbrMirrorSceneIblLoadReport, BASE_PIPELINE_RECHECK_INTERVAL,
+    ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT,
 };
 
 const APP_SOURCE: &str = include_str!("app.rs");
@@ -18,12 +21,28 @@ fn ensure_window_source() -> &'static str {
         .expect("viewer app should retain an ensure_window owner")
 }
 
+fn start_scene_load_source() -> &'static str {
+    APP_SOURCE
+        .split("fn start_scene_load(")
+        .nth(1)
+        .and_then(|source| source.split("fn finish_scene_load(").next())
+        .expect("viewer app should retain a scene-load start owner")
+}
+
 fn resize_source() -> &'static str {
     APP_SOURCE
         .split("fn resize(")
         .nth(1)
         .and_then(|source| source.split("fn bind_scene_viewport_surface(").next())
         .expect("viewer app should retain a resize owner")
+}
+
+fn scene_load_failure_source() -> &'static str {
+    APP_SOURCE
+        .split("fn handle_scene_load_failure(")
+        .nth(1)
+        .and_then(|source| source.split("fn request_redraw(").next())
+        .expect("viewer app should retain a scene-load failure owner")
 }
 
 fn about_to_wait_source() -> &'static str {
@@ -47,6 +66,20 @@ fn render_source() -> &'static str {
         .nth(1)
         .and_then(|source| source.split("fn present_startup_frame(").next())
         .expect("viewer must retain a render owner")
+}
+
+fn assert_source_order(anchors: &[&str]) {
+    assert_source_order_in(render_source(), anchors);
+}
+
+fn assert_source_order_in(source: &str, anchors: &[&str]) {
+    let mut offset = 0;
+    for anchor in anchors {
+        let index = source[offset..]
+            .find(anchor)
+            .unwrap_or_else(|| panic!("render source should retain `{anchor}`"));
+        offset += index + anchor.len();
+    }
 }
 
 #[test]
@@ -115,6 +148,7 @@ fn wait_callback_does_not_repeat_an_already_queued_redraw_request() {
 
     assert!(wait_callback.contains("self.finish_scene_load(event_loop);"));
     assert!(wait_callback.contains("self.refresh_scene_load_status(event_loop);"));
+    assert!(wait_callback.contains("self.request_base_pipeline_recheck_if_due(event_loop);"));
     assert!(
         !wait_callback.contains("window.request_redraw()"),
         "request_redraw() owns the only OS redraw transition; about_to_wait must not repeat it"
@@ -154,6 +188,68 @@ fn loading_title_refresh_is_rate_limited_without_deadline_drift() {
 }
 
 #[test]
+fn pending_base_pipeline_rechecks_on_a_bounded_deadline() {
+    let started = std::time::Instant::now();
+    let deadline = base_pipeline_recheck_deadline(started, 0);
+
+    assert_eq!(deadline, started + BASE_PIPELINE_RECHECK_INTERVAL);
+    assert!(!base_pipeline_recheck_is_due(deadline, started));
+    assert!(!base_pipeline_recheck_is_due(
+        deadline,
+        deadline - Duration::from_nanos(1)
+    ));
+    assert!(base_pipeline_recheck_is_due(deadline, deadline));
+}
+
+#[test]
+fn pending_base_pipeline_rechecks_back_off_before_the_bounded_ceiling() {
+    assert_eq!(
+        base_pipeline_recheck_interval(0),
+        BASE_PIPELINE_RECHECK_INTERVAL
+    );
+    assert_eq!(base_pipeline_recheck_interval(1), Duration::from_millis(32));
+    assert_eq!(base_pipeline_recheck_interval(2), Duration::from_millis(64));
+    assert_eq!(
+        base_pipeline_recheck_interval(3),
+        Duration::from_millis(128)
+    );
+    assert_eq!(
+        base_pipeline_recheck_interval(4),
+        Duration::from_millis(250)
+    );
+    assert_eq!(
+        base_pipeline_recheck_interval(u32::MAX),
+        Duration::from_millis(250)
+    );
+}
+
+#[test]
+fn one_shot_base_pipeline_wait_has_a_shared_bounded_deadline() {
+    let started = std::time::Instant::now();
+    let deadline = one_shot_base_pipeline_wait_deadline(started);
+
+    assert_eq!(ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT, Duration::from_secs(45));
+    assert_eq!(deadline, started + ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT);
+    assert!(!one_shot_base_pipeline_wait_is_expired(
+        started,
+        deadline - Duration::from_nanos(1)
+    ));
+    assert!(one_shot_base_pipeline_wait_is_expired(started, deadline));
+}
+
+#[test]
+fn base_pipeline_recheck_backoff_resets_after_readiness_or_load_failure() {
+    let render = render_source();
+
+    assert_source_order(&[
+        "if environment_only_base_pipeline_ready {",
+        "self.reset_base_pipeline_recheck();",
+    ]);
+    assert!(start_scene_load_source().contains("self.reset_base_pipeline_recheck();"));
+    assert!(scene_load_failure_source().contains("self.reset_base_pipeline_recheck();"));
+}
+
+#[test]
 fn ready_title_updates_are_coalesced_until_a_successful_present() {
     let mut dirty = false;
 
@@ -167,8 +263,8 @@ fn ready_title_updates_are_coalesced_until_a_successful_present() {
 fn screenshot_timing_requests_the_next_scene_frame_before_rendering() {
     let render = render_source();
     let screenshot_flag = render
-        .find("let write_screenshot = self.screenshot_path.is_some()")
-        .expect("screenshot flag");
+        .find("let screenshot_requested = self.screenshot_path.is_some()")
+        .expect("screenshot request flag");
     let timing_request = render
         .find("scene.request_next_frame_timing_report();")
         .expect("screenshot should request next-frame timing");
@@ -273,6 +369,50 @@ fn completed_scene_load_presents_the_first_ready_frame_synchronously() {
         finish_scene_load.contains("self.ready_title_dirty = true;"),
         "the successful first present must own the Ready title transition"
     );
+    assert!(finish_scene_load.contains("self.first_ready_frame_started_at = Some(Instant::now());"));
+    assert!(
+        !finish_scene_load.contains("PBR viewer readiness:"),
+        "the loader must not report a first presented frame before one exists"
+    );
+}
+
+#[test]
+fn readiness_timing_logs_after_the_first_successful_presentation() {
+    let render = render_source();
+    let direct = render
+        .split("if self.direct_present_enabled && !write_screenshot {")
+        .nth(1)
+        .and_then(|source| source.split("let ready_frame_render_started").next())
+        .expect("native presentation branch");
+    let cpu = render
+        .split("let ready_frame_render_started")
+        .nth(1)
+        .expect("CPU presentation branch");
+
+    assert_eq!(
+        render
+            .matches("self.log_first_ready_frame_presented();")
+            .count(),
+        2,
+        "direct and CPU first frames must share one post-present readiness logger"
+    );
+    assert!(
+        direct
+            .find("self.flush_ready_window_title();")
+            .expect("direct present completion")
+            < direct
+                .find("self.log_first_ready_frame_presented();")
+                .expect("direct readiness log"),
+        "direct readiness timing must follow a successful presentation"
+    );
+    assert!(
+        cpu.find("presenter.present(&frame)")
+            .expect("CPU present call")
+            < cpu
+                .find("self.log_first_ready_frame_presented();")
+                .expect("CPU readiness log"),
+        "CPU readiness timing must follow a successful presentation"
+    );
 }
 
 #[test]
@@ -334,6 +474,7 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "scene.ibl_load_report()",
         "scene.renderer_backend_name()",
         "interactive_direct_present_enabled",
+        "scene.environment_only_base_pipeline_ready()",
         "let screenshot_input = write_screenshot.then(|| {",
         "self.hdri_path.display().to_string()",
         "requested_source_face_size",
@@ -344,10 +485,20 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "ibl_report.pmrem_mip_count()",
         "PBR_VIEWER_RENDER_PROFILE",
         "scene.base_prewarm_report()",
+        "scene.startup_timing()",
+        "base_prewarm_report.pipeline_ready()",
+        "environment_only_base_pipeline_ready_at_capture:",
+        "environment_only_base_pipeline_ready,",
         "base_prewarm_report.cache_hit()",
         "base_prewarm_report.shader_source_resolution()",
         "base_prewarm_report.pipeline_creation()",
         "base_prewarm_report.elapsed()",
+        "scene_startup_renderer_deferred_standard_pipeline: startup_timing",
+        "scene_startup_total: startup_timing.total()",
+        "one_shot_base_pipeline_wait_elapsed",
+        "viewer_scene_load_elapsed",
+        "viewer_ready_started_at",
+        "viewer_ready_elapsed",
         "ReadyFrameEvidenceMetadata {",
         "write_ready_frame_evidence(path, frame.width, frame.height, &frame.rgba, metadata)",
     ] {
@@ -365,6 +516,73 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
                 .expect("metadata should be written with the screenshot"),
         "provenance must be captured from the same Ready frame before the evidence files are written"
     );
+    let ready_frame_pipeline_gate = render
+        .split(
+            "let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;",
+        )
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("let screenshot_input = write_screenshot.then(|| {")
+                .next()
+        })
+        .expect("Ready-frame evidence must retain the Base pipeline gate before screenshot input");
+    assert!(
+        ready_frame_pipeline_gate
+            .find("let one_shot_base_pipeline_wait_elapsed = write_screenshot")
+            .expect("Ready-frame evidence must capture the one-shot Base pipeline wait")
+            < ready_frame_pipeline_gate
+                .find("if environment_only_base_pipeline_ready {")
+                .expect("Ready-frame evidence must reset the Base pipeline recheck state"),
+        "the one-shot Base pipeline wait must be captured before retry state is reset"
+    );
+}
+
+#[test]
+fn ready_frame_provenance_measures_through_base_pipeline_wait_and_render() {
+    let production = production_source();
+    let render = render_source();
+    let viewer_ready_started_at = render
+        .find("let viewer_ready_started_at = write_screenshot.then(|| {")
+        .expect("Ready-frame evidence must retain the viewer load start instant");
+    let pipeline_wait = render
+        .find("if defer_one_shot_until_base_pipeline_ready {")
+        .expect("Ready-frame evidence must retain the async Base pipeline wait");
+    let ready_frame_render = render
+        .find("let ready_frame_render_started = write_screenshot.then(Instant::now);")
+        .expect("Ready-frame evidence must retain the Ready render boundary");
+    let viewer_ready_elapsed = render
+        .find("let viewer_ready_elapsed = viewer_ready_started_at")
+        .expect("Ready-frame evidence must measure time to Ready after rendering");
+    let render_elapsed = render
+        .find("let render_elapsed = ready_frame_render_elapsed")
+        .expect("Ready-frame evidence must retain the Ready render duration");
+    let metadata = render
+        .find("viewer_ready_elapsed,")
+        .expect("Ready-frame metadata must emit the Ready total");
+
+    assert!(
+        viewer_ready_started_at < pipeline_wait
+            && pipeline_wait < ready_frame_render
+            && ready_frame_render < render_elapsed
+            && render_elapsed < viewer_ready_elapsed
+            && viewer_ready_elapsed < metadata,
+        "time-to-Ready must include async Base admission and the completed Ready render"
+    );
+    assert!(production.contains("first_ready_scene_load_started_at: Option<Instant>"));
+    assert!(production.contains("self.first_ready_scene_load_started_at = scene_load_started_at;"));
+    assert!(production.contains(
+        "let Some(scene_load_started_at) = self.first_ready_scene_load_started_at else {"
+    ));
+    assert!(production
+        .contains("let Some(scene_load_elapsed) = self.first_ready_scene_load_elapsed else {"));
+    assert!(!production.contains(
+        "let Some(scene_load_started_at) = self.first_ready_scene_load_started_at.take() else {"
+    ));
+    assert!(!production.contains(
+        "let Some(scene_load_elapsed) = self.first_ready_scene_load_elapsed.take() else {"
+    ));
+    assert!(production.contains("self.first_ready_scene_load_started_at = None;"));
 }
 
 #[test]
@@ -372,7 +590,10 @@ fn ready_frame_timing_is_gated_to_the_one_shot_screenshot_path() {
     let render = render_source();
 
     assert!(render.contains(
-        "let write_screenshot = self.screenshot_path.is_some() && !self.screenshot_written;"
+        "let screenshot_requested = self.screenshot_path.is_some() && !self.screenshot_written;"
+    ));
+    assert!(render.contains(
+        "let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;"
     ));
     assert_eq!(
         render
@@ -381,6 +602,76 @@ fn ready_frame_timing_is_gated_to_the_one_shot_screenshot_path() {
         3,
         "render, PNG encode, and present timing must only start for one screenshot frame"
     );
+}
+
+#[test]
+fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_event_loop() {
+    let render = render_source();
+
+    assert_source_order(&[
+        "let needs_environment_only_base_pipeline = screenshot_requested || capture_requested;",
+        "scene.environment_only_base_pipeline_ready()",
+        "let defer_one_shot_until_base_pipeline_ready = needs_environment_only_base_pipeline",
+        "if defer_one_shot_until_base_pipeline_ready {",
+        "if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {",
+        "environment-only PBR Base pipeline startup timed out",
+        "self.reset_base_pipeline_recheck();",
+        "event_loop.exit();",
+        "return;",
+        "self.schedule_base_pipeline_recheck(event_loop);",
+        "return;",
+        "let screenshot_input = write_screenshot.then(|| {",
+        "let capture_this_frame = capture_requested && environment_only_base_pipeline_ready;",
+    ]);
+    assert!(render.contains("if write_screenshot {"));
+    assert!(
+        render.contains("self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())")
+    );
+}
+
+#[test]
+fn pending_base_pipeline_retries_admission_before_scheduling_the_next_recheck() {
+    let render = render_source();
+
+    assert_source_order(&[
+        "match scene.environment_only_base_pipeline_ready() {",
+        "Ok(false) => {",
+        "scene.retry_environment_only_base_pipeline_admission()",
+        "environment-only PBR Base pipeline admission retry failed",
+        "false",
+        "let defer_one_shot_until_base_pipeline_ready = needs_environment_only_base_pipeline",
+    ]);
+}
+
+#[test]
+fn interactive_presentation_rechecks_a_pending_base_pipeline_after_presenting() {
+    let render = render_source();
+    let direct = render
+        .split("if self.direct_present_enabled && !write_screenshot {")
+        .nth(1)
+        .and_then(|source| source.split("let ready_frame_render_started").next())
+        .expect("native presentation branch");
+    let cpu = render
+        .split("let ready_frame_render_started")
+        .nth(1)
+        .expect("CPU presentation branch");
+
+    assert!(render.contains("let recheck_base_pipeline_after_present ="));
+    assert_source_order(&[
+        "let recheck_base_pipeline_after_present =",
+        "if defer_one_shot_until_base_pipeline_ready {",
+        "self.schedule_base_pipeline_recheck(event_loop);",
+    ]);
+    for branch in [direct, cpu] {
+        assert_source_order_in(
+            branch,
+            &[
+                "self.flush_ready_window_title();",
+                "if recheck_base_pipeline_after_present {",
+                "self.schedule_base_pipeline_recheck(event_loop);",
+            ],
+        );
+    }
 }
 
 #[test]
@@ -404,7 +695,9 @@ fn interactive_frames_prefer_native_gpu_presentation_without_changing_screenshot
         !direct.contains("renderer_frame_call="),
         "the direct viewer log must include surface presentation in its timing label"
     );
-    assert!(render.contains("let write_screenshot = self.screenshot_path.is_some()"));
+    assert!(render.contains(
+        "let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;"
+    ));
     assert!(render.contains("match scene.render(&self.camera, self.size)"));
 }
 
@@ -419,16 +712,16 @@ fn direct_presentation_releases_cpu_staging_and_rebuilds_it_for_a_fallback() {
 
     assert!(finish_scene_load.contains("self.direct_present_enabled = true;"));
     assert!(finish_scene_load.contains("self.presenter = None;"));
-    assert!(render.contains("if !self.direct_present_enabled || write_screenshot {"));
+    assert!(render.contains("if !self.direct_present_enabled || screenshot_requested {"));
     assert!(render.contains("self.ensure_cpu_presenter()"));
     assert!(
         render
             .find("self.ensure_cpu_presenter()")
             .expect("CPU presenter fallback")
             < render
-                .find("let Some(scene) = self.scene.as_mut()")
-                .expect("scene borrow"),
-        "CPU fallback setup must complete before borrowing the scene for rendering"
+                .find("PBR scene must remain available after startup-state query")
+                .expect("rendering scene borrow"),
+        "CPU fallback setup must complete before the rendering scene borrow"
     );
 }
 

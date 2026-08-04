@@ -191,8 +191,11 @@ mod tests {
 
         naga::front::wgsl::parse_str(&shader_source)
             .expect("raw-depth post-process shader must parse");
-        assert!(shader_source
-            .contains("return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);"));
+        assert!(
+            shader_source.contains(
+                "return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);"
+            )
+        );
         assert!(!shader_source.contains("textureSample(scene_depth_tex"));
     }
 

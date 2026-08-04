@@ -13,6 +13,7 @@ mod resource_streamer_ensure_texture;
 mod resource_streamer_execute_output_target_writeback;
 mod resource_streamer_load_animation_skeleton_asset;
 mod resource_streamer_load_model_asset;
+mod resource_streamer_mip_streaming;
 mod resource_streamer_resolve_texture_id;
 mod resource_streamer_resource_revision;
 mod resource_streamer_shading_models;

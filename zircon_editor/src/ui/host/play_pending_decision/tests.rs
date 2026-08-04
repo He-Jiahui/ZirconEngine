@@ -3,8 +3,8 @@ use crate::core::play::{PendingEditDecisionPrompt, PendingEditQueueSummary};
 use std::time::Duration;
 
 use super::{
-    PlayPendingEditDecisionAdapter, PLAY_PENDING_EDITS_APPLY_OPTION,
-    PLAY_PENDING_EDITS_DISCARD_OPTION,
+    PLAY_PENDING_EDITS_APPLY_OPTION, PLAY_PENDING_EDITS_DISCARD_OPTION,
+    PlayPendingEditDecisionAdapter,
 };
 
 #[test]
@@ -76,6 +76,79 @@ fn receipt_selection_remains_addressable_for_idempotent_resolution() {
 }
 
 #[test]
+fn resolved_receipt_can_republish_a_pending_decision_after_execution_is_rejected() {
+    let center = DecisionNotificationCenter::new(DecisionCenterConfig::default())
+        .expect("decision center should construct");
+    let adapter = PlayPendingEditDecisionAdapter::default();
+    let prompt = PendingEditDecisionPrompt::new(PendingEditQueueSummary {
+        pending_count: 1,
+        payload_bytes: 128,
+        oldest_age: Some(Duration::from_secs(1)),
+    });
+
+    adapter
+        .publish(&center, &prompt)
+        .expect("initial pending edits should publish a decision");
+    let first_selection = adapter
+        .pending_options(&center)
+        .into_iter()
+        .next()
+        .expect("initial apply option should be available")
+        .selection_id()
+        .to_string();
+    assert!(
+        adapter
+            .resolve(&center, &first_selection)
+            .expect("receipt should resolve")
+            .newly_resolved()
+    );
+
+    // The controller may reject execution after the receipt commits (for
+    // example, because another resolver owns the Play barrier). The pending
+    // edit intent must regain a new, actionable Decision instead of remaining
+    // blocked behind a resolved receipt.
+    adapter
+        .publish(&center, &prompt)
+        .expect("a rejected execution should republish the pending decision");
+
+    let retry_selection = adapter
+        .pending_options(&center)
+        .into_iter()
+        .next()
+        .expect("republished apply option should be available")
+        .selection_id()
+        .to_string();
+    assert_ne!(retry_selection, first_selection);
+    assert_eq!(center.pending_snapshot().len(), 1);
+}
+
+#[test]
+fn options_reconcile_the_current_prompt_after_receipt_execution_cannot_begin() {
+    let resolve = include_str!("resolve.rs");
+    let publish = include_str!("publish.rs");
+
+    assert!(!resolve.contains("requeue_pending_play_decision"));
+    assert!(resolve.contains("failed to apply queued play edits"));
+    assert!(resolve.contains("failed to discard queued play edits"));
+    assert!(resolve.contains("reconcile_pending_play_decision(center)?"));
+    assert!(publish.contains("with_pending_edit_decision_prompt"));
+    assert!(publish.contains("reconcile_pending_play_decision(center)?"));
+}
+
+#[test]
+fn apply_failure_keeps_the_complete_pending_intent_for_diagnostics() {
+    let model = include_str!("model.rs");
+    let resolve = include_str!("resolve.rs");
+    let notification_toast =
+        include_str!("../../retained_host/callback_dispatch/workbench/control.rs");
+
+    assert!(model.contains("intent: PendingEditIntent"));
+    assert!(resolve.contains("PlayPendingEditApplyFailure::new(failure.intent, failure.error)"));
+    assert!(notification_toast.contains("failure.intent()"));
+    assert!(notification_toast.contains("ToastNotification"));
+}
+
+#[test]
 fn stop_and_backend_exit_publish_through_the_same_pending_decision_adapter() {
     let menu_actions = include_str!("../editor_event_execution/menu_action.rs");
     let host_controller = include_str!("../editor_host_event_controller.rs");
@@ -84,6 +157,6 @@ fn stop_and_backend_exit_publish_through_the_same_pending_decision_adapter() {
         "controller\n                .publish_pending_edit_decision(transition.pending_edit_prompt.as_ref())"
     ));
     assert!(host_controller.contains(
-        "self.publish_pending_edit_decision(backend_transition.pending_edit_prompt.as_ref())"
+        "publish_pending_edit_decision(backend_transition.pending_edit_prompt.as_ref())"
     ));
 }

@@ -5,7 +5,9 @@ fn runtime_15_render_product_post_process_motion_blur_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/render_product_post_process.rs");
     let motion_blur = read_runtime_src("graphics/tests/render_product_post_process/motion_blur.rs");
 
-    let plan_07 = read_repo("docs/plans/zircon_runtime/render/07/2026-07-09-postprocess-color-pipeline-output-records.md");
+    let plan_07 = read_repo(
+        "docs/plans/zircon_runtime/render/07/2026-07-09-postprocess-color-pipeline-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

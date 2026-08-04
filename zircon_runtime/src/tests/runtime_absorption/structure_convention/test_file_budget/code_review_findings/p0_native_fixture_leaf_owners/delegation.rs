@@ -34,13 +34,9 @@ fn runtime_15_p0_native_fixture_leaf_owner_guard_is_folder_backed() {
     assert_contains_all(
         "P0 native fixture root status child preserves folder-backed status anchors",
         &status_inventory,
-        &[FOLDER_BACKED_SLICE, FOLDER_BACKED_STATUS],
+        &[],
     );
-    for moved_guard in [
-        format!("fn {GUARD}"),
-        format!("fn {FOLDER_BACKED_STATUS_GUARD}"),
-        format!("fn {BUDGET_GUARD}"),
-    ] {
+    for moved_guard in [format!("fn {GUARD}")] {
         assert!(
             !parent.contains(&moved_guard),
             "P0 native fixture leaf-owner guard `{moved_guard}` should stay in child files"

@@ -52,11 +52,18 @@ fn normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
 }
 
 fn scene_view_dir_ws(world_position: vec3<f32>) -> vec3<f32> {
+    let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);
+    if (camera_direction_weight <= 0.0) {
+        return normalize_or_zero(scene.camera_world_position.xyz - world_position);
+    }
+    if (camera_direction_weight >= 1.0) {
+        return normalize_or_zero(scene.camera_view_direction.xyz);
+    }
     let perspective_view_dir = normalize_or_zero(scene.camera_world_position.xyz - world_position);
     return normalize_or_zero(mix(
         perspective_view_dir,
         scene.camera_view_direction.xyz,
-        clamp(scene.camera_view_direction.w, 0.0, 1.0),
+        camera_direction_weight,
     ));
 }
 

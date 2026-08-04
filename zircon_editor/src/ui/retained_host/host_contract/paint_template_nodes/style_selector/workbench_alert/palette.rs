@@ -14,6 +14,7 @@ pub(super) struct WorkbenchAlertPalette {
     pub warning_tone: [u8; 4],
     pub error_surface: [u8; 4],
     pub error_tone: [u8; 4],
+    pub text: [u8; 4],
     pub disabled_surface: [u8; 4],
     pub disabled_border: [u8; 4],
     pub disabled_text: [u8; 4],
@@ -36,6 +37,7 @@ pub(super) fn workbench_alert_palette_from_host(
         warning_tone: palette.warning,
         error_surface: palette.error_container,
         error_tone: palette.error,
+        text: palette.text,
         disabled_surface: palette.surface_disabled,
         disabled_border: palette.border_disabled,
         disabled_text: palette.text_disabled,
@@ -74,7 +76,7 @@ pub(super) fn alert_tone_style_from_palette(
         surface,
         border,
         mark,
-        text: mark,
+        text: palette.text,
         state,
     }
 }
@@ -127,6 +129,7 @@ mod tests {
         let mut palette = PALETTE;
         palette.info_container = [10, 11, 12, 255];
         palette.info = [13, 14, 15, 255];
+        palette.text = [16, 17, 18, 255];
 
         let style = alert_tone_style_from_host(
             WorkbenchAlertTone::Info,
@@ -137,7 +140,7 @@ mod tests {
         assert_eq!(style.surface, [10, 11, 12, 255]);
         assert_eq!(style.border, [13, 14, 15, 255]);
         assert_eq!(style.mark, [13, 14, 15, 255]);
-        assert_eq!(style.text, [13, 14, 15, 255]);
+        assert_eq!(style.text, [16, 17, 18, 255]);
     }
 
     #[test]
@@ -149,6 +152,7 @@ mod tests {
         palette.warning = [33, 34, 35, 255];
         palette.error_container = [40, 41, 42, 255];
         palette.error = [43, 44, 45, 255];
+        palette.text = [46, 47, 48, 255];
 
         let success = alert_tone_style_from_host(
             WorkbenchAlertTone::Success,
@@ -169,12 +173,15 @@ mod tests {
         assert_eq!(success.surface, [20, 21, 22, 255]);
         assert_eq!(success.border, [23, 24, 25, 255]);
         assert_eq!(success.mark, [23, 24, 25, 255]);
+        assert_eq!(success.text, [46, 47, 48, 255]);
         assert_eq!(warning.surface, [30, 31, 32, 255]);
         assert_eq!(warning.border, [33, 34, 35, 255]);
         assert_eq!(warning.mark, [33, 34, 35, 255]);
+        assert_eq!(warning.text, [46, 47, 48, 255]);
         assert_eq!(error.surface, [40, 41, 42, 255]);
         assert_eq!(error.border, [43, 44, 45, 255]);
         assert_eq!(error.mark, [43, 44, 45, 255]);
+        assert_eq!(error.text, [46, 47, 48, 255]);
     }
 
     #[test]
@@ -184,6 +191,7 @@ mod tests {
         palette.border_disabled = [53, 54, 55, 255];
         palette.text_disabled = [56, 57, 58, 255];
         palette.focus_ring = [59, 60, 61, 255];
+        palette.text = [62, 63, 64, 255];
 
         let alert_palette = workbench_alert_palette_from_host(palette);
 
@@ -191,5 +199,6 @@ mod tests {
         assert_eq!(alert_palette.disabled_border, [53, 54, 55, 255]);
         assert_eq!(alert_palette.disabled_text, [56, 57, 58, 255]);
         assert_eq!(alert_palette.active_border, [59, 60, 61, 255]);
+        assert_eq!(alert_palette.text, [62, 63, 64, 255]);
     }
 }

@@ -34,15 +34,16 @@ fn toast_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn focused_toast_keeps_neutral_border() {
+fn focused_toast_keeps_neutral_surface_with_focus_border() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
 
     let style = select_workbench_toast_style(&node);
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
-    assert_eq!(style.border, super::palette::WORKBENCH_TOAST_BORDER);
-    assert_ne!(style.border, PALETTE.focus_ring);
+    assert_eq!(style.surface, super::palette::WORKBENCH_TOAST_SURFACE);
+    assert_eq!(style.border, PALETTE.focus_ring);
+    assert_ne!(style.border, super::palette::WORKBENCH_TOAST_BORDER);
 }
 
 #[test]
@@ -54,7 +55,8 @@ fn focused_open_toast_keeps_shared_focused_priority() {
     let style = select_workbench_toast_style(&node);
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
-    assert_eq!(style.border, super::palette::WORKBENCH_TOAST_BORDER);
+    assert_eq!(style.surface, super::palette::WORKBENCH_TOAST_SURFACE);
+    assert_eq!(style.border, PALETTE.focus_ring);
 }
 
 #[test]

@@ -36,7 +36,10 @@ pub use graph_reports::{
 };
 pub use handles::{FrameHistoryHandle, RenderPipelineHandle, RenderViewportHandle};
 pub use history::{FrameHistoryInvalidationReason, FrameHistoryStatus, RenderHistoryCopyReport};
-pub use quality::{RenderFeatureQualitySettings, RenderQualityProfile};
+pub(crate) use quality::normalize_texture_max_anisotropy;
+pub use quality::{
+    RenderFeatureQualitySettings, RenderQualityProfile, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
+};
 
 use std::sync::Arc;
 
@@ -236,6 +239,7 @@ pub struct RenderStats {
     pub last_ui_text_visible_raster_glyph_count: usize,
     pub last_ui_text_raster_source_image_count: usize,
     pub last_ui_text_missing_raster_image_count: usize,
+    pub last_ui_text_visible_missing_raster_image_count: usize,
     pub last_ui_text_visible_raster_placeholder_count: usize,
     pub last_ui_text_raster_worker_pending_count: usize,
     pub last_ui_text_raster_worker_failed_count: usize,

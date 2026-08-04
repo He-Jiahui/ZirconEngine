@@ -56,6 +56,7 @@ function Assert-MvpAutomationSceneSnapshot {
         [Parameter(Mandatory)][UInt64]$SelectedNodeId,
         [Parameter(Mandatory)][string]$SelectedNodeName,
         [Parameter(Mandatory)]$InspectorTranslation,
+        [Parameter(Mandatory)]$InspectorScale,
         [Parameter(Mandatory)][string]$Label
     )
 
@@ -123,6 +124,12 @@ function Assert-MvpAutomationSceneSnapshot {
                     throw "$Label selected scene node translation differs from inspector_translation."
                 }
             }
+            $scale = @(Get-MvpSceneRequiredProperty -Value $transform -Name 'scale' -Label "$Label scene node $nodeId transform")
+            for ($axis = 0; $axis -lt 3; $axis++) {
+                if ([double]$scale[$axis] -ne [double]$InspectorScale[$axis]) {
+                    throw "$Label selected scene node scale differs from inspector_scale."
+                }
+            }
             $selectedNodeFound = $true
         }
         $nodeEvidence.Add([pscustomobject]@{ id = $nodeId; parent = $parentId })
@@ -182,14 +189,17 @@ function Assert-MvpExpectedAuthoringSceneDelta {
         throw 'Authoring scene delta cannot resolve the selected node in both snapshots.'
     }
     if ([double]$baselineSelected[0].transform.translation[0] -ne 0.0 -or
-        [double]$authoringSelected[0].transform.translation[0] -ne 42.0) {
-        throw 'Authoring scene delta must change the selected Cube X translation from 0 to 42.'
+        [double]$authoringSelected[0].transform.translation[0] -ne 42.0 -or
+        [double]$baselineSelected[0].transform.scale[0] -ne 1.0 -or
+        [double]$authoringSelected[0].transform.scale[0] -ne 1.25) {
+        throw 'Authoring scene delta must change the selected Cube X translation from 0 to 42 and scale from 1 to 1.25.'
     }
     $authoringSelected[0].transform.translation[0] = $baselineSelected[0].transform.translation[0]
+    $authoringSelected[0].transform.scale[0] = $baselineSelected[0].transform.scale[0]
     $baseline = ConvertTo-Json -InputObject $baselineNodes -Depth 64 -Compress
     $authoring = ConvertTo-Json -InputObject $authoringNodes -Depth 64 -Compress
     if ($authoring -ne $baseline) {
-        throw 'Authoring scene_nodes differs from the baseline outside the requested Cube X translation.'
+        throw 'Authoring scene_nodes differs from the baseline outside the requested Cube X translation and scale.'
     }
 }
 

@@ -1,4 +1,5 @@
 use winit::event_loop::ActiveEventLoop;
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::diagnostic_log::{write_log, write_warn};
 
 use super::super::RuntimeEntryApp;
@@ -44,43 +45,42 @@ impl RuntimeEntryApp {
         if !self.ensure_fallback_presenter(event_loop) {
             return;
         }
-        if let Some(presenter) = self.presenter.as_mut() {
+        let fallback_result = if let Some(presenter) = self.presenter.as_mut() {
             match self
                 .session
                 .capture_frame(self.viewport, self.viewport_size)
             {
-                Ok(frame) => {
-                    if let Err(error) = presenter.present(&frame) {
-                        self.report_fatal_failure(
-                            "runtime_surface_present",
-                            format!(
-                                "viewport={:?} size={}x{} frame={}x{}",
-                                self.viewport,
-                                self.viewport_size.width,
-                                self.viewport_size.height,
-                                frame.width(),
-                                frame.height()
-                            ),
-                            format!("fallback presentation failed: {error}"),
-                            "verify the graphics adapter and window surface, then restart zircon_runtime",
-                        );
-                        event_loop.exit();
-                    } else {
-                        self.complete_first_presented_frame(event_loop);
-                    }
-                }
-                Err(error) => {
-                    self.report_fatal_failure(
-                        "runtime_surface_present",
+                Ok(frame) => presenter.present(&frame).map_err(|error| {
+                    (
                         format!(
-                            "viewport={:?} size={}x{}",
-                            self.viewport, self.viewport_size.width, self.viewport_size.height
+                            "viewport={:?} size={}x{} frame={}x{}",
+                            self.viewport,
+                            self.viewport_size.width,
+                            self.viewport_size.height,
+                            frame.width(),
+                            frame.height()
                         ),
-                        format!("frame capture failed: {error}"),
-                        "verify the graphics adapter and runtime project, then restart zircon_runtime",
-                    );
-                    event_loop.exit();
-                }
+                        format!("fallback presentation failed: {error}"),
+                        "verify the graphics adapter and window surface, then restart zircon_runtime",
+                    )
+                }),
+                Err(error) => Err((
+                    format!(
+                        "viewport={:?} size={}x{}",
+                        self.viewport, self.viewport_size.width, self.viewport_size.height
+                    ),
+                    format!("frame capture failed: {error}"),
+                    "verify the graphics adapter and runtime project, then restart zircon_runtime",
+                )),
+            }
+        } else {
+            return;
+        };
+        match fallback_result {
+            Ok(()) => self.complete_first_presented_frame(event_loop),
+            Err((context, error, recovery_hint)) => {
+                self.report_fatal_failure("runtime_surface_present", context, error, recovery_hint);
+                event_loop.exit();
             }
         }
     }
@@ -93,6 +93,7 @@ impl RuntimeEntryApp {
                 "runtime_frame_capture",
                 self.first_frame_capture_path
                     .as_deref()
+                    .map(ProjectPaths::display_path)
                     .map(|path| path.display().to_string())
                     .unwrap_or_else(|| "<not-requested>".to_owned()),
                 format!("first presented frame capture failed: {error}"),
@@ -154,11 +155,12 @@ impl RuntimeEntryApp {
             frame.rgba(),
         )?;
         self.first_frame_capture_written = true;
+        let display_path = ProjectPaths::display_path(&path);
         write_log(
             "runtime_surface_present",
             format!(
                 "runtime_product_frame_capture_written path={} frame={}x{}",
-                path.display(),
+                display_path.display(),
                 frame.width(),
                 frame.height()
             ),

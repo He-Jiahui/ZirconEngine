@@ -96,8 +96,11 @@ fn particle_velocity_diagnostics_enabled(
     }
     let reconstructed_velocity_requested =
         effect_stack.motion_blur.is_enabled() || effect_stack.screen_space_reflection.is_enabled();
-    let particle_transparent_executed = executed_executor_ids
-        .iter()
-        .any(|executor_id| executor_id == "particle.transparent");
+    let particle_transparent_executed = executed_executor_ids.iter().any(|executor_id| {
+        matches!(
+            executor_id.as_str(),
+            "particle.transparent" | "particle.halfres-transparent"
+        )
+    });
     reconstructed_velocity_requested && particle_transparent_executed
 }

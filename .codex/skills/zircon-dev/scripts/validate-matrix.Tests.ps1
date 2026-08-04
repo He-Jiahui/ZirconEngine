@@ -490,6 +490,52 @@ Describe "Cargo compatibility identity" {
     }
 }
 
+Describe "Validator path resolution" {
+    It "resolves an aliased repository manifest to its physical workspace directory" {
+        $physicalRoot = Join-Path $TestDrive "physical-workspace"
+        $aliasRoot = Join-Path $TestDrive "workspace-alias"
+        [System.IO.Directory]::CreateDirectory($physicalRoot) | Out-Null
+        Set-Content -LiteralPath (Join-Path $physicalRoot "Cargo.toml") -Value "[workspace]" -NoNewline
+        New-Item -ItemType Junction -Path $aliasRoot -Target $physicalRoot | Out-Null
+
+        $workspace = Resolve-WorkspaceManifest -RepoRoot $aliasRoot -RequestedManifestPath "Cargo.toml"
+        $physical = Resolve-ZirconWindowsPath -Path $physicalRoot
+
+        $workspace.RelativePath | Should Be "Cargo.toml"
+        $workspace.Directory | Should Be $physical.DisplayExistingPath
+    }
+
+    It "resolves an aliased target directory through its physical ancestor" {
+        $physicalRoot = Join-Path $TestDrive "physical-target-root"
+        $aliasRoot = Join-Path $TestDrive "target-root-alias"
+        [System.IO.Directory]::CreateDirectory($physicalRoot) | Out-Null
+        New-Item -ItemType Junction -Path $aliasRoot -Target $physicalRoot | Out-Null
+        $requestedTarget = Join-Path $aliasRoot "uncreated-target"
+
+        $target = Resolve-AbsoluteTargetDir `
+            -RepoRoot $script:ValidateMatrixTestRepoRoot `
+            -CliTargetDir $requestedTarget
+        $physical = Resolve-ZirconWindowsPath -Path $requestedTarget
+
+        $target | Should Be $physical.DisplayPath
+    }
+
+    It "rejects drive-relative target directories before applying a repository root" {
+        { Resolve-AbsoluteTargetDir -RepoRoot $script:ValidateMatrixTestRepoRoot -CliTargetDir "C:ambiguous-target" } |
+            Should Throw "Windows paths must be drive-rooted, not drive-relative: 'C:ambiguous-target'."
+    }
+
+    It "discovers a repository through an alias as its physical identity" {
+        $aliasRoot = Join-Path $TestDrive "repository-alias"
+        New-Item -ItemType Junction -Path $aliasRoot -Target $script:ValidateMatrixTestRepoRoot | Out-Null
+
+        $found = Find-RepoRoot (Join-Path $aliasRoot ".codex\\skills\\zircon-dev\\scripts")
+        $physical = Resolve-ZirconWindowsPath -Path $script:ValidateMatrixTestRepoRoot
+
+        $found | Should Be $physical.DisplayExistingPath
+    }
+}
+
 Describe "Ignored test Cargo arguments" {
     It "appends the ignored harness switch after all Cargo arguments" {
         $previousPackage = $script:Package
@@ -515,6 +561,49 @@ Describe "Ignored test Cargo arguments" {
             $script:TestFilter = $previousTestFilter
             $script:IgnoredTests = $previousIgnoredTests
         }
+    }
+}
+
+Describe "Product binary Cargo arguments" {
+    It "restricts a package build to the explicitly selected binary" {
+        $previousPackage = $script:Package
+        $previousBin = Get-Variable -Name Bin -Scope Script -ErrorAction SilentlyContinue
+        try {
+            $script:Package = "zircon_app"
+            $script:Bin = "zircon_runtime"
+
+            $arguments = @(Get-CargoArgs `
+                -Subcommand "build" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\product-bin" `
+                -WorkspaceManifest "Cargo.toml")
+
+            ($arguments -join " ") | Should Be "build -p zircon_app --bin zircon_runtime --locked --target-dir D:\cargo-targets\zircon-engine\pool\product-bin"
+        }
+        finally {
+            $script:Package = $previousPackage
+            if ($null -eq $previousBin) {
+                Remove-Variable -Name Bin -Scope Script -ErrorAction SilentlyContinue
+            }
+            else {
+                $script:Bin = $previousBin.Value
+            }
+        }
+    }
+}
+
+Describe "Published artifact path resolution" {
+    It "keeps the final physical path for artifact I/O while checking policy by display path" {
+        $targetDirectory = Join-Path $TestDrive "artifact-output-target"
+        $junctionDirectory = Join-Path $TestDrive "artifact-output-link"
+        [System.IO.Directory]::CreateDirectory($targetDirectory) | Out-Null
+        New-Item -ItemType Junction -Path $junctionDirectory -Target $targetDirectory | Out-Null
+        $requestedPath = Join-Path $junctionDirectory "published"
+
+        $resolved = Assert-ArtifactOutputDirectory -Path $requestedPath
+        $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
+
+        $resolved | Should Be $resolution.OperationalPath
+        $resolution.DisplayPath | Should Be (Join-Path $targetDirectory "published")
     }
 }
 
@@ -911,8 +1000,8 @@ Describe "Profile feature contract validation" {
             "{0}|{1}|{2}|{3}" -f $_.Label, $_.Package, $_.Features, $_.Bin
         } | Should Be @(
             "zircon_app target-server|zircon_app|target-server|",
-            "zircon_app target-client-platform|zircon_app|target-client,platform-winit,input-gamepad,gamepad-gilrs|",
-            "zircon_app target-editor-host|zircon_app|target-editor-host|",
+            "zircon_app target-client-platform|zircon_app|target-client,platform-winit,input-gamepad,gamepad-gilrs|zircon_runtime",
+            "zircon_app target-editor-host|zircon_app|target-editor-host|zircon_editor",
             "zircon_app target-client shader-pbr-viewer|zircon_app|target-client,platform-winit,input-gamepad,gamepad-gilrs|zircon_shader_pbr_viewer",
             "zircon_runtime target-client|zircon_runtime|target-client|",
             "zircon_runtime target-editor-host|zircon_runtime|target-editor-host|",

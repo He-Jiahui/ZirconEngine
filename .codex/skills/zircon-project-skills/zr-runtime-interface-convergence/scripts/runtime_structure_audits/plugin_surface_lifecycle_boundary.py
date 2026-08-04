@@ -20,6 +20,9 @@ EXPECTED_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 1
 EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 8
 EXPECTED_NATIVE_LOADER_V1_V2_FILE_COUNT = 0
 EXPECTED_PLUGIN_V1_V2_USAGE_FILES: tuple[str, ...] = ()
+EXPECTED_NATIVE_V3_ALIAS_FILES: tuple[str, ...] = ()
+EXPECTED_RETIRED_HOST_API_ADAPTER_FILES: tuple[str, ...] = ()
+EXPECTED_V2_FIXTURE_FEATURE_FILES: tuple[str, ...] = ()
 EXPECTED_EXPORT_BUILD_PLAN_V1_V2_USAGE_COUNT = 0
 EXPECTED_NATIVE_LOADER_TEST_FILE_COUNT = 4
 EXPECTED_NATIVE_TEST_NAMESPACE_IMPORT_FILE_COUNT = 3
@@ -44,7 +47,6 @@ RUNTIME_06_SOURCE_FILES = (
     "zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
     "zircon_runtime/src/script/vm/tests.rs",
     "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_06.rs",
     "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle.rs",
     "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/lifecycle_fallback.rs",
     "zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/mirror_docs.rs",
@@ -123,11 +125,51 @@ CARGO_GATE_ANCHORS = (
 V1_V2_PATTERNS = (
     "NativePluginAbiV1",
     "NativePluginAbiV2",
+    "NativePluginBehaviorV1",
+    "NativePluginBehaviorV2",
+    "NativePluginByteSliceV1",
+    "NativePluginByteSliceV2",
+    "NativePluginCallbackStatusV1",
+    "NativePluginCallbackStatusV2",
+    "NativePluginDescriptorFnV1",
+    "NativePluginDescriptorFnV2",
+    "NativePluginEntryReportV1",
+    "NativePluginEntryReportV2",
+    "NativePluginEntryFnV1",
+    "NativePluginEntryFnV2",
+    "NativePluginFreeBytesFnV1",
+    "NativePluginFreeBytesFnV2",
+    "NativePluginHostFunctionTableV1",
+    "NativePluginHostFunctionTableV2",
+    "NativePluginHostHasCapabilityFnV1",
+    "NativePluginHostHasCapabilityFnV2",
+    "NativePluginInvokeCommandFnV1",
+    "NativePluginInvokeCommandFnV2",
+    "NativePluginOwnedByteBufferV1",
+    "NativePluginOwnedByteBufferV2",
+    "NativePluginRestoreStateFnV1",
+    "NativePluginRestoreStateFnV2",
+    "NativePluginSaveStateFnV1",
+    "NativePluginSaveStateFnV2",
+    "NativePluginUnloadFnV1",
+    "NativePluginUnloadFnV2",
     "DESCRIPTOR_SYMBOL_V1",
     "DESCRIPTOR_SYMBOL_V2",
     "ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1",
     "ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2",
+    "zircon_native_plugin_descriptor_v1",
+    "zircon_native_plugin_descriptor_v2",
+    "zircon_native_plugin_entry_v1",
+    "zircon_native_plugin_entry_v2",
+    "abi_v2_only",
 )
+
+V3_TO_V2_ALIAS_RE = re.compile(
+    r"(?m)^pub\s+type\s+NativePlugin(?:ByteSlice|OwnedByteBuffer|CallbackStatus|"
+    r"SaveStateFn|RestoreStateFn|UnloadFn)V3\s*=\s*NativePlugin[A-Za-z0-9_]+V2\s*;"
+)
+RETIRED_HOST_API_ADAPTER_PATTERNS = ("NativeHostApiV3RegistrationScope",)
+V2_FIXTURE_FEATURE_PATTERNS = ("abi_v2_only",)
 
 NATIVE_LOADER_TEST_PATTERNS = (
     "NativePluginAbi",
@@ -189,19 +231,41 @@ def _missing_snippets(sources: tuple[str, ...], snippets: tuple[str, ...]) -> li
     ]
 
 
-def _rs_files_under(path: Path) -> list[Path]:
+def _source_files_under(path: Path, suffixes: tuple[str, ...]) -> list[Path]:
     if not path.exists():
         return []
-    return sorted(path.rglob("*.rs"))
+    return sorted(
+        candidate
+        for candidate in path.rglob("*")
+        if candidate.is_file() and candidate.suffix in suffixes
+    )
 
 
-def _files_containing(root: Path, search_root: Path, patterns: tuple[str, ...]) -> list[str]:
+def _rs_files_under(path: Path) -> list[Path]:
+    return _source_files_under(path, (".rs",))
+
+
+def _files_containing(
+    root: Path,
+    search_root: Path,
+    patterns: tuple[str, ...],
+    *,
+    suffixes: tuple[str, ...] = (".rs",),
+) -> list[str]:
     files: list[str] = []
-    for path in _rs_files_under(search_root):
+    for path in _source_files_under(search_root, suffixes):
         source = _read_text(path)
         if any(pattern in source for pattern in patterns):
             files.append(_relative(root, path))
     return sorted(files)
+
+
+def _files_matching(root: Path, search_root: Path, pattern: re.Pattern[str]) -> list[str]:
+    return sorted(
+        _relative(root, path)
+        for path in _rs_files_under(search_root)
+        if pattern.search(_read_text(path))
+    )
 
 
 def _location_count(search_root: Path, patterns: tuple[str, ...]) -> int:
@@ -272,17 +336,6 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
         if (root / RUNTIME_06_DOC_FILES[0]).exists()
         else ""
     )
-    cargo_gate_source = (
-        _read_text(
-            root
-            / "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_06.rs"
-        )
-        if (
-            root
-            / "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_06.rs"
-        ).exists()
-        else ""
-    )
     native_surface = native_plugin_public_surface_audit(root)
     app_native_plugin_files = _files_containing(
         root,
@@ -291,13 +344,39 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
     )
     native_loader_v1_v2_files = _files_containing(
         root,
-        root / "zircon_runtime/src/plugin/native_plugin_loader",
+        root / "zircon_runtime/src/plugin",
         V1_V2_PATTERNS,
     )
     plugin_v1_v2_usage_files = _files_containing(
         root,
         root / "zircon_plugins",
         V1_V2_PATTERNS,
+        suffixes=(".rs", ".toml"),
+    )
+    native_v3_alias_files = sorted(
+        set(
+            _files_matching(
+                root,
+                root / "zircon_runtime/src/plugin",
+                V3_TO_V2_ALIAS_RE,
+            )
+            + _files_matching(
+                root,
+                root / "zircon_plugins",
+                V3_TO_V2_ALIAS_RE,
+            )
+        )
+    )
+    retired_host_api_adapter_files = _files_containing(
+        root,
+        root / "zircon_runtime/src/plugin",
+        RETIRED_HOST_API_ADAPTER_PATTERNS,
+    )
+    v2_fixture_feature_files = _files_containing(
+        root,
+        root / "zircon_plugins/native_dynamic_fixture",
+        V2_FIXTURE_FEATURE_PATTERNS,
+        suffixes=(".rs", ".toml"),
     )
     export_build_plan_v1_v2_usage_count = _location_count(
         root / "zircon_runtime/src/plugin/export_build_plan",
@@ -330,9 +409,7 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
 
     missing_source_anchors = _missing_snippets(source_texts, SOURCE_ANCHORS)
     missing_doc_anchors = _missing_snippets(doc_texts, DOC_ANCHORS)
-    missing_cargo_gate_anchors = _missing_snippets(
-        (plan_source, cargo_gate_source), CARGO_GATE_ANCHORS
-    )
+    missing_cargo_gate_anchors = _missing_snippets((plan_source,), CARGO_GATE_ANCHORS)
     runtime_06_status = _frontmatter_field(plan_source, "status")
     runtime_06_last_refined = _frontmatter_field(plan_source, "last_refined")
     mirror_docs_guard_present = any(MIRROR_DOCS_GUARD in source for source in source_texts)
@@ -374,7 +451,13 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
     if len(native_loader_v1_v2_files) != EXPECTED_NATIVE_LOADER_V1_V2_FILE_COUNT:
         risks.append("Native loader V1/V2 implementation file count changed without Runtime 06 audit sync.")
     if tuple(plugin_v1_v2_usage_files) != EXPECTED_PLUGIN_V1_V2_USAGE_FILES:
-        risks.append("zircon_plugins V1/V2 usage is no longer limited to the native dynamic fixture.")
+        risks.append("zircon_plugins references retired native ABI V1/V2 symbols or fixture features.")
+    if tuple(native_v3_alias_files) != EXPECTED_NATIVE_V3_ALIAS_FILES:
+        risks.append("Native plugin V3 byte DTO/function types alias retired V2 physical owners.")
+    if tuple(retired_host_api_adapter_files) != EXPECTED_RETIRED_HOST_API_ADAPTER_FILES:
+        risks.append("Runtime exports or tests still reference the retired V3 host-API registration scope.")
+    if tuple(v2_fixture_feature_files) != EXPECTED_V2_FIXTURE_FEATURE_FILES:
+        risks.append("Native dynamic fixture still exposes the retired abi_v2_only build path.")
     if export_build_plan_v1_v2_usage_count != EXPECTED_EXPORT_BUILD_PLAN_V1_V2_USAGE_COUNT:
         risks.append("export_build_plan references retired native ABI V1/V2 symbols.")
     if len(native_loader_test_files) != EXPECTED_NATIVE_LOADER_TEST_FILE_COUNT:
@@ -441,6 +524,14 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
         "expected_native_loader_v1_v2_file_count": EXPECTED_NATIVE_LOADER_V1_V2_FILE_COUNT,
         "plugin_v1_v2_usage_files": plugin_v1_v2_usage_files,
         "expected_plugin_v1_v2_usage_files": list(EXPECTED_PLUGIN_V1_V2_USAGE_FILES),
+        "native_v3_alias_files": native_v3_alias_files,
+        "expected_native_v3_alias_files": list(EXPECTED_NATIVE_V3_ALIAS_FILES),
+        "retired_host_api_adapter_files": retired_host_api_adapter_files,
+        "expected_retired_host_api_adapter_files": list(
+            EXPECTED_RETIRED_HOST_API_ADAPTER_FILES
+        ),
+        "v2_fixture_feature_files": v2_fixture_feature_files,
+        "expected_v2_fixture_feature_files": list(EXPECTED_V2_FIXTURE_FEATURE_FILES),
         "export_build_plan_v1_v2_usage_count": export_build_plan_v1_v2_usage_count,
         "expected_export_build_plan_v1_v2_usage_count": EXPECTED_EXPORT_BUILD_PLAN_V1_V2_USAGE_COUNT,
         "native_loader_test_files": native_loader_test_files,

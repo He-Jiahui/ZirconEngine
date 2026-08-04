@@ -4,6 +4,7 @@ use super::super::style_selector::WorkbenchDropdownStyle;
 use super::super::template_dropdown_metrics::WorkbenchDropdownMetrics;
 use super::super::template_node_labels::template_node_label;
 use super::geometry::{frame_is_within, has_paintable_dropdown_extent};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_label(
@@ -27,7 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
     };
     if !has_paintable_dropdown_extent(&text_rect)
         || !frame_is_within(rect, &text_rect)
-        || !frame_is_within(clip, &text_rect)
+        || intersect(&text_rect, clip).is_none()
     {
         return;
     }

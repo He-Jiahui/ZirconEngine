@@ -1,6 +1,7 @@
 use crate::ui::workbench::autolayout::{
     compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
     compute_workbench_shell_geometry_with_region_defaults, workbench_layout_defaults,
+    compute_workbench_shell_geometry_with_scale_mode, ResolutionScaleMode,
     workbench_layout_tier_for_logical_width, workbench_layout_tier_for_physical_width,
     workbench_logical_width_for_scale, EditorRegion, EditorRegionRole, RegionBinding, ShellFrame,
     ShellRegionId, ShellSizePx, WorkbenchChromeMetrics, WorkbenchConstraintTokenName,
@@ -806,6 +807,48 @@ fn equivalent_logical_workbenches_scale_all_shell_geometry_at_the_dpi_boundary()
     );
     assert!((high_dpi.window_min_width - logical.window_min_width * 2.0).abs() < 0.001);
     assert!((high_dpi.window_min_height - logical.window_min_height * 2.0).abs() < 0.001);
+}
+
+#[test]
+fn shell_geometry_honors_an_explicit_constant_pixel_root_policy() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let constant_physical = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1800.0, 1240.0),
+        2.0,
+        &metrics,
+        None,
+    );
+    let constant_pixel = compute_workbench_shell_geometry_with_scale_mode(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1800.0, 1240.0),
+        2.0,
+        ResolutionScaleMode::ConstantPixel,
+        &metrics,
+        None,
+    );
+
+    assert_eq!(
+        constant_physical.status_bar_frame.height,
+        metrics.status_bar_height * 2.0
+    );
+    assert_eq!(
+        constant_pixel.status_bar_frame.height,
+        metrics.status_bar_height
+    );
+    assert!(constant_pixel.center_band_frame.height > constant_physical.center_band_frame.height);
 }
 
 #[test]

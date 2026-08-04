@@ -111,6 +111,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 visible_raster_glyph_count: 2,
                 source_image_count: 1,
                 missing_raster_image_count: 0,
+                visible_missing_raster_image_count: 0,
                 approximate_raster_image_count: 0,
                 unsupported_glyph_count: 1,
                 clipped_glyph_count: 0,
@@ -164,6 +165,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 visible_raster_glyph_count: 2,
                 source_image_count: 1,
                 missing_raster_image_count: 0,
+                visible_missing_raster_image_count: 0,
                 approximate_raster_image_count: 0,
                 unsupported_glyph_count: 1,
                 clipped_glyph_count: 0,
@@ -262,6 +264,7 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             visible_raster_glyph_count: 5,
             source_image_count: 4,
             missing_raster_image_count: 1,
+            visible_missing_raster_image_count: 0,
             visible_placeholder_count: 1,
             approximate_raster_image_count: 2,
             source_cache_hit_count: 6,
@@ -273,6 +276,9 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             source_cache_lru_touch_count: 7,
             source_cache_budget_linked_eviction_count: 2,
             source_cache_linked_raster_invalidation_count: 3,
+            atlas_slot_cache_hit_count: 0,
+            atlas_slot_cache_miss_count: 0,
+            atlas_slot_cache_insert_count: 0,
             atlas_resident_page_byte_len: 16_384,
             worker_request_submitted_count: 2,
             worker_pending_count: 3,
@@ -284,6 +290,7 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             worker_failed_count: 9,
             upload_command_count: 3,
             upload_copy_count: 3,
+            upload_copy_byte_len: 0,
             upload_byte_len: 384,
             renderer_upload_request_count: 3,
             renderer_upload_byte_len: 384,
@@ -292,6 +299,54 @@ fn text_prepare_report_exposes_all_outstanding_raster_work() {
             renderer_upload_ready_to_write_texture: false,
         }
     );
+}
+
+#[test]
+fn text_raster_upload_report_separates_offscreen_missing_images() {
+    let report = text_raster_upload_report(
+        &NativeBitmapAtlasPrepareReport {
+            missing_raster_image_count: 1,
+            visible_missing_raster_image_count: 0,
+            ..NativeBitmapAtlasPrepareReport::default()
+        },
+        &GlyphAtlasBitmapRendererPrepareReport::default(),
+    );
+
+    assert_eq!(report.missing_raster_image_count, 1);
+    assert_eq!(report.visible_missing_raster_image_count, 0);
+}
+
+#[test]
+fn text_prepare_report_exposes_raster_upload_scroll_counters() {
+    let report = text_raster_upload_report(
+        &NativeBitmapAtlasPrepareReport {
+            source_cache: native_bitmap_atlas::NativeBitmapAtlasSourceCacheFrameReport {
+                hit_count: 2,
+                miss_count: 3,
+                insert_count: 3,
+                ..Default::default()
+            },
+            submission: crate::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
+                slot_cache_hit_count: 2,
+                slot_cache_miss_count: 3,
+                slot_cache_insert_count: 3,
+                upload_copy_count: 3,
+                upload_copy_byte_len: 192,
+                ..Default::default()
+            },
+            ..NativeBitmapAtlasPrepareReport::default()
+        },
+        &GlyphAtlasBitmapRendererPrepareReport::default(),
+    );
+
+    assert_eq!(report.source_cache_hit_count, 2);
+    assert_eq!(report.source_cache_miss_count, 3);
+    assert_eq!(report.source_cache_insert_count, 3);
+    assert_eq!(report.atlas_slot_cache_hit_count, 2);
+    assert_eq!(report.atlas_slot_cache_miss_count, 3);
+    assert_eq!(report.atlas_slot_cache_insert_count, 3);
+    assert_eq!(report.upload_copy_count, 3);
+    assert_eq!(report.upload_copy_byte_len, 192);
 }
 
 #[test]

@@ -10,6 +10,7 @@ use crate::core::framework::animation::{
     AnimationStateMachineAsset,
 };
 use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
+use crate::core::framework::render::TextureMetadataDiagnosticSeverity;
 use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 
 mod font;
@@ -70,7 +71,10 @@ impl ArtifactCacheAsset {
     pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetImportError> {
         Ok(match asset {
             ImportedAsset::Data(asset) => Self::Data(ArtifactCacheDataAsset::from(asset)),
-            ImportedAsset::Texture(asset) => Self::Texture(ArtifactCacheTextureAsset::from(asset)),
+            ImportedAsset::Texture(asset) => {
+                validate_artifact_cache_texture_metadata(asset)?;
+                Self::Texture(ArtifactCacheTextureAsset::from(asset))
+            }
             ImportedAsset::Shader(asset) => Self::Shader(ArtifactCacheShaderAsset::from(asset)),
             ImportedAsset::Material(asset) => {
                 Self::Material(ArtifactCacheMaterialAsset::from(asset))
@@ -124,7 +128,7 @@ impl ArtifactCacheAsset {
     pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetImportError> {
         Ok(match self {
             Self::Data(asset) => ImportedAsset::Data(asset.into_asset()?),
-            Self::Texture(asset) => ImportedAsset::Texture(asset.into_asset()),
+            Self::Texture(asset) => ImportedAsset::Texture(asset.into_asset()?),
             Self::Shader(asset) => ImportedAsset::Shader(asset.into_asset()?),
             Self::Material(asset) => ImportedAsset::Material(asset.into_asset()?),
             Self::MaterialGraph(asset) => ImportedAsset::MaterialGraph(asset),
@@ -214,15 +218,38 @@ impl From<&TextureAsset> for ArtifactCacheTextureAsset {
 }
 
 impl ArtifactCacheTextureAsset {
-    fn into_asset(self) -> TextureAsset {
-        TextureAsset {
+    fn into_asset(self) -> Result<TextureAsset, AssetImportError> {
+        let texture = TextureAsset {
             uri: self.uri,
             width: self.width,
             height: self.height,
             rgba: self.rgba,
             payload: self.payload.into(),
             descriptor: self.descriptor,
-        }
+        };
+        validate_artifact_cache_texture_metadata(&texture)?;
+        Ok(texture)
+    }
+}
+
+fn validate_artifact_cache_texture_metadata(
+    texture: &TextureAsset,
+) -> Result<(), AssetImportError> {
+    let uri = texture.uri.to_string();
+    let errors = texture
+        .texture_descriptor()
+        .validate_metadata(&uri)
+        .into_iter()
+        .filter(|diagnostic| diagnostic.severity == TextureMetadataDiagnosticSeverity::Error)
+        .map(|diagnostic| diagnostic.message)
+        .collect::<Vec<_>>();
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(AssetImportError::Parse(format!(
+            "validate cached texture metadata {uri}: {}",
+            errors.join("; ")
+        )))
     }
 }
 

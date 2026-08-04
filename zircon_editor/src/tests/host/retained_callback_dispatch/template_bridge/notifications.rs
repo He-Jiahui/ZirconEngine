@@ -1,17 +1,18 @@
 use super::super::support::*;
-use crate::ui::retained_host::workbench_notifications::{
-    WorkbenchNotification, WorkbenchNotificationSeverity,
-};
 use crate::{
+    core::i18n::EditorI18nService,
     core::notifications::{
         DecisionCenterConfig, DecisionNotification, DecisionNotificationCenter, DecisionOption,
-        DecisionOptionId, NotificationId, NotificationSource,
+        DecisionOptionId, EditorNotificationService, NotificationId, NotificationSource,
+        ToastNotification, ToastSeverity,
     },
+    ui::activity::{ActivityToastView, activity_toast_views},
     ui::host::play_pending_decision::PlayPendingDecisionOption,
 };
+use std::time::Duration;
 
 #[test]
-fn workbench_toast_queue_and_notification_history_receive_editor_notifications() {
+fn workbench_toast_queue_and_notification_history_project_core_activity_toasts() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
         .expect("componentized workbench template should project");
@@ -23,24 +24,42 @@ fn workbench_toast_queue_and_notification_history_receive_editor_notifications()
         Some("collapsed")
     );
 
-    let project_saved = WorkbenchNotification::new(
-        "event-1-save",
-        "Project saved",
-        "Project state was written to disk.",
-        WorkbenchNotificationSeverity::Success,
-    );
-    let import_requested = WorkbenchNotification::new(
-        "event-1-import",
-        "Import model",
-        "Choose a model file to import into the active project.",
-        WorkbenchNotificationSeverity::Info,
-    )
-    .with_action_label("Import")
-    .with_duration_ms(4_000);
+    let i18n = EditorI18nService::default();
+    let notifications = EditorNotificationService::default();
+    notifications
+        .publish_toast(
+            ToastNotification::new(
+                NotificationId::parse("editor.activity.01.project-save").unwrap(),
+                NotificationSource::builtin("editor.activity").unwrap(),
+                ToastSeverity::Success,
+                "editor.notification.project_saved.title",
+                "editor.notification.project_saved.message",
+                Duration::from_secs(3),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    notifications
+        .publish_toast(
+            ToastNotification::new(
+                NotificationId::parse("editor.activity.02.import-model").unwrap(),
+                NotificationSource::builtin("editor.activity").unwrap(),
+                ToastSeverity::Info,
+                "editor.notification.import_model.title",
+                "editor.notification.import_model.message",
+                Duration::from_secs(4),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    let (now, snapshots) = notifications.live_toast_snapshot();
+    let activity_toasts = activity_toast_views(&snapshots, &i18n, now);
 
-    assert!(bridge
-        .push_workbench_notifications(&[project_saved, import_requested])
-        .expect("notifications should publish to workbench overlays"));
+    assert!(
+        bridge
+            .sync_activity_toasts(&activity_toasts)
+            .expect("activity toasts should project to workbench overlays")
+    );
 
     assert_eq!(
         control_string_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "visibility").as_deref(),
@@ -53,7 +72,7 @@ fn workbench_toast_queue_and_notification_history_receive_editor_notifications()
     assert_eq!(
         control_string_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "current_toast_id")
             .as_deref(),
-        Some("event-1-save")
+        Some("editor.activity.01.project-save")
     );
     assert_eq!(
         control_string_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "text").as_deref(),
@@ -71,7 +90,9 @@ fn workbench_toast_queue_and_notification_history_receive_editor_notifications()
         control_string_list_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "toast_queue");
     assert_eq!(toast_queue.len(), 2);
     assert!(toast_queue[0].contains("message=Project state was written to disk."));
-    assert!(toast_queue[1].contains("action_label=Import"));
+    assert!(
+        toast_queue[1].contains("message=Choose a model file to import into the active project.")
+    );
 
     assert_eq!(
         control_string_attribute(
@@ -130,6 +151,20 @@ fn workbench_toast_queue_and_notification_history_receive_editor_notifications()
             .as_str(),
         "Project saved"
     );
+
+    assert!(
+        bridge
+            .sync_activity_toasts(&[])
+            .expect("an empty authority snapshot should clear expired activity toasts")
+    );
+    assert_eq!(
+        control_string_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "visibility").as_deref(),
+        Some("collapsed")
+    );
+    assert!(
+        control_string_list_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "toast_queue")
+            .is_empty()
+    );
 }
 
 #[test]
@@ -168,17 +203,21 @@ fn pending_play_decision_rows_are_modal_until_a_choice_is_resolved() {
         "Apply one queued edit before the next Play session.".to_string(),
     );
 
-    assert!(bridge
-        .sync_pending_play_decision_options(std::slice::from_ref(&option))
-        .expect("pending decision rows should project"));
+    assert!(
+        bridge
+            .sync_pending_play_decision_options(std::slice::from_ref(&option))
+            .expect("pending decision rows should project")
+    );
     let notification_generation = control_int_attribute(
         &bridge,
         WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
         "notification_generation",
     );
-    assert!(!bridge
-        .sync_pending_play_decision_options(std::slice::from_ref(&option))
-        .expect("same pending decision generation should be a no-op"));
+    assert!(
+        !bridge
+            .sync_pending_play_decision_options(std::slice::from_ref(&option))
+            .expect("same pending decision generation should be a no-op")
+    );
     assert_eq!(
         control_int_attribute(
             &bridge,
@@ -212,13 +251,27 @@ fn pending_play_decision_rows_are_modal_until_a_choice_is_resolved() {
         "play_pending_decision_test_apply"
     ));
 
-    assert!(bridge
-        .sync_pending_play_decision_options(&[])
-        .expect("resolved decisions should clear their retained rows"));
+    assert!(
+        bridge
+            .sync_pending_play_decision_options(&[])
+            .expect("resolved decisions should clear their retained rows")
+    );
     assert!(!bridge.is_pending_play_decision_option(
         WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
         "play_pending_decision_test_apply"
     ));
+    assert_eq!(
+        control_bool_attribute(&bridge, WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, "open"),
+        Some(false)
+    );
+    assert_eq!(
+        control_bool_attribute(
+            &bridge,
+            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+            "popup_open"
+        ),
+        Some(false)
+    );
 }
 
 #[test]
@@ -228,18 +281,21 @@ fn notification_burst_has_bounded_retention_and_explicit_generation_metadata() {
         .expect("componentized workbench template should project");
     let burst = (0..1_000)
         .map(|index| {
-            WorkbenchNotification::new(
+            ActivityToastView::new(
                 format!("burst-{index}"),
                 format!("Burst {index}"),
                 "Queued editor update",
-                WorkbenchNotificationSeverity::Info,
+                ToastSeverity::Info,
+                Duration::from_secs(3),
             )
         })
         .collect::<Vec<_>>();
 
-    assert!(bridge
-        .push_workbench_notifications(&burst)
-        .expect("notification burst should publish"));
+    assert!(
+        bridge
+            .sync_activity_toasts(&burst)
+            .expect("activity toast burst should project")
+    );
 
     let history = control_string_list_attribute(
         &bridge,

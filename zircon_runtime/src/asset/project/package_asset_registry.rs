@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 use crate::asset::AssetImportError;
 use crate::core::resource::ResourceLocator;
 use zircon_runtime_interface::project::RelPath;
+
+use super::ProjectPaths;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PackageAssetRegistry {
@@ -13,6 +14,10 @@ pub struct PackageAssetRegistry {
 }
 
 impl PackageAssetRegistry {
+    /// Registers project assets under one physical project identity.
+    ///
+    /// Callers may provide an OS path alias, but registry roots are published from the resolved
+    /// project root so downstream indexing and scanning do not retain lexical aliases.
     pub fn register_project_roots(
         &mut self,
         project_root: impl AsRef<Path>,
@@ -22,37 +27,41 @@ impl PackageAssetRegistry {
             return Err(AssetImportError::MissingProjectAssetRoot);
         }
         let project_root = project_root.as_ref();
-        let canonical_project_root = fs::canonicalize(project_root).map_err(|source| {
-            AssetImportError::CanonicalProjectRoot {
-                path: project_root.to_path_buf(),
-                source,
-            }
-        })?;
-        let mut resolved = Vec::with_capacity(asset_roots.len());
-        for relative in asset_roots {
-            let root = relative.join_to(project_root);
-            if !root.starts_with(project_root) {
-                return Err(AssetImportError::ProjectAssetRootOutsideProject {
-                    project_root: project_root.to_path_buf(),
-                    root,
-                });
-            }
-            if resolved.contains(&root) {
-                return Err(AssetImportError::DuplicateProjectAssetRoot { root });
-            }
-            let canonical_asset_root = fs::canonicalize(&root).map_err(|source| {
-                AssetImportError::CanonicalProjectAssetRoot {
-                    path: root.clone(),
+        let canonical_project_root =
+            ProjectPaths::resolve_existing_path(project_root).map_err(|source| {
+                AssetImportError::CanonicalProjectRoot {
+                    path: project_root.to_path_buf(),
                     source,
                 }
             })?;
+        let mut resolved = Vec::with_capacity(asset_roots.len());
+        for relative in asset_roots {
+            let root = relative.join_to(&canonical_project_root);
+            if !root.starts_with(&canonical_project_root) {
+                return Err(AssetImportError::ProjectAssetRootOutsideProject {
+                    project_root: canonical_project_root.clone(),
+                    root,
+                });
+            }
+            let canonical_asset_root =
+                ProjectPaths::resolve_existing_path(&root).map_err(|source| {
+                    AssetImportError::CanonicalProjectAssetRoot {
+                        path: root.clone(),
+                        source,
+                    }
+                })?;
             if !canonical_asset_root.starts_with(&canonical_project_root) {
                 return Err(AssetImportError::CanonicalProjectAssetRootEscape {
                     project_root: canonical_project_root.clone(),
                     asset_root: canonical_asset_root,
                 });
             }
-            resolved.push(root);
+            if resolved.contains(&canonical_asset_root) {
+                return Err(AssetImportError::DuplicateProjectAssetRoot {
+                    root: canonical_asset_root,
+                });
+            }
+            resolved.push(canonical_asset_root);
         }
         self.project_roots = resolved;
         Ok(())
@@ -81,8 +90,11 @@ impl PackageAssetRegistry {
                 "package {package_id} asset root cannot be empty"
             )));
         }
+        // `package://` is a logical identity. Resolve its filesystem root once so aliases such
+        // as Windows junctions and SUBST drives cannot leak into later source-path lookups.
+        let resolved_assets_root = ProjectPaths::resolve_root(assets_root)?;
         self.roots_by_package_id
-            .insert(package_id, assets_root.to_path_buf());
+            .insert(package_id, resolved_assets_root);
         Ok(())
     }
 

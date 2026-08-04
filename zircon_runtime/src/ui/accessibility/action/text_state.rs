@@ -84,6 +84,15 @@ pub(super) fn sync_text_input_selection_metadata(
             result,
         );
     }
+    // Accessibility actions identify a logical text boundary, never a visual bidi edge.
+    mutate_text_input_accessibility_metadata(
+        surface,
+        target,
+        "caret_affinity",
+        UiValue::String("downstream".to_string()),
+        "accessibility_text_selection",
+        result,
+    );
     clear_text_input_composition_metadata(surface, target, caret, result);
 }
 

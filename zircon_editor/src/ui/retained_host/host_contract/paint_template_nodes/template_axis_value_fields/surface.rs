@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_axis_value_field_style::{
     axis_field_background, axis_field_border, axis_field_border_width,
@@ -13,6 +14,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     order: i32,
     opacity: f32,
 ) {
+    if intersect(field, clip).is_none() {
+        return;
+    }
     let metrics = axis_value_field_metrics();
     commands.push(HostPaintCommand::quad(
         field.clone(),

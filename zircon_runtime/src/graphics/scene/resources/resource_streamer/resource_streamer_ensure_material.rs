@@ -446,6 +446,8 @@ impl ResourceStreamer {
             material_queue: descriptor.material_queue,
             depth_bias: descriptor.depth_bias,
             taa_reactive_mask_strength: descriptor.taa_reactive_mask_strength,
+            separate_translucency: descriptor.separate_translucency
+                && matches!(descriptor.alpha_mode, RenderMaterialAlphaMode::Blend),
             subsurface_profile_index: descriptor.subsurface_profile_index,
             advanced_features: descriptor.advanced_features.clone(),
             base_color_texture: base_color_texture.id(),

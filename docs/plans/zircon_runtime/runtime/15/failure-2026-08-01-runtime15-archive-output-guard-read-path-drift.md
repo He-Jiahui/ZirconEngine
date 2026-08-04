@@ -51,3 +51,7 @@ tests:
 ## 修复结果与回传
 
 Open state: `八个文件的历史读取 cohort 已静态硬切到 canonical archives 并改用 exact assertion；等待 Text04/Render17 current-source 编译阻断解除后取得真实 Runtime15 focused Cargo 证据`。
+
+## 2026-08-03 successor hard-cut 进展
+
+更高优先级的 receipt-test compile-debt failure 已取代“继续维护历史状态 Rust 断言”的旧验收方向：纯 archive/status receipt guards 及其路径镜像被直接删除，生产源码/owner/预算/禁止 API 断言继续由现有 structure guards 持有。当前不存在 archive fallback 或兼容入口；本地 hard-cut/Runtime03 Python 回归 5/5 通过，独立二次审查为 Critical/Important/Minor = `0/0/0`。managed Runtime lib-test 与 plan-output/handoff evidence 尚未完成，因此本记录保持 `resolving`，待 successor failure 的受管回执一起返回 fixed。

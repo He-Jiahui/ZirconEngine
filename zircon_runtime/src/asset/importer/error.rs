@@ -1,7 +1,6 @@
 use thiserror::Error;
 
 use super::AssetImporterRegistryError;
-use crate::asset::ReferenceResolutionError;
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::assets::{
     FontAssetError, UiAssetDocumentError, UiIconAssetDocumentError, UiThemeAssetDocumentError,
@@ -11,6 +10,7 @@ use crate::asset::assets::{
 use crate::asset::assets::{FontMetadataParseError, FontSourceDecodeError};
 use crate::asset::project::ProjectManifestError;
 use crate::asset::registry::AssetRegistryError;
+use crate::asset::ReferenceResolutionError;
 use crate::core::framework::animation::AnimationAssetError;
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
@@ -91,6 +91,8 @@ pub enum AssetImportError {
         path: std::path::PathBuf,
         roots: Vec<std::path::PathBuf>,
     },
+    #[error("project asset scan rejected symbolic link or Windows reparse point at {path}")]
+    UnsafeProjectAssetLink { path: std::path::PathBuf },
     #[error("font asset document failed: {0}")]
     FontDocument(#[source] FontAssetError),
     #[error("font source {path} could not be read: {source}")]

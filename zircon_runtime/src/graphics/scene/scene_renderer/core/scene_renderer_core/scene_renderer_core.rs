@@ -11,8 +11,8 @@ use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResources};
 use super::super::super::shadow::ShadowMapRenderer;
+use super::super::super::shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResources};
 use super::super::super::sprite::SpriteRenderer;
 use super::super::super::ui::ScreenSpaceUiRenderer;
 use super::{

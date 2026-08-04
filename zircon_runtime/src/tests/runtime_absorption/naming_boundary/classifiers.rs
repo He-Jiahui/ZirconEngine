@@ -24,7 +24,7 @@ pub(super) fn allowed_server_context(relative_path: &str, line: &str) -> bool {
     if matches!(
         relative_path,
         "src/plugin/runtime_profile/descriptor.rs"
-            | "src/plugin/runtime_profile/defaults.rs"
+            | "src/plugin/runtime_profile/assembly_presets.rs"
             | "src/plugin/export_build_plan/default_profile.rs"
     ) {
         return true;

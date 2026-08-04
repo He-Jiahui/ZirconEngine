@@ -36,7 +36,7 @@ pub(super) fn side_pane(
     )
 }
 
-pub(super) fn side_pane_with_template_v2_data(
+pub(crate) fn side_pane_with_template_v2_data(
     model: &WorkbenchViewModel,
     chrome: &EditorChromeSnapshot,
     slots: &[ActivityDrawerSlot],
@@ -459,7 +459,7 @@ fn build_pane_presentation(
     build_export: &BuildExportPaneViewData,
     template_v2_data: &std::collections::BTreeMap<
         String,
-        std::collections::BTreeMap<String, zircon_runtime_interface::ui::component::UiValue>,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
     >,
 ) -> Option<PanePresentation> {
     let pane_template = snapshot.and_then(|snapshot| snapshot.pane_template.as_ref())?;

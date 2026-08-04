@@ -11,9 +11,6 @@ fn runtime_15_ui_dispatch_input_manager_tests_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "UI input manager parent keeps production dispatch API and child test mount",
@@ -93,15 +90,4 @@ fn runtime_15_ui_dispatch_input_manager_tests_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI dispatch input manager test owner split",
-            "runtime_15_ui_dispatch_input_manager_tests_owner_split_static_passed_cargo_deferred",
-            "ui/dispatch/input_manager/manager.rs",
-            "ui/dispatch/input_manager/manager/tests.rs",
-            "runtime_15_ui_dispatch_input_manager_tests_are_child_owner",
-        ],
-    );
 }

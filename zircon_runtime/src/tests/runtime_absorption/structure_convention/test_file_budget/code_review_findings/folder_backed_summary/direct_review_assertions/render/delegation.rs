@@ -38,10 +38,8 @@ fn runtime_15_code_review_findings_render_direct_assertions_are_child_owner() {
             RENDER_DIRECT_ASSERTIONS_DELEGATION_CHILD,
             RENDER_DIRECT_ASSERTIONS_REVIEW_GUARD_CHILD,
             RENDER_DIRECT_ASSERTIONS_BUDGETS_CHILD,
-            RENDER_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD,
             "runtime_15_code_review_findings_render_direct_assertions_are_child_owner",
             RENDER_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            RENDER_DIRECT_ASSERTIONS_STATUS_GUARD,
         ],
     );
 

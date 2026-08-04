@@ -121,7 +121,8 @@ fn next_parser_identity() -> u64 {
 }
 
 const fn next_generation(generation: u64) -> u64 {
-    generation.wrapping_add(1).max(1)
+    let next = generation.wrapping_add(1);
+    if next == 0 { 1 } else { next }
 }
 
 #[cfg(test)]

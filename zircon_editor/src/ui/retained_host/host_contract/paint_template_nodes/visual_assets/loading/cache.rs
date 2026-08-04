@@ -43,7 +43,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn store_v
         .insert(key, pixels);
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn clear_visual_asset_pixels_cache(
+pub(in crate::ui::retained_host) fn clear_visual_asset_pixels_cache(
 ) {
     VISUAL_ASSET_CACHE_GENERATION.fetch_add(1, Ordering::Relaxed);
     if let Some(cache) = VISUAL_ASSET_CACHE.get() {

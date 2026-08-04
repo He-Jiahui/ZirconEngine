@@ -115,6 +115,118 @@ fn multiple_project_roots_scan_distinct_res_uris_and_reject_collisions() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[cfg(any(unix, windows))]
+#[test]
+fn project_root_registration_publishes_physical_asset_paths_for_an_alias_root() {
+    let parent = unique_temp_project_root("project_root_alias_registry");
+    let physical_root = parent.join("physical-project");
+    fs::create_dir_all(physical_root.join("assets")).unwrap();
+    let alias_root = parent.join("project-alias");
+    create_directory_alias(&physical_root, &alias_root);
+
+    let mut registry = crate::asset::project::PackageAssetRegistry::default();
+    registry
+        .register_project_roots(&alias_root, &[RelPath::project_assets()])
+        .unwrap();
+
+    assert_eq!(
+        registry.project_roots(),
+        &[ProjectPaths::resolve_existing_path(&physical_root)
+            .unwrap()
+            .join("assets")]
+    );
+
+    remove_directory_alias(&alias_root);
+    let _ = fs::remove_dir_all(parent);
+}
+
+#[cfg(any(unix, windows))]
+#[test]
+fn project_root_registration_canonicalizes_and_deduplicates_internal_asset_aliases() {
+    let parent = unique_temp_project_root("project_asset_root_alias_registry");
+    let project_root = parent.join("project");
+    let assets_root = project_root.join("assets");
+    fs::create_dir_all(&assets_root).unwrap();
+    let asset_alias = project_root.join("asset-alias");
+    create_directory_alias(&assets_root, &asset_alias);
+    let expected_root = ProjectPaths::resolve_existing_path(&assets_root).unwrap();
+
+    let mut registry = crate::asset::project::PackageAssetRegistry::default();
+    registry
+        .register_project_roots(&project_root, &[RelPath::parse("asset-alias").unwrap()])
+        .unwrap();
+    assert_eq!(registry.project_roots(), &[expected_root.clone()]);
+
+    let duplicate = registry
+        .register_project_roots(
+            &project_root,
+            &[
+                RelPath::project_assets(),
+                RelPath::parse("asset-alias").unwrap(),
+            ],
+        )
+        .unwrap_err();
+    assert!(matches!(
+        duplicate,
+        AssetImportError::DuplicateProjectAssetRoot { root } if root == expected_root
+    ));
+
+    remove_directory_alias(&asset_alias);
+    let _ = fs::remove_dir_all(parent);
+}
+
+#[cfg(any(unix, windows))]
+#[test]
+fn package_root_registration_publishes_physical_asset_paths_for_an_alias_root() {
+    let parent = unique_temp_project_root("package_root_alias_registry");
+    let project_root = parent.join("project");
+    let paths = ProjectPaths::from_root(&project_root).unwrap();
+    paths
+        .ensure_layout(&[RelPath::project_assets()])
+        .unwrap();
+    ProjectManifest::new(
+        "PackageAliasSandbox",
+        AssetUri::parse("res://data/project.json").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let physical_root = parent.join("physical-package-assets");
+    let physical_source = physical_root.join("nav").join("agent.json");
+    fs::create_dir_all(physical_source.parent().unwrap()).unwrap();
+    fs::write(&physical_source, r#"{"kind":"package-agent"}"#).unwrap();
+    let alias_root = parent.join("package-assets-alias");
+    create_directory_alias(&physical_root, &alias_root);
+    let expected_root = ProjectPaths::resolve_existing_path(&physical_root).unwrap();
+
+    let mut manager = ProjectManager::open(&project_root).unwrap();
+    manager
+        .register_package_asset_root("com.zircon.alias", &alias_root)
+        .unwrap();
+    manager.scan_and_import().unwrap();
+
+    let uri = AssetUri::parse("package://com.zircon.alias/nav/agent.json").unwrap();
+    let record = manager
+        .registry()
+        .get_by_locator(&uri)
+        .expect("package source should be scanned through the alias root");
+    assert_eq!(record.state, ResourceState::Ready);
+    assert_eq!(
+        manager
+            .package_assets()
+            .root_for_package("com.zircon.alias"),
+        Some(expected_root.as_path())
+    );
+    assert_eq!(
+        manager.source_path_for_uri(&uri).unwrap(),
+        ProjectPaths::resolve_existing_path(&physical_source).unwrap()
+    );
+
+    remove_directory_alias(&alias_root);
+    let _ = fs::remove_dir_all(parent);
+}
+
 #[test]
 fn project_root_registration_rejects_a_canonical_symlink_escape() {
     let root = unique_temp_project_root("project_root_symlink_escape");
@@ -145,6 +257,16 @@ fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) ->
     std::os::unix::fs::symlink(target, link).is_ok()
 }
 
+#[cfg(unix)]
+fn create_directory_alias(target: &std::path::Path, link: &std::path::Path) {
+    std::os::unix::fs::symlink(target, link).expect("create project root alias");
+}
+
+#[cfg(unix)]
+fn remove_directory_alias(link: &std::path::Path) {
+    fs::remove_file(link).expect("remove project root alias");
+}
+
 #[cfg(windows)]
 const WINDOWS_ERROR_PRIVILEGE_NOT_HELD: i32 = 1314;
 
@@ -160,6 +282,26 @@ fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) ->
         }
         Err(error) => panic!("create directory symlink fixture failed: {error}"),
     }
+}
+
+#[cfg(windows)]
+fn create_directory_alias(target: &std::path::Path, link: &std::path::Path) {
+    let command = format!(r#"mklink /J "{}" "{}""#, link.display(), target.display());
+    let output = std::process::Command::new("cmd")
+        .args(["/D", "/S", "/C"])
+        .arg(command)
+        .output()
+        .expect("start mklink for project root alias");
+    assert!(
+        output.status.success(),
+        "create project root alias failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[cfg(windows)]
+fn remove_directory_alias(link: &std::path::Path) {
+    fs::remove_dir(link).expect("remove project root junction");
 }
 
 #[test]
@@ -198,7 +340,7 @@ fn project_manager_registers_direct_package_asset_root() {
 
     assert_eq!(
         manager.source_path_for_uri(&package_uri).unwrap(),
-        package_asset_path
+        ProjectPaths::resolve_existing_path(&package_asset_path).unwrap()
     );
     assert_eq!(meta.url, package_uri);
     assert_eq!(record.state, ResourceState::Ready);

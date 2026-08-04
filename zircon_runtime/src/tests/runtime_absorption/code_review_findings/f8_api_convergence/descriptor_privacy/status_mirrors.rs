@@ -25,15 +25,6 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
     );
     let package_manifest_doc =
         include_str!("../../../../../../../docs/zircon_runtime/plugin/package_manifest.md");
-    let status_rows = include_str!(
-        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs"
-    );
-    let status_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     let stale_pending_anchor = [
         "RuntimePluginDescriptor public-field convergence",
@@ -82,9 +73,6 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
         ("Runtime 06 plan", runtime_06_plan),
         ("Runtime 15 plan", runtime_15_plan),
         ("package manifest docs", package_manifest_doc),
-        ("status-output row data", status_rows),
-        ("status-output status map", status_map),
-        ("status-output date map", date_map),
     ] {
         assert!(
             !source.contains(&stale_pending_anchor),
@@ -107,10 +95,6 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
             "RuntimePluginDescriptor numbered output should record `{doc_anchor}`"
         );
     }
-    assert!(
-        status_map.contains("runtime_15") && date_map.contains("2026-06-27"),
-        "RuntimePluginDescriptor status/date map roots should remain mounted while concrete evidence lives in the numbered output"
-    );
     let f8_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F8 |"))

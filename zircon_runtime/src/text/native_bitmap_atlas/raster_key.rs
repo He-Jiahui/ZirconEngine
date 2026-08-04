@@ -1,11 +1,11 @@
 use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin};
 
+use crate::text::InstancedFaceId;
 use crate::text::atlas::{
     GlyphAtlasFormat, GlyphHintingMode, GlyphRasterKey, GlyphRasterRequest, GlyphSmoothingMode,
     SyntheticGlyphStyle,
 };
 use crate::text::font::FontDatabase;
-use crate::text::InstancedFaceId;
 
 pub(super) fn native_bitmap_atlas_raster_key(
     font_database: &FontDatabase,

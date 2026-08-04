@@ -1,6 +1,6 @@
 ---
 title: WOS211 physical talent scaling runtime closure
-status: planned
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -77,3 +77,9 @@ threat and form behavior.
   and weapon multiplier composition.
 - Existing authoritative RNG count/order and all side-effect ownership remain
   unchanged.
+
+## Status Record
+
+| Milestone | Scope | Status | Date | Evidence |
+|---|---|---|---|---|
+| WOS211 | Queued weapon damage, immediate weapon strikes and finishers | implementation complete; second review complete; dynamic validation pending | 2026-08-03 | `physical_talent_scaling_state.zr` mirrors the source bonus/multiplier/base/per-combo rules; `prepareOfflineAutoActor` resolves queued intent at swing time and all five strikes plus two finishers use the pure boundary at dispatch. The regression checks active-selection timing and Backstab multiplier precision. `wos211_physical_talent_scaling_runtime_static_guard.mjs` passed; the fixture uses `zr_vm:project`. Canonical plugin execution remains unavailable, so no dynamic result is claimed. |

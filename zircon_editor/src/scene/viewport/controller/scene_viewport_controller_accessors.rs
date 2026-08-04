@@ -1,13 +1,15 @@
+use std::collections::VecDeque;
 use std::path::Path;
+
+use zircon_runtime::core::runtime::tasks::BoundedKeyedIoTerminal;
 
 use crate::core::commands::CommandEvalCtx;
 use crate::core::settings::{
-    SettingValue, SettingsKey, SettingsLoad, SettingsPaths, SettingsScope, SettingsStore,
-    VIEWPORT_ROTATE_STEP_DEGREES_KEY, VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
-    settings_registry_with_defaults,
+    SettingValue, SettingsKey, SettingsPaths, SettingsPersistenceTicket, SettingsProjectLayerLoad,
+    SettingsScope, SettingsStore,
 };
 use crate::scene::modes::{
-    SELECT_SCENE_MODE_ID, SceneModeActivation, SceneModeCtx, TRANSFORM_SCENE_MODE_ID,
+    SceneModeActivation, SceneModeCtx, SELECT_SCENE_MODE_ID, TRANSFORM_SCENE_MODE_ID,
 };
 use crate::scene::selection::SelectionModel;
 use crate::scene::viewport::{
@@ -17,6 +19,8 @@ use crate::scene::viewport::{
 use zircon_runtime_interface::math::Vec3;
 
 use super::SceneViewportController;
+
+const MAX_TRACKED_SETTINGS_PERSISTENCE_TICKETS: usize = 16;
 
 impl SceneViewportController {
     pub(crate) fn viewport(&self) -> &ViewportState {
@@ -44,11 +48,11 @@ impl SceneViewportController {
     }
 
     pub(crate) fn configure_project_settings(&mut self, project_root: &Path) {
-        self.reset_settings_registry(Some(project_root));
+        self.reset_project_settings(Some(project_root));
     }
 
     pub(crate) fn clear_project_settings(&mut self) {
-        self.reset_settings_registry(None);
+        self.reset_project_settings(None);
     }
 
     pub(crate) fn active_scene_mode(&self) -> SceneModeActivation {
@@ -146,117 +150,167 @@ impl SceneViewportController {
         key: &str,
         step: f32,
     ) -> Result<(), String> {
+        self.retry_failed_project_settings_persistence()?;
         let key = SettingsKey::parse(key).expect("the built-in viewport snap key is valid");
-        let mut registry = self.settings_registry.clone();
-        registry
+        let change = self
+            .settings_authority
             .set(
                 SettingsScope::Project,
                 &key,
                 SettingValue::Float(f64::from(step)),
             )
             .map_err(|error| error.to_string())?;
+        let Some(change) = change else {
+            return Ok(());
+        };
         if let Some(store) = self.settings_store.as_ref() {
-            store
-                .save_from(SettingsScope::Project, &registry)
+            let ticket = self
+                .settings_persistence
+                .submit(&change, store.clone())
                 .map_err(|error| error.to_string())?;
+            self.track_project_settings_persistence_ticket(ticket);
         }
-        self.settings_registry = registry;
         Ok(())
     }
 
-    fn reset_settings_registry(&mut self, project_root: Option<&Path>) {
-        let mut registry = settings_registry_with_defaults();
-        let Ok(user_root) = SettingsPaths::user_root_from_environment() else {
-            tracing::warn!(
-                "could not resolve the editor user settings root; using setting defaults"
-            );
-            self.settings_registry = registry;
-            self.settings_store = None;
+    fn reset_project_settings(&mut self, project_root: Option<&Path>) {
+        self.cancel_project_settings_persistence_tickets();
+        self.settings_store = None;
+        let Some(project_root) = project_root else {
+            self.settings_authority.clear_project_layer();
             return;
         };
-        let store = SettingsStore::from_roots(user_root, project_root);
-        match store.load_into(SettingsScope::User, &mut registry) {
-            Ok(SettingsLoad::Loaded {
+        let user_root = match SettingsPaths::user_root_from_environment() {
+            Ok(user_root) => user_root,
+            Err(error) => {
+                let result = self
+                    .settings_authority
+                    .load_project_layer_from_environment(project_root);
+                tracing::warn!(
+                    error = %error,
+                    project_settings = ?result,
+                    "could not resolve the editor user settings root; the authority retained an invalid project layer"
+                );
+                return;
+            }
+        };
+        let store = SettingsStore::from_roots(user_root, Some(project_root));
+        match self
+            .settings_authority
+            .load_project_layer_from_store(&store)
+        {
+            SettingsProjectLayerLoad::Persisted {
                 path,
                 schema_version,
-                changes,
-            }) => {
+            } => {
                 tracing::info!(
                     source = %path.display(),
                     schema_version,
-                    changed_settings = changes.len(),
-                    "loaded persisted editor user settings"
+                    "bound persisted project settings from the shared settings authority"
                 );
             }
-            Ok(SettingsLoad::Missing { path }) => {
+            SettingsProjectLayerLoad::Missing { path } => {
                 tracing::info!(
                     source = %path.display(),
-                    "editor user settings are absent; using registered defaults"
+                    "bound missing project settings from the shared settings authority"
                 );
             }
-            Err(error) => {
-                tracing::warn!(error = %error, "failed to load editor user settings; using registered defaults");
+            SettingsProjectLayerLoad::Invalid { path, message } => {
+                tracing::warn!(source = %path.display(), error = %message, "project settings authority retained an invalid source");
             }
         }
-        if project_root.is_some() {
-            match store.load_into(SettingsScope::Project, &mut registry) {
-                Ok(SettingsLoad::Loaded {
-                    path,
-                    schema_version,
-                    changes,
-                }) => {
-                    tracing::info!(
-                        source = %path.display(),
-                        schema_version,
-                        changed_settings = changes.len(),
-                        "loaded persisted project settings"
-                    );
+        self.settings_store = Some(store);
+    }
+
+    pub(in crate::scene::viewport::controller) fn retry_failed_project_settings_persistence(
+        &mut self,
+    ) -> Result<usize, String> {
+        self.reap_project_settings_persistence_tickets();
+        let Some(store) = self.settings_store.clone() else {
+            return Ok(0);
+        };
+
+        let mut retained = VecDeque::new();
+        let mut retried = 0;
+        let mut retry_error = None;
+        while let Some(ticket) = self.settings_persistence_tickets.pop_front() {
+            if matches!(ticket.terminal(), Some(BoundedKeyedIoTerminal::Failed(_))) {
+                match self.settings_persistence.retry(&ticket, store.clone()) {
+                    Ok(retry) => {
+                        retained.push_back(retry);
+                        retried += 1;
+                    }
+                    Err(error) => {
+                        retry_error.get_or_insert_with(|| error.to_string());
+                        retained.push_back(ticket);
+                    }
                 }
-                Ok(SettingsLoad::Missing { path }) => {
-                    tracing::warn!(
-                        source = %path.display(),
-                        "project settings are absent; using user fallback or registered defaults"
-                    );
-                }
-                Err(error) => {
-                    tracing::warn!(error = %error, "failed to load project settings; using user fallback or registered defaults");
-                }
+            } else {
+                retained.push_back(ticket);
             }
         }
-        self.settings_registry = registry;
-        self.settings_store = project_root.map(|_| store);
+        self.settings_persistence_tickets = retained;
+        retry_error.map_or(Ok(retried), Err)
+    }
+
+    fn track_project_settings_persistence_ticket(&mut self, ticket: SettingsPersistenceTicket) {
+        self.settings_persistence_tickets.retain(|existing| {
+            let replaces_existing =
+                existing.scope() == ticket.scope() && existing.key() == ticket.key();
+            if replaces_existing {
+                let _ = existing.cancel_before_start();
+            }
+            !replaces_existing
+        });
+        while self.settings_persistence_tickets.len() >= MAX_TRACKED_SETTINGS_PERSISTENCE_TICKETS {
+            if let Some(expired) = self.settings_persistence_tickets.pop_front() {
+                let _ = expired.cancel_before_start();
+            }
+        }
+        self.settings_persistence_tickets.push_back(ticket);
+    }
+
+    fn reap_project_settings_persistence_tickets(&mut self) {
+        self.settings_persistence_tickets.retain(|ticket| {
+            matches!(
+                ticket.terminal(),
+                None | Some(BoundedKeyedIoTerminal::Failed(_))
+            )
+        });
+    }
+
+    fn cancel_project_settings_persistence_tickets(&mut self) {
+        for ticket in self.settings_persistence_tickets.drain(..) {
+            let _ = ticket.cancel_before_start();
+        }
     }
 
     pub(in crate::scene::viewport::controller) fn snap_steps(&self) -> SceneViewportSnapSteps {
+        let snap = self.settings_authority.snapshot().viewport_snap();
         SceneViewportSnapSteps {
-            translate_step: self.resolved_snap_step(VIEWPORT_TRANSLATE_STEP_KEY),
-            rotate_step_deg: self.resolved_snap_step(VIEWPORT_ROTATE_STEP_DEGREES_KEY),
-            scale_step: self.resolved_snap_step(VIEWPORT_SCALE_STEP_KEY),
-        }
-    }
-
-    fn resolved_snap_step(&self, key: &str) -> f32 {
-        let key = SettingsKey::parse(key).expect("the built-in viewport snap key is valid");
-        match self
-            .settings_registry
-            .resolve(&key)
-            .expect("the built-in viewport snap key is registered")
-        {
-            SettingValue::Float(value) => *value as f32,
-            _ => unreachable!("the built-in viewport snap key uses a float schema"),
+            translate_step: snap.translate_step() as f32,
+            rotate_step_deg: snap.rotate_step_degrees() as f32,
+            scale_step: snap.scale_step() as f32,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
 
+    use zircon_runtime::core::runtime::tasks::{BoundedKeyedIoTerminal, BoundedKeyedIoWaitResult};
     use zircon_runtime_interface::math::UVec2;
 
     use crate::core::editor_authoring_extension::SceneModeDescriptor;
     use crate::core::editor_message::SceneModeId;
     use crate::core::editor_operation::EditorOperationPath;
+    use crate::core::settings::{
+        SettingValue, SettingsAuthority, SettingsKey, SettingsPersistenceService, SettingsScope,
+        SettingsStore, VIEWPORT_TRANSLATE_STEP_KEY,
+    };
     use crate::scene::modes::{
         EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeRegistration, SceneModeRegistry,
         ViewportOverlayBuilder,
@@ -305,6 +359,90 @@ mod tests {
     }
 
     #[test]
+    fn snap_projection_reads_the_shared_authority_typed_slot() {
+        let authority = Arc::new(SettingsAuthority::with_defaults());
+        let persistence = SettingsPersistenceService::new(Arc::clone(&authority));
+        let controller = SceneViewportController::with_settings(
+            UVec2::new(1280, 720),
+            authority.clone(),
+            persistence,
+        );
+        let translate_key = SettingsKey::parse(VIEWPORT_TRANSLATE_STEP_KEY).unwrap();
+        authority
+            .set(
+                SettingsScope::Project,
+                &translate_key,
+                SettingValue::Float(3.5),
+            )
+            .unwrap();
+
+        assert_eq!(controller.snap_steps().translate_step, 3.5);
+    }
+
+    #[test]
+    fn failed_settings_retry_keeps_the_original_ticket_when_the_lane_is_closed() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon-editor-viewport-settings-retry-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock should be after Unix epoch")
+                .as_nanos()
+        ));
+        let project_root = root.join("project");
+        fs::create_dir_all(&project_root).unwrap();
+        let store = SettingsStore::from_roots(root.join("user"), Some(&project_root));
+        let authority = Arc::new(SettingsAuthority::with_defaults());
+        assert!(matches!(
+            authority.load_project_layer_from_store(&store),
+            crate::core::settings::SettingsProjectLayerLoad::Missing { .. }
+        ));
+        let snap_key = SettingsKey::parse(VIEWPORT_TRANSLATE_STEP_KEY).unwrap();
+        let change = authority
+            .set(SettingsScope::Project, &snap_key, SettingValue::Float(2.5))
+            .unwrap()
+            .expect("a changed project setting must enqueue a save request");
+        let persistence = SettingsPersistenceService::new(Arc::clone(&authority));
+
+        fs::remove_dir(&project_root).unwrap();
+        fs::write(
+            &project_root,
+            "a file blocks the project settings directory",
+        )
+        .unwrap();
+        let failed = persistence.submit(&change, store.clone()).unwrap();
+        assert!(matches!(
+            failed.wait_until(Instant::now() + Duration::from_secs(5)),
+            BoundedKeyedIoWaitResult::Terminal(BoundedKeyedIoTerminal::Failed(_))
+        ));
+
+        let mut controller = SceneViewportController::with_settings(
+            UVec2::new(1280, 720),
+            authority,
+            persistence.clone(),
+        );
+        controller.settings_store = Some(store);
+        controller.settings_persistence_tickets.push_back(failed);
+        let shutdown = persistence.shutdown();
+
+        assert!(controller
+            .retry_failed_project_settings_persistence()
+            .is_err());
+        assert_eq!(controller.settings_persistence_tickets.len(), 1);
+        assert!(matches!(
+            controller
+                .settings_persistence_tickets
+                .front()
+                .and_then(|ticket| ticket.terminal()),
+            Some(BoundedKeyedIoTerminal::Failed(_))
+        ));
+
+        drop(shutdown);
+        fs::remove_file(&project_root).unwrap();
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn activate_scene_mode_enters_modes_against_target_transform_settings() {
         let entered_handles = Arc::new(Mutex::new(Vec::new()));
         let mut registry = SceneModeRegistry::default();
@@ -334,11 +472,9 @@ mod tests {
         let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
         controller.state.scene_mode_registry = registry;
 
-        assert!(
-            controller
-                .activate_scene_mode(SceneModeActivation::Transform(TransformHandleKind::Move,))
-                .unwrap()
-        );
+        assert!(controller
+            .activate_scene_mode(SceneModeActivation::Transform(TransformHandleKind::Move,))
+            .unwrap());
         assert_eq!(
             entered_handles.lock().unwrap().as_slice(),
             [TransformHandleKind::Move]

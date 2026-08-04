@@ -30,9 +30,6 @@ fn runtime_15_gpu_model_embedded_primitive_uses_current_names() {
     );
     let render_assets_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/asset/render-assets.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "GPU model embedded primitive source names",
@@ -63,9 +60,6 @@ fn runtime_15_gpu_model_embedded_primitive_uses_current_names() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("render assets doc", render_assets_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,

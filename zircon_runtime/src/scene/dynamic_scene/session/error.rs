@@ -31,6 +31,24 @@ pub enum RuntimeSessionArchiveError {
         committed_revision: u64,
     },
     #[error(
+        "runtime session archive merge plan is stale (expected generation {expected_generation} revision {expected_revision}, found generation {current_generation} revision {current_revision})"
+    )]
+    StaleMergePlan {
+        expected_generation: u64,
+        expected_revision: u64,
+        current_generation: u64,
+        current_revision: u64,
+    },
+    #[error(
+        "runtime session archive capture-retention plan is stale (expected generation {expected_generation} revision {expected_revision}, found generation {current_generation} revision {current_revision})"
+    )]
+    StaleCaptureRetentionPlan {
+        expected_generation: u64,
+        expected_revision: u64,
+        current_generation: u64,
+        current_revision: u64,
+    },
+    #[error(
         "runtime session archive path changed after save preparation (expected commit {expected_commit}, found {committed_commit})"
     )]
     StalePathCommit {

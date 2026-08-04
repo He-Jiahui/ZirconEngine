@@ -26,7 +26,7 @@ fn deferred_lighting_shader_applies_integrated_volumetric_lighting() {
 }
 
 #[test]
-fn deferred_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
+fn deferred_direct_lighting_reuses_fragment_normalized_inputs() {
     for (label, signature, next_signature) in [
         (
             "light accumulation",
@@ -45,8 +45,10 @@ fn deferred_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
             .and_then(|source| source.split(next_signature).next())
             .expect("deferred lighting shader should retain the light-grid owner");
         for expected in [
-            "let world_normal = normalize_or_zero(normal);",
-            "let world_view = normalize_or_zero(view_dir);",
+            "normal_normalized: vec3<f32>",
+            "view_dir_normalized: vec3<f32>",
+            "let world_normal = normal_normalized;",
+            "let world_view = view_dir_normalized;",
             "let direct_metallic = clamp(metallic, 0.0, 1.0);",
             "world_normal,",
             "world_view,",
@@ -58,6 +60,46 @@ fn deferred_direct_lighting_normalizes_surface_inputs_once_per_pixel() {
                 "{label} must retain `{expected}`"
             );
         }
+        assert!(
+            !light_loop.contains("normalize_or_zero("),
+            "{label} must reuse the fragment's zero-safe normalized normal and view direction"
+        );
+    }
+
+    for (label, signature, direct_call) in [
+        (
+            "lit deferred path",
+            "fn shade_deferred_lit(",
+            "gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, shading_model_id, receive_shadows)",
+        ),
+        (
+            "subsurface deferred path",
+            "fn shade_deferred_subsurface_components(",
+            "gpu_light_lighting_components(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, receive_shadows)",
+        ),
+    ] {
+        let shading = DEFERRED_LIGHTING_SHADER
+            .split(signature)
+            .nth(1)
+            .and_then(|source| source.split("fn shade_deferred_pixel(").next())
+            .expect("deferred lighting shader should retain the shading owner");
+        assert!(
+            shading.contains("let view_dir = scene_view_dir_ws(world_position);"),
+            "{label} must use the zero-safe normalized scene view direction"
+        );
+        assert!(
+            shading.contains(direct_call),
+            "{label} must pass its fragment-normalized inputs directly to the light loop"
+        );
+    }
+    for expected in [
+        "let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));",
+        "let normal = normalize_or_zero(encoded_normal * 2.0 - vec3<f32>(1.0));",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred fragment entry points must normalize GBuffer normals before direct lighting"
+        );
     }
 
     let light_loop = DEFERRED_LIGHTING_SHADER
@@ -375,7 +417,7 @@ fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
         "camera_world_position: vec4<f32>",
         "camera_view_direction: vec4<f32>",
         "let view_dir = scene_view_dir_ws(world_position);",
-        "let environment_lights = zr_environment_pbr_indirect(",
+        "let environment_lights = zr_environment_pbr_indirect_normalized(",
         "shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
         "let color = diffuse_color * diffuse_energy_scale * ambient + direct_lights + environment_lights;",
     ] {

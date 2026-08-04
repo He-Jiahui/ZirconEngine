@@ -46,7 +46,6 @@ fn runtime_15_code_review_findings_f12_direct_assertions_guard_is_folder_backed(
             F12_DIRECT_ASSERTIONS_FOLDER_BACKED_SLICE,
             F12_DIRECT_ASSERTIONS_FOLDER_BACKED_STATUS,
             F12_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            F12_DIRECT_ASSERTIONS_STATUS_GUARD,
             F12_DIRECT_ASSERTIONS_BUDGET_GUARD,
         ],
     );

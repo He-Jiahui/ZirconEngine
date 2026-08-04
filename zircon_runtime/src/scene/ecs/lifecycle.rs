@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::scene::{EntityId, ecs::ComponentId};
+use crate::scene::{ecs::ComponentId, EntityId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum LifecycleEventKind {

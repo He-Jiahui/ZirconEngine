@@ -178,6 +178,110 @@ fn activity_asset_content_projector_keeps_empty_state_visible_with_stale_scroll(
 }
 
 #[test]
+fn activity_reference_projector_virtualizes_and_projects_each_list_independently() {
+    let nodes = activity_model(vec![
+        node(
+            "AssetsActivityReferenceLeftScrollBody",
+            0.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        node(
+            "AssetsActivityReferenceLeftRowPanel01",
+            0.0,
+            20.0,
+            96.0,
+            34.0,
+        ),
+        node(
+            "AssetsActivityReferenceLeftRowNameText01",
+            8.0,
+            24.0,
+            56.0,
+            10.0,
+        ),
+        node(
+            "AssetsActivityReferenceLeftRowPanel02",
+            0.0,
+            58.0,
+            96.0,
+            34.0,
+        ),
+        node(
+            "AssetsActivityReferenceLeftRowNameText02",
+            8.0,
+            62.0,
+            56.0,
+            10.0,
+        ),
+        node(
+            "AssetsActivityReferenceRightScrollBody",
+            120.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        node(
+            "AssetsActivityReferenceRightRowPanel01",
+            120.0,
+            20.0,
+            96.0,
+            34.0,
+        ),
+        node(
+            "AssetsActivityReferenceRightRowPanel02",
+            120.0,
+            58.0,
+            96.0,
+            34.0,
+        ),
+    ]);
+    let interaction = HostPaneInteractionStateData {
+        activity_asset_references_scroll_px: 40.0,
+        activity_asset_references_hovered_index: 1,
+        activity_asset_used_by_hovered_index: 0,
+        ..HostPaneInteractionStateData::default()
+    };
+    let projector =
+        ActivityAssetContentProjector::new(&nodes, &frame(5.0, 7.0, 240.0, 100.0), &interaction)
+            .expect("reference viewport should not require an unrelated content panel");
+    let pane_clip = frame(0.0, 0.0, 260.0, 120.0);
+
+    assert_eq!(
+        projector
+            .row_visit_indices(nodes.row_count(), &pane_clip)
+            .expect("reference visibility plan"),
+        vec![0, 3, 4, 5, 6, 7],
+    );
+    assert!(
+        projector
+            .transform(
+                nodes.row_data(1).expect("first references row"),
+                pane_clip.clone(),
+            )
+            .is_none(),
+        "the References scroll offset must cull the first row"
+    );
+
+    let (references_row, references_clip) = projector
+        .transform(
+            nodes.row_data(3).expect("second references row"),
+            pane_clip.clone(),
+        )
+        .expect("the second References row enters after scroll");
+    assert_eq!(references_row.frame.y, 18.0);
+    assert!(references_row.hovered);
+    assert_eq!(references_clip, frame(5.0, 27.0, 100.0, 60.0));
+
+    let (used_by_row, _) = projector
+        .transform(nodes.row_data(6).expect("first Used By row"), pane_clip)
+        .expect("the unscrolled Used By list remains independent");
+    assert_eq!(used_by_row.frame.y, 20.0);
+    assert!(used_by_row.hovered);
+}
+
+#[test]
 fn browser_content_identity_and_projector_keep_header_fixed_and_clip_rows() {
     assert_eq!(
         parse_browser_content_identity("AssetBrowserAssetTablePanel"),
@@ -234,6 +338,199 @@ fn browser_content_identity_and_projector_keep_header_fixed_and_clip_rows() {
         .expect("preview remains outside scroll projection");
     assert_eq!(preview.frame.y, 90.0);
     assert_eq!(preview_clip, pane_clip);
+}
+
+#[test]
+fn browser_source_tree_projector_scrolls_clips_and_hovers_dynamic_rows() {
+    let nodes = browser_model(vec![
+        node("AssetBrowserAssetTablePanel", 160.0, 20.0, 120.0, 80.0),
+        node("WorkbenchAssetBrowserTableHeader", 160.0, 20.0, 120.0, 24.0),
+        node("AssetBrowserSourcesScrollBody", 0.0, 49.0, 136.0, 60.0),
+        node("AssetBrowserSourcesRowPanel", 8.0, 57.0, 120.0, 28.0),
+        node(
+            "AssetBrowserSourcesTreeRow02/AssetBrowserSourcesRowPanel",
+            8.0,
+            89.0,
+            120.0,
+            28.0,
+        ),
+    ]);
+    let interaction = HostPaneInteractionStateData {
+        browser_asset_tree_scroll_px: 40.0,
+        browser_asset_tree_hovered_index: 1,
+        ..HostPaneInteractionStateData::default()
+    };
+    let projector =
+        BrowserAssetContentProjector::new(&nodes, &frame(5.0, 7.0, 300.0, 140.0), &interaction)
+            .expect("browser projector");
+    let pane_clip = frame(0.0, 0.0, 400.0, 200.0);
+
+    assert_eq!(
+        projector
+            .row_visit_indices(nodes.row_count(), &pane_clip)
+            .expect("browser source tree visibility plan"),
+        vec![0, 1, 2, 4],
+        "offscreen source rows must not be visited as fixed template nodes"
+    );
+
+    assert!(
+        projector
+            .transform(
+                nodes.row_data(3).expect("first tree row"),
+                pane_clip.clone()
+            )
+            .is_none()
+    );
+    let (row, row_clip) = projector
+        .transform(nodes.row_data(4).expect("second tree row"), pane_clip)
+        .expect("second tree row enters the viewport after scrolling");
+    assert_eq!(row.frame.y, 49.0);
+    assert!(row.hovered);
+    assert_eq!(row_clip, frame(5.0, 56.0, 136.0, 60.0));
+}
+
+#[test]
+fn browser_reference_projector_survives_without_main_content_and_virtualizes_each_list() {
+    let nodes = browser_model(vec![
+        node(
+            "AssetBrowserReferenceLeftScrollBody",
+            0.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        node("AssetBrowserReferenceLeftRowPanel01", 0.0, 20.0, 96.0, 34.0),
+        node(
+            "AssetBrowserReferenceLeftRowNameText01",
+            8.0,
+            24.0,
+            56.0,
+            10.0,
+        ),
+        node("AssetBrowserReferenceLeftRowPanel02", 0.0, 58.0, 96.0, 34.0),
+        node(
+            "AssetBrowserReferenceLeftRowNameText02",
+            8.0,
+            62.0,
+            56.0,
+            10.0,
+        ),
+    ]);
+    let interaction = HostPaneInteractionStateData {
+        browser_asset_references_scroll_px: 40.0,
+        browser_asset_references_hovered_index: 1,
+        ..HostPaneInteractionStateData::default()
+    };
+    let projector =
+        BrowserAssetContentProjector::new(&nodes, &frame(5.0, 7.0, 140.0, 100.0), &interaction)
+            .expect("reference viewport should not require the unrelated content table");
+    let pane_clip = frame(0.0, 0.0, 180.0, 120.0);
+
+    assert_eq!(
+        projector
+            .row_visit_indices(nodes.row_count(), &pane_clip)
+            .expect("reference visibility plan"),
+        vec![0, 3, 4],
+        "offscreen reference rows must not remain fixed painter nodes"
+    );
+    assert!(
+        projector
+            .transform(
+                nodes.row_data(1).expect("first reference row"),
+                pane_clip.clone(),
+            )
+            .is_none()
+    );
+
+    let (row, clip) = projector
+        .transform(
+            nodes.row_data(3).expect("second reference row"),
+            pane_clip.clone(),
+        )
+        .expect("second reference row enters after scroll");
+    assert_eq!(row.frame.y, 18.0);
+    assert!(row.hovered);
+    assert_eq!(clip, frame(5.0, 27.0, 100.0, 60.0));
+
+    let (label, _) = projector
+        .transform(
+            nodes.row_data(4).expect("second reference label"),
+            pane_clip,
+        )
+        .expect("reference label follows its row");
+    assert_eq!(label.frame.y, 22.0);
+    assert!(!label.hovered);
+}
+
+#[test]
+fn browser_reference_projector_uses_independent_scroll_and_hover_state_per_list() {
+    let nodes = browser_model(vec![
+        node(
+            "AssetBrowserReferenceLeftScrollBody",
+            0.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        node("AssetBrowserReferenceLeftRowPanel01", 0.0, 20.0, 96.0, 34.0),
+        node("AssetBrowserReferenceLeftRowPanel02", 0.0, 58.0, 96.0, 34.0),
+        node(
+            "AssetBrowserReferenceRightScrollBody",
+            120.0,
+            20.0,
+            100.0,
+            60.0,
+        ),
+        node(
+            "AssetBrowserReferenceRightRowPanel01",
+            120.0,
+            20.0,
+            96.0,
+            34.0,
+        ),
+        node(
+            "AssetBrowserReferenceRightRowPanel02",
+            120.0,
+            58.0,
+            96.0,
+            34.0,
+        ),
+    ]);
+    let interaction = HostPaneInteractionStateData {
+        browser_asset_references_scroll_px: 40.0,
+        browser_asset_references_hovered_index: 1,
+        browser_asset_used_by_scroll_px: 0.0,
+        browser_asset_used_by_hovered_index: 0,
+        ..HostPaneInteractionStateData::default()
+    };
+    let projector =
+        BrowserAssetContentProjector::new(&nodes, &frame(5.0, 7.0, 240.0, 100.0), &interaction)
+            .expect("reference viewports should initialize independently");
+    let pane_clip = frame(0.0, 0.0, 260.0, 120.0);
+
+    assert!(
+        projector
+            .transform(
+                nodes.row_data(1).expect("first references row"),
+                pane_clip.clone(),
+            )
+            .is_none(),
+        "the References list scroll must not leave its first row visible"
+    );
+    let (references_row, _) = projector
+        .transform(
+            nodes.row_data(2).expect("second references row"),
+            pane_clip.clone(),
+        )
+        .expect("second references row after its independent scroll");
+    assert_eq!(references_row.frame.y, 18.0);
+    assert!(references_row.hovered);
+
+    let (used_by_row, _) = projector
+        .transform(nodes.row_data(4).expect("first used-by row"), pane_clip)
+        .expect("Used By remains unscrolled");
+    assert_eq!(used_by_row.frame.y, 20.0);
+    assert!(used_by_row.hovered);
 }
 
 #[test]

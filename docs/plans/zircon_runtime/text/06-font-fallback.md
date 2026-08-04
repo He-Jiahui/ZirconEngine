@@ -103,7 +103,7 @@ cluster(script from 02, codepoints) →
 ### FB-M2 cluster 一致性 + font_id 传出 + 诊断
 
 实施切片:
-1. 进行中：grapheme cluster 已在 shape 前解析为一个 CompositeFont family span，`ShapedGlyph.font_id` 来自实际 backend；仍需真实复杂 cluster 断言 backend 没有在 span 内再次跨 face fallback。
+1. 已完成：grapheme cluster 在 shape 前解析为一个 CompositeFont family span，`ShapedGlyph.font_id` 来自实际 backend；`text_fallback_arabic_mark_cluster_stays_on_one_actual_backend_face` 以阿拉伯 base+fatha 的多 glyph cluster 断言 span 内所有 glyph 保持同一 backend face。受管 Cargo/WGPU 验证仍延后。
 2. ✅ 缺字诊断：按 `(face,codepoint)` 去重并记录 script/reason/occurrence；1024 容量、overflow/dropped 已落，`FontDatabase` poison-recovering store 在 prepare 后排到 frame report，不在 shaping 热路径 IO/格式化。
 
 测试:`text_fallback_cluster_stays_single_face`、`text_fallback_glyph_carries_resolved_font_id`、`text_fallback_missing_codepoint_reports_diagnostic`。

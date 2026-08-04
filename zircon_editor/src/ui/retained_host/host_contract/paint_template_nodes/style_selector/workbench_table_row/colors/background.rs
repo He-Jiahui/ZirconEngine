@@ -18,11 +18,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_r
     } else if state == UiPainterResolvedState::Pressed {
         palette.surface_pressed
     } else if marked {
-        if node.hovered {
-            palette.selected_hover_bg
-        } else {
-            palette.selected_bg
-        }
+        palette.selected_bg
     } else if is_hot(state) {
         palette.hover_bg
     } else if header {

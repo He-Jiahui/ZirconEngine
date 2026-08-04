@@ -366,21 +366,18 @@ impl DirtyRegistry {
         if cursor.is_some_and(|cursor| !Arc::ptr_eq(&cursor.lineage, &self.cursor_lineage)) {
             return Err(DirtyRegistryError::CursorRegistryMismatch);
         }
+        let cursor_generation = cursor.map(|cursor| cursor.registry_generation);
+        let transaction_cursor = cursor.map(|cursor| &cursor.transaction);
         for _ in 0..MAX_SNAPSHOT_ATTEMPTS {
             let (registry_generation, external_reset, external_changed, external_present) = {
                 let mut state = self.lock_state();
                 let external_reset =
-                    cursor.is_none_or(|cursor| !state.can_replay_from(cursor.registry_generation));
-                let external_changed = if external_reset {
-                    state.documents.iter().copied().collect()
-                } else if cursor.expect("cursor checked above").registry_generation
-                    == state.registry_generation
-                {
-                    BTreeSet::new()
-                } else {
-                    state.changed_documents_after(
-                        cursor.expect("cursor checked above").registry_generation,
-                    )
+                    cursor_generation.is_none_or(|generation| !state.can_replay_from(generation));
+                let external_changed = match cursor_generation {
+                    None => state.documents.iter().copied().collect(),
+                    Some(_) if external_reset => state.documents.iter().copied().collect(),
+                    Some(generation) if generation == state.registry_generation => BTreeSet::new(),
+                    Some(generation) => state.changed_documents_after(generation),
                 };
                 let external_present = external_changed
                     .iter()
@@ -408,9 +405,7 @@ impl DirtyRegistry {
                     })
                     .collect::<Result<BTreeMap<_, _>, _>>()?;
                 (
-                    self.transactions.dirty_states_since(Some(
-                        &cursor.expect("cursor checked above").transaction,
-                    ))?,
+                    self.transactions.dirty_states_since(transaction_cursor)?,
                     fresh,
                 )
             };

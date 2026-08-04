@@ -9,8 +9,9 @@ pub use input::{
     UiDispatchPhase, UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyMergeReport,
     UiDispatchReplyStep, UiDispatchReplyStepTrace, UiDragDropEffectKind, UiDragDropInputEvent,
     UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason, UiImeDeleteSurrounding,
-    UiImeInputEvent, UiImeInputEventKind, UiInputDispatchDiagnostics, UiInputDispatchResult,
-    UiInputEvent, UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
+    UiImeInputEvent, UiImeInputEventKind, UiImePreeditClause, UiImePreeditClauseError,
+    UiImePreeditClauseKind, UiInputDispatchDiagnostics, UiInputDispatchResult, UiInputEvent,
+    UiInputEventMetadata, UiInputMethodRequest, UiInputMethodRequestKind,
     UiInputMethodSurroundingText, UiInputMethodSurroundingTextError, UiInputModifiers,
     UiInputRoutePolicy, UiInputRouteTrace, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
     UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent,
@@ -20,7 +21,7 @@ pub use input::{
     UiSubmenuHoverTimerInputEvent, UiSurfaceId, UiTextByteRange, UiTextInputEvent,
     UiToastTimerInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
     UiTooltipTimerInputEventKind, UiTransientDismissalReason, UiTransientDismissalTarget,
-    UiTypeaheadTimerInputEvent, UiUserId, UiWindowId,
+    UiTypeaheadTimerInputEvent, UiUserId, UiWindowId, UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
 };
 pub use navigation::{
     UiNavigationDispatchContext, UiNavigationDispatchEffect, UiNavigationDispatchInvocation,

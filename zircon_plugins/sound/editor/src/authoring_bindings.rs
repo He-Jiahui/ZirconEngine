@@ -1,7 +1,8 @@
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorExtensionRegistry, EditorExtensionRegistryError,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_runtime::core::framework::sound::{
     AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
@@ -85,9 +86,9 @@ pub fn sound_editor_command_descriptors() -> Vec<EditorCommandDescriptor> {
         .collect()
 }
 
-pub fn sound_audio_source_drawer_descriptor() -> ComponentDrawerDescriptor {
+pub fn sound_audio_source_inspector_customization() -> InspectorCustomizationDescriptor {
     SOUND_AUDIO_SOURCE_OPERATION_PATHS.iter().fold(
-        ComponentDrawerDescriptor::new(
+        InspectorCustomizationDescriptor::new(
             AUDIO_SOURCE_COMPONENT_TYPE,
             SOUND_AUDIO_SOURCE_DRAWER_TEMPLATE,
             SOUND_AUDIO_SOURCE_DRAWER_ID,
@@ -96,9 +97,9 @@ pub fn sound_audio_source_drawer_descriptor() -> ComponentDrawerDescriptor {
     )
 }
 
-pub fn sound_audio_listener_drawer_descriptor() -> ComponentDrawerDescriptor {
+pub fn sound_audio_listener_inspector_customization() -> InspectorCustomizationDescriptor {
     SOUND_AUDIO_LISTENER_OPERATION_PATHS.iter().fold(
-        ComponentDrawerDescriptor::new(
+        InspectorCustomizationDescriptor::new(
             AUDIO_LISTENER_COMPONENT_TYPE,
             SOUND_AUDIO_LISTENER_DRAWER_TEMPLATE,
             SOUND_AUDIO_LISTENER_DRAWER_ID,
@@ -107,9 +108,9 @@ pub fn sound_audio_listener_drawer_descriptor() -> ComponentDrawerDescriptor {
     )
 }
 
-pub fn sound_audio_volume_drawer_descriptor() -> ComponentDrawerDescriptor {
+pub fn sound_audio_volume_inspector_customization() -> InspectorCustomizationDescriptor {
     SOUND_AUDIO_VOLUME_OPERATION_PATHS.iter().fold(
-        ComponentDrawerDescriptor::new(
+        InspectorCustomizationDescriptor::new(
             AUDIO_VOLUME_COMPONENT_TYPE,
             SOUND_AUDIO_VOLUME_DRAWER_TEMPLATE,
             SOUND_AUDIO_VOLUME_DRAWER_ID,

@@ -7,10 +7,12 @@ import os
 import re
 import sys
 import tempfile
+from contextlib import nullcontext
 from dataclasses import dataclass
 from dataclasses import replace
 from datetime import date
 from pathlib import Path, PurePosixPath
+from sqlite3 import Connection
 from types import ModuleType
 from typing import Any
 
@@ -137,7 +139,10 @@ class FailureGraphService:
         self._validator: ModuleType | None = None
 
     def import_repository(
-        self, *, expected_artifacts: list[dict[str, str]] | None = None
+        self,
+        *,
+        expected_artifacts: list[dict[str, str]] | None = None,
+        connection: Connection | None = None,
     ) -> FailureGraphAudit:
         validator = self._validator_module()
         records, parse_errors, validation_errors = self._parse_immutable_snapshot(
@@ -212,7 +217,11 @@ class FailureGraphService:
         diagnostics.extend(self._graph_diagnostics(edges))
 
         now = utc_text()
-        with self.database.transaction() as connection:
+        with (
+            self.database.transaction()
+            if connection is None
+            else nullcontext(connection)
+        ) as connection:
             connection.execute("DELETE FROM failure_nodes")
             connection.execute("DELETE FROM failure_diagnostics")
             for record in records:
@@ -258,7 +267,7 @@ class FailureGraphService:
                         now,
                     ),
                 )
-        return self.audit()
+            return self.audit(connection=connection)
 
     def _parse_immutable_snapshot(
         self, validator: ModuleType, expected_artifacts: list[dict[str, str]] | None
@@ -355,8 +364,12 @@ class FailureGraphService:
             return link_mode, ()
         return link_mode, normalized
 
-    def audit(self) -> FailureGraphAudit:
-        with self.database.connect() as connection:
+    def audit(self, *, connection: Connection | None = None) -> FailureGraphAudit:
+        with (
+            self.database.connect()
+            if connection is None
+            else nullcontext(connection)
+        ) as connection:
             node_rows = connection.execute(
                 "SELECT * FROM failure_nodes ORDER BY priority, created_at, summary_slug, artifact_path"
             ).fetchall()
@@ -374,9 +387,15 @@ class FailureGraphService:
         )
         return FailureGraphAudit(nodes, diagnostics)
 
-    def open_for_plan(self, fixing_plan: str | Path) -> list[FailureNode]:
+    def open_for_plan(
+        self, fixing_plan: str | Path, *, connection: Connection | None = None
+    ) -> list[FailureNode]:
         relative = self._relative(self._resolve_repo_path(fixing_plan))
-        with self.database.connect() as connection:
+        with (
+            self.database.connect()
+            if connection is None
+            else nullcontext(connection)
+        ) as connection:
             rows = connection.execute(
                 """
                 SELECT * FROM failure_nodes
@@ -1086,8 +1105,11 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
         replaced = False
         output: list[str] = []
         for line in lines:
+            link_count = len(MARKDOWN_LINK.findall(line))
+            replaced_on_line = 0
+
             def replace_link(match: re.Match[str]) -> str:
-                nonlocal replaced
+                nonlocal replaced, replaced_on_line
                 raw_target = match.group(1)
                 target = raw_target.strip().strip("<>").split("#", 1)[0]
                 if not target:
@@ -1096,14 +1118,15 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
                 if candidate != source_resolved:
                     return match.group(0)
                 replaced = True
+                replaced_on_line += 1
                 return f"[fixed 已修复：{slug}]({destination_link})"
 
             rewritten = MARKDOWN_LINK.sub(replace_link, line)
             if rewritten == line:
                 output.append(line)
-            elif line.lstrip().startswith("|"):
-                # A plan table records evidence beyond its handoff link.  Keep
-                # every column and rewrite only the matching Markdown token.
+            elif line.lstrip().startswith("|") or replaced_on_line < link_count:
+                # Tables and multi-link bullets carry evidence beyond this one
+                # handoff. Preserve the line and rewrite only matching tokens.
                 output.append(rewritten)
             else:
                 # Ordinary handoff bullets deliberately collapse to one concise

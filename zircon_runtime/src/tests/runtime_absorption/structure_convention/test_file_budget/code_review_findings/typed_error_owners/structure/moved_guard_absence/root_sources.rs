@@ -19,15 +19,3 @@ pub(super) fn moved_guard_absence_child_source_blob() -> String {
     }
     blob
 }
-
-pub(super) fn review_guard_status_rows_source() -> String {
-    super::super::typed_error_structure_assertion_status_row_source()
-}
-
-pub(super) fn review_guard_status_map_source() -> String {
-    super::super::typed_error_structure_assertion_status_map_source()
-}
-
-pub(super) fn review_guard_date_map_source() -> String {
-    super::super::typed_error_structure_assertion_date_map_source()
-}

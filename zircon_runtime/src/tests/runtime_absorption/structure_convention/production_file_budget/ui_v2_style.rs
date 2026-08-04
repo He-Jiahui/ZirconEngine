@@ -11,9 +11,6 @@ fn runtime_15_ui_v2_style_runtime_state_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "UI v2 style parent keeps resolver/index entry points and selector matching",
@@ -99,17 +96,6 @@ fn runtime_15_ui_v2_style_runtime_state_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI v2 style runtime-state owner split",
-            "runtime_15_ui_v2_style_runtime_state_owner_split_static_passed_cargo_deferred",
-            "ui/v2/style.rs",
-            "ui/v2/style/runtime_state.rs",
-            "runtime_15_ui_v2_style_runtime_state_is_child_owner",
-        ],
-    );
 }
 
 #[test]
@@ -124,9 +110,6 @@ fn runtime_15_ui_v2_style_token_resolution_is_child_owner() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
     let ui_v2_doc = read_repo("docs/zircon_runtime/ui/v2.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "UI v2 style parent keeps resolver, runtime index, rule collection, and token child mount",
@@ -213,15 +196,4 @@ fn runtime_15_ui_v2_style_token_resolution_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI v2 style token-resolution owner split",
-            "runtime_15_ui_v2_style_token_resolution_owner_split_static_passed_cargo_deferred",
-            "ui/v2/style.rs",
-            "ui/v2/style/tokens.rs",
-            "runtime_15_ui_v2_style_token_resolution_is_child_owner",
-        ],
-    );
 }

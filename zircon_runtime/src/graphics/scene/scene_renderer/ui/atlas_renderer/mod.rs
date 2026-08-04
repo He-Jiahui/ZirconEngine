@@ -1,6 +1,7 @@
 mod instance;
 mod instance_buffer;
 mod pipeline;
+mod prepare_report;
 mod renderer;
 mod resources;
 mod state;

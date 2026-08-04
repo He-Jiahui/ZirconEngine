@@ -191,6 +191,7 @@ mod tests {
             name: "Camera".to_string(),
             parent: "Root".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
+            scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             plugin_components: Vec::new(),
         };
         let nodes = projected_nodes(Some(&inspector));

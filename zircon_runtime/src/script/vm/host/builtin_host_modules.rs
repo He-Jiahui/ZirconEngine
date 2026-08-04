@@ -505,7 +505,10 @@ mod math {
     }
 }
 
-fn expect_string(context: &ScriptHostCallFrame<'_>, index: usize) -> Result<&str, ScriptHostError> {
+fn expect_string<'a>(
+    context: &'a ScriptHostCallFrame<'a>,
+    index: usize,
+) -> Result<&'a str, ScriptHostError> {
     match context.arguments.get(index) {
         Some(ScriptHostValue::String(value)) => Ok(value),
         Some(value) => Err(ScriptHostError::new(format!(

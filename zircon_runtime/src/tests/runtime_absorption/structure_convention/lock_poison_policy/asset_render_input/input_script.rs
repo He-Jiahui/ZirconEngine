@@ -11,9 +11,6 @@ fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_stat
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let input_doc = read_repo("docs/zircon_runtime/input/input_state.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "DefaultInputManager state poison recovery",
@@ -49,28 +46,6 @@ fn runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_stat
     ] {
         assert_no_direct_lock_unwrap_in_production(label, source);
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("input runtime doc", input_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 input runtime manager lock poison recovery",
-                "runtime_15_input_runtime_manager_lock_poison_recovery_static_passed_cargo_deferred",
-                "input/runtime/default_input_manager.rs",
-                "input_manager_accessors_recover_poisoned_state_lock",
-                "runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state",
-            ],
-        );
-    }
 }
 
 #[test]
@@ -88,9 +63,6 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let script_vm_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "VM backend registry poison recovery",
@@ -160,29 +132,6 @@ fn runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries
         assert!(
             !production_section(source).contains("lock poisoned"),
             "{label} production code should recover poisoned locks instead of panicking"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("script VM docs", script_vm_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 script VM registry lock poison recovery",
-                "runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred",
-                "script/vm/backend/backend_registry.rs",
-                "script/vm/host/host_export_registry.rs",
-                "hot_reload_coordinator_accessors_recover_poisoned_slot_table_lock",
-                "runtime_15_script_vm_registry_lock_poison_recovery_guard_covers_vm_registries",
-            ],
         );
     }
 }

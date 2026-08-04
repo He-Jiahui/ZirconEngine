@@ -56,12 +56,14 @@ Coordinator topology parsing does not distinguish an implementation milestone he
 
 ## 修复结果与回传
 
-源级修复已完成（2026-07-29）：
+Open state: `Coordinator01 implementation integrated / local topology gate GREEN / managed and Runtime11 origin replay pending`; no `fixed` return is claimed.
 
 - `TopologyParser` 仅忽略“最近更高层级、同 milestone ID”的 `测试阶段` / `Testing stage` 子标题；同级或独立的 `Testing stage rollout` 仍保留为真实节点，重复节点校验未被放宽。
-- 定向编号标题回归：3 passed。覆盖中文和英文嵌套测试阶段、过滤后的依赖区间保留、独立 `Testing stage rollout` 节点，以及真实重复 ID 拒绝。
-- 本地解析真实 Runtime11 计划得到 `M0`、`M1`、`M2`、`M3` 各一个节点；独立复审为 Critical 0 / Important 0 / Minor 0。
-- 独立 `tools.session_coordinator.tests.test_workflow_topology_testing_stages` 为 3 passed。既有 `tools.session_coordinator.tests.test_workflow_topology` 为 14 passed / 1 failed；唯一失败是他会话已有的 `test_content_only_change_updates_metadata_without_splitting_topology_identity` 版本语义断言，本次未修改其实现或期望。
-- 修复执行会话已由错误地将三个路径拼接为单一范围的 `runtime11-workflow-topology-fix-r2-20260729` 迁移到 `runtime11-workflow-topology-fix-r3-20260729`；r3 对 parser、隔离回归测试和本记录持有三个精确租约，r2 在无租约、无源码变更时取消。
+- 当前组合回归 `test_workflow_topology_testing_stages + test_workflow_topology` 为 18/18 通过；旧记录中的外部 content-version 断言失败已经前向收敛。
+- 当前源码直接解析真实 Runtime11 计划得到 `M0`、`M1`、`M2`、`M3` 各一个节点。原始 Runtime11 Session 仍须通过 coordinator wakeup 重新执行 `milestone prepare ... --milestone M2`；本修复 Session 不代替 origin Session 创建 workflow run。
 
-尚未 fixed：生产 Coordinator daemon 在本修复前已加载旧解析器，因此原始 `milestone prepare` 仍返回 `Duplicate workflow node ID: M0`。该服务只可在所有受管 Cargo 进程树结束后由 maintainer 发起受控 `service.rollover`；不得为此重启或中断活跃任务。滚动完成后，Runtime11 必须重新执行本文记录的 `milestone prepare ... --milestone M2`，取得 source-bound run 后才可开始 native refresh 的受管 Cargo 验证并将本 artifact 移回 origin 为 `fixed-*`。
+## 状态与完成项目
+
+| 日期 | 切片 | 状态 | 完成项目与证据 |
+|---|---|---|---|
+| 2026-08-03 | Coordinator01 nested testing-stage hard cut | `implementation_integrated` | 生产 parser 与中英文嵌套测试阶段回归均已进入当前源码；完整 topology 组合门 18/18 通过，真实 Runtime11 计划只生成四个唯一 milestone。待 immutable managed validation 与 Runtime11 原始 `milestone prepare` 复放；未声明 fixed、Cargo pass 或 origin closeout。 |

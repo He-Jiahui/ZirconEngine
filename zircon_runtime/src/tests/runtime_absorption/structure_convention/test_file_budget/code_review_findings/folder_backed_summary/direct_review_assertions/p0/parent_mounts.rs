@@ -68,7 +68,6 @@ fn runtime_15_code_review_findings_p0_direct_assertions_guard_is_folder_backed()
             P0_DIRECT_ASSERTIONS_FOLDER_BACKED_SLICE,
             P0_DIRECT_ASSERTIONS_FOLDER_BACKED_STATUS,
             P0_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            P0_DIRECT_ASSERTIONS_STATUS_GUARD,
             P0_DIRECT_ASSERTIONS_BUDGET_GUARD,
         ],
     );

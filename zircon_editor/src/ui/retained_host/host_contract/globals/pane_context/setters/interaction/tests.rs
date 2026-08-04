@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::globals::{HostContractGlobal, HostContractState};
 use crate::ui::retained_host::primitives::PhysicalSize;
 
@@ -77,6 +78,116 @@ fn asset_content_interaction_setters_clamp_scroll_and_preserve_no_hover() {
             .pane_interaction_state
             .browser_asset_content_hovered_index,
         -1
+    );
+}
+
+#[test]
+fn browser_reference_interaction_setters_store_both_list_states() {
+    let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
+        640, 420,
+    ))));
+    let context = PaneSurfaceHostContext::from_state(Rc::clone(&state));
+
+    context.set_browser_asset_references_scroll_px(48.0);
+    context.set_browser_asset_references_hovered_index(3);
+    context.set_browser_asset_used_by_scroll_px(-12.0);
+    context.set_browser_asset_used_by_hovered_index(1);
+    context.set_browser_asset_reference_hover_frame(FrameRect {
+        x: 20.0,
+        y: 30.0,
+        width: 120.0,
+        height: 80.0,
+    });
+
+    let state = state.borrow();
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .browser_asset_references_scroll_px,
+        48.0
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .browser_asset_references_hovered_index,
+        3
+    );
+    assert_eq!(
+        state.pane_interaction_state.browser_asset_used_by_scroll_px,
+        0.0
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .browser_asset_used_by_hovered_index,
+        1
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .browser_asset_reference_hover_frame,
+        FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 120.0,
+            height: 80.0,
+        }
+    );
+}
+
+#[test]
+fn activity_reference_interaction_setters_store_both_list_states() {
+    let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
+        640, 420,
+    ))));
+    let context = PaneSurfaceHostContext::from_state(Rc::clone(&state));
+
+    context.set_activity_asset_references_scroll_px(48.0);
+    context.set_activity_asset_references_hovered_index(3);
+    context.set_activity_asset_used_by_scroll_px(-12.0);
+    context.set_activity_asset_used_by_hovered_index(1);
+    context.set_activity_asset_reference_hover_frame(FrameRect {
+        x: 20.0,
+        y: 30.0,
+        width: 120.0,
+        height: 80.0,
+    });
+
+    let state = state.borrow();
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .activity_asset_references_scroll_px,
+        48.0
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .activity_asset_references_hovered_index,
+        3
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .activity_asset_used_by_scroll_px,
+        0.0
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .activity_asset_used_by_hovered_index,
+        1
+    );
+    assert_eq!(
+        state
+            .pane_interaction_state
+            .activity_asset_reference_hover_frame,
+        FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 120.0,
+            height: 80.0,
+        }
     );
 }
 

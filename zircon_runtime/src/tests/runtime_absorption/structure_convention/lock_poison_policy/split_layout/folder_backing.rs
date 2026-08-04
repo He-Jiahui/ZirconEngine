@@ -1,4 +1,4 @@
-use super::{budgets, mounts, sources, status_mirrors};
+use super::{budgets, mounts, sources};
 
 #[test]
 fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
@@ -7,5 +7,4 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
     mounts::assert_parent_mounts_child_owners(&sources);
     mounts::assert_lock_poison_guards_stay_in_children(&sources);
     budgets::assert_lock_poison_owner_budgets(&sources);
-    status_mirrors::assert_lock_poison_status_mirrors(&sources);
 }

@@ -38,7 +38,7 @@ impl RenderMotionBlurSettings {
 
 #[cfg(test)]
 mod tests {
-    use super::{MAX_MOTION_BLUR_SAMPLES, RenderMotionBlurSettings};
+    use super::{RenderMotionBlurSettings, MAX_MOTION_BLUR_SAMPLES};
 
     #[test]
     fn motion_blur_settings_require_shutter_and_samples_and_clamp_upload_values() {
@@ -47,13 +47,11 @@ mod tests {
             RenderMotionBlurSettings::default().render_shutter_angle(),
             0.0
         );
-        assert!(
-            !RenderMotionBlurSettings {
-                shutter_angle: 0.5,
-                samples: 0,
-            }
-            .is_enabled()
-        );
+        assert!(!RenderMotionBlurSettings {
+            shutter_angle: 0.5,
+            samples: 0,
+        }
+        .is_enabled());
         assert_eq!(
             RenderMotionBlurSettings {
                 shutter_angle: 0.5,

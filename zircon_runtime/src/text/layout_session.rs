@@ -1,19 +1,24 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::TaskPool;
 
 use super::cache::{
-    ShapedRunCache, ShapedRunCacheLookupKey, ShapedRunCacheReport,
-    DEFAULT_SHAPED_RUN_CACHE_CAPACITY, DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
+    DEFAULT_SHAPED_RUN_CACHE_CAPACITY, DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES, HardLineIndexCache,
+    HardLineIndexCacheReport, ShapedRunCache, ShapedRunCacheLookupKey, ShapedRunCacheReport,
+    TextDocumentKey,
 };
+use super::font::shared_font_database_generation;
 use super::parallel::shape_pool::{
-    shape_paragraphs_with_cache, TextParallelShapeBatchReport, TextShapeParagraph,
+    TextParallelShapeBatchReport, TextShapeParagraph, shape_paragraphs_with_cache,
 };
 use super::service::shape_backend_request_at_stable_generation;
 use super::shaping::TextShapeRunProvider;
-use super::{BackendShapeRequest, ShapedGlyphRun, TextRange, TextStyle, VerticalMode};
+use super::{
+    BackendShapeRequest, HardLine, ShapedGlyphRun, TextRange, TextStyle, VerticalMode,
+    hard_line_count_and_window,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct TextLayoutFallbackReport {
@@ -77,6 +82,7 @@ fn record_text_layout_generation_deferred() {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SharedTextLayoutSession {
     shaped_runs: ShapedRunCache,
+    hard_line_index: HardLineIndexCache,
     vertical_mode: Option<VerticalMode>,
 }
 
@@ -93,6 +99,7 @@ impl SharedTextLayoutSession {
                 DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
                 DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
             ),
+            hard_line_index: HardLineIndexCache::default(),
             vertical_mode: None,
         }
     }
@@ -107,10 +114,29 @@ impl SharedTextLayoutSession {
 
     pub(crate) fn clear(&mut self) {
         self.shaped_runs.clear();
+        self.hard_line_index.clear();
     }
 
     pub(crate) fn cache_report(&self) -> ShapedRunCacheReport {
         self.shaped_runs.report()
+    }
+
+    pub(crate) fn hard_line_index_report(&self) -> HardLineIndexCacheReport {
+        self.hard_line_index.report()
+    }
+
+    pub(crate) fn hard_line_count_and_window(
+        &mut self,
+        text: &str,
+        document_key: Option<TextDocumentKey>,
+        range: Range<usize>,
+    ) -> (usize, Vec<HardLine>) {
+        let Some(document_key) = document_key else {
+            self.hard_line_index.record_unkeyed_bypass();
+            return hard_line_count_and_window(text, range);
+        };
+        self.hard_line_index
+            .count_and_window(document_key, text, range)
     }
 
     pub(crate) fn prewarm_horizontal_paragraphs(
@@ -322,6 +348,18 @@ mod tests {
     use crate::text::font::{font_handle_registry_report, shared_font_database_test_serial_guard};
 
     #[test]
+    fn unkeyed_hard_line_windows_do_not_retain_a_full_line_index() {
+        let mut session = SharedTextLayoutSession::new();
+
+        let (line_count, window) = session.hard_line_count_and_window("zero\none\ntwo", None, 1..2);
+
+        assert_eq!(line_count, 3);
+        assert_eq!(window[0].content, 5..8);
+        assert_eq!(session.hard_line_index_report().entry_count, 0);
+        assert_eq!(session.hard_line_index_report().unkeyed_bypass_count, 1);
+    }
+
+    #[test]
     fn session_routes_detailed_runs_through_canonical_service() {
         let mut session = SharedTextLayoutSession::new();
         let style = TextStyle::default();
@@ -336,11 +374,12 @@ mod tests {
         assert_eq!(run.source_range.start, 11);
         assert!(run.measured_width > 0.0);
         assert!(run.lines.iter().any(|line| !line.glyphs.is_empty()));
-        assert!(run
-            .lines
-            .iter()
-            .flat_map(|line| &line.glyphs)
-            .all(|glyph| { glyph.source_range.start >= 11 && glyph.source_range.end <= 20 }));
+        assert!(
+            run.lines
+                .iter()
+                .flat_map(|line| &line.glyphs)
+                .all(|glyph| { glyph.source_range.start >= 11 && glyph.source_range.end <= 20 })
+        );
     }
 
     #[test]

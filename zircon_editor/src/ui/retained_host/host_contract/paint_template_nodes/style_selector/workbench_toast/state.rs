@@ -31,7 +31,11 @@ fn toast_state_style_from_palette(
             style.action = palette.action;
             style
         }
-        UiPainterResolvedState::Focused => toast_normal_style_from_palette(state, palette),
+        UiPainterResolvedState::Focused => {
+            let mut style = toast_normal_style_from_palette(state, palette);
+            style.border = palette.action;
+            style
+        }
         UiPainterResolvedState::Open => {
             let mut style = toast_normal_style_from_palette(state, palette);
             style.border = palette.action;
@@ -103,6 +107,21 @@ mod tests {
         assert_eq!(pressed.surface, [23, 24, 25, 255]);
         assert_eq!(pressed.border, [20, 21, 22, 255]);
         assert_eq!(pressed.action, [20, 21, 22, 255]);
+    }
+
+    #[test]
+    fn toast_focused_state_keeps_normal_surface_with_focus_border() {
+        let mut palette = PALETTE;
+        palette.accent_soft = [10, 11, 12, 247];
+        palette.focus_ring = [20, 21, 22, 255];
+
+        let style = toast_state_style_from_palette(
+            UiPainterResolvedState::Focused,
+            workbench_toast_palette_from_host(palette),
+        );
+
+        assert_eq!(style.surface, [10, 11, 12, 247]);
+        assert_eq!(style.border, [20, 21, 22, 255]);
     }
 
     #[test]

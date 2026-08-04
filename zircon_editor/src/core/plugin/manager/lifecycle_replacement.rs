@@ -61,10 +61,18 @@ pub(super) fn retire_replaced_active_entries(
     entries: &mut [EditorPluginManagerEntry],
     replaced_live_package_ids: &BTreeSet<String>,
 ) -> Result<(), EditorPluginDiscoveryError> {
-    for entry in entries.iter_mut().filter(|entry| {
-        replaced_live_package_ids.contains(entry.package_id())
-            && instance_requires_retirement(catalog, entry)
-    }) {
+    let retirement_ids = entries
+        .iter()
+        .filter(|entry| {
+            replaced_live_package_ids.contains(entry.package_id())
+                && instance_requires_retirement(catalog, entry)
+        })
+        .map(|entry| entry.package_id.clone())
+        .collect::<BTreeSet<_>>();
+    for entry in entries
+        .iter_mut()
+        .filter(|entry| retirement_ids.contains(entry.package_id()))
+    {
         entry.state = EditorPluginState::Revoking;
         for stage in [
             EditorPluginLifecycleStage::Disabled,

@@ -2,7 +2,7 @@ use thiserror::Error;
 use zircon_runtime::asset::AssetUri;
 
 use crate::core::asset::EditorAssetIndexError;
-use crate::core::jobs::JobSubmitError;
+use crate::core::jobs::{JobSubmitError, MutexGroupError};
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum EditorAssetImportSubmitError {
@@ -22,6 +22,8 @@ pub enum EditorAssetImportSubmitError {
         "asset import admission is stalled beyond its oldest-flight age budget of {max_age_ms} ms"
     )]
     OldestFlightAgeExceeded { max_age_ms: u64 },
+    #[error(transparent)]
+    MutexGroup(#[from] MutexGroupError),
     #[error(transparent)]
     Index(#[from] EditorAssetIndexError),
     #[error(transparent)]

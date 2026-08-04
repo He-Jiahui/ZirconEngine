@@ -47,7 +47,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         order,
         Some(toggle_track_color(node)),
         Some(control_border_color(node)),
-        1.0,
+        metrics.border_width,
         track.height * 0.5,
         opacity,
     ));

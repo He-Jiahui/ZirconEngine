@@ -23,15 +23,6 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let module_doc =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "fn lock_poison_recovered<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T>",
@@ -108,29 +99,6 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         );
     }
 
-    for doc_anchor in [
-        "Runtime 15 M3 F2 lock poison recovery guard",
-        "runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending",
-        "review_f2_scene_eventbus_locks_recover_after_poison",
-        "p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred",
-        "runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus",
-        "level_system_accessors_recover_poisoned_state_locks",
-        "scene/EventBus poison-safe lock recovery complete",
-    ] {
-        assert!(
-            level_doc.contains(doc_anchor)
-                || event_doc.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F2 scene/EventBus lock poison docs/status should record `{doc_anchor}`"
-        );
-    }
     let f2_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F2 |"))

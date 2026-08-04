@@ -97,6 +97,43 @@ fn renderable_empty_scene_declares_a_static_cube_with_persisted_project_referenc
         camera.get("active").and_then(toml::Value::as_bool),
         Some(true)
     );
+    let camera_transform = camera
+        .get("transform")
+        .and_then(toml::Value::as_table)
+        .expect("camera transform");
+    assert_eq!(
+        camera_transform
+            .get("translation")
+            .and_then(toml::Value::as_array),
+        Some(&vec![
+            toml::Value::Float(21.0),
+            toml::Value::Float(2.0),
+            toml::Value::Float(14.5),
+        ]),
+        "the default camera composition must preserve the runtime framing contract"
+    );
+    assert_eq!(
+        camera_transform
+            .get("rotation")
+            .and_then(toml::Value::as_array),
+        Some(&vec![
+            toml::Value::Float(0.0),
+            toml::Value::Float(0.0),
+            toml::Value::Float(0.0),
+            toml::Value::Float(1.0),
+        ]),
+        "the runtime framing contract uses an unrotated camera and a wide field of view"
+    );
+    let camera_settings = camera
+        .get("camera")
+        .and_then(toml::Value::as_table)
+        .expect("camera settings");
+    assert_eq!(
+        camera_settings
+            .get("fov_y_radians")
+            .and_then(toml::Value::as_float),
+        Some(1.7453293)
+    );
     let sun = entity_named(entities, "Sun");
     assert!(sun.contains_key("directional_light"));
     assert_eq!(sun.get("active").and_then(toml::Value::as_bool), Some(true));
@@ -117,6 +154,15 @@ fn renderable_empty_scene_declares_a_static_cube_with_persisted_project_referenc
         .get("transform")
         .and_then(toml::Value::as_table)
         .expect("cube transform");
+    assert_eq!(
+        transform.get("translation").and_then(toml::Value::as_array),
+        Some(&vec![
+            toml::Value::Float(0.0),
+            toml::Value::Float(0.0),
+            toml::Value::Float(0.0),
+        ]),
+        "the Cube must remain at the baseline position used by the runtime framing contract"
+    );
     assert_eq!(
         transform.get("scale").and_then(toml::Value::as_array),
         Some(&vec![
@@ -170,12 +216,17 @@ fn renderable_empty_asset_metadata_matches_its_persisted_references() {
         shader.get("uuid").and_then(toml::Value::as_str),
         Some("00000000-0000-0000-0000-000000000001")
     );
+    assert_eq!(
+        shader.get("url").and_then(toml::Value::as_str),
+        Some("res://shaders/pbr_shader")
+    );
     let default_material = template_toml(&rendered, "assets/materials/default.zmaterial");
-    assert_builtin_reference(
+    assert_project_reference(
         default_material
             .get("shader")
             .and_then(toml::Value::as_table),
-        "builtin://shader/pbr.wgsl",
+        "00000000-0000-0000-0000-000000000001",
+        "assets/shaders/pbr_shader.zmeta",
     );
 }
 
@@ -210,18 +261,6 @@ fn assert_project_reference(reference: Option<&toml::Table>, guid: &str, path_hi
     assert_eq!(
         reference.get("path_hint").and_then(toml::Value::as_str),
         Some(path_hint)
-    );
-}
-
-fn assert_builtin_reference(reference: Option<&toml::Table>, locator: &str) {
-    let reference = reference.expect("builtin asset reference");
-    assert_eq!(
-        reference.get("kind").and_then(toml::Value::as_str),
-        Some("builtin")
-    );
-    assert_eq!(
-        reference.get("locator").and_then(toml::Value::as_str),
-        Some(locator)
     );
 }
 

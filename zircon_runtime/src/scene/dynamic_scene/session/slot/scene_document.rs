@@ -115,7 +115,7 @@ impl<'de> Visitor<'de> for SceneEnvelopeVisitor {
         A: MapAccess<'de>,
     {
         let mut header = None;
-        let mut typed_payload = None;
+        let mut typed_payload: Option<DynamicScene> = None;
         let mut raw_payload: Option<Box<RawValue>> = None;
 
         while let Some(field) = map.next_key()? {

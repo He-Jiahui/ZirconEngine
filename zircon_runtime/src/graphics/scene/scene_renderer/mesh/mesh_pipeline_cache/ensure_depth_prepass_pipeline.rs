@@ -3,8 +3,8 @@ use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::create_depth_prepass_mesh_pipeline;
-use super::MeshPipelineCache;
 use super::shader_source::mesh_pipeline_depth_prepass_template_source_for_geometry_descriptor_with_streamer;
+use super::{MeshPipelineCache, PipelineCreationTarget};
 
 const DEPTH_PREPASS_MESH_SHADER_KEY_PREFIX: &str = "zircon.builtin.depth-prepass-mesh@1";
 
@@ -57,7 +57,13 @@ impl MeshPipelineCache {
             self.depth_prepass_mesh_pipelines
                 .insert(variant_id, pipeline);
         }
-        self.track_pipeline_creation_error_scope(shader_variant_key, error_scope);
+        self.track_pipeline_creation_error_scope(
+            shader_variant_key,
+            PipelineCreationTarget::MeshPass(MeshPassPipelineKind::DepthPrepass),
+            variant_id,
+            shader_key,
+            error_scope,
+        );
         self.depth_prepass_mesh_pipelines.get(&variant_id)
     }
 

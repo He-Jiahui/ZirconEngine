@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import base64
 import sqlite3
 import subprocess
 import unittest
@@ -13,6 +14,18 @@ from tools.session_coordinator.models import CoordinatorError
 
 
 class MilestoneControlClientTests(unittest.TestCase):
+    def test_cli_decodes_base64_compatibility_json_for_windows_native_arguments(self) -> None:
+        expected = {
+            "platform": "windows",
+            "toolchain": "stable-x86_64-pc-windows-msvc",
+            "build_config": '{"profile":"target-client"}',
+        }
+        encoded = base64.b64encode(json.dumps(expected).encode("utf-8")).decode("ascii")
+
+        self.assertEqual(expected, cli._compatibility_from_argument(f"base64:{encoded}"))
+        with self.assertRaises(CoordinatorError):
+            cli._compatibility_from_argument("base64:not-valid")
+
     def test_cli_port_override_supports_an_isolated_listener(self) -> None:
         arguments = cli._parser().parse_args(
             ["--repo-root", ".", "--port", "0", "status"]

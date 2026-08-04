@@ -14,15 +14,6 @@ fn review_f5_profile_export_uses_typed_error() {
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let profiling_doc =
         include_str!("../../../../../../docs/zircon_runtime/core/diagnostics/profiling.md");
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "pub type ProfileExportResult<T> = std::result::Result<T, ProfileExportError>;",
@@ -73,25 +64,5 @@ fn review_f5_profile_export_uses_typed_error() {
                 "{label} should not keep lossy String profile export branch `{forbidden}`"
             );
         }
-    }
-    for doc_anchor in [
-        "Runtime 15 F5 profile export typed errors",
-        "runtime_15_profile_export_typed_errors_static_passed_cargo_deferred",
-        "review_f5_profile_export_uses_typed_error",
-        "ProfileExportError",
-        "ProfileExportResult",
-        "ProfileExportError::CreateExportDirectory",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || profiling_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F5 profile export docs/status should record `{doc_anchor}`"
-        );
     }
 }

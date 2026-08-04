@@ -1,6 +1,6 @@
-use crate::core::math::{Mat4, Real, UVec2, Vec2, Vec3, view_matrix};
+use crate::core::math::{view_matrix, Mat4, Real, UVec2, Vec2, Vec3};
 
-use super::{ProjectionMode, ViewportCameraSnapshot, aspect_ratio_from_viewport_size};
+use super::{aspect_ratio_from_viewport_size, ProjectionMode, ViewportCameraSnapshot};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ViewProjectionMatrixPair {

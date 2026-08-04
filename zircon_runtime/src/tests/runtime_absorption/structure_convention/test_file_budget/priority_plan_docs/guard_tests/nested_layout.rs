@@ -74,52 +74,6 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = priority_plan_doc_owner_row_source();
-    let status_map = priority_plan_doc_status_map_source();
-    let date_map = priority_plan_doc_date_map_source();
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("structure convention plan", structure_plan.as_str()),
-        ("review findings plan", review_findings.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 priority plan docs guard-test child-owner split",
-                "runtime_15_priority_plan_docs_guard_test_child_owner_split_static_passed_cargo_deferred",
-                "structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs",
-                "structure_convention/test_file_budget/priority_plan_docs/guard_tests/child_layout.rs",
-                "structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs",
-                "structure_convention/test_file_budget/priority_plan_docs/guard_tests/listing.rs",
-                "structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs",
-                "structure_convention/test_file_budget/priority_plan_docs/guard_tests/nested_layout.rs",
-                "runtime_15_priority_plan_docs_guard_test_children_are_folder_backed",
-                "Cargo gate deferred",
-            ],
-        );
-    }
-
-    assert_contains_all(
-        "status expected-slice map",
-        &status_map,
-        &[
-            "Runtime 15 M3 priority plan docs guard-test child-owner split",
-            "runtime_15_priority_plan_docs_guard_test_child_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "date expected-slice map",
-        &date_map,
-        &[
-            "Runtime 15 M3 priority plan docs guard-test child-owner split",
-            "2026-07-01",
-        ],
-    );
 }
 
 #[test]
@@ -130,46 +84,11 @@ fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = priority_plan_doc_owner_row_source();
-    let status_map = priority_plan_doc_status_map_source();
-    let date_map = priority_plan_doc_date_map_source();
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("structure convention plan", structure_plan.as_str()),
-        ("review findings plan", review_findings.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                CHILD_PROSE_SLICE,
-                CHILD_PROSE_STATUS,
-                CHILD_PROSE_GUARD_PATH,
-                "full priority-plan-doc guard-test child inventory",
-                "Cargo gate deferred",
-            ],
-        );
-    }
 
     let current_owner_archive = priority_plan_doc_current_owner_archive_source();
     assert_child_owner_windows_name_full_inventory(
         "priority-plan-doc current-owner archive",
         &current_owner_archive,
-    );
-
-    assert_contains_all(
-        "status expected-slice map",
-        &status_map,
-        &[CHILD_PROSE_SLICE, CHILD_PROSE_STATUS],
-    );
-    assert_contains_all(
-        "date expected-slice map",
-        &date_map,
-        &[CHILD_PROSE_SLICE, "2026-07-04"],
     );
 }
 

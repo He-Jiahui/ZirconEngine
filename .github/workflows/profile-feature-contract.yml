@@ -25,11 +25,11 @@ jobs:
           - label: zircon_app target-client-platform
             package: zircon_app
             features: target-client,platform-winit,input-gamepad,gamepad-gilrs
-            bin: ""
+            bin: zircon_runtime
           - label: zircon_app target-editor-host
             package: zircon_app
             features: target-editor-host
-            bin: ""
+            bin: zircon_editor
           - label: zircon_app target-client shader-pbr-viewer
             package: zircon_app
             features: target-client,platform-winit,input-gamepad,gamepad-gilrs

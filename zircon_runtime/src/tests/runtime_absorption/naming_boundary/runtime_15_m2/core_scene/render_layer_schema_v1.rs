@@ -38,9 +38,6 @@ fn runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names() {
         manifest_root,
         "docs/zircon_runtime/core/framework/render/camera.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "RenderLayerSet scene schema v1 mask API",
@@ -76,9 +73,6 @@ fn runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("render camera doc", camera_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

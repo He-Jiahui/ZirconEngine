@@ -18,10 +18,6 @@ fn folder_backed_summary_direct_assertion_child_tree() -> String {
         read_runtime_src(
             FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD_OWNER,
         ),
-        read_runtime_src(
-            FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD_OWNER,
-        ),
-        read_runtime_src(FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD_OWNER),
         read_runtime_src(FOLDER_BACKED_SUMMARY_F12_DIRECT_ASSERTIONS_CHILD_OWNER),
         read_runtime_src(FOLDER_BACKED_SUMMARY_F12_DIRECT_ASSERTIONS_REVIEW_GUARD_CHILD_OWNER),
         read_runtime_src(FOLDER_BACKED_SUMMARY_F8_DIRECT_ASSERTIONS_CHILD_OWNER),
@@ -56,7 +52,6 @@ pub(super) fn assert_folder_backed_summary_direct_assertions_are_current() {
         &[
             "fn runtime_15_code_review_findings_direct_assertions_are_child_owner",
             "fn runtime_15_code_review_findings_direct_assertions_children_are_child_owned",
-            "fn runtime_15_code_review_findings_direct_assertions_guard_folder_backed_status_is_current",
             "pub(super) fn assert_code_review_direct_sources_are_folder_backed",
             "CodeReviewFindingsSources",
             "#[path = \"direct_review_assertions/delegation.rs\"]",

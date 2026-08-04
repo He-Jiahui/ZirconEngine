@@ -3,8 +3,8 @@ use super::{
     MeshGeometryHandle, MeshPassPipelineKind, MeshPipelineVariantId,
 };
 use crate::core::framework::render::{
-    packed_sort_key_u64, PrimitiveRelevance, RenderMeshStaticState, RenderPhase,
-    RenderPhaseSortComponents, ShaderQualityTier,
+    PrimitiveRelevance, RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+    ShaderQualityTier, packed_sort_key_u64,
 };
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::resources::{MaterialDisabledPasses, PipelineKey};
@@ -32,6 +32,7 @@ pub(crate) struct MeshBatchRef {
     pub(crate) shadow_view_visible: bool,
     pub(crate) has_previous_velocity_transform: bool,
     pub(crate) taa_reactive_mask_strength: f32,
+    pub(crate) half_resolution_transparency: bool,
     pub(crate) static_state: RenderMeshStaticState,
     pub(crate) pipeline_key: PipelineKey,
     pub(crate) sort_components: RenderPhaseSortComponents,
@@ -184,6 +185,7 @@ impl MeshBatchRef {
             shadow_view_visible: true,
             has_previous_velocity_transform: false,
             taa_reactive_mask_strength: 0.0,
+            half_resolution_transparency: false,
             static_state: RenderMeshStaticState::default(),
             pipeline_key,
             sort_components,
@@ -270,6 +272,11 @@ impl MeshBatchRef {
         } else {
             0.0
         };
+        self
+    }
+
+    pub(crate) fn with_half_resolution_transparency(mut self, enabled: bool) -> Self {
+        self.half_resolution_transparency = enabled;
         self
     }
 
@@ -371,6 +378,7 @@ impl MeshBatchRef {
             command = command.with_source_entity(identity.source_entity);
         }
         command = command.with_source_draw_index(self.source_draw_index);
+        command = command.with_half_resolution_transparency(self.half_resolution_transparency);
         if let Some(material_textures) = &self.material_textures {
             command = command.with_material_textures(material_textures.clone());
         }
@@ -452,11 +460,11 @@ pub(crate) trait MeshPassProcessor {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GeometrySourceId, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GeometrySourceId,
+        RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
     };
     use crate::core::framework::scene::Mobility;
-    use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+    use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
     use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
         MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
     };

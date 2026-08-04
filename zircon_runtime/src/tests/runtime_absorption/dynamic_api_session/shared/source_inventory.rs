@@ -40,7 +40,6 @@ pub(in super::super) const EXPECTED_RUNTIME_10_SOURCE_FILES: &[&str] = &[
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/runtime_diagnostics.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late.rs",
     "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
     "zircon_app/src/entry/runtime_library/runtime_session.rs",
     "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",

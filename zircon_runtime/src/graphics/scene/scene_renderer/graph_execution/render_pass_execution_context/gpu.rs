@@ -1,10 +1,12 @@
 use crate::core::framework::render::{
     MotionVectorCameraStatus, PostProcessGraphResourceNames, RenderFrameExtract,
-    RenderPluginRendererOutputs, ShaderQualityTier,
+    RenderPluginRendererOutputs, ShaderQualityTier, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
 };
 use crate::core::math::UVec2;
+use crate::graphics::backend::{GpuPipelineStatisticsScope, GpuPipelineStatisticsTimer};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
+use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
@@ -26,6 +28,7 @@ use super::super::{
 use super::RgResourceResolver;
 
 mod deferred;
+mod half_res_transparency;
 mod hzb_occlusion;
 mod mesh_command_lists;
 mod mesh_recording;
@@ -67,13 +70,17 @@ pub struct RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) streamer: Option<&'a ResourceStreamer>,
     pub(in crate::graphics::scene::scene_renderer) mesh_pipelines:
         Option<&'a mut MeshPipelineCache>,
+    pub(in crate::graphics::scene::scene_renderer) ibl_bake_pipeline_cache:
+        Option<&'a mut IblBakeWgpuPipelineCache>,
     pub(in crate::graphics::scene::scene_renderer) mesh_draw_lists:
         Option<RenderPassMeshCommandLists<'a>>,
     hzb_occlusion_culler: Option<&'a HzbOcclusionCuller>,
+    pipeline_statistics_timer: Option<&'a mut GpuPipelineStatisticsTimer>,
     compute_dispatches: Vec<RenderGraphComputeDispatchRecord>,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
     motion_vector_camera_status: MotionVectorCameraStatus,
+    half_resolution_transparency_depth_sigma: u16,
 }
 
 impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
@@ -137,12 +144,15 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             deferred: None,
             streamer: None,
             mesh_pipelines: None,
+            ibl_bake_pipeline_cache: None,
             mesh_draw_lists: None,
             hzb_occlusion_culler: None,
+            pipeline_statistics_timer: None,
             compute_dispatches: Vec::new(),
             hzb_occlusion_cull_report: None,
             light_grid_report: None,
             motion_vector_camera_status: MotionVectorCameraStatus::NotRequested,
+            half_resolution_transparency_depth_sigma: DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
         }
     }
 
@@ -187,6 +197,31 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.frame.shader_quality()
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn with_half_resolution_transparency_depth_sigma(
+        mut self,
+        depth_sigma: u16,
+    ) -> Self {
+        self.half_resolution_transparency_depth_sigma = depth_sigma.max(1);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_pipeline_statistics_timer(
+        mut self,
+        pipeline_statistics_timer: &'a mut GpuPipelineStatisticsTimer,
+    ) -> Self {
+        self.pipeline_statistics_timer = Some(pipeline_statistics_timer);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn reserve_pipeline_statistics_scope(
+        &mut self,
+        pass_name: &str,
+    ) -> Option<GpuPipelineStatisticsScope> {
+        self.pipeline_statistics_timer
+            .as_deref_mut()
+            .and_then(|timer| timer.reserve_pass(pass_name))
+    }
+
     pub fn previous_motion_vector_camera(
         &self,
     ) -> Option<&crate::core::framework::render::ViewportCameraSnapshot> {
@@ -212,6 +247,21 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &self,
         resource_name: &str,
     ) -> ViewportRenderRegion {
+        if matches!(
+            resource_name,
+            PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR
+                | PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH
+        ) {
+            let local_size = self.render_region().local_size();
+            let half_size = UVec2::new(
+                local_size.x.saturating_add(1) / 2,
+                local_size.y.saturating_add(1) / 2,
+            );
+            return self
+                .render_region()
+                .with_local_size(half_size)
+                .local_render_region();
+        }
         if writes_physical_output_resource(resource_name) {
             self.render_region()
         } else {
@@ -342,6 +392,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     ) -> Self {
         self.mesh_pipelines = Some(mesh_pipelines);
         self.mesh_draw_lists = Some(mesh_draw_lists);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_ibl_bake_pipeline_cache(
+        mut self,
+        ibl_bake_pipeline_cache: &'a mut IblBakeWgpuPipelineCache,
+    ) -> Self {
+        self.ibl_bake_pipeline_cache = Some(ibl_bake_pipeline_cache);
         self
     }
 

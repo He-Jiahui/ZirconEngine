@@ -7,9 +7,9 @@ use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
 use zircon_editor::core::editor_extension::{
-    ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorMenuItemDescriptor,
+    EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, EditorAuthoringContributionBatch, EditorAuthoringSurface,
@@ -101,8 +101,8 @@ pub fn register_net_authoring_workflows(
                 menu_item("Plugins/Network/Route", route_config.clone()),
                 menu_item("Plugins/Network/Replication Schema", schema_create.clone()),
             ],
-            component_drawers: vec![
-                ComponentDrawerDescriptor::new(
+            inspector_customizations: vec![
+                InspectorCustomizationDescriptor::new(
                     "net.ListenerConfig",
                     "plugins://net/editor/listener_config.zui",
                     "net.editor.listener_config",
@@ -110,7 +110,7 @@ pub fn register_net_authoring_workflows(
                 .with_template_id(NET_TEMPLATE_ID)
                 .with_data_root("net.listener")
                 .with_binding(listener_config.as_str()),
-                ComponentDrawerDescriptor::new(
+                InspectorCustomizationDescriptor::new(
                     "net.HttpRouteConfig",
                     "plugins://net/editor/route_config.zui",
                     "net.editor.route_config",
@@ -118,7 +118,7 @@ pub fn register_net_authoring_workflows(
                 .with_template_id(NET_TEMPLATE_ID)
                 .with_data_root("net.route")
                 .with_binding(route_config.as_str()),
-                ComponentDrawerDescriptor::new(
+                InspectorCustomizationDescriptor::new(
                     "net.ReplicationSchema",
                     "plugins://net/editor/replication_schema.zui",
                     "net.editor.replication_schema",

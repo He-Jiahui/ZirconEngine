@@ -9,6 +9,7 @@ use zircon_editor::{
     core::editor_event::{EditorEventRecord, EditorEventSource},
     ui::binding::EditorUiBinding,
 };
+use zircon_runtime::asset::project::ProjectPaths;
 
 use super::EditorApplicationComposition;
 
@@ -107,17 +108,19 @@ where
         return Err("--automation requires --headless".into());
     }
 
+    let project_root = resolve_project_automation_input_path(project_root, "project root")?;
+    let automation_path = resolve_project_automation_input_path(automation_path, "file")?;
     let contents = fs::read_to_string(&automation_path).map_err(|error| {
         io::Error::other(format!(
             "could not read project automation file '{}': {error}",
-            automation_path.display()
+            ProjectPaths::display_path(&automation_path).display()
         ))
     })?;
     let request: EditorProjectAutomationRequest =
         serde_json::from_str(&contents).map_err(|error| {
             io::Error::other(format!(
                 "could not parse project automation file '{}': {error}",
-                automation_path.display()
+                ProjectPaths::display_path(&automation_path).display()
             ))
         })?;
     request.validate()?;
@@ -126,6 +129,16 @@ where
         project_root,
         request,
     }))
+}
+
+fn resolve_project_automation_input_path(path: PathBuf, label: &str) -> Result<PathBuf, io::Error> {
+    let display_path = ProjectPaths::display_path(&path);
+    ProjectPaths::resolve_existing_path(&path).map_err(|error| {
+        io::Error::other(format!(
+            "could not resolve project automation {label} '{}': {error}",
+            display_path.display()
+        ))
+    })
 }
 
 /// Structured evidence from applying a normal binding sequence to one opened project.
@@ -153,6 +166,7 @@ pub(crate) struct EditorProjectAutomationSnapshot {
     pub selected_node_id: Option<u64>,
     pub selected_node_name: Option<String>,
     pub inspector_translation: Option<[String; 3]>,
+    pub inspector_scale: Option<[String; 3]>,
     pub scene_nodes: Vec<zircon_runtime::scene::NodeRecord>,
 }
 
@@ -174,6 +188,12 @@ pub(crate) fn execute_project_automation(
             .ok_or_else(|| {
                 io::Error::other("project automation composition has no opened project")
             })?;
+        require_healthy_project_for_automation(
+            &composition.startup_session().status_message,
+            opened_project.project_info.asset_count,
+            opened_project.project_info.ready_asset_count,
+            opened_project.project_info.failed_asset_count,
+        )?;
         let project_identity = opened_project.manifest.name.clone();
         let manifest_identity = format!(
             "{}@v{}",
@@ -235,9 +255,13 @@ pub(crate) fn execute_project_automation(
                 .inspector
                 .as_ref()
                 .map(|inspector| inspector.translation.clone()),
+            inspector_scale: editor_snapshot
+                .inspector
+                .as_ref()
+                .map(|inspector| inspector.scale.clone()),
             scene_nodes,
         };
-        let project_path = editor_snapshot.project_path;
+        let project_path = project_automation_report_path(Path::new(&editor_snapshot.project_path));
         if project_path.is_empty() {
             return Err(io::Error::other(
                 "project-scoped editor automation completed without an opened project path",
@@ -262,6 +286,30 @@ pub(crate) fn execute_project_automation(
     finish_project_automation(automation_result, close_result)
 }
 
+fn project_automation_report_path(project_path: impl AsRef<Path>) -> String {
+    ProjectPaths::display_path(project_path)
+        .to_string_lossy()
+        .into_owned()
+}
+
+fn require_healthy_project_for_automation(
+    status_message: &str,
+    asset_count: usize,
+    ready_asset_count: usize,
+    failed_asset_count: usize,
+) -> Result<(), io::Error> {
+    if status_message.starts_with("Project opened:")
+        && failed_asset_count == 0
+        && ready_asset_count == asset_count
+    {
+        return Ok(());
+    }
+
+    Err(io::Error::other(format!(
+        "project-scoped editor automation requires a non-degraded project open: status={status_message:?} assets={asset_count} ready={ready_asset_count} failed={failed_asset_count}"
+    )))
+}
+
 fn finish_project_automation<T>(
     automation_result: Result<T, Box<dyn Error>>,
     close_result: Result<(), Box<dyn Error>>,
@@ -279,10 +327,15 @@ fn finish_project_automation<T>(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    use std::path::{Path, PathBuf};
+
     use super::super::editor_automation_startup_error;
     use super::{
-        finish_project_automation, parse_project_automation_args, EditorProjectAutomationReport,
-        EditorProjectAutomationRequest, EditorProjectAutomationSnapshot,
+        finish_project_automation, parse_project_automation_args, project_automation_report_path,
+        require_healthy_project_for_automation, resolve_project_automation_input_path,
+        EditorProjectAutomationReport, EditorProjectAutomationRequest,
+        EditorProjectAutomationSnapshot,
     };
 
     #[test]
@@ -383,6 +436,48 @@ mod tests {
         );
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn project_automation_report_path_hides_windows_verbatim_prefixes() {
+        assert_eq!(
+            project_automation_report_path(Path::new(r"\\?\C:\ZirconBuilds\stage\project")),
+            r"C:\ZirconBuilds\stage\project"
+        );
+        assert_eq!(
+            project_automation_report_path(Path::new(r"\\?\UNC\server\share\project")),
+            r"\\server\share\project"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn project_automation_input_resolution_rejects_drive_relative_paths() {
+        let error =
+            resolve_project_automation_input_path(PathBuf::from(r"C:automation.json"), "file")
+                .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "could not resolve project automation file 'C:automation.json': Windows project paths must be drive-rooted, not drive-relative: C:automation.json"
+        );
+    }
+
+    #[test]
+    fn project_automation_rejects_degraded_project_opens_before_binding_dispatch() {
+        require_healthy_project_for_automation("Project opened: Fixture", 4, 4, 0).unwrap();
+
+        for (status, assets, ready, failed) in [
+            ("Project opened (degraded): Fixture", 4, 4, 0),
+            ("Project opened: Fixture", 4, 3, 0),
+            ("Project opened: Fixture", 4, 4, 1),
+        ] {
+            let error = require_healthy_project_for_automation(status, assets, ready, failed)
+                .expect_err("degraded project must not accept automation bindings");
+
+            assert!(error.to_string().contains("non-degraded project open"));
+        }
+    }
+
     #[test]
     fn project_automation_cli_requires_project_before_reading_automation_file() {
         let error = parse_project_automation_args([
@@ -458,6 +553,7 @@ mod tests {
                 selected_node_id: Some(3),
                 selected_node_name: Some("Cube".to_string()),
                 inspector_translation: Some(["42".to_string(), "0".to_string(), "0".to_string()]),
+                inspector_scale: Some(["1.25".to_string(), "1".to_string(), "1".to_string()]),
                 scene_nodes: vec![],
             },
         };
@@ -466,6 +562,7 @@ mod tests {
         assert_eq!(value["snapshot"]["selected_node_id"], 3);
         assert_eq!(value["snapshot"]["selected_node_name"], "Cube");
         assert_eq!(value["snapshot"]["inspector_translation"][0], "42");
+        assert_eq!(value["snapshot"]["inspector_scale"][0], "1.25");
         assert_eq!(value["snapshot"]["scene_nodes"], serde_json::json!([]));
         assert_eq!(value["project_identity"], "Fixture");
         assert_eq!(value["manifest_identity"], "Fixture@v1");
@@ -497,6 +594,7 @@ mod tests {
             vec![
                 "Hierarchy/SelectCube:onClick",
                 "Inspector/TransformPositionXCommit:onSubmit",
+                "Inspector/TransformScaleXCommit:onSubmit",
                 "WorkbenchMenuBar/SaveProject:onClick",
             ]
         );

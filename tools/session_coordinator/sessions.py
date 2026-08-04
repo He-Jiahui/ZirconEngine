@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import timedelta
 from pathlib import Path
 from sqlite3 import Connection, Row
@@ -46,6 +47,7 @@ class SessionService:
         parent_session_id: str | None = None,
         requested_status: SessionStatus | None = None,
         status_reason: str | None = None,
+        connection: Connection | None = None,
     ) -> SessionRecord:
         if not session_id.strip():
             raise ValueError("session_id cannot be empty")
@@ -54,7 +56,11 @@ class SessionService:
         normalized_scope = tuple(dict.fromkeys(write_scope or ()))
         now = utc_text()
         base_head = self._head_commit()
-        with self.database.transaction() as connection:
+        with (
+            self.database.transaction()
+            if connection is None
+            else nullcontext(connection)
+        ) as connection:
             existing = connection.execute(
                 "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
             ).fetchone()
@@ -180,9 +186,12 @@ class SessionService:
 
     def get(self, session_id: str) -> SessionRecord:
         with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
-            ).fetchone()
+            return self.get_in_connection(connection, session_id)
+
+    def get_in_connection(self, connection: Connection, session_id: str) -> SessionRecord:
+        row = connection.execute(
+            "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
+        ).fetchone()
         if row is None:
             raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
         return self._from_row(row)

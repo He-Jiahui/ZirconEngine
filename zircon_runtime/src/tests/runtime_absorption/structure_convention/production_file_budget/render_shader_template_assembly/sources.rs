@@ -57,7 +57,9 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         ),
         variant_cache_prewarm: read_runtime_src("graphics/shader/variant_cache/prewarm.rs"),
         pipeline_key: read_runtime_src("graphics/scene/resources/pipeline/pipeline_key.rs"),
-        mesh_cache_mod: read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs"),
+        mesh_cache_mod: read_runtime_src(
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs",
+        ),
         mesh_cache_state: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs",
         ),
@@ -82,7 +84,9 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         mesh_cache_source_tests: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
         ),
-        mesh_pipeline_mod: read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline/mod.rs"),
+        mesh_pipeline_mod: read_runtime_src(
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline/mod.rs",
+        ),
         mesh_pipeline_test_support: read_runtime_src(
             "graphics/scene/scene_renderer/mesh/mesh_pipeline/test_support.rs",
         ),

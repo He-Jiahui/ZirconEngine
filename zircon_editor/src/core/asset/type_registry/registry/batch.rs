@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::{AssetTypeContribution, AssetTypeId, AssetTypeRegistryError};
 use super::{
-    materialize_new, validate_context_commands, validate_creation_templates, validate_presentation,
-    validate_toolkit, AssetTypeRegistry, MaterializedEntry,
+    AssetTypeRegistry, MaterializedEntry, materialize_new, validate_context_commands,
+    validate_creation_templates, validate_presentation, validate_toolkit,
 };
 
 #[derive(Debug, Default)]

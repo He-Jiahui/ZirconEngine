@@ -1,4 +1,4 @@
-use std::any::{TypeId, type_name};
+use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -6,6 +6,7 @@ use crate::scene::ecs::StorageType;
 
 use super::id::ComponentId;
 use super::marker::Component;
+use super::table_column::TableColumnLayout;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComponentDescriptor {
@@ -26,6 +27,7 @@ pub struct ComponentRegistry {
     descriptors: Vec<ComponentDescriptor>,
     rust_ids_by_type_id: HashMap<TypeId, ComponentId>,
     dynamic_ids_by_type_id: HashMap<String, ComponentId>,
+    table_column_layouts: HashMap<ComponentId, TableColumnLayout>,
 }
 
 impl ComponentRegistry {
@@ -37,12 +39,17 @@ impl ComponentRegistry {
         if let Some(id) = self.rust_ids_by_type_id.get(&type_id).copied() {
             return id;
         }
+        let storage_type = T::STORAGE_TYPE;
         let id = self.insert_descriptor(
             type_name::<T>().to_string(),
-            T::STORAGE_TYPE,
+            storage_type,
             ComponentDescriptorSource::RustType { type_id },
         );
         self.rust_ids_by_type_id.insert(type_id, id);
+        if storage_type == StorageType::Table {
+            self.table_column_layouts
+                .insert(id, TableColumnLayout::of::<T>());
+        }
         id
     }
 
@@ -91,6 +98,22 @@ impl ComponentRegistry {
         &self.descriptors
     }
 
+    pub(crate) fn table_column_layout(&self, id: ComponentId) -> Option<&TableColumnLayout> {
+        self.table_column_layouts.get(&id)
+    }
+
+    pub(crate) fn table_column_layouts_for_ids(
+        &self,
+        component_ids: &[ComponentId],
+    ) -> Option<Vec<(ComponentId, TableColumnLayout)>> {
+        let mut layouts = Vec::with_capacity(component_ids.len());
+        for component_id in component_ids {
+            let layout = self.table_column_layout(*component_id)?.clone();
+            layouts.push((*component_id, layout));
+        }
+        Some(layouts)
+    }
+
     fn insert_descriptor(
         &mut self,
         type_name: String,
@@ -114,4 +137,60 @@ impl fmt::Debug for ComponentRegistry {
             .field("descriptors", &self.descriptors)
             .finish()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct TableValue;
+
+    impl Component for TableValue {}
+
+    struct SparseValue;
+
+    impl Component for SparseValue {
+        const STORAGE_TYPE: StorageType = StorageType::SparseSet;
+    }
+
+    #[test]
+    fn rust_table_components_receive_their_registered_dense_column_layout() {
+        let mut registry = ComponentRegistry::default();
+        let table_id = registry.component_id::<TableValue>();
+        let sparse_id = registry.component_id::<SparseValue>();
+        let dynamic_id = registry.dynamic_component_id("plugin.example.dynamic");
+
+        assert!(registry
+            .table_column_layout(table_id)
+            .is_some_and(TableColumnLayout::matches::<TableValue>));
+        assert!(registry.table_column_layout(sparse_id).is_none());
+        assert!(registry.table_column_layout(dynamic_id).is_none());
+    }
+
+    #[test]
+    fn table_column_layout_batches_preserve_the_signature_component_order() {
+        let mut registry = ComponentRegistry::default();
+        let first = registry.component_id::<TableValue>();
+        let second = registry.component_id::<AnotherTableValue>();
+        let sparse = registry.component_id::<SparseValue>();
+
+        let layouts = registry
+            .table_column_layouts_for_ids(&[second, first])
+            .expect("registered table components must have layouts");
+
+        assert_eq!(
+            layouts
+                .iter()
+                .map(|(component_id, _)| *component_id)
+                .collect::<Vec<_>>(),
+            vec![second, first]
+        );
+        assert!(registry
+            .table_column_layouts_for_ids(&[first, sparse])
+            .is_none());
+    }
+
+    struct AnotherTableValue;
+
+    impl Component for AnotherTableValue {}
 }

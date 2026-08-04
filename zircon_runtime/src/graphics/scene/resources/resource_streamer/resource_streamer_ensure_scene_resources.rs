@@ -115,6 +115,8 @@ impl ResourceStreamer {
         }
         self.ensure_output_target_texture(device, frame)?;
         self.record_output_target_graph_import_readiness(frame);
+        self.collect_texture_mip_streaming_visibility(frame);
+        self.apply_texture_mip_streaming(device, queue, texture_layout, frame.texture_mip_bias());
         Ok(())
     }
 
@@ -287,14 +289,15 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
     use crate::graphics::types::{
-        FRAMEWORK_OUTPUT_FORMAT_LABEL, LINEAR_OUTPUT_FORMAT_LABEL, ViewportRenderFrame,
-        ViewportRenderOutputTarget,
+        ViewportRenderFrame, ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL,
+        LINEAR_OUTPUT_FORMAT_LABEL,
     };
     use crate::scene::World;
 
     use super::{
-        EffectStackLutTextureStatus, effect_stack_lut_texture_id, effect_stack_lut_texture_request,
+        effect_stack_lut_texture_id, effect_stack_lut_texture_request,
         effect_stack_lut_texture_status, output_target_graph_import_report,
+        EffectStackLutTextureStatus,
     };
 
     #[test]
@@ -308,6 +311,23 @@ mod tests {
         ] {
             assert!(source.contains(&declaration), "missing {declaration}");
         }
+    }
+
+    #[test]
+    fn scene_resource_prepare_collects_mip_streaming_after_material_preparation() {
+        let source = include_str!("resource_streamer_ensure_scene_resources.rs");
+        let material_prepare = source
+            .find("self.ensure_material")
+            .expect("scene preparation ensures materials");
+        let visibility_collect = source
+            .find("self.collect_texture_mip_streaming_visibility(frame)")
+            .expect("scene preparation collects texture streaming visibility");
+        let streaming_apply = source
+            .find("self.apply_texture_mip_streaming(")
+            .expect("scene preparation applies texture streaming before draw preparation");
+
+        assert!(material_prepare < visibility_collect);
+        assert!(visibility_collect < streaming_apply);
     }
 
     #[test]

@@ -10,6 +10,7 @@ use crate::core::extension::{
     ToolkitLayout, ToolkitSaveFailure,
 };
 use crate::core::jobs::EditorJobSystem;
+use crate::core::settings::SettingsAuthority;
 use crate::ui::workbench::layout::LayoutManager;
 use crate::ui::workbench::view::{ViewInstanceId, ViewRegistry};
 use crate::ui::workbench::window_registry::EditorWindowRegistry;
@@ -32,6 +33,7 @@ use super::window_host_manager::WindowHostManager;
 pub(super) struct EditorUiHost {
     // EditorManager is registry-owned; the host must upgrade only at operation boundaries.
     core: CoreWeak,
+    pub(super) settings: Arc<SettingsAuthority>,
     pub(super) view_registry: Mutex<ViewRegistry>,
     pub(super) layout_manager: LayoutManager,
     pub(super) window_host_manager: Mutex<WindowHostManager>,
@@ -122,6 +124,7 @@ impl EditorUiHost {
         core: &CoreHandle,
         jobs: EditorJobSystem,
         dirty_documents: DirtyRegistry,
+        settings: Arc<SettingsAuthority>,
     ) -> Self {
         let minimal_report = editor_host_minimal_contract().self_check();
         let subsystem_report = editor_subsystem_report_from_core(core);
@@ -132,6 +135,7 @@ impl EditorUiHost {
 
         Self {
             core: core.downgrade(),
+            settings,
             view_registry: Mutex::new(ViewRegistry::default()),
             layout_manager: LayoutManager,
             window_host_manager: Mutex::new(WindowHostManager::default()),
@@ -155,8 +159,9 @@ impl EditorUiHost {
         core: &CoreHandle,
         jobs: EditorJobSystem,
         dirty_documents: DirtyRegistry,
+        settings: Arc<SettingsAuthority>,
     ) -> Result<Self, EditorError> {
-        let host = Self::new(core, jobs, dirty_documents);
+        let host = Self::new(core, jobs, dirty_documents, settings);
         host.register_builtin_views()?;
         host.bootstrap_default_layout()?;
         Ok(host)
@@ -205,7 +210,8 @@ impl EditorUiHost {
             })?;
         let layout = ToolkitLayout::single_tab(layout_id, tab_id)?;
         let document = self.document_toolkits.allocate_document_id()?;
-        let descriptor = DocumentToolkitDescriptor::new(document, toolkit_instance, title, layout);
+        let descriptor =
+            DocumentToolkitDescriptor::new(document, toolkit_instance.clone(), title, layout);
         self.document_toolkits
             .register(Arc::new(HostDocumentToolkit {
                 descriptor,

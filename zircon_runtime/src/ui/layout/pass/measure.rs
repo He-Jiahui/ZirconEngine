@@ -1,11 +1,14 @@
 use std::time::Instant;
 
-use crate::ui::{surface::measure_text_with_cache, text::UiTextMeasureCache};
+use crate::ui::{
+    surface::{measure_text_with_cache, measure_text_with_fixed_width_cache},
+    text::UiTextMeasureCache,
+};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
-        DesiredSize, UiAxis, UiContainerKind, UiGridBoxConfig, UiGridSlotPlacement, UiMargin,
-        UiMasonryBoxConfig, UiSize,
+        BoxConstraints, DesiredSize, StretchMode, UiAxis, UiContainerKind, UiGridBoxConfig,
+        UiGridSlotPlacement, UiMargin, UiMasonryBoxConfig, UiSize,
     },
     tree::{UiTemplateNodeMetadata, UiTree, UiTreeError},
 };
@@ -149,7 +152,8 @@ fn measure_content_size(
     text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiSize {
     if child_desired.is_empty() {
-        return measure_leaf_content_size(metadata, text_measure_cache);
+        let constraints = tree.node(node_id).map(|node| node.constraints);
+        return measure_leaf_content_size(metadata, constraints, text_measure_cache);
     }
 
     let content_size = match container {
@@ -237,9 +241,14 @@ fn normalized_aspect_ratio(aspect_ratio: f32) -> Option<f32> {
 
 fn measure_leaf_content_size(
     metadata: Option<&UiTemplateNodeMetadata>,
+    constraints: Option<BoxConstraints>,
     text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiSize {
-    let text_size = measure_text_with_cache(metadata, text_measure_cache);
+    let text_size = if let Some(width) = constraints.and_then(exact_fixed_width) {
+        measure_text_with_fixed_width_cache(metadata, text_measure_cache, width)
+    } else {
+        measure_text_with_cache(metadata, text_measure_cache)
+    };
     let Some(metadata) = metadata else {
         return text_size;
     };
@@ -255,6 +264,15 @@ fn measure_leaf_content_size(
         ),
         _ => text_size,
     }
+}
+
+fn exact_fixed_width(constraints: BoxConstraints) -> Option<f32> {
+    let width = constraints.width.resolved();
+    (matches!(constraints.width.stretch_mode, StretchMode::Fixed)
+        && width.max.is_some_and(|maximum| maximum == width.min)
+        && width.min.is_finite()
+        && width.min > 0.0)
+        .then_some(width.min)
 }
 
 fn measure_stacked_content_size(
@@ -629,4 +647,37 @@ fn slot_padding_for(
     slot_padding(slot_for_container_child(
         tree, parent_id, child_id, container,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::exact_fixed_width;
+    use zircon_runtime_interface::ui::layout::{AxisConstraint, BoxConstraints, StretchMode};
+
+    #[test]
+    fn exact_fixed_width_requires_an_equal_minimum_and_maximum() {
+        let exact = BoxConstraints {
+            width: AxisConstraint {
+                min: 320.0,
+                max: 320.0,
+                preferred: 320.0,
+                stretch_mode: StretchMode::Fixed,
+                ..AxisConstraint::default()
+            },
+            ..BoxConstraints::default()
+        };
+        let flexible = BoxConstraints {
+            width: AxisConstraint {
+                min: 0.0,
+                max: -1.0,
+                preferred: 320.0,
+                stretch_mode: StretchMode::Fixed,
+                ..AxisConstraint::default()
+            },
+            ..BoxConstraints::default()
+        };
+
+        assert_eq!(exact_fixed_width(exact), Some(320.0));
+        assert_eq!(exact_fixed_width(flexible), None);
+    }
 }

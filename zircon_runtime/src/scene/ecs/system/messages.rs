@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 
-use crate::scene::World;
 use crate::scene::ecs::{
     ChangeTickWindow, Message, MessageCursor, MessageId, MessageReadIter, MessageStore,
     SystemParam, SystemParamAccess, SystemParamError,
 };
+use crate::scene::World;
 
 pub struct MessageReaderParam<T>(PhantomData<fn() -> T>);
 

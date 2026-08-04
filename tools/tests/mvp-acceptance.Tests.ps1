@@ -16,9 +16,16 @@ function Assert-True {
 
 $workflowPath = Join-Path $PSScriptRoot '..\..\.github\workflows\mvp-editor-windows.yml'
 $workflowSource = Get-Content -LiteralPath $workflowPath -Raw
+$acceptanceSource = Get-Content -LiteralPath $driver -Raw
 Assert-True `
     ($workflowSource -match 'Copy-Item -LiteralPath \$evidenceRoot -Destination \$artifactRoot -Recurse -Force') `
     'Windows MVP workflow must upload the complete detached EvidenceRoot instead of a partial staging projection.'
+Assert-True ($acceptanceSource -match '\$candidateResolution = Resolve-ZirconWindowsPath -Path \$candidate') 'MVP acceptance evidence files must resolve through the shared Windows path resolver.'
+Assert-True ($acceptanceSource -match '\$resolvedTargetPath = \(Resolve-ZirconWindowsPath -Path \$targetPath\)\.OperationalPath') 'MVP acceptance manifest entries must compare physical target identities.'
+Assert-True ($acceptanceSource -match '\$stagingResolution\.OperationalPath') 'MVP acceptance manifest containment must use the resolver operational staging path.'
+Assert-True ($acceptanceSource -match '\$evidenceRootResolution\.OperationalPath') 'MVP acceptance EvidenceRoot isolation must use physical identity.'
+Assert-True ($acceptanceSource -notmatch '\(Resolve-Path -LiteralPath \$candidate\)\.Path') 'MVP acceptance evidence files must not fall back to PowerShell provider path resolution.'
+Assert-True ($acceptanceSource -notmatch '\(Resolve-Path -LiteralPath \$targetPath\)\.Path') 'MVP acceptance manifest entries must not fall back to PowerShell provider path resolution.'
 
 function Write-FixtureJson {
     param(
@@ -78,8 +85,8 @@ function Write-FixtureBuildSummary {
         'profile-contract' {
             @(
                 [ordered]@{ gate_id = 'zircon-app-target-server'; command = 'cargo check -p zircon_app --no-default-features --features target-server --locked' },
-                [ordered]@{ gate_id = 'zircon-app-target-client-platform'; command = 'cargo check -p zircon_app --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
-                [ordered]@{ gate_id = 'zircon-app-target-editor-host'; command = 'cargo check -p zircon_app --no-default-features --features target-editor-host --locked' },
+                [ordered]@{ gate_id = 'zircon-app-target-client-platform'; command = 'cargo check -p zircon_app --bin zircon_runtime --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
+                [ordered]@{ gate_id = 'zircon-app-target-editor-host'; command = 'cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked' },
                 [ordered]@{ gate_id = 'zircon-app-target-client-shader-pbr-viewer'; command = 'cargo check -p zircon_app --bin zircon_shader_pbr_viewer --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked' },
                 [ordered]@{ gate_id = 'zircon-runtime-target-client'; command = 'cargo check -p zircon_runtime --no-default-features --features target-client --locked' },
                 [ordered]@{ gate_id = 'zircon-runtime-target-editor-host'; command = 'cargo check -p zircon_runtime --no-default-features --features target-editor-host --locked' },
@@ -140,7 +147,10 @@ function Get-FixtureFileEvidence {
 }
 
 function New-FixtureSceneNodes {
-    param([Parameter(Mandatory)][double]$CubeTranslationX)
+    param(
+        [Parameter(Mandatory)][double]$CubeTranslationX,
+        [double]$CubeScaleX = 1.0
+    )
 
     return @(
         [ordered]@{
@@ -185,7 +195,7 @@ function New-FixtureSceneNodes {
             transform = [ordered]@{
                 translation = @($CubeTranslationX, 0.0, 0.0)
                 rotation = @(0.0, 0.0, 0.0, 1.0)
-                scale = @(1.0, 1.0, 1.0)
+                scale = @($CubeScaleX, 1.0, 1.0)
             }
             camera = $null
             mesh = [ordered]@{
@@ -271,6 +281,14 @@ Assert-MvpProjectSaveLifecycleEvidence `
     -SaveGeneration 1 `
     -ExpectedProjectPath $markedProjectPath | Out-Null
 
+$verbatimMarkedProjectPath = (Resolve-ZirconWindowsPath -Path $markedProjectPath).OperationalPath
+$canonicalVerbatimMarkedProjectToken = ConvertTo-FixtureDiagnosticToken -Value $verbatimMarkedProjectPath
+Assert-MvpProjectSaveLifecycleEvidence `
+    -DiagnosticText (New-FixtureProjectSaveDiagnostics -ProjectToken $canonicalVerbatimMarkedProjectToken) `
+    -SaveOperationId 'file.project.save' `
+    -SaveGeneration 1 `
+    -ExpectedProjectPath $markedProjectPath | Out-Null
+
 $legacyRawMarkToken = $canonicalMarkedProjectToken.Replace('%21', '!')
 $legacyRawMarkRejected = $false
 try {
@@ -340,6 +358,7 @@ try {
         -SelectedNodeId 3 `
         -SelectedNodeName 'Cube' `
         -InspectorTranslation @(42, 0, 0) `
+        -InspectorScale @(1, 1, 1) `
         -Label 'Cyclic fixture' | Out-Null
 }
 catch {
@@ -1213,7 +1232,7 @@ try {
     $encodedCreatedProjectRoot = [Uri]::EscapeDataString($createdProjectRoot)
     $creationDiagnosticText =
         "editor_first_frame_presented`neditor_process_teardown_complete`neditor_product_frame_capture_written`n" +
-        "editor_product_frame_diagnostics project_path=$encodedCreatedProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0`n" +
+        "editor_product_frame_diagnostics project_path=$encodedCreatedProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.00 inspector_scale_y=1.00 inspector_scale_z=1.00`n" +
         "editor_project_open result=completed project_root=$encodedCreatedProjectRoot manifest_identity=Fixture%20Project%40v1 scene_uri=res%3A%2F%2Fscenes%2Fmain.scene.toml registry_asset_count=4 registry_ready_asset_count=4 registry_failed_asset_count=0 registry_diagnostic_count=0 project_generation=1 project_generation_publish_epoch=1 catalog_asset_count=4 settings_source=persisted-v1`n"
     [IO.File]::WriteAllText(
         $creationDiagnosticPath,
@@ -1248,6 +1267,9 @@ try {
             inspector_translation_x = '0'
             inspector_translation_y = '0'
             inspector_translation_z = '0'
+            inspector_scale_x = '1.00'
+            inspector_scale_y = '1.00'
+            inspector_scale_z = '1.00'
         }
         project_open = [ordered]@{
             project_root = 'project/ZirconMvpFixture'
@@ -1319,7 +1341,7 @@ try {
     [IO.File]::WriteAllText(
         $unicodeDiagnosticPath,
         "editor_first_frame_presented`neditor_process_teardown_complete`neditor_product_frame_capture_written`n" +
-        "editor_product_frame_diagnostics project_path=$encodedUnicodeProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0`n" +
+        "editor_product_frame_diagnostics project_path=$encodedUnicodeProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.00 inspector_scale_y=1.00 inspector_scale_z=1.00`n" +
         "editor_project_open result=completed project_root=$encodedUnicodeProjectRoot manifest_identity=%E9%A1%B9%E7%9B%AE%20MVP%40v1 scene_uri=res%3A%2F%2Fscenes%2Fmain.scene.toml registry_asset_count=4 registry_ready_asset_count=4 registry_failed_asset_count=0 registry_diagnostic_count=0 project_generation=1 project_generation_publish_epoch=1 catalog_asset_count=4 settings_source=persisted-v1`n",
         [Text.UTF8Encoding]::new($false)
     )
@@ -1372,6 +1394,44 @@ try {
         $invalidProjectOpenEvidenceRejected = $_.Exception.Message -match 'project_open.*scene_uri|scene_uri.*project_open'
     }
     Assert-True $invalidProjectOpenEvidenceRejected 'Acceptance did not reject a tampered project-open diagnostic summary.'
+
+    $degradedProjectOpenDiagnosticText = $creationDiagnosticText.Replace(
+        'result=completed',
+        'result=degraded'
+    ).Replace(
+        'registry_asset_count=4 registry_ready_asset_count=4 registry_failed_asset_count=0',
+        'registry_asset_count=4 registry_ready_asset_count=3 registry_failed_asset_count=0'
+    )
+    [IO.File]::WriteAllText(
+        $creationDiagnosticPath,
+        $degradedProjectOpenDiagnosticText,
+        [Text.UTF8Encoding]::new($false)
+    )
+    $degradedProjectOpenEvidence = $projectCreationFixture | ConvertTo-Json -Depth 12 | ConvertFrom-Json
+    $degradedProjectOpenEvidence.diagnostic_logs = @(
+        Get-FixtureFileEvidence -Path $creationDiagnosticPath -RelativePath 'logs/editor-create.diagnostics/fixture.log'
+    )
+    $degradedProjectOpenEvidence.project_open.registry_ready_asset_count = 3
+    Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
+        run_id = 'fixture-stage'
+        source_fingerprint = 'fixture-source-fingerprint'
+        staged_project_root = 'project/ZirconMvpFixture'
+        project_creation = $degradedProjectOpenEvidence
+        products = $createdProjectProducts
+    })
+    $degradedProjectOpenEvidenceRejected = $false
+    try {
+        & $driver `
+            -StagingRoot $stagingRoot `
+            -EvidenceRoot (Join-Path $fixtureRoot 'degraded-project-open-evidence') `
+            -ExpectedSourceFingerprint 'fixture-source-fingerprint' `
+            -RequireProjectCreationEvidence | Out-Null
+    }
+    catch {
+        $degradedProjectOpenEvidenceRejected = $_.Exception.Message -match 'did not complete successfully'
+    }
+    Assert-True $degradedProjectOpenEvidenceRejected 'Acceptance did not reject a degraded project-open diagnostic.'
+    [IO.File]::WriteAllText($creationDiagnosticPath, $creationDiagnosticText, [Text.UTF8Encoding]::new($false))
     Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
         run_id = 'fixture-stage'
         source_fingerprint = 'fixture-source-fingerprint'
@@ -1418,6 +1478,13 @@ try {
                 save_generation = $null
             },
             [ordered]@{
+                binding_path = 'Inspector/TransformScaleXCommit:onSubmit'
+                source = 'Cli'
+                operation_id = 'inspector.field.apply_batch'
+                transaction_id = 2
+                save_generation = $null
+            },
+            [ordered]@{
                 binding_path = 'WorkbenchMenuBar/SaveProject:onClick'
                 source = 'Cli'
                 operation_id = 'file.project.save'
@@ -1431,7 +1498,8 @@ try {
             selected_node_id = 3
             selected_node_name = 'Cube'
             inspector_translation = @('42', '0', '0')
-            scene_nodes = New-FixtureSceneNodes -CubeTranslationX 42
+            inspector_scale = @('1.25', '1.00', '1.00')
+            scene_nodes = New-FixtureSceneNodes -CubeTranslationX 42 -CubeScaleX 1.25
         }
     }
     $reopenAutomationFixture = @(
@@ -1455,7 +1523,8 @@ try {
                 selected_node_id = 3
                 selected_node_name = 'Cube'
                 inspector_translation = @('42', '0', '0')
-                scene_nodes = New-FixtureSceneNodes -CubeTranslationX 42
+                inspector_scale = @('1.25', '1.00', '1.00')
+                scene_nodes = New-FixtureSceneNodes -CubeTranslationX 42 -CubeScaleX 1.25
             }
         },
         [ordered]@{
@@ -1478,7 +1547,8 @@ try {
                 selected_node_id = 3
                 selected_node_name = 'Cube'
                 inspector_translation = @('42', '0', '0')
-                scene_nodes = New-FixtureSceneNodes -CubeTranslationX 42
+                inspector_scale = @('1.25', '1.00', '1.00')
+                scene_nodes = New-FixtureSceneNodes -CubeTranslationX 42 -CubeScaleX 1.25
             }
         }
     )
@@ -1490,7 +1560,9 @@ try {
         -EvidenceLabel 'editor-authoring'
     $baselineAutomationFixture = Copy-FixtureProductRuns -Runs @($reopenAutomationFixture[0])
     $baselineAutomationFixture.snapshot.inspector_translation[0] = '0'
+    $baselineAutomationFixture.snapshot.inspector_scale[0] = '1.00'
     $baselineAutomationFixture.snapshot.scene_nodes[2].transform.translation[0] = 0.0
+    $baselineAutomationFixture.snapshot.scene_nodes[2].transform.scale[0] = 1.0
     $baselineAutomationFixture = New-FixtureAutomationProcessEvidence `
         -Report $baselineAutomationFixture `
         -RequestPath $reopenRequestPath `
@@ -1535,7 +1607,7 @@ try {
     $authoringStartupFixture = Get-Content -LiteralPath (Join-Path $stagingRoot 'startup-summary.json') -Raw | ConvertFrom-Json
     Assert-True ($null -ne $authoringStartupFixture.PSObject.Properties['reopen_automation']) 'Authoring acceptance fixture did not serialize its repeated reopen reports.'
     Assert-True ($null -ne $authoringStartupFixture.authoring_automation.PSObject.Properties['records']) 'Authoring acceptance fixture did not retain authoring records in its startup summary.'
-    Assert-True (@($authoringStartupFixture.authoring_automation.records).Count -eq 3) 'Authoring acceptance fixture did not retain all authoring records in its startup summary.'
+    Assert-True (@($authoringStartupFixture.authoring_automation.records).Count -eq 4) 'Authoring acceptance fixture did not retain all authoring records in its startup summary.'
     $authoringEvidenceRoot = Join-Path $fixtureRoot 'authoring-evidence'
     try {
         $authoringEvidence = @(
@@ -1552,7 +1624,7 @@ try {
         throw "Authoring automation positive fixture was rejected: $($_.Exception.Message)"
     }
     Assert-True ($null -ne $authoringEvidence.authoring_automation) 'Acceptance output lost required authoring automation evidence.'
-    Assert-True ($authoringEvidence.authoring_automation.records.Count -eq 3) 'Acceptance output lost the normal authoring binding sequence.'
+    Assert-True ($authoringEvidence.authoring_automation.records.Count -eq 4) 'Acceptance output lost the normal authoring binding sequence.'
     Assert-True ($authoringEvidence.reopen_automation.Count -eq 2) 'Acceptance output lost the independent reopened-project reports.'
     Assert-True ($authoringEvidence.authoring_automation.project_save_lifecycle.pre_save_dirty -eq $true) 'Acceptance output lost the pre-save dirty state.'
     Assert-True ($authoringEvidence.authoring_automation.project_save_lifecycle.pre_save_dirty_generation -eq 2) 'Acceptance output lost the pre-save dirty generation.'
@@ -1685,7 +1757,7 @@ try {
     [IO.File]::WriteAllText(
         $f5CreationDiagnosticPath,
         "editor_first_frame_presented`neditor_process_teardown_complete`neditor_product_frame_capture_written`n" +
-        "editor_product_frame_diagnostics project_path=$encodedF5ProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0`n" +
+        "editor_product_frame_diagnostics project_path=$encodedF5ProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.00 inspector_scale_y=1.00 inspector_scale_z=1.00`n" +
         "editor_project_open result=completed project_root=$encodedF5ProjectRoot manifest_identity=Fixture%20Project%40v1 scene_uri=res%3A%2F%2Fscenes%2Fmain.scene.toml registry_asset_count=4 registry_ready_asset_count=4 registry_failed_asset_count=0 registry_diagnostic_count=0 project_generation=1 project_generation_publish_epoch=1 catalog_asset_count=4 settings_source=persisted-v1`n",
         [Text.UTF8Encoding]::new($false)
     )
@@ -1714,6 +1786,9 @@ try {
         inspector_translation_x = '42'
         inspector_translation_y = '0'
         inspector_translation_z = '0'
+        inspector_scale_x = '1.25'
+        inspector_scale_y = '1.00'
+        inspector_scale_z = '1.00'
     })
     $f5EditorDiagnosticsRoot = Join-Path $logsRoot 'editor-1.diagnostics'
     $f5EditorDiagnosticPath = Join-Path $f5EditorDiagnosticsRoot 'fixture.log'
@@ -1721,7 +1796,7 @@ try {
     [IO.File]::WriteAllText(
         $f5EditorDiagnosticPath,
         "editor_first_frame_presented`neditor_process_teardown_complete`neditor_product_frame_capture_written`n" +
-        "editor_product_frame_diagnostics project_path=$encodedF5ProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=42 inspector_translation_y=0 inspector_translation_z=0`n",
+        "editor_product_frame_diagnostics project_path=$encodedF5ProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=42 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.25 inspector_scale_y=1.00 inspector_scale_z=1.00`n",
         [Text.UTF8Encoding]::new($false)
     )
     $f5ReopenedEditor.diagnostic_logs = @(
@@ -2021,16 +2096,21 @@ try {
     Assert-True ($f5Evidence.project_identity.model_resource_id -eq 'fixture-cube-model-resource') 'F5 evidence manifest lost the selected Cube model reference.'
     Assert-True ($f5Evidence.project_identity.material_resource_id -eq 'fixture-default-material-resource') 'F5 evidence manifest lost the selected Cube material reference.'
     Assert-True ($f5Evidence.baseline_automation.snapshot.inspector_translation[0] -eq '0') 'F5 evidence manifest lost the pre-authoring Cube baseline.'
+    Assert-True ($f5Evidence.baseline_automation.snapshot.inspector_scale[0] -eq '1.00') 'F5 evidence manifest lost the pre-authoring Cube scale.'
     $comparisonRoot = Join-Path $f5EvidenceRoot 'comparison'
     $persistedBefore = Get-Content -LiteralPath (Join-Path $comparisonRoot 'persisted-state-before.json') -Raw | ConvertFrom-Json
     $persistedAfter = Get-Content -LiteralPath (Join-Path $comparisonRoot 'persisted-state-after.json') -Raw | ConvertFrom-Json
     $reopenedState = Get-Content -LiteralPath (Join-Path $comparisonRoot 'reopened-state.json') -Raw | ConvertFrom-Json
     Assert-True ($persistedBefore.snapshot.inspector_translation[0] -eq '0') 'Persisted-state-before comparison lost the baseline transform.'
     Assert-True ($persistedAfter.snapshot.inspector_translation[0] -eq '42') 'Persisted-state-after comparison lost the authored transform.'
+    Assert-True ($persistedBefore.snapshot.inspector_scale[0] -eq '1.00') 'Persisted-state-before comparison lost the baseline scale.'
+    Assert-True ($persistedAfter.snapshot.inspector_scale[0] -eq '1.25') 'Persisted-state-after comparison lost the authored scale.'
     Assert-True ($persistedAfter.project_save_lifecycle.persisted_generation -eq 2) 'Persisted-state-after comparison lost the save lifecycle.'
     Assert-True (@($reopenedState.runs).Count -eq 2) 'Reopened-state comparison did not retain two independent process runs.'
     Assert-True (@($reopenedState.runs | Where-Object { $_.snapshot.inspector_translation[0] -eq '42' }).Count -eq 2) 'Reopened-state comparison does not prove the authored transform twice.'
-    $f5PackagedManifest = Get-Content -LiteralPath $f5Evidence.manifest -Raw | ConvertFrom-Json
+    Assert-True (@($reopenedState.runs | Where-Object { $_.snapshot.inspector_scale[0] -eq '1.25' }).Count -eq 2) 'Reopened-state comparison does not prove the authored scale twice.'
+    $f5PackagedManifestJson = Get-Content -LiteralPath $f5Evidence.manifest -Raw
+    $f5PackagedManifest = $f5PackagedManifestJson | ConvertFrom-Json
     Assert-True ($f5PackagedManifest.schema_version -eq 2) 'F5 evidence manifest did not declare the build-summary/timing schema.'
     Assert-True ($f5PackagedManifest.process_execution_journal.path -eq 'logs/process-execution-journal.jsonl') 'F5 evidence manifest did not bind the consumed process execution journal.'
     Assert-True (Test-Path -LiteralPath (Join-Path $f5EvidenceRoot 'logs/process-execution-journal.jsonl') -PathType Leaf) 'F5 evidence package did not archive the consumed process execution journal.'
@@ -2047,6 +2127,19 @@ try {
         Assert-True (-not [string]::IsNullOrWhiteSpace([string]$packagedProcess.started_at_utc)) 'F5 manifest dropped a validated process start time.'
         Assert-True (-not [string]::IsNullOrWhiteSpace([string]$packagedProcess.ended_at_utc)) 'F5 manifest dropped a validated process end time.'
         Assert-True ($packagedProcess.exit_code -eq 0) 'F5 manifest dropped a validated successful process exit code.'
+    }
+    $packagedTimestampTokens = [regex]::Matches(
+        $f5PackagedManifestJson,
+        '"(?:started_at_utc|ended_at_utc)"\s*:\s*"(?<timestamp>[^"]+)"'
+    )
+    Assert-True (
+        $packagedTimestampTokens.Count -eq ($packagedProcesses.Count * 2)
+    ) 'F5 manifest did not retain exactly one UTC start/end timestamp pair for every packaged process.'
+    foreach ($timestampToken in $packagedTimestampTokens) {
+        $timestamp = [string]$timestampToken.Groups['timestamp'].Value
+        Assert-True (
+            $timestamp -match '\+00:00$'
+        ) "F5 manifest process timestamp '$timestamp' must be serialized in UTC."
     }
     foreach ($buildPath in @('build/profile-contract-summary.json', 'build/workspace-summary.json')) {
         $buildInventory = @($f5PackagedManifest.evidence_files | Where-Object { $_.path -eq $buildPath })
@@ -2483,7 +2576,7 @@ try {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixtureRoot 'reopen-translation-drift-evidence'))) 'Reopen transform drift left a partial evidence root.'
 
     $sceneDriftReport = Get-Content -LiteralPath (Join-Path $stagingRoot 'logs\editor-reopen-2.stdout.log') -Raw | ConvertFrom-Json
-    $sceneDriftReport.snapshot.scene_nodes[2].transform.scale[0] = 2.0
+    $sceneDriftReport.snapshot.scene_nodes[1].transform.scale[0] = 2.0
     $sceneDriftEvidence = New-FixtureAutomationProcessEvidence `
         -Report $sceneDriftReport `
         -RequestPath $reopenRequestPath `
@@ -2500,6 +2593,7 @@ try {
         reopen_automation = @($reopenAutomationFixture[0], $sceneDriftEvidence)
     })
     $reopenSceneDriftRejected = $false
+    $reopenSceneDriftMessage = '<no error>'
     try {
         & $driver `
             -StagingRoot $stagingRoot `
@@ -2509,9 +2603,10 @@ try {
             -RequireReopenAutomation | Out-Null
     }
     catch {
-        $reopenSceneDriftRejected = $_.Exception.Message -match 'scene_nodes.*differs from the authoring snapshot'
+        $reopenSceneDriftMessage = $_.Exception.Message
+        $reopenSceneDriftRejected = $reopenSceneDriftMessage -match 'scene_nodes.*differs from the authoring snapshot'
     }
-    Assert-True $reopenSceneDriftRejected 'Acceptance did not reject a reopened full-scene transform drift with self-consistent process evidence.'
+    Assert-True $reopenSceneDriftRejected "Acceptance did not reject a reopened non-selected scene transform drift with self-consistent process evidence; observed='$reopenSceneDriftMessage'."
 
     $projectIdentityDriftProducts = Copy-FixtureProductRuns -Runs $manifest.product_runs
     $projectIdentityDriftRuntimes = @($projectIdentityDriftProducts | Where-Object { $_.product -eq 'runtime' })
@@ -2754,6 +2849,7 @@ try {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixtureRoot 'zero-input-runtime-diagnostics-evidence'))) 'Zero runtime input diagnostics left a partial evidence root.'
 
     $zeroInputRuntimeDiagnosticsFixture.products[0].runtime_product_diagnostics.input_viewport_resize_count = 2
+    $zeroInputRuntimeDiagnosticsFixture.products[0].runtime_product_diagnostics.input_keyboard_release_count = 1
     $zeroInputRuntimeDiagnosticsFixture.products[0].runtime_product_diagnostics.material_fallback_count = 1
     Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value $zeroInputRuntimeDiagnosticsFixture
     $materialFallbackRuntimeDiagnosticsRejected = $false

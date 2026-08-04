@@ -17,13 +17,3 @@ pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget:
     }
     blob
 }
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn plugin_importer_dx_structure_status_row_source(
-) -> String {
-    format!(
-        "{}\n{}\n{}",
-        read_runtime_src(REVIEW_GUARD_ROWS),
-        read_runtime_src(STRUCTURE_GUARD_ROW_PARENT),
-        read_runtime_src(STRUCTURE_GUARD_ROWS),
-    )
-}

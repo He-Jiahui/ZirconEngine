@@ -25,6 +25,7 @@ pub(super) fn apply_compact_table_layout(
     x: f32,
     y: f32,
     width: f32,
+    height: f32,
     row_count: usize,
 ) {
     set_frame(
@@ -39,13 +40,21 @@ pub(super) fn apply_compact_table_layout(
         let row_y = y
             + BROWSER_CONTENT_TABLE_HEADER_HEIGHT
             + BROWSER_CONTENT_LIST_ROW_HEIGHT * index as f32;
+        let available_row_height = finite_non_negative(
+            height
+                - BROWSER_CONTENT_TABLE_HEADER_HEIGHT
+                - BROWSER_CONTENT_LIST_ROW_HEIGHT * index as f32,
+        );
+        let row_height = (available_row_height >= BROWSER_CONTENT_LIST_ROW_HEIGHT)
+            .then_some(BROWSER_CONTENT_LIST_ROW_HEIGHT)
+            .unwrap_or(0.0);
         set_frame(
             nodes,
             &asset_table_row_control_id(index),
             x,
             row_y,
             width,
-            BROWSER_CONTENT_LIST_ROW_HEIGHT,
+            row_height,
         );
     }
     if let Some(panel) = nodes
@@ -59,7 +68,12 @@ pub(super) fn apply_compact_table_layout(
 pub(super) fn compact_table_stack_height(available_height: f32, row_count: usize) -> f32 {
     let content_height =
         BROWSER_CONTENT_TABLE_HEADER_HEIGHT + BROWSER_CONTENT_LIST_ROW_HEIGHT * row_count as f32;
-    content_height.min(available_height.max(BROWSER_CONTENT_TABLE_HEADER_HEIGHT))
+    let available_height = finite_non_negative(available_height);
+    if available_height < BROWSER_CONTENT_TABLE_HEADER_HEIGHT {
+        0.0
+    } else {
+        content_height.min(available_height)
+    }
 }
 
 pub(super) fn asset_table_row_count(nodes: &[ViewTemplateNodeData]) -> usize {
@@ -78,9 +92,41 @@ fn set_frame(
     height: f32,
 ) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.frame.x = x;
-        node.frame.y = y;
-        node.frame.width = width.max(0.0);
-        node.frame.height = height.max(0.0);
+        node.frame.x = finite_coordinate(x);
+        node.frame.y = finite_coordinate(y);
+        node.frame.width = finite_non_negative(width);
+        node.frame.height = finite_non_negative(height);
+    }
+}
+
+fn finite_non_negative(value: f32) -> f32 {
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn finite_coordinate(value: f32) -> f32 {
+    if value.is_finite() { value } else { 0.0 }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn table_stack_collapses_without_room_for_its_header() {
+        assert_eq!(
+            compact_table_stack_height(BROWSER_CONTENT_TABLE_HEADER_HEIGHT - 1.0, 4),
+            0.0
+        );
+        assert_eq!(compact_table_stack_height(f32::NAN, 4), 0.0);
+    }
+
+    #[test]
+    fn table_stack_never_exceeds_its_available_height() {
+        let height = compact_table_stack_height(BROWSER_CONTENT_TABLE_HEADER_HEIGHT + 4.0, 4);
+        assert_eq!(height, BROWSER_CONTENT_TABLE_HEADER_HEIGHT + 4.0);
     }
 }

@@ -44,3 +44,55 @@ fn selected_component_property_scalar_value_paints_neutral_field_border() {
         Some(palette.property_field_focus_border)
     );
 }
+
+#[test]
+fn fully_clipped_property_row_does_not_emit_paint_commands() {
+    let node = component_property_node();
+    let rect = frame(8.0, 6.0, 240.0, 28.0);
+    let clip = frame(280.0, 0.0, 80.0, 80.0);
+    let mut commands = Vec::new();
+
+    assert!(push_property_row_text_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &clip,
+        0,
+        1.0,
+    ));
+
+    assert!(commands.is_empty());
+}
+
+#[test]
+fn partially_clipped_property_row_keeps_only_clipped_paint_commands() {
+    let node = component_property_node();
+    let rect = frame(8.0, 6.0, 240.0, 28.0);
+    let clip = frame(16.0, 8.0, 60.0, 20.0);
+    let mut commands = Vec::new();
+
+    assert!(push_property_row_text_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &clip,
+        0,
+        1.0,
+    ));
+
+    assert!(!commands.is_empty());
+    assert!(commands.iter().all(|command| command
+        .clip_frame
+        .as_ref()
+        .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+}
+
+fn frame_is_within(
+    outer: &crate::ui::retained_host::host_contract::data::FrameRect,
+    inner: &crate::ui::retained_host::host_contract::data::FrameRect,
+) -> bool {
+    inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner.x + inner.width <= outer.x + outer.width
+        && inner.y + inner.height <= outer.y + outer.height
+}

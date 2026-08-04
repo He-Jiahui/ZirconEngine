@@ -245,25 +245,21 @@ mod tests {
     fn prepared_runtime_sidebands_report_empty_only_without_payloads() {
         assert!(RenderPreparedRuntimeSidebands::default().is_empty());
         assert!(RenderHybridGiPreparedFrame::default().is_empty());
-        assert!(
-            !RenderHybridGiPreparedFrame {
-                probe_rt_lighting_rgb: vec![RenderHybridGiPreparedProbeRtLighting {
-                    probe_id: 3,
-                    rt_lighting_rgb: [8, 16, 24],
-                }],
-                ..RenderHybridGiPreparedFrame::default()
-            }
-            .is_empty()
-        );
-        assert!(
-            !RenderHybridGiPreparedFrame {
-                composite_policy: RenderHybridGiCompositePolicy::baked_baseline_with_dynamic_delta(
-                    7, 3
-                ),
-                ..RenderHybridGiPreparedFrame::default()
-            }
-            .is_empty()
-        );
+        assert!(!RenderHybridGiPreparedFrame {
+            probe_rt_lighting_rgb: vec![RenderHybridGiPreparedProbeRtLighting {
+                probe_id: 3,
+                rt_lighting_rgb: [8, 16, 24],
+            }],
+            ..RenderHybridGiPreparedFrame::default()
+        }
+        .is_empty());
+        assert!(!RenderHybridGiPreparedFrame {
+            composite_policy: RenderHybridGiCompositePolicy::baked_baseline_with_dynamic_delta(
+                7, 3
+            ),
+            ..RenderHybridGiPreparedFrame::default()
+        }
+        .is_empty());
 
         let sidebands = RenderPreparedRuntimeSidebands::new(
             RenderPluginRendererOutputs::default(),

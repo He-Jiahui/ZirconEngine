@@ -8,15 +8,15 @@ use super::super::style::{
 use super::support::{list_node, list_node_with_flags};
 
 #[test]
-fn selected_only_list_row_uses_muted_fill_neutral_outline_and_muted_adornment() {
+fn selected_only_list_row_uses_muted_fill_teal_outline_and_muted_adornment() {
     let node = list_node_with_flags(true, false, false);
     let selected = list_row_style(&node);
 
     assert_eq!(selected.state, UiPainterResolvedState::Selected);
     assert_eq!(selected.background, Some(PALETTE.surface_pressed));
     assert_ne!(selected.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected.border, Some(PALETTE.border));
-    assert_ne!(selected.border, Some(PALETTE.accent));
+    assert_eq!(selected.border, Some(PALETTE.accent));
+    assert_ne!(selected.border, Some(PALETTE.border));
     assert_eq!(selected.border_width, 1.0);
     assert_eq!(selected.text, PALETTE.text);
     assert_eq!(selected.adornment, PALETTE.text_muted);
@@ -80,8 +80,8 @@ fn list_row_style_uses_shared_state_priority() {
     assert_eq!(selected.state, UiPainterResolvedState::Selected);
     assert_eq!(selected.background, Some(PALETTE.surface_pressed));
     assert_ne!(selected.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected.border, Some(PALETTE.border));
-    assert_ne!(selected.border, Some(PALETTE.accent));
+    assert_eq!(selected.border, Some(PALETTE.accent));
+    assert_ne!(selected.border, Some(PALETTE.border));
     assert_eq!(selected.border_width, 1.0);
     assert_eq!(selected.text, PALETTE.text);
     assert_eq!(selected.adornment, PALETTE.focus_ring);

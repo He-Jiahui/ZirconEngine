@@ -4,11 +4,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime_interface::project::{
-    ProjectManifestSummary, RenderedProjectTemplate, render_project_template,
+    render_project_template, ProjectManifestSummary, RenderedProjectTemplate,
 };
 
 use super::filesystem::{
-    canonical_project_root, validate_canonical_existing_project_root, validate_creation_target,
+    canonical_project_root, resolve_project_path, validate_canonical_existing_project_root,
+    validate_creation_target,
 };
 use super::{
     CreatedProject, NewProjectDraft, OpenedProject, ProjectAuthorityError, ProjectProbe,
@@ -54,7 +55,8 @@ impl ProjectAuthority {
         target: &Path,
         rendered: RenderedProjectTemplate,
     ) -> Result<CreatedProject, ProjectAuthorityError> {
-        validate_creation_target(target)?;
+        let target = resolve_project_path(target)?;
+        validate_creation_target(&target)?;
         let parent = target
             .parent()
             .ok_or_else(|| ProjectAuthorityError::ProjectMissing {
@@ -106,17 +108,17 @@ impl ProjectAuthority {
             let replaced_empty_target = target.exists();
             commit_staged_directory(
                 &staging,
-                target,
+                &target,
                 &backup,
                 replaced_empty_target,
                 |from, to| fs::rename(from, to),
             )?;
-            let root = match canonical_project_root(target) {
+            let root = match canonical_project_root(&target) {
                 Ok(root) => root,
                 Err(error) => {
                     rollback_committed_project(
                         &staging,
-                        target,
+                        &target,
                         &backup,
                         replaced_empty_target,
                         |from, to| fs::rename(from, to),
@@ -129,7 +131,7 @@ impl ProjectAuthority {
                 Err(source) => {
                     rollback_committed_project(
                         &staging,
-                        target,
+                        &target,
                         &backup,
                         replaced_empty_target,
                         |from, to| fs::rename(from, to),
@@ -137,12 +139,13 @@ impl ProjectAuthority {
                     return Err(source.into());
                 }
             };
-            if let Err(error) = finalize_empty_target_backup(target, &backup, replaced_empty_target)
+            if let Err(error) =
+                finalize_empty_target_backup(&target, &backup, replaced_empty_target)
             {
                 drop(project);
                 rollback_committed_project(
                     &staging,
-                    target,
+                    &target,
                     &backup,
                     replaced_empty_target,
                     |from, to| fs::rename(from, to),
@@ -150,11 +153,7 @@ impl ProjectAuthority {
                 return Err(error);
             }
             let summary = project.manifest().summary();
-            Ok(CreatedProject {
-                root,
-                summary,
-                project,
-            })
+            Ok(CreatedProject::new(root, summary, project))
         })();
 
         let preserve_rollback_artifacts = matches!(
@@ -232,11 +231,15 @@ impl ProjectAuthority {
         summary: ProjectManifestSummary,
         now_unix_ms: u64,
     ) {
-        session.last_project_path = Some(path.to_string());
-        session.recent_projects.retain(|entry| entry.path != path);
+        let canonical_path = canonical_project_root(Path::new(path)).ok();
+        let recent_path = persisted_recent_project_path(canonical_path.as_deref(), path);
+        session.last_project_path = Some(recent_path.clone());
+        session.recent_projects.retain(|entry| {
+            !recent_project_path_matches(&entry.path, &recent_path, canonical_path.as_deref())
+        });
         session.recent_projects.push(StoredRecentProjectEntry {
             summary,
-            path: path.to_string(),
+            path: recent_path,
             last_opened_unix_ms: now_unix_ms,
         });
         session.recent_projects.sort_by(|left, right| {
@@ -249,8 +252,17 @@ impl ProjectAuthority {
     }
 
     pub fn forget_recent_project(&self, session: &mut StoredStartupSession, path: &str) {
-        session.recent_projects.retain(|entry| entry.path != path);
-        if session.last_project_path.as_deref() == Some(path) {
+        let canonical_path = canonical_project_root(Path::new(path)).ok();
+        session.recent_projects.retain(|entry| {
+            !recent_project_path_matches(&entry.path, path, canonical_path.as_deref())
+        });
+        if session
+            .last_project_path
+            .as_deref()
+            .is_some_and(|stored_path| {
+                recent_project_path_matches(stored_path, path, canonical_path.as_deref())
+            })
+        {
             session.last_project_path = session
                 .recent_projects
                 .first()
@@ -389,6 +401,50 @@ where
     }
 
     Ok(())
+}
+
+fn recent_project_path_matches(
+    stored_path: &str,
+    requested_path: &str,
+    requested_root: Option<&Path>,
+) -> bool {
+    stored_path == requested_path
+        || requested_root.is_some_and(|root| {
+            canonical_project_root(Path::new(stored_path))
+                .ok()
+                .as_deref()
+                == Some(root)
+        })
+}
+
+/// Keeps session/UI path text readable while project services retain their resolved identity.
+fn persisted_recent_project_path(canonical_path: Option<&Path>, requested_path: &str) -> String {
+    canonical_path
+        .map(ProjectPaths::display_path)
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or_else(|| requested_path.to_owned())
+}
+
+#[cfg(all(test, windows))]
+mod persisted_recent_project_path_tests {
+    use std::path::Path;
+
+    use super::persisted_recent_project_path;
+
+    #[test]
+    fn converts_verbatim_dos_and_unc_paths_only_for_persisted_display_text() {
+        assert_eq!(
+            persisted_recent_project_path(Some(Path::new(r"\\?\C:\projects\mvp")), "ignored"),
+            r"C:\projects\mvp"
+        );
+        assert_eq!(
+            persisted_recent_project_path(
+                Some(Path::new(r"\\?\UNC\server\share\projects\mvp")),
+                "ignored"
+            ),
+            r"\\server\share\projects\mvp"
+        );
+    }
 }
 
 fn directory_is_empty(path: &Path) -> std::io::Result<bool> {

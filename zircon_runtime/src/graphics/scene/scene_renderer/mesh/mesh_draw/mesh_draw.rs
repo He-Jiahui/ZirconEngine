@@ -8,10 +8,10 @@ use crate::graphics::scene::resources::{
     GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, PipelineKey,
 };
 
+use super::MeshCommandSortInput;
 use super::geometry_source::MeshDrawGeometrySource;
 use super::material_texture_set::MaterialTextureSet;
 use super::virtual_geometry_submission_detail::VirtualGeometrySubmissionDetail;
-use super::MeshCommandSortInput;
 
 pub(crate) struct MeshDraw {
     pub(super) mesh: Arc<GpuMeshResource>,
@@ -36,6 +36,7 @@ pub(crate) struct MeshDraw {
     pub(super) cast_shadows: CastShadowsMode,
     pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
+    pub(super) half_resolution_transparency: bool,
     pub(super) gpu_scene_bind_group: Option<wgpu::BindGroup>,
     pub(super) gpu_scene_instance_span: Option<(u32, u32)>,
     pub(super) primitive_relevance: Option<PrimitiveRelevance>,
@@ -79,6 +80,7 @@ impl MeshDraw {
         cast_shadows: CastShadowsMode,
         disabled_passes: MaterialDisabledPasses,
         taa_reactive_mask_strength: f32,
+        half_resolution_transparency: bool,
         gpu_scene_bind_group: Option<wgpu::BindGroup>,
         has_previous_velocity_transform: bool,
         mesh_lod: Option<RenderMeshLodSelection>,
@@ -114,6 +116,7 @@ impl MeshDraw {
             cast_shadows,
             disabled_passes,
             taa_reactive_mask_strength,
+            half_resolution_transparency,
             gpu_scene_bind_group,
             gpu_scene_instance_span: None,
             primitive_relevance: None,

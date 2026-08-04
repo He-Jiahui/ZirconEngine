@@ -6,8 +6,8 @@ use crate::core::editor_event::{
 };
 use crate::core::editor_message::SharedEditorMessageBus;
 
-use super::state::EditorEventSequenceState;
 use super::EditorEventStamp;
+use super::state::EditorEventSequenceState;
 
 /// Journal, listener, sequence, and revision owner for editor events.
 pub struct EditorEventService {

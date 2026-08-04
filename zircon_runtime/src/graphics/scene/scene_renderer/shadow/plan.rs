@@ -2,20 +2,23 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::core::framework::render::{
     GpuLightData, LightShadowSettings, LightingExtract, RenderDirectionalLightSnapshot,
-    ViewportCameraSnapshot, SHADOW_SLOT_NONE,
+    SHADOW_SLOT_NONE, ViewportCameraSnapshot,
 };
 use crate::core::math::Mat4;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 
 use super::atlas::{
-    ShadowAtlasAllocator, ShadowAtlasRect, ShadowAtlasResourceConfig, ShadowSlotAllocation,
-    ShadowSlotKey, ShadowSlotRequest, SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasRect,
+    ShadowAtlasResourceConfig, ShadowSlotAllocation, ShadowSlotKey, ShadowSlotRequest,
 };
-use super::cascade::{compute_cascade_ranges, CascadeSplitConfig};
+use super::cascade::{CascadeSplitConfig, compute_cascade_ranges};
+use super::shadow_cache::{
+    ShadowCacheInput, shadow_light_params_hash, static_shadow_caster_revision_from_meshes,
+};
 use super::slot::{
-    GpuShadowGlobals, GpuShadowSlot, GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE,
-    GPU_SHADOW_SLOT_FLAG_POINT_FACE, GPU_SHADOW_SLOT_FLAG_SPOT,
+    GPU_SHADOW_SLOT_FLAG_DIRECTIONAL_CASCADE, GPU_SHADOW_SLOT_FLAG_POINT_FACE,
+    GPU_SHADOW_SLOT_FLAG_SPOT, GpuShadowGlobals, GpuShadowSlot,
 };
 use super::view_projection::{
     directional_cascade_view_projection, point_light_face_view_projection,
@@ -92,11 +95,14 @@ pub(crate) struct ShadowFramePlan {
     atlas_passes: Vec<ShadowAtlasSlotPass>,
     globals: GpuShadowGlobals,
     light_slots: ShadowLightSlotAssignments,
+    static_caster_revision: Option<u64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ShadowAtlasSlotPass {
     pub(crate) slot_index: u32,
+    pub(crate) slot_key: ShadowSlotKey,
+    pub(crate) atlas_slot_generation: u64,
     pub(crate) rect: ShadowAtlasRect,
     pub(crate) view_proj: Mat4,
     pub(crate) view_key: Option<VisibilityViewKey>,
@@ -105,12 +111,16 @@ pub(crate) struct ShadowAtlasSlotPass {
 impl ShadowAtlasSlotPass {
     fn new(
         slot_index: u32,
+        slot_key: ShadowSlotKey,
+        atlas_slot_generation: u64,
         rect: ShadowAtlasRect,
         view_proj: Mat4,
         view_key: Option<VisibilityViewKey>,
     ) -> Self {
         Self {
             slot_index,
+            slot_key,
+            atlas_slot_generation,
             rect,
             view_proj,
             view_key,
@@ -125,6 +135,7 @@ impl ShadowFramePlan {
             atlas_passes: Vec::new(),
             globals: GpuShadowGlobals::disabled(atlas_width, atlas_height),
             light_slots: ShadowLightSlotAssignments::default(),
+            static_caster_revision: None,
         }
     }
 
@@ -143,12 +154,59 @@ impl ShadowFramePlan {
     pub(crate) fn light_slots(&self) -> &ShadowLightSlotAssignments {
         &self.light_slots
     }
+
+    /// Returns cache inputs only when every static caster has authoritative revisions.
+    pub(crate) fn static_shadow_cache_inputs(&self) -> Vec<ShadowCacheInput> {
+        let Some(static_caster_revision) = self.static_caster_revision else {
+            return Vec::new();
+        };
+        // The plan producer appends each pass immediately after its slot. Require that complete
+        // correspondence before cache identity is exposed, so malformed plans redraw instead of
+        // silently reusing only a subset of atlas depth.
+        if self.atlas_passes.len() != self.slots.len()
+            || self
+                .atlas_passes
+                .iter()
+                .enumerate()
+                .any(|(index, pass)| u32::try_from(index).ok() != Some(pass.slot_index))
+        {
+            return Vec::new();
+        }
+        self.atlas_passes
+            .iter()
+            .zip(&self.slots)
+            .map(|(pass, slot)| {
+                ShadowCacheInput::new(
+                    pass.slot_key,
+                    shadow_light_params_hash(slot),
+                    static_caster_revision,
+                    pass.atlas_slot_generation,
+                )
+            })
+            .collect()
+    }
 }
 
 pub(crate) fn build_shadow_frame_plan(
     allocator: &mut ShadowAtlasAllocator,
     frame: &ViewportRenderFrame,
     resource_config: ShadowAtlasResourceConfig,
+) -> ShadowFramePlan {
+    let static_caster_revision =
+        static_shadow_caster_revision_from_meshes(&frame.extract.geometry.meshes);
+    build_shadow_frame_plan_with_static_caster_revision(
+        allocator,
+        frame,
+        resource_config,
+        static_caster_revision,
+    )
+}
+
+pub(crate) fn build_shadow_frame_plan_with_static_caster_revision(
+    allocator: &mut ShadowAtlasAllocator,
+    frame: &ViewportRenderFrame,
+    resource_config: ShadowAtlasResourceConfig,
+    static_caster_revision: Option<u64>,
 ) -> ShadowFramePlan {
     let resource_config = resource_config.normalized();
     if !frame.preview().lighting_enabled {
@@ -164,7 +222,11 @@ pub(crate) fn build_shadow_frame_plan(
         .allocations
         .iter()
         .copied()
-        .map(|allocation| (allocation.key, allocation))
+        .filter_map(|allocation| {
+            atlas_allocation
+                .slot_generation_for(allocation.key)
+                .map(|generation| (allocation.key, (allocation, generation)))
+        })
         .collect::<HashMap<_, _>>();
 
     let mut slots = Vec::new();
@@ -208,6 +270,7 @@ pub(crate) fn build_shadow_frame_plan(
         atlas_passes,
         globals,
         light_slots,
+        static_caster_revision,
     }
 }
 
@@ -304,6 +367,8 @@ fn append_directional_cascades(
         let slot_index = slots.len() as u32;
         atlas_passes.push(ShadowAtlasSlotPass::new(
             slot_index,
+            allocation.key,
+            u64::from(cascade_index as u32) + 1,
             allocation.rect,
             view_proj,
             Some(VisibilityViewKey::ShadowCascade {
@@ -331,7 +396,7 @@ fn append_point_light_slots(
     atlas_passes: &mut Vec<ShadowAtlasSlotPass>,
     light_slots: &mut ShadowLightSlotAssignments,
     lighting: &LightingExtract,
-    allocations_by_key: &HashMap<ShadowSlotKey, ShadowSlotAllocation>,
+    allocations_by_key: &HashMap<ShadowSlotKey, (ShadowSlotAllocation, u64)>,
     resource_config: ShadowAtlasResourceConfig,
 ) {
     for light in &lighting.point_lights {
@@ -341,21 +406,23 @@ fn append_point_light_slots(
         if slots_remaining(resource_config, slots.len()) < POINT_LIGHT_SHADOW_FACE_COUNT {
             return;
         }
-        let allocations: [Option<ShadowSlotAllocation>; POINT_LIGHT_SHADOW_FACE_COUNT as usize] =
-            std::array::from_fn(|face| {
-                allocations_by_key
-                    .get(&ShadowSlotKey::new(light.light_id, face as u8))
-                    .copied()
-            });
+        let allocations: [Option<(ShadowSlotAllocation, u64)>;
+            POINT_LIGHT_SHADOW_FACE_COUNT as usize] = std::array::from_fn(|face| {
+            allocations_by_key
+                .get(&ShadowSlotKey::new(light.light_id, face as u8))
+                .copied()
+        });
         if allocations.iter().any(Option::is_none) {
             continue;
         }
         let first_slot = slots.len() as u32;
-        for allocation in allocations.into_iter().flatten() {
+        for (allocation, generation) in allocations.into_iter().flatten() {
             let view_proj = point_light_face_view_projection(light, allocation.key.face_index);
             let slot_index = slots.len() as u32;
             atlas_passes.push(ShadowAtlasSlotPass::new(
                 slot_index,
+                allocation.key,
+                generation,
                 allocation.rect,
                 view_proj,
                 Some(VisibilityViewKey::ShadowPointFace {
@@ -383,7 +450,7 @@ fn append_spot_light_slots(
     atlas_passes: &mut Vec<ShadowAtlasSlotPass>,
     light_slots: &mut ShadowLightSlotAssignments,
     lighting: &LightingExtract,
-    allocations_by_key: &HashMap<ShadowSlotKey, ShadowSlotAllocation>,
+    allocations_by_key: &HashMap<ShadowSlotKey, (ShadowSlotAllocation, u64)>,
     resource_config: ShadowAtlasResourceConfig,
 ) {
     for light in &lighting.spot_lights {
@@ -393,7 +460,7 @@ fn append_spot_light_slots(
         if slots_remaining(resource_config, slots.len()) < SPOT_LIGHT_SHADOW_SLOT_COUNT {
             return;
         }
-        let Some(allocation) = allocations_by_key
+        let Some((allocation, generation)) = allocations_by_key
             .get(&ShadowSlotKey::new(light.light_id, 0))
             .copied()
         else {
@@ -403,6 +470,8 @@ fn append_spot_light_slots(
         let view_proj = spot_light_view_projection(light);
         atlas_passes.push(ShadowAtlasSlotPass::new(
             first_slot,
+            allocation.key,
+            generation,
             allocation.rect,
             view_proj,
             Some(VisibilityViewKey::ShadowSpot {

@@ -32,10 +32,6 @@ pub(super) fn assert_plugin_importer_d13_sdk_structure_assertions_children_line_
             PLUGIN_IMPORTER_D13_BUDGETS_CHILD,
             sources.budgets_child.as_str(),
         ),
-        (
-            PLUGIN_IMPORTER_D13_STATUS_MIRRORS_CHILD,
-            sources.status_mirrors_child.as_str(),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(

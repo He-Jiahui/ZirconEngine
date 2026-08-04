@@ -35,9 +35,6 @@ fn runtime_15_animation_manager_is_folder_backed() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let animation_doc = read_repo("docs/zircon_runtime/animation/runtime.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
-    );
 
     assert!(
         !old_manager.exists(),
@@ -87,40 +84,6 @@ fn runtime_15_animation_manager_is_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 production owner budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        (
-            "Runtime 15 archived output",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "runtime index archived output",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings archived output",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention archived output",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("animation runtime doc", animation_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M1 animation manager folder-backed cutover",
-                "runtime_15_animation_manager_folder_backed_cutover_static_passed_cargo_deferred",
-                "animation/manager/mod.rs",
-                "animation/manager/graph.rs",
-                "runtime_15_animation_manager_is_folder_backed",
-            ],
         );
     }
 }

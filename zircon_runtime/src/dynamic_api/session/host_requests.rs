@@ -19,11 +19,15 @@ pub(in crate::dynamic_api) fn runtime_ime_host_request(
             ZrRuntimeImeCursorAreaV1::new(area.x, area.y, area.width, area.height),
         ),
         ImeHostRequest::SetSurroundingText(text) => {
-            ZrRuntimeImeHostRequestV1::set_surrounding_text(ZrRuntimeImeSurroundingTextV1::new(
-                text.value,
-                text.cursor,
-                text.anchor,
-            ))
+            ZrRuntimeImeHostRequestV1::set_surrounding_text(
+                ZrRuntimeImeSurroundingTextV1::new(text.value, text.cursor, text.anchor)
+                    .with_composition_range(text.composition_range.map(|range| {
+                        zircon_runtime_interface::ZrRuntimeImeTextRangeV1::new(
+                            range.start,
+                            range.end,
+                        )
+                    })),
+            )
         }
     };
     request.with_target_viewport(target_viewport)

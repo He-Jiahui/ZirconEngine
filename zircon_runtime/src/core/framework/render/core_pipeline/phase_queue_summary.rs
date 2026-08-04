@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    RENDER_PHASES_BY_QUEUE_ORDER, RenderPhase, RenderPhaseItem, RenderPhaseQueueOrderingKey,
+    RenderPhase, RenderPhaseItem, RenderPhaseQueueOrderingKey, RENDER_PHASES_BY_QUEUE_ORDER,
 };
 
 /// Diagnostics snapshot for an already-sorted render phase queue.

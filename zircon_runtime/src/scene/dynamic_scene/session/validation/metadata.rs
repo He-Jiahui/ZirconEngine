@@ -6,4 +6,5 @@ pub(in crate::scene::dynamic_scene::session) fn normalize_slot_metadata(
     for slot in &mut archive.slots {
         slot.metadata.normalize();
     }
+    archive.rebuild_slot_indexes();
 }

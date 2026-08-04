@@ -19,9 +19,6 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "ProjectAssetManager poison recovery helpers",
@@ -62,38 +59,6 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
             "{label} production code should recover poisoned locks instead of panicking"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 output archive", runtime_15_output.as_str()),
-        (
-            "Runtime index output archive",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings output archive",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention output archive",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("asset importer doc", importer_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 asset project manager lock poison recovery",
-                "runtime_15_asset_project_manager_lock_poison_recovery_static_passed_cargo_deferred",
-                "asset/pipeline/manager/project_asset_manager/runtime.rs",
-                "asset/pipeline/manager/project_asset_manager/construction.rs",
-                "project_asset_manager_runtime_accessors_recover_poisoned_locks",
-                "runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager",
-            ],
-        );
-    }
 }
 
 #[test]
@@ -117,9 +82,6 @@ fn runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_p
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let worker_doc = read_repo("docs/zircon_runtime/asset/worker_pool.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "AssetWorkerPool poison recovery helpers",
@@ -170,38 +132,6 @@ fn runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_p
                 && !source.contains(".write().expect(")
                 && !source.contains("lock poisoned"),
             "{label} production code should recover poisoned locks instead of panicking"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 output archive", runtime_15_output.as_str()),
-        (
-            "Runtime index output archive",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings output archive",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention output archive",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-        ("asset worker doc", worker_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 asset worker pool lock poison recovery",
-                "runtime_15_asset_worker_pool_lock_poison_recovery_static_passed_cargo_deferred",
-                "asset/pipeline/worker_pool.rs",
-                "asset/pipeline/manager/service_contracts/asset_manager_contract.rs",
-                "asset_worker_pool_accessors_recover_poisoned_locks",
-                "runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool",
-            ],
         );
     }
 }

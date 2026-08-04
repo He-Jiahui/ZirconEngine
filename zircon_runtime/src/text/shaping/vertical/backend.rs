@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 
-use rustybuzz::{script, Direction, Feature, Language, Script, Tag, UnicodeBuffer, Variation};
+use rustybuzz::{
+    script, ttf_parser::Tag, Direction, Feature, Language, Script, UnicodeBuffer, Variation,
+};
 
 use crate::text::font::FontDatabase;
 use crate::text::{FontFaceId, InstancedFaceId, OpenTypeFeature};

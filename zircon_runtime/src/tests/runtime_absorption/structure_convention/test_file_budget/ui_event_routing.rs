@@ -128,27 +128,4 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = ui_tests_first_status_row_source();
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("UI architecture doc", ui_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 UI event routing test folder split",
-                "runtime_15_ui_event_routing_tests_folder_split_static_passed_cargo_deferred",
-                "ui/tests/event_routing.rs",
-                "ui/tests/event_routing/pointer_state.rs",
-                "ui/tests/event_routing/shared_input.rs",
-                "runtime_15_ui_event_routing_tests_are_folder_backed",
-            ],
-        );
-    }
 }

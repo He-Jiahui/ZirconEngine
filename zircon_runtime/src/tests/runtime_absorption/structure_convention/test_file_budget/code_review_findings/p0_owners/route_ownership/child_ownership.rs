@@ -16,7 +16,6 @@ pub(super) fn assert_p0_route_ownership_guard_is_child_backed() {
             P0_ROUTE_PARENT_ROUTES_CHILD,
             P0_ROUTE_LEAF_OWNERS_CHILD,
             P0_ROUTE_CHILD_OWNERSHIP_CHILD,
-            P0_ROUTE_STATUS_MIRRORS_CHILD,
             P0_ROUTE_OWNERSHIP_CHILD_SPLIT_STATUS,
             P0_ROUTE_OWNERSHIP_CHILD_SPLIT_GUARD,
         ],
@@ -46,6 +45,4 @@ pub(super) fn assert_p0_route_ownership_guard_is_child_backed() {
             "P0 route-ownership child source blob should contain child guard {child_guard}"
         );
     }
-
-    super::status_mirrors::assert_p0_route_ownership_status_mirrors_are_current();
 }

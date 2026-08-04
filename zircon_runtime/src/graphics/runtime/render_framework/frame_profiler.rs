@@ -1,8 +1,8 @@
 use crate::core::framework::render::{
     RenderBudgetKey, RenderFrameBudget, RenderFrameProfile, RenderPassProfileEntry, RenderStats,
-    RenderSubsystemProfileEntry,
+    RenderPassPipelineStatistics, RenderSubsystemProfileEntry,
 };
-use crate::graphics::backend::GpuTimerFrameResult;
+use crate::graphics::backend::{GpuPipelineStatisticsFrameResult, GpuTimerFrameResult};
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 use super::budget::{BudgetDegradeLadder, RenderMemoryBudget};
@@ -45,9 +45,11 @@ impl FrameProfiler {
         frame_generation: u64,
         cpu_submit_time_us: u64,
         gpu_timer_frame_result: Option<&GpuTimerFrameResult>,
+        gpu_pipeline_statistics_frame_result: Option<&GpuPipelineStatisticsFrameResult>,
         memory_budget: &RenderMemoryBudget,
         degrade_ladder: &mut BudgetDegradeLadder,
         store_lint_count: u32,
+        persistent_texture_resident_bytes: u64,
     ) -> FrameProfileWrite {
         let compiled_graph_cache_hit =
             stats.last_graph_compiled_cache_hit_count > self.last_compiled_graph_cache_hit_count;
@@ -62,6 +64,7 @@ impl FrameProfiler {
                 executor_id: record.executor_id.clone(),
                 budget_key: record.budget_key,
                 gpu_time_us: None,
+                pipeline_statistics: None,
                 draw_count: record.draw_count,
                 instance_count: record.instance_count,
                 state_change_count: record.state_change_count,
@@ -91,6 +94,7 @@ impl FrameProfiler {
             transient_texture_peak_bytes: stats.last_graph_transient_texture_bytes_reserved,
             transient_buffer_peak_bytes: stats.last_graph_transient_buffer_bytes_reserved,
             staging_total_bytes,
+            persistent_texture_resident_bytes,
             compiled_graph_cache_hit,
             variant_miss_count: saturating_u32(
                 stats.last_shader_variant_miss_report.compile_miss_count,
@@ -110,6 +114,9 @@ impl FrameProfiler {
         // fourth profile is being assembled, and must remain addressable for this update.
         let resolved_gpu_profile = gpu_timer_frame_result
             .and_then(|result| self.merge_gpu_timer_result(result, frame_generation));
+        let resolved_gpu_profile = gpu_pipeline_statistics_frame_result
+            .and_then(|result| self.merge_gpu_pipeline_statistics_result(result, frame_generation))
+            .or(resolved_gpu_profile);
         while self.pending_profiles.len() > MAX_PENDING_FRAME_PROFILES {
             self.pending_profiles.pop_front();
         }
@@ -165,6 +172,43 @@ impl FrameProfiler {
 
         Some(Arc::clone(&self.pending_profiles[profile_index]))
     }
+
+    fn merge_gpu_pipeline_statistics_result(
+        &mut self,
+        result: &GpuPipelineStatisticsFrameResult,
+        current_frame_generation: u64,
+    ) -> Option<Arc<RenderFrameProfile>> {
+        let profile_index = self
+            .pending_profiles
+            .iter()
+            .position(|profile| profile.frame_generation == result.frame_generation)?;
+        {
+            let profile = Arc::make_mut(&mut self.pending_profiles[profile_index]);
+            for pass in &mut profile.passes {
+                if let Some(statistics) = result
+                    .pass_statistics
+                    .iter()
+                    .find(|statistics| statistics.pass_name == pass.pass_name)
+                {
+                    pass.pipeline_statistics = Some(RenderPassPipelineStatistics {
+                        vertex_shader_invocations: statistics.statistics.vertex_shader_invocations,
+                        clipper_invocations: statistics.statistics.clipper_invocations,
+                        clipper_primitives_out: statistics.statistics.clipper_primitives_out,
+                        fragment_shader_invocations: statistics
+                            .statistics
+                            .fragment_shader_invocations,
+                        compute_shader_invocations: statistics.statistics.compute_shader_invocations,
+                    });
+                }
+            }
+            profile.profile_latency_frames = profile.profile_latency_frames.max(
+                saturating_u32_from_u64(
+                    current_frame_generation.saturating_sub(result.frame_generation),
+                ),
+            );
+        }
+        Some(Arc::clone(&self.pending_profiles[profile_index]))
+    }
 }
 
 fn update_subsystem_gpu_times(profile: &mut RenderFrameProfile, budget: &RenderFrameBudget) {
@@ -213,7 +257,10 @@ mod tests {
         RenderBudgetKey, RenderGraphExecutionProfileReport, RenderGraphPassProfileMetrics,
         RenderGraphPassProfileRecord, RenderStats,
     };
-    use crate::graphics::backend::{GpuPassTiming, GpuTimerFrameResult};
+    use crate::graphics::backend::{
+        GpuPassPipelineStatistics, GpuPassTiming, GpuPipelineStatistics,
+        GpuPipelineStatisticsFrameResult, GpuTimerFrameResult,
+    };
 
     use super::{FrameProfileWrite, FrameProfiler};
     use crate::graphics::runtime::render_framework::budget::{
@@ -234,8 +281,10 @@ mod tests {
             frame_generation,
             cpu_submit_time_us,
             gpu_timer_frame_result,
+            None,
             &memory_budget,
             &mut degrade_ladder,
+            0,
             0,
         )
     }
@@ -427,6 +476,58 @@ mod tests {
     }
 
     #[test]
+    fn pipeline_statistics_merge_is_available_without_changing_gpu_time_budgeting() {
+        let mut stats = RenderStats::default();
+        stats.last_graph_execution_profile_report =
+            RenderGraphExecutionProfileReport::new(vec![RenderGraphPassProfileRecord::new(
+                "hzb.build",
+                "hzb.build",
+                1,
+            )
+            .with_budget_key(RenderBudgetKey::Hzb)]);
+        let mut profiler = FrameProfiler::default();
+
+        write_profile(&mut profiler, &mut stats, 3, 10, None);
+        let statistics = GpuPipelineStatisticsFrameResult {
+            frame_generation: 3,
+            pass_statistics: vec![GpuPassPipelineStatistics {
+                pass_name: "hzb.build".to_string(),
+                statistics: GpuPipelineStatistics {
+                    compute_shader_invocations: 512,
+                    ..GpuPipelineStatistics::default()
+                },
+            }],
+        };
+        let memory_budget = RenderMemoryBudget::default();
+        let mut degrade_ladder = BudgetDegradeLadder::default();
+        let write = profiler.write_frame_profile(
+            &mut stats,
+            4,
+            10,
+            None,
+            Some(&statistics),
+            &memory_budget,
+            &mut degrade_ladder,
+            0,
+            0,
+        );
+
+        let resolved = write
+            .resolved_gpu_profile
+            .expect("late pipeline statistics should resolve the prior profile");
+        assert_eq!(resolved.frame_generation, 3);
+        assert_eq!(resolved.gpu_frame_time_us, None);
+        assert_eq!(
+            resolved.passes[0]
+                .pipeline_statistics
+                .as_ref()
+                .expect("HZB statistics should be attached")
+                .compute_shader_invocations,
+            512
+        );
+    }
+
+    #[test]
     fn render_perf_profile_feeds_memory_budget_lint_and_degrade_state() {
         let mut stats = RenderStats::default();
         stats.last_graph_execution_profile_report =
@@ -444,9 +545,11 @@ mod tests {
             11,
             10,
             None,
+            None,
             &memory_budget,
             &mut degrade_ladder,
             3,
+            0,
         );
 
         assert_eq!(write.capture_profile.staging_total_bytes, 128);

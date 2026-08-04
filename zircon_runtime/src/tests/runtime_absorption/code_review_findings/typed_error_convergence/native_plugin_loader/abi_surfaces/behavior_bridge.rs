@@ -17,15 +17,6 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
         include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativePluginBehaviorResult<T>",
@@ -66,28 +57,6 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
             && native_plugin_abi.contains("source"),
         "native plugin ABI entry report should preserve behavior errors inside the unified loader error"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native plugin behavior ABI typed errors",
-        "runtime_15_native_plugin_behavior_abi_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_plugin_behavior_abi_uses_typed_error",
-        "plugin/native_plugin_loader/behavior_calls.rs",
-        "NativePluginBehaviorError::UnsupportedAbiVersion",
-        "behavior ABI parse is wrapped by the entry ABI typed error before the loader report boundary",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native plugin behavior ABI docs/status should record `{doc_anchor}`"
-        );
-    }
 }
 
 #[test]
@@ -109,15 +78,6 @@ fn review_f5_native_bridge_method_abi_uses_typed_error() {
         include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
-    );
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
-    );
 
     for required in [
         "type NativeBridgeMethodAbiResult<T>",
@@ -165,26 +125,4 @@ fn review_f5_native_bridge_method_abi_uses_typed_error() {
             && native_plugin_abi.contains("source"),
         "native plugin ABI entry report should preserve bridge method errors inside the unified loader error"
     );
-
-    for doc_anchor in [
-        "Runtime 15 F5 native bridge method ABI typed errors",
-        "runtime_15_native_bridge_method_abi_typed_errors_static_passed_cargo_deferred",
-        "review_f5_native_bridge_method_abi_uses_typed_error",
-        "plugin/native_plugin_loader/bridge_method_abi.rs",
-        "NativeBridgeMethodAbiError::UnsupportedTableAbiVersion",
-        "bridge method ABI parse is wrapped by the entry ABI typed error before the loader report boundary",
-    ] {
-        assert!(
-            native_boundary.contains(doc_anchor)
-                || review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || module_convention.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "native bridge method ABI docs/status should record `{doc_anchor}`"
-        );
-    }
 }

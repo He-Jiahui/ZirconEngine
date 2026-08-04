@@ -1,4 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::geometry::{horizontal_line_frame, vertical_line_frame};
 use super::style::divider_color;
@@ -43,6 +44,9 @@ fn push_quad(
     color: [u8; 4],
     opacity: f32,
 ) {
+    if intersect(&frame, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
         frame,
         Some(clip.clone()),

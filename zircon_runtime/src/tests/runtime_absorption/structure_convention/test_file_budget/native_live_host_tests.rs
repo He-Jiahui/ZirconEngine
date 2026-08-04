@@ -19,9 +19,6 @@ fn runtime_15_native_live_host_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
 
     assert_contains_all(
         "native live-host parent test module mounts child owners",
@@ -116,29 +113,6 @@ fn runtime_15_native_live_host_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("plugin bridge doc", plugin_bridge_doc.as_str()),
-        ("status-output scene/script row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 native live-host tests folder split",
-                "runtime_15_native_live_host_tests_folder_split_static_passed_cargo_deferred",
-                "plugin/native_plugin_loader/native_plugin_live_host/tests.rs",
-                "plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs",
-                "plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs",
-                "runtime_15_native_live_host_tests_are_folder_backed",
-            ],
         );
     }
 }

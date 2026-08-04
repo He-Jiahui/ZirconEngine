@@ -1,6 +1,6 @@
 use fdsm::{
     bezier::scanline::FillRule,
-    correct_error::{correct_error_msdf, correct_error_mtsdf, ErrorCorrectionConfig},
+    correct_error::{ErrorCorrectionConfig, correct_error_msdf, correct_error_mtsdf},
     generate::{generate_msdf, generate_mtsdf, generate_sdf},
     render::{correct_sign_msdf, correct_sign_mtsdf, correct_sign_sdf},
     shape::Shape,
@@ -14,6 +14,7 @@ use crate::core::math::UVec2;
 use crate::text::VariationCoords;
 
 use super::geometry_preprocess::validate_outline_shape;
+use super::glyph_data::sdf_glyph_byte_len;
 use super::{SdfBakeParams, SdfGlyphData, SdfGlyphGenerationError, SdfMode};
 
 const EDGE_COLORING_SIN_ALPHA: f64 = 0.052_335_956_242_943_835;
@@ -118,6 +119,7 @@ fn glyph_bake_layout(
     if size.x == 0 || size.y == 0 {
         return Err(SdfGlyphGenerationError::EmptyGlyphBounds(glyph_id.0));
     }
+    sdf_glyph_byte_len(size, params.mode.channel_count())?;
     let translation = Vector2::new(
         spread - bounds.x_min as f64 * scale,
         spread - bounds.y_min as f64 * scale,

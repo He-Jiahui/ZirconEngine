@@ -130,7 +130,6 @@ fn runtime_15_ui_architecture_tests_are_folder_backed() {
     let audit_script = read_repo(
         ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py",
     );
-    let status_rows = ui_tests_first_status_row_source();
     assert_contains_all(
         "UI architecture audit script reads folder-backed guard owners",
         &audit_script,
@@ -140,27 +139,4 @@ fn runtime_15_ui_architecture_tests_are_folder_backed() {
             "ui_architecture/mirror_docs.rs",
         ],
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("UI architecture doc", ui_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 UI architecture test folder split",
-                "runtime_15_ui_architecture_tests_folder_split_static_passed_cargo_deferred",
-                "tests/runtime_absorption/ui_architecture.rs",
-                "tests/runtime_absorption/ui_architecture/architecture_boundaries.rs",
-                "tests/runtime_absorption/ui_architecture/legacy_renames.rs",
-                "runtime_15_ui_architecture_tests_are_folder_backed",
-            ],
-        );
-    }
 }

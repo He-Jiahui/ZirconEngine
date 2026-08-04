@@ -22,17 +22,17 @@ mod resolved_batches;
 mod sdf_cpu_frame;
 mod sdf_fallback;
 
-use self::font_assets::{ensure_font_asset_record, UiFontAssetCache};
-use self::font_id_report::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
-use self::prepare_report::text_prepare_report;
+use self::font_assets::{UiFontAssetCache, ensure_font_asset_record};
+use self::font_id_report::{ScreenSpaceUiTextFontIdReport, accumulate_text_font_id_report};
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
-use self::resolved_batches::{resolve_text_batches, AutoTextRasterRouter};
+use self::prepare_report::text_prepare_report;
+use self::resolved_batches::{AutoTextRasterRouter, resolve_text_batches};
 use self::sdf_cpu_frame::SdfTextCpuFrame;
-use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
+use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 #[cfg(test)]
 use super::sdf_atlas::SdfAtlasCacheReport;
@@ -45,9 +45,9 @@ use super::text_pixel_snap::text_origin_device_px;
 #[cfg(test)]
 use crate::text::native_bitmap_atlas;
 use crate::text::native_bitmap_atlas::{
-    bitmap_atlas_page_size, native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasFrame,
-    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport, NativeBitmapAtlasStorageSubmission,
-    NativeBitmapAtlasTextArea,
+    NativeBitmapAtlasFrame, NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
+    NativeBitmapAtlasStorageSubmission, NativeBitmapAtlasTextArea, bitmap_atlas_page_size,
+    native_bitmap_atlas_handoff_for_report,
 };
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
@@ -157,7 +157,7 @@ impl ScreenSpaceUiTextSystem {
                 native_decoration_metrics,
             )
         };
-        if sdf_fallback_report.fallback_text_batch_count > 0 {
+        if sdf_fallback_report.needs_sdf_cpu_rebuild() {
             self.sdf_cpu_frame.invalidate();
         }
         if sdf_fallback_report.has_whole_batch_fallbacks() {
@@ -378,18 +378,9 @@ impl ScreenSpaceUiTextBackend {
                 }
             }
             NativeBitmapAtlasHandoff::MixedStorageReplacement => {
-                let renderer_submissions = storage_submissions
-                    .iter()
-                    .map(|submission| {
-                        GlyphAtlasBitmapRendererStorageSubmission::new_with_face_validity(
-                            &submission.submission,
-                            submission.source_bytes(),
-                            submission.atlas_layer_count(),
-                            submission.atlas_format,
-                            submission.face_validity(),
-                        )
-                    })
-                    .collect::<Vec<_>>();
+                let renderer_submissions = native_bitmap_atlas_renderer_storage_submissions(
+                    storage_submissions.as_slice(),
+                );
                 let shadow_commit = bitmap_atlas_renderer.prepare_storage_submissions(
                     device,
                     queue,
@@ -399,6 +390,12 @@ impl ScreenSpaceUiTextBackend {
                 self.render_glyphon = false;
                 self.atlas.trim();
                 shadow_commit
+            }
+            NativeBitmapAtlasHandoff::NoVisibleGlyphs => {
+                bitmap_atlas_renderer.prepare_idle();
+                self.render_glyphon = false;
+                self.atlas.trim();
+                GlyphAtlasBitmapPageShadowCommit::default()
             }
             NativeBitmapAtlasHandoff::TransparentPlaceholder => {
                 let shadow_commit = prepare_native_bitmap_atlas_transparent_placeholder(
@@ -471,24 +468,34 @@ fn prepare_native_bitmap_atlas_transparent_placeholder(
         return GlyphAtlasBitmapPageShadowCommit::default();
     }
 
-    let renderer_submissions = storage_submissions
-        .iter()
-        .map(|submission| {
-            GlyphAtlasBitmapRendererStorageSubmission::new_with_face_validity(
-                &submission.submission,
-                submission.source_bytes(),
-                submission.atlas_layer_count(),
-                submission.atlas_format,
-                submission.face_validity(),
-            )
-        })
-        .collect::<Vec<_>>();
+    let renderer_submissions =
+        native_bitmap_atlas_renderer_storage_submissions(storage_submissions);
     bitmap_atlas_renderer.prepare_storage_submissions(
         device,
         queue,
         renderer_submissions.as_slice(),
         bitmap_atlas_page_size(),
     )
+}
+
+fn native_bitmap_atlas_renderer_storage_submissions<'a>(
+    storage_submissions: &'a [NativeBitmapAtlasStorageSubmission],
+) -> Vec<GlyphAtlasBitmapRendererStorageSubmission<'a>> {
+    storage_submissions
+        .iter()
+        .map(|submission| {
+            let source_bytes = (!submission.submission.upload_commands().is_empty())
+                .then(|| submission.source_bytes())
+                .unwrap_or_default();
+            GlyphAtlasBitmapRendererStorageSubmission::new_with_face_validity(
+                &submission.submission,
+                source_bytes,
+                submission.atlas_layer_count(),
+                submission.atlas_format,
+                submission.face_validity(),
+            )
+        })
+        .collect()
 }
 
 fn resolve_family_name(

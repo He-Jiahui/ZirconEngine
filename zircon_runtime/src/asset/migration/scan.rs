@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime_interface::project::RelPath;
 
+use crate::asset::project::ProjectPaths;
 use crate::asset::safe_project_path::is_link_or_reparse;
 use crate::asset::{AssetImporter, AssetImporterDescriptor};
 
@@ -46,6 +47,7 @@ pub(super) struct MigrationInventory {
     authoring_files: Vec<PathBuf>,
     sidecar_candidates: Vec<PathBuf>,
     transaction_targets: Vec<PathBuf>,
+    rejected_paths: Vec<PathBuf>,
     physical_identities: Vec<MigrationPhysicalIdentity>,
     stats: MigrationInventoryStats,
 }
@@ -75,6 +77,12 @@ impl MigrationInventory {
 
     pub(super) fn transaction_targets(&self) -> &[PathBuf] {
         &self.transaction_targets
+    }
+
+    pub(super) fn is_rejected_path(&self, path: &Path) -> bool {
+        self.rejected_paths
+            .binary_search_by(|candidate| candidate.as_path().cmp(path))
+            .is_ok()
     }
 
     pub(super) fn entry_visits(&self) -> usize {
@@ -117,8 +125,9 @@ impl MigrationInventory {
 
     pub(super) fn physical_path_for(&self, path: &Path) -> Option<&Path> {
         self.physical_identities
-            .iter()
-            .find(|identity| identity.path == path)
+            .binary_search_by(|identity| identity.path.as_path().cmp(path))
+            .ok()
+            .map(|index| &self.physical_identities[index])
             .map(|identity| identity.physical_path.as_path())
     }
 }
@@ -131,6 +140,7 @@ struct MigrationInventoryBuilder {
     authoring_files: Vec<PathBuf>,
     sidecar_candidates: Vec<PathBuf>,
     transaction_targets: Vec<PathBuf>,
+    rejected_paths: Vec<PathBuf>,
     physical_identities: Vec<MigrationPhysicalIdentity>,
     stats: MigrationInventoryStats,
 }
@@ -145,6 +155,7 @@ impl MigrationInventoryBuilder {
             authoring_files: Vec::new(),
             sidecar_candidates: Vec::new(),
             transaction_targets: Vec::new(),
+            rejected_paths: Vec::new(),
             physical_identities: Vec::new(),
             stats: MigrationInventoryStats::default(),
         }
@@ -153,6 +164,7 @@ impl MigrationInventoryBuilder {
     fn walk(&mut self, path: &Path) -> Result<(), std::io::Error> {
         let metadata = fs::symlink_metadata(path)?;
         if is_link_or_reparse(&metadata) {
+            self.rejected_paths.push(path.to_path_buf());
             return Ok(());
         }
         if metadata.is_file() {
@@ -162,7 +174,7 @@ impl MigrationInventoryBuilder {
         if !metadata.is_dir() {
             return Ok(());
         }
-        let physical_directory = fs::canonicalize(path)?;
+        let physical_directory = ProjectPaths::resolve_existing_path(path)?;
         if !self.visited_directories.insert(physical_directory) {
             return Ok(());
         }
@@ -181,7 +193,7 @@ impl MigrationInventoryBuilder {
 
     fn record_file(&mut self, path: &Path) -> Result<(), std::io::Error> {
         self.stats.file_visits += 1;
-        let physical_path = fs::canonicalize(path)?;
+        let physical_path = ProjectPaths::resolve_existing_path(path)?;
         let root_relative_identities = self.root_relative_identities(&physical_path);
         self.physical_identities.push(MigrationPhysicalIdentity {
             path: path.to_path_buf(),
@@ -261,6 +273,7 @@ impl MigrationInventoryBuilder {
         sort_dedup(&mut self.authoring_files);
         sort_dedup(&mut self.sidecar_candidates);
         sort_dedup(&mut self.transaction_targets);
+        sort_dedup(&mut self.rejected_paths);
         self.physical_identities
             .sort_by(|left, right| left.path.cmp(&right.path));
         self.physical_identities
@@ -270,6 +283,7 @@ impl MigrationInventoryBuilder {
             authoring_files: self.authoring_files,
             sidecar_candidates: self.sidecar_candidates,
             transaction_targets: self.transaction_targets,
+            rejected_paths: self.rejected_paths,
             physical_identities: self.physical_identities,
             stats: self.stats,
         }
@@ -296,7 +310,7 @@ fn prepare_roots(roots: &[(RelPath, PathBuf)]) -> Result<Vec<MigrationRoot>, std
                 ),
             ));
         }
-        let physical_path = fs::canonicalize(&walk_path)?;
+        let physical_path = ProjectPaths::resolve_existing_path(&walk_path)?;
         prepared.push(MigrationRoot {
             logical_root,
             walk_path,

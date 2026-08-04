@@ -29,27 +29,6 @@ fn runtime_15_provider_boilerplate_guard_child_owner_split() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
-    );
-    let status_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/dead_code_guard_maps.rs",
-        ),
-    ]
-    .join("\n");
-    let date_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/dead_code_guard_maps.rs",
-        ),
-    ]
-    .join("\n");
 
     assert_contains_all(
         "structure convention provider child module mount",
@@ -160,28 +139,6 @@ fn runtime_15_provider_boilerplate_guard_child_owner_split() {
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
         );
     }
-
-    assert_contains_all(
-        "Runtime 15 status rows record provider guard child-owner split",
-        &status_rows,
-        &[
-            "Runtime 15 M3 provider boilerplate guard child-owner split",
-            "runtime_15_provider_boilerplate_guard_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/provider_boilerplate.rs",
-            "structure_convention/provider_boilerplate/module_layout.rs",
-            "structure_convention/provider_boilerplate/full_audit.rs",
-            "runtime_15_provider_boilerplate_guard_child_owner_split",
-        ],
-    );
-    assert_contains_all(
-        "Runtime 15 status/date maps record provider guard child-owner split",
-        &format!("{status_map}\n{date_map}"),
-        &[
-            "Runtime 15 M3 provider boilerplate guard child-owner split",
-            "runtime_15_provider_boilerplate_guard_child_owner_split_static_passed_cargo_deferred",
-            "Some(\"2026-06-24\")",
-        ],
-    );
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

@@ -120,7 +120,7 @@ impl EditorRuntimeGateway for NavigationMirrorRuntimeGateway {
     fn poll_operation(
         &self,
         _handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
-    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationStatusV2, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.poll",
         })
@@ -190,9 +190,9 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
     ] {
         assert!(registration
             .extensions
-            .component_drawers()
+            .inspector_customizations()
             .iter()
-            .any(|drawer| drawer.component_type() == component_type));
+            .any(|customization| customization.target_type() == component_type));
     }
     for operation in [
         "view.navigation.surfaces.open",

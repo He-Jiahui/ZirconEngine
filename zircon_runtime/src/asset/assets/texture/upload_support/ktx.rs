@@ -3,7 +3,7 @@ use crate::core::framework::render::RenderImageDimension;
 use super::super::TextureAsset;
 use super::bytes::{read_u32_le, read_u64_le};
 use super::layout::{ktx_gl_compressed_layout, ktx2_vk_compressed_layout};
-use super::{TextureUploadPlan, texture_descriptor_mip_count};
+use super::{TextureUploadPlan, TextureUploadSubresource, texture_descriptor_mip_count};
 
 pub(super) const KTX2_IDENTIFIER: &[u8] = b"\xABKTX 20\xBB\r\n\x1A\n";
 pub(super) const KTX2_LEVEL_INDEX_OFFSET: usize = 80;
@@ -13,7 +13,7 @@ const KTX_CUBEMAP_FACE_COUNT: u32 = 6;
 const KTX_COMPRESSED_GL_TYPE_SIZE: u32 = 1;
 const KTX_WORD_ALIGNMENT: usize = 4;
 const KTX2_DFD_MIN_BYTE_LENGTH: usize = 16;
-const KTX2_LEVEL_INDEX_ENTRY_SIZE: usize = 24;
+pub(super) const KTX2_LEVEL_INDEX_ENTRY_SIZE: usize = 24;
 pub(super) fn ktx_upload_plan(
     texture: &TextureAsset,
     format: &str,
@@ -62,6 +62,7 @@ pub(super) fn ktx_upload_plan(
         block_height: layout.block_height,
         block_depth: layout.block_depth,
         bytes_per_block: layout.bytes_per_block,
+        subresources: Vec::new(),
     })
 }
 
@@ -101,39 +102,114 @@ pub(super) fn ktx2_upload_plan(
         return None;
     }
     let layout = ktx2_vk_compressed_layout(vk_format)?;
-    let level_data_offset = usize::try_from(read_u64_le(bytes, KTX2_LEVEL_INDEX_OFFSET)?).ok()?;
-    let level_data_len = usize::try_from(read_u64_le(bytes, KTX2_LEVEL_INDEX_OFFSET + 8)?).ok()?;
-    let level_uncompressed_len =
-        usize::try_from(read_u64_le(bytes, KTX2_LEVEL_INDEX_OFFSET + 16)?).ok()?;
-    if level_data_len == 0 {
-        return None;
-    }
     let level_count = usize::try_from(level_count_raw.max(1)).ok()?;
     let level_index_end = KTX2_LEVEL_INDEX_OFFSET
         .checked_add(level_count.checked_mul(KTX2_LEVEL_INDEX_ENTRY_SIZE)?)?;
-    if bytes.len() < level_index_end || level_data_offset < level_index_end {
+    if bytes.len() < level_index_end {
         return None;
     }
-    if !ktx2_dfd_header_is_upload_ready(bytes, level_index_end, level_data_offset, level_data_len)?
-    {
-        return None;
-    }
-    let declared_level_is_short = bytes.len().saturating_sub(level_data_offset) < level_data_len;
-    if supercompression == 0 && level_uncompressed_len != level_data_len && !declared_level_is_short
-    {
-        return None;
-    }
+    let subresources = ktx2_upload_subresources(
+        texture,
+        bytes,
+        level_count_raw.max(1),
+        level_index_end,
+        layout.block_width,
+        layout.block_height,
+        layout.block_depth,
+        layout.bytes_per_block,
+        supercompression,
+    )?;
+    let base_level = subresources.first()?;
 
     Some(TextureUploadPlan {
         format: normalized,
         compression: layout.compression,
-        data_offset: level_data_offset,
-        data_length: Some(level_data_len),
+        data_offset: base_level.data_offset,
+        data_length: None,
         block_width: layout.block_width,
         block_height: layout.block_height,
         block_depth: layout.block_depth,
         bytes_per_block: layout.bytes_per_block,
+        subresources,
     })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn ktx2_upload_subresources(
+    texture: &TextureAsset,
+    bytes: &[u8],
+    mip_count: u32,
+    level_index_end: usize,
+    block_width: u32,
+    block_height: u32,
+    block_depth: u32,
+    bytes_per_block: u32,
+    supercompression: u32,
+) -> Option<Vec<TextureUploadSubresource>> {
+    let descriptor = texture.render_image_descriptor();
+    if descriptor.dimension == RenderImageDimension::D3 || block_depth != 1 {
+        return None;
+    }
+    let layer_count = descriptor.array_layer_count.max(1);
+    let capacity = usize::try_from(mip_count.checked_mul(layer_count)?).ok()?;
+    let mut subresources = Vec::with_capacity(capacity);
+    let mut level_ranges = Vec::with_capacity(usize::try_from(mip_count).ok()?);
+    for mip_level in 0..mip_count {
+        let entry_offset = KTX2_LEVEL_INDEX_OFFSET.checked_add(
+            usize::try_from(mip_level)
+                .ok()?
+                .checked_mul(KTX2_LEVEL_INDEX_ENTRY_SIZE)?,
+        )?;
+        let level_data_offset = usize::try_from(read_u64_le(bytes, entry_offset)?).ok()?;
+        let level_data_length = usize::try_from(read_u64_le(bytes, entry_offset + 8)?).ok()?;
+        let level_uncompressed_length =
+            usize::try_from(read_u64_le(bytes, entry_offset + 16)?).ok()?;
+        let width = mip_extent(texture.width.max(1), mip_level);
+        let height = mip_extent(texture.height.max(1), mip_level);
+        let block_columns = div_ceil(width, block_width.max(1));
+        let block_rows = div_ceil(height, block_height.max(1));
+        let bytes_per_row = block_columns.checked_mul(bytes_per_block)?;
+        let image_data_length =
+            usize::try_from(u64::from(bytes_per_row).checked_mul(u64::from(block_rows))?).ok()?;
+        let expected_level_length =
+            image_data_length.checked_mul(usize::try_from(layer_count).ok()?)?;
+        let level_data_end = level_data_offset.checked_add(level_data_length)?;
+        if level_data_offset < level_index_end
+            || level_data_length != expected_level_length
+            || level_data_end > bytes.len()
+            || (supercompression == 0 && level_uncompressed_length != level_data_length)
+            || !ktx2_dfd_header_is_upload_ready(
+                bytes,
+                level_index_end,
+                level_data_offset,
+                level_data_length,
+            )?
+        {
+            return None;
+        }
+        if level_ranges.iter().any(|&(other_start, other_end)| {
+            ranges_overlap(other_start, other_end, level_data_offset, level_data_end)
+        }) {
+            return None;
+        }
+        level_ranges.push((level_data_offset, level_data_end));
+        for array_layer in 0..layer_count {
+            let data_offset = level_data_offset.checked_add(
+                usize::try_from(array_layer)
+                    .ok()?
+                    .checked_mul(image_data_length)?,
+            )?;
+            subresources.push(TextureUploadSubresource {
+                mip_level,
+                array_layer,
+                data_offset,
+                data_length: image_data_length,
+                bytes_per_row,
+                block_rows,
+            });
+        }
+    }
+    Some(subresources)
 }
 
 fn ktx1_header_is_upload_ready(bytes: &[u8]) -> Option<bool> {
@@ -244,4 +320,17 @@ fn ktx_face_count(bytes: &[u8], offset: usize) -> Option<u32> {
         KTX_CUBEMAP_FACE_COUNT => Some(KTX_CUBEMAP_FACE_COUNT),
         _ => None,
     }
+}
+
+fn div_ceil(value: u32, divisor: u32) -> u32 {
+    value.saturating_add(divisor.saturating_sub(1)) / divisor.max(1)
+}
+
+const fn mip_extent(value: u32, level: u32) -> u32 {
+    let shifted = if level >= u32::BITS {
+        0
+    } else {
+        value >> level
+    };
+    if shifted == 0 { 1 } else { shifted }
 }

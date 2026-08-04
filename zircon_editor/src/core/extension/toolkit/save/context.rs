@@ -8,7 +8,7 @@ pub struct SaveCtx {
 }
 
 impl SaveCtx {
-    pub(super) const fn new(reason: SaveReason) -> Self {
+    pub(crate) const fn new(reason: SaveReason) -> Self {
         Self {
             reason,
             written_bytes: 0,
@@ -27,7 +27,7 @@ impl SaveCtx {
         Ok(())
     }
 
-    pub(super) const fn written_bytes(&self) -> u64 {
+    pub(crate) const fn written_bytes(&self) -> u64 {
         self.written_bytes
     }
 }

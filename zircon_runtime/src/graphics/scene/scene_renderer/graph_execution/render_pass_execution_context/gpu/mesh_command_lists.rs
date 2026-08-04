@@ -16,6 +16,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists
     pub transmission_commands: &'a [MeshDrawCommand],
     pub transmission_step_count: usize,
     pub transparent_commands: &'a [MeshDrawCommand],
+    pub half_resolution_transparent_commands: &'a [MeshDrawCommand],
     pub velocity_commands: &'a [MeshDrawCommand],
     pub taa_reactive_mask_commands: &'a [MeshDrawCommand],
     pub depth_prepass_indirect: Option<&'a MeshIndirectDrawExecution>,
@@ -24,6 +25,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassMeshCommandLists
     pub alpha_mask_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub advanced_pbr_opaque_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub transparent_indirect: Option<&'a MeshIndirectDrawExecution>,
+    pub half_resolution_transparent_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub velocity_indirect: Option<&'a MeshIndirectDrawExecution>,
     pub taa_reactive_mask_indirect: Option<&'a MeshIndirectDrawExecution>,
 }
@@ -84,6 +86,15 @@ impl<'a> RenderPassMeshCommandLists<'a> {
         &self,
     ) -> MeshDrawCommandStream<'a> {
         MeshDrawCommandStream::new(self.transparent_commands, self.transparent_indirect)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn half_resolution_transparent_stream(
+        &self,
+    ) -> MeshDrawCommandStream<'a> {
+        MeshDrawCommandStream::new(
+            self.half_resolution_transparent_commands,
+            self.half_resolution_transparent_indirect,
+        )
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn advanced_pbr_opaque_stream(

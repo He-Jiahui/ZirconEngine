@@ -73,7 +73,32 @@ fn workbench_button_command_palette_projects_from_host_palette() {
     assert_eq!(command_palette.muted_text, host_palette.accent);
     assert_eq!(command_palette.primary_rest_surface, host_palette.accent);
     assert_eq!(command_palette.primary_hot_surface, host_palette.focus_ring);
+    assert_eq!(
+        command_palette.primary_pressed_surface,
+        host_palette.surface_selected
+    );
     assert_eq!(command_palette.primary_text, host_palette.shell_background);
+    assert_eq!(command_palette.primary_pressed_text, host_palette.text);
+}
+
+#[test]
+fn primary_command_palette_keeps_pressed_text_legible_on_a_dark_selected_surface() {
+    let mut host_palette = current_host_palette();
+    host_palette.surface_selected = [22, 50, 56, 255];
+    host_palette.shell_background = [10, 12, 14, 255];
+    host_palette.text = [224, 232, 235, 255];
+
+    let command_palette = workbench_button_command_palette_from_host(host_palette);
+
+    assert_eq!(
+        command_palette.primary_pressed_surface,
+        host_palette.surface_selected
+    );
+    assert_eq!(command_palette.primary_pressed_text, host_palette.text);
+    assert_ne!(
+        command_palette.primary_pressed_text,
+        host_palette.shell_background
+    );
 }
 
 #[test]
@@ -215,6 +240,15 @@ fn secondary_button_dynamic_states_ignore_normal_declared_chrome() {
     let focused_style =
         select_workbench_button_style(&focused, WorkbenchButtonKind::Secondary, false);
 
+    let focused_hovered = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        focused: true,
+        hovered: true,
+        ..TemplatePaneNodeData::default()
+    };
+    let focused_hovered_style =
+        select_workbench_button_style(&focused_hovered, WorkbenchButtonKind::Secondary, false);
+
     let mut selected = TemplatePaneNodeData {
         control_id: "WorkbenchSecondaryButton".into(),
         selected: true,
@@ -248,12 +282,31 @@ fn secondary_button_dynamic_states_ignore_normal_declared_chrome() {
         button_palette.surface_secondary_pressed
     );
     assert_eq!(pressed_style.border, button_palette.border);
-    assert_eq!(focused_style.surface, button_palette.surface_hover);
+    assert_eq!(focused_style.surface, button_palette.surface_base);
     assert_eq!(focused_style.border, button_palette.focus_border);
+    assert_eq!(focused_hovered_style.surface, button_palette.surface_hover);
+    assert_eq!(focused_hovered_style.border, button_palette.focus_border);
     assert_eq!(selected_style.surface, button_palette.surface_hover);
     assert_eq!(selected_style.border, button_palette.focus_border);
     assert_eq!(checked_style.surface, button_palette.surface_hover);
     assert_eq!(checked_style.border, button_palette.focus_border);
+}
+
+#[test]
+fn tertiary_button_hover_promotes_muted_foreground() {
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchTertiaryButton".into(),
+        hovered: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Tertiary, false);
+    let button_palette = expected_button_palette();
+
+    assert_eq!(style.surface, button_palette.surface_hover);
+    assert_eq!(style.border, button_palette.transparent_surface);
+    assert_eq!(style.text, button_palette.text);
+    assert_eq!(style.glyph, button_palette.text);
 }
 
 #[test]
@@ -269,7 +322,7 @@ fn muted_prominent_command_focus_does_not_promote_hover_surface() {
     let command_palette = expected_command_palette();
 
     assert_eq!(style.surface, command_palette.muted_rest_surface);
-    assert_eq!(style.border, command_palette.muted_border);
+    assert_eq!(style.border, expected_button_palette().focus_border);
     assert_eq!(style.border_width, 1.0);
     assert_eq!(style.text, command_palette.muted_text);
     assert_eq!(style.glyph, command_palette.muted_text);
@@ -288,10 +341,72 @@ fn primary_import_command_focus_does_not_promote_hover_surface() {
     let command_palette = expected_command_palette();
 
     assert_eq!(style.surface, command_palette.primary_rest_surface);
-    assert_eq!(style.border, command_palette.primary_rest_surface);
+    assert_eq!(style.border, expected_button_palette().focus_border);
     assert_eq!(style.border_width, 1.0);
     assert_eq!(style.text, command_palette.primary_text);
     assert_eq!(style.glyph, command_palette.primary_text);
+}
+
+#[test]
+fn primary_import_command_selection_keeps_focus_ring_and_active_surface() {
+    let node = TemplatePaneNodeData {
+        control_id: "ImportModel".into(),
+        action_id: "workbench.asset.import_model".into(),
+        selected: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Primary, false);
+    let command_palette = expected_command_palette();
+
+    assert_eq!(style.surface, command_palette.primary_hot_surface);
+    assert_eq!(style.border, expected_button_palette().focus_border);
+    assert_eq!(style.border_width, 1.0);
+    assert_eq!(style.text, command_palette.primary_text);
+    assert_eq!(style.glyph, command_palette.primary_text);
+}
+
+#[test]
+fn muted_prominent_command_check_keeps_focus_ring_and_active_surface() {
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchModuleCompile".into(),
+        action_id: "workbench.module.compile".into(),
+        checked: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Secondary, false);
+    let command_palette = expected_command_palette();
+
+    assert_eq!(style.surface, command_palette.muted_hot_surface);
+    assert_eq!(style.border, expected_button_palette().focus_border);
+    assert_eq!(style.border_width, 1.0);
+    assert_eq!(style.text, command_palette.muted_text);
+    assert_eq!(style.glyph, command_palette.muted_text);
+}
+
+#[test]
+fn primary_import_command_press_takes_precedence_over_active_and_hover_feedback() {
+    let node = TemplatePaneNodeData {
+        control_id: "ImportModel".into(),
+        action_id: "workbench.asset.import_model".into(),
+        pressed: true,
+        hovered: true,
+        focused: true,
+        selected: true,
+        checked: true,
+        popup_open: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Primary, false);
+    let command_palette = expected_command_palette();
+
+    assert_eq!(style.surface, command_palette.primary_pressed_surface);
+    assert_eq!(style.border, command_palette.primary_pressed_surface);
+    assert_eq!(style.border_width, 1.0);
+    assert_eq!(style.text, command_palette.primary_pressed_text);
+    assert_eq!(style.glyph, command_palette.primary_pressed_text);
 }
 
 #[test]

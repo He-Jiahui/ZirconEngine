@@ -5,8 +5,9 @@ use zircon_editor::core::editor_authoring_extension::{
     TimelineTrackDescriptor,
 };
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_extension::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor, EditorExtensionRegistry,
+    AssetImporterDescriptor, DrawerDescriptor, EditorExtensionRegistry,
     EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
     ViewDescriptor,
 };
@@ -69,7 +70,7 @@ pub struct EditorAuthoringContributionBatch {
     pub menu_items: Vec<EditorMenuItemDescriptor>,
     pub asset_importers: Vec<AssetImporterDescriptor>,
     pub asset_type_contributions: Vec<AssetTypeContribution>,
-    pub component_drawers: Vec<ComponentDrawerDescriptor>,
+    pub inspector_customizations: Vec<InspectorCustomizationDescriptor>,
     pub scene_modes: Vec<SceneModeRegistration>,
     pub graph_editors: Vec<GraphEditorDescriptor>,
     pub graph_node_palettes: Vec<GraphNodePaletteDescriptor>,
@@ -93,8 +94,8 @@ pub fn register_authoring_contribution_batch(
     for contribution in batch.asset_type_contributions {
         registry.register_asset_type_contribution(contribution)?;
     }
-    for drawer in batch.component_drawers {
-        registry.register_component_drawer(drawer)?;
+    for customization in batch.inspector_customizations {
+        registry.register_inspector_customization(customization)?;
     }
     for scene_mode in batch.scene_modes {
         registry.register_scene_mode(scene_mode)?;
@@ -239,7 +240,7 @@ mod tests {
                     "Support Asset",
                     create,
                 ))],
-                component_drawers: vec![ComponentDrawerDescriptor::new(
+                inspector_customizations: vec![InspectorCustomizationDescriptor::new(
                     "support.Component",
                     "plugins://support/editor/component.zui",
                     "support.editor.component",
@@ -309,7 +310,7 @@ mod tests {
             &support_type
         );
         assert_eq!(
-            registry.component_drawers()[0].component_type(),
+            registry.inspector_customizations()[0].target_type(),
             "support.Component"
         );
         assert_eq!(

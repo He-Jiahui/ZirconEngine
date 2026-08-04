@@ -1,6 +1,6 @@
 use super::super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::super::paint_text::draw_text_with_size_and_style;
-use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::super::paint_text::draw_text_with_size_and_style_and_layout_policy;
+use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::command::HostPaintCommand;
 use super::color::color_with_opacity;
 
@@ -17,7 +17,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_te
             .unwrap_or_else(|| fallback_text_from_host(current_host_palette())),
         command.opacity,
     );
-    draw_text_with_size_and_style(
+    draw_text_with_size_and_style_and_layout_policy(
         frame,
         command.frame.clone(),
         text,
@@ -26,6 +26,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_te
         command.font_size,
         command.line_height,
         command.text_style,
+        command.text_layout_policy,
     );
     true
 }

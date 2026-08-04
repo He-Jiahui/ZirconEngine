@@ -14,12 +14,12 @@ pub use effect::{
 };
 pub use event::{
     UiAccessibilityInputEvent, UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind,
-    UiImeDeleteSurrounding, UiImeInputEvent, UiImeInputEventKind, UiInputEvent,
-    UiKeyboardInputEvent, UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent,
-    UiPointerInputEvent, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
-    UiScrollDeltaUnit, UiSubmenuHoverTimerInputEvent, UiTextByteRange, UiTextInputEvent,
-    UiToastTimerInputEvent, UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
-    UiTypeaheadTimerInputEvent,
+    UiImeDeleteSurrounding, UiImeInputEvent, UiImeInputEventKind, UiImePreeditClause,
+    UiImePreeditClauseError, UiImePreeditClauseKind, UiInputEvent, UiKeyboardInputEvent,
+    UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent, UiPointerInputEvent,
+    UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta, UiScrollDeltaUnit,
+    UiSubmenuHoverTimerInputEvent, UiTextByteRange, UiTextInputEvent, UiToastTimerInputEvent,
+    UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiTypeaheadTimerInputEvent,
 };
 pub use metadata::{
     UiDeviceId, UiDragSessionId, UiInputEventMetadata, UiInputModifiers, UiInputSequence,

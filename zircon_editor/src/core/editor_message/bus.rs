@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use super::inbox::{EditorMessageInbox, EditorMessageInboxEnqueue};
-use super::retention::{editor_message_retention, EditorMessageRetention};
+use super::retention::{EditorMessageRetention, editor_message_retention};
 use super::{
     EditorMessage, EditorMessageDelivery, EditorMessageInboxLimits, EditorMessageInboxStats,
     EditorMessageProtocol, EditorMessageRequest, EditorMessageResponse, EditorSubscriberId,

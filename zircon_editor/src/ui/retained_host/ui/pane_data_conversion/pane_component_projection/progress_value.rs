@@ -7,6 +7,13 @@ pub(super) fn projected_value_percent(
     min: Option<f64>,
     max: Option<f64>,
 ) -> f32 {
+    if is_slider_component_role(component_role) {
+        if let (Some(min), Some(max)) = (min, max) {
+            if max > min {
+                return ((value_number - min) / (max - min)).clamp(0.0, 1.0) as f32;
+            }
+        }
+    }
     if let Some(value_percent) = value_percent {
         return normalize_percent_literal(value_percent);
     }
@@ -29,9 +36,28 @@ fn normalize_percent_literal(value: f64) -> f32 {
     }
 }
 
+fn is_slider_component_role(component_role: &str) -> bool {
+    matches!(component_role, "range-field" | "slider" | "range-slider")
+}
+
 fn is_progress_component_role(component_role: &str) -> bool {
     matches!(
         component_role,
         "progress" | "progress-bar" | "linear-progress" | "circular-progress" | "spinner"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::projected_value_percent;
+
+    #[test]
+    fn interactive_slider_values_override_static_preview_percents() {
+        for component_role in ["range-field", "range-slider"] {
+            assert_eq!(
+                projected_value_percent(component_role, 30.0, Some(0.8), Some(0.0), Some(100.0)),
+                0.3,
+            );
+        }
+    }
 }

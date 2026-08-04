@@ -283,11 +283,13 @@ impl RenderSubmissionScheduler {
             return Ok(());
         }
         self.queue = Some(
-            PipelinedSubmissionQueue::new(move |submission, started| {
-                let _operation_guard = core.lock_operation();
-                let _ = started.send(());
-                submission.execute(core.as_ref())
-            })
+            PipelinedSubmissionQueue::<FrameSubmission, Result<(), RenderFrameworkError>>::new(
+                move |submission, started| {
+                    let _operation_guard = core.lock_operation();
+                    let _ = started.send(());
+                    submission.execute(core.as_ref())
+                },
+            )
             .map_err(queue_error)?,
         );
         Ok(())

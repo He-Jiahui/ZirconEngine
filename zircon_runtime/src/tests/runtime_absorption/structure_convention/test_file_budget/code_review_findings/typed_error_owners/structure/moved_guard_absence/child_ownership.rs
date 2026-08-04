@@ -62,8 +62,6 @@ fn runtime_15_typed_error_structure_moved_guard_absence_is_child_owner() {
             "runtime_15_typed_error_moved_guard_absence_parent_backflow_guards_are_child_owned",
             "runtime_15_typed_error_moved_guard_absence_path_anchors_are_child_owned",
             "runtime_15_typed_error_moved_guard_absence_children_line_budgets_are_current",
-            "runtime_15_typed_error_moved_guard_absence_guard_folder_backed_status_is_current",
-            TYPED_ERROR_MOVED_GUARD_ABSENCE_CHILD_OWNER_ROUTE_STATUS_GUARD,
         ],
     );
     for (module_name, child_path, anchor) in TYPED_ERROR_MOVED_GUARD_ABSENCE_CHILDREN {

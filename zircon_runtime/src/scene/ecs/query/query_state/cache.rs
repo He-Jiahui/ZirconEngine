@@ -1,8 +1,8 @@
-use crate::scene::EntityId;
-use crate::scene::World;
 use crate::scene::ecs::{
     ComponentStorageLocation, QueryDataAccess, QueryFilter, StableEntityLocation,
 };
+use crate::scene::EntityId;
+use crate::scene::World;
 
 use super::super::cached_query_iter::{
     cached_query_component_locations, cached_query_entity_index,

@@ -134,7 +134,9 @@ fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
         );
     }
 
-    let plan_08 = read_repo("docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_template_doc = read_repo("docs/zircon_runtime/graphics/shader/template.md");

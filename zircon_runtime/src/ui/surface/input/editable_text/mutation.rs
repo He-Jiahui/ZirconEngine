@@ -3,11 +3,14 @@ use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{UiComponentEventReport, UiDispatchReply, UiInputDispatchResult, UiInputEvent},
     event_ui::{UiNodeId, UiReflectedPropertySource},
-    surface::{UiEditableTextState, UiTextEditAction},
+    surface::{UiEditableTextState, UiTextCaretAffinity, UiTextEditAction},
 };
 
-use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
-use crate::ui::text::apply_text_edit_action;
+use crate::ui::{
+    editable_text_composition::composition_clauses_value,
+    surface::{UiPropertyMutationRequest, UiPropertyMutationStatus},
+    text::apply_text_edit_action,
+};
 
 use super::super::super::surface::UiSurface;
 use super::super::{
@@ -56,6 +59,13 @@ pub(in crate::ui::surface::input) fn apply_editable_text_state(
         UiValue::Int(state.caret.offset as i64),
         &mut result,
     );
+    mutate_text_property(
+        surface,
+        target,
+        "caret_affinity",
+        caret_affinity_property_value(state.caret.affinity),
+        &mut result,
+    );
     let (selection_anchor, selection_focus) = state
         .selection
         .as_ref()
@@ -76,23 +86,26 @@ pub(in crate::ui::surface::input) fn apply_editable_text_state(
         &mut result,
     );
 
-    let (composition_start, composition_end, composition_text, restore_text) = state
-        .composition
-        .as_ref()
-        .map(|composition| {
-            (
-                composition.range.start,
-                composition.range.end,
-                composition.text.clone(),
-                composition.restore_text.clone().unwrap_or_default(),
-            )
-        })
-        .unwrap_or((
-            state.caret.offset,
-            state.caret.offset,
-            String::new(),
-            String::new(),
-        ));
+    let (composition_start, composition_end, composition_text, restore_text, preedit_clauses) =
+        state
+            .composition
+            .as_ref()
+            .map(|composition| {
+                (
+                    composition.range.start,
+                    composition.range.end,
+                    composition.text.clone(),
+                    composition.restore_text.clone().unwrap_or_default(),
+                    composition_clauses_value(&composition.preedit_clauses),
+                )
+            })
+            .unwrap_or((
+                state.caret.offset,
+                state.caret.offset,
+                String::new(),
+                String::new(),
+                UiValue::Array(Vec::new()),
+            ));
     mutate_text_property(
         surface,
         target,
@@ -119,6 +132,13 @@ pub(in crate::ui::surface::input) fn apply_editable_text_state(
         target,
         "composition_restore_text",
         UiValue::String(restore_text),
+        &mut result,
+    );
+    mutate_text_property(
+        surface,
+        target,
+        "composition_clauses",
+        preedit_clauses,
         &mut result,
     );
     push_text_component_event_report(
@@ -165,6 +185,12 @@ pub(in crate::ui::surface) fn commit_editable_text_composition_for_focus_loss(
     mutate_focus_loss_text_property(
         surface,
         target,
+        "caret_affinity",
+        caret_affinity_property_value(committed.caret.affinity),
+    );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
         "selection_anchor",
         UiValue::Int(committed.caret.offset as i64),
     );
@@ -198,6 +224,12 @@ pub(in crate::ui::surface) fn commit_editable_text_composition_for_focus_loss(
         "composition_restore_text",
         UiValue::String(String::new()),
     );
+    mutate_focus_loss_text_property(
+        surface,
+        target,
+        "composition_clauses",
+        UiValue::Array(Vec::new()),
+    );
     focus_loss_commit_event(surface, target, value_property, committed)
 }
 
@@ -211,6 +243,16 @@ fn mutate_focus_loss_text_property(
         UiPropertyMutationRequest::widget_behavior(target, property, value)
             .with_source(UiReflectedPropertySource::RuntimeState),
     );
+}
+
+fn caret_affinity_property_value(affinity: UiTextCaretAffinity) -> UiValue {
+    UiValue::String(
+        match affinity {
+            UiTextCaretAffinity::Downstream => "downstream",
+            UiTextCaretAffinity::Upstream => "upstream",
+        }
+        .to_string(),
+    )
 }
 
 fn focus_loss_commit_event(

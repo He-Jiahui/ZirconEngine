@@ -3,10 +3,11 @@ use std::collections::BTreeMap;
 use toml::Value;
 
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiNodeDefinition, UiNodeDefinitionKind, UiTemplateNode,
+    parse_component_reference, UiAssetDocument, UiAssetError, UiNodeDefinition,
+    UiNodeDefinitionKind, UiTemplateNode,
 };
 
-use super::component_instance_expander::{apply_child_mount, component_name_from_reference};
+use super::component_instance_expander::apply_child_mount;
 use super::component_props::build_component_attribute_map;
 use super::ui_document_compiler::{CompilationArtifacts, UiDocumentCompiler};
 use super::value_normalizer::compose_tokens;
@@ -59,7 +60,8 @@ impl UiDocumentCompiler {
                         reference: reference.to_string(),
                     }
                 })?;
-                let component_name = component_name_from_reference(reference)?;
+                let component_name =
+                    parse_component_reference(reference).map(|(_, component)| component.to_string())?;
                 self.expand_component_instance(
                     imported,
                     &component_name,

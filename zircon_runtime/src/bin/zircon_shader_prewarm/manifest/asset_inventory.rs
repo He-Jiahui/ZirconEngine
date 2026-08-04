@@ -134,7 +134,7 @@ impl ShaderPrewarmAssetInventory {
         )?;
         paths.sort();
         directories.sort();
-        let meta_paths = paths
+        let meta_paths: Vec<PathBuf> = paths
             .iter()
             .filter(|path| is_zmeta(path))
             .cloned()
@@ -246,42 +246,6 @@ impl ShaderPrewarmAssetInventory {
             return None;
         }
         Some(snapshot)
-    }
-
-    fn into_inventory(self, root: &Path) -> Self {
-        let paths = self
-            .files
-            .iter()
-            .map(|entry| root.join(&entry.relative_path))
-            .collect::<Vec<_>>();
-        let directories = self
-            .directories
-            .iter()
-            .map(|entry| root.join(&entry.relative_path))
-            .collect::<Vec<_>>();
-        let meta_paths = self
-            .metadata_by_relative_path
-            .keys()
-            .map(|path| root.join(path))
-            .collect::<Vec<_>>();
-        let metadata_by_path = self
-            .metadata_by_relative_path
-            .into_iter()
-            .map(|(path, document)| (root.join(path), document))
-            .collect();
-        let text_by_path = self
-            .text_by_relative_path
-            .into_iter()
-            .map(|(path, text)| (root.join(path), text))
-            .collect();
-        Self {
-            paths,
-            directories,
-            meta_paths,
-            metadata_by_path,
-            text_by_path,
-            changed_paths: BTreeSet::new(),
-        }
     }
 
     fn write_snapshot(
@@ -410,6 +374,42 @@ struct ShaderPrewarmAssetInventorySnapshotRef<'a> {
 
 impl ShaderPrewarmAssetInventorySnapshot {
     const SCHEMA_VERSION: u32 = 4;
+
+    fn into_inventory(self, root: &Path) -> ShaderPrewarmAssetInventory {
+        let paths = self
+            .files
+            .iter()
+            .map(|entry| root.join(&entry.relative_path))
+            .collect::<Vec<_>>();
+        let directories = self
+            .directories
+            .iter()
+            .map(|entry| root.join(&entry.relative_path))
+            .collect::<Vec<_>>();
+        let meta_paths = self
+            .metadata_by_relative_path
+            .keys()
+            .map(|path| root.join(path))
+            .collect::<Vec<_>>();
+        let metadata_by_path = self
+            .metadata_by_relative_path
+            .into_iter()
+            .map(|(path, document)| (root.join(path), document))
+            .collect();
+        let text_by_path = self
+            .text_by_relative_path
+            .into_iter()
+            .map(|(path, text)| (root.join(path), text))
+            .collect();
+        ShaderPrewarmAssetInventory {
+            paths,
+            directories,
+            meta_paths,
+            metadata_by_path,
+            text_by_path,
+            changed_paths: BTreeSet::new(),
+        }
+    }
 
     fn has_safe_relative_paths(&self) -> bool {
         if !snapshot_entry_paths_are_safe(&self.files, &self.directories) {

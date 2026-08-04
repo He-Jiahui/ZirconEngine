@@ -20,6 +20,10 @@ const TRANSFORM_POSITION: &str = "WorkbenchTransformPosition";
 const TRANSFORM_POSITION_X: &str = "WorkbenchTransformPositionX";
 const TRANSFORM_POSITION_Y: &str = "WorkbenchTransformPositionY";
 const TRANSFORM_POSITION_Z: &str = "WorkbenchTransformPositionZ";
+const TRANSFORM_SCALE: &str = "WorkbenchTransformScale";
+const TRANSFORM_SCALE_X: &str = "WorkbenchTransformScaleX";
+const TRANSFORM_SCALE_Y: &str = "WorkbenchTransformScaleY";
+const TRANSFORM_SCALE_Z: &str = "WorkbenchTransformScaleZ";
 const INSPECTOR_MESH: &str = "WorkbenchInspectorMesh";
 const MESH_LABEL: &str = "WorkbenchMeshLabel";
 const MESH_ROW: &str = "WorkbenchMeshRow";
@@ -137,6 +141,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             UiValue::String(format_transform_position(inspector)),
         )?;
         self.sync_transform_position_axis_values(inspector)?;
+        self.mutate_control_property(
+            TRANSFORM_SCALE,
+            "value",
+            UiValue::String(format_transform_scale(inspector)),
+        )?;
+        self.sync_transform_scale_axis_values(inspector)?;
 
         let Some(component) = inspector.plugin_components.first() else {
             self.hide_component_property_rows()?;
@@ -300,6 +310,20 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
         Ok(())
     }
+
+    fn sync_transform_scale_axis_values(
+        &mut self,
+        inspector: &InspectorSnapshot,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        for (control_id, value) in [
+            (TRANSFORM_SCALE_X, inspector.scale[0].as_str()),
+            (TRANSFORM_SCALE_Y, inspector.scale[1].as_str()),
+            (TRANSFORM_SCALE_Z, inspector.scale[2].as_str()),
+        ] {
+            self.mutate_control_property(control_id, "value", UiValue::String(value.to_string()))?;
+        }
+        Ok(())
+    }
 }
 
 fn row_has_visible_child(scene_entries: &[WorldInspectionHierarchyRow], index: usize) -> bool {
@@ -316,6 +340,13 @@ fn format_transform_position(inspector: &InspectorSnapshot) -> String {
     format!(
         "X {}   Y {}   Z {}",
         inspector.translation[0], inspector.translation[1], inspector.translation[2]
+    )
+}
+
+fn format_transform_scale(inspector: &InspectorSnapshot) -> String {
+    format!(
+        "X {}   Y {}   Z {}",
+        inspector.scale[0], inspector.scale[1], inspector.scale[2]
     )
 }
 

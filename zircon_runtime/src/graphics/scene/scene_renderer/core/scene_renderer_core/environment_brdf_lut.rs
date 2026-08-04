@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use crate::core::framework::render::{
     build_environment_brdf_lut, EnvironmentBrdfLutTexel, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
     ENVIRONMENT_BRDF_LUT_SIZE,
@@ -41,10 +43,6 @@ impl SceneEnvironmentBrdfLut {
             array_layer_count: Some(1),
         });
 
-        let texels = build_environment_brdf_lut(
-            ENVIRONMENT_BRDF_LUT_SIZE,
-            ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
-        );
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &texture,
@@ -52,7 +50,7 @@ impl SceneEnvironmentBrdfLut {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &rg16float_texels(&texels),
+            cached_environment_brdf_lut_rg16float_bytes(),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(ENVIRONMENT_BRDF_LUT_SIZE * 4),
@@ -90,6 +88,24 @@ impl SceneEnvironmentBrdfLut {
     }
 }
 
+fn cached_environment_brdf_lut_rg16float_bytes() -> &'static [u8] {
+    static ENCODED_BYTES: OnceLock<Vec<u8>> = OnceLock::new();
+    cache_environment_brdf_lut_bytes(&ENCODED_BYTES, || {
+        let texels = build_environment_brdf_lut(
+            ENVIRONMENT_BRDF_LUT_SIZE,
+            ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+        );
+        rg16float_texels(&texels)
+    })
+}
+
+fn cache_environment_brdf_lut_bytes<'a>(
+    cache: &'a OnceLock<Vec<u8>>,
+    build: impl FnOnce() -> Vec<u8>,
+) -> &'a [u8] {
+    cache.get_or_init(build).as_slice()
+}
+
 fn rg16float_texels(texels: &[EnvironmentBrdfLutTexel]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(texels.len() * 4);
     for texel in texels {
@@ -103,6 +119,27 @@ fn rg16float_texels(texels: &[EnvironmentBrdfLutTexel]) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn immutable_lut_byte_cache_builds_once() {
+        let cache = OnceLock::new();
+        let builds = AtomicUsize::new(0);
+
+        let first = cache_environment_brdf_lut_bytes(&cache, || {
+            builds.fetch_add(1, Ordering::Relaxed);
+            vec![1, 2, 3, 4]
+        });
+        let second = cache_environment_brdf_lut_bytes(&cache, || {
+            builds.fetch_add(1, Ordering::Relaxed);
+            vec![5, 6, 7, 8]
+        });
+
+        assert_eq!(first, [1, 2, 3, 4]);
+        assert_eq!(second, [1, 2, 3, 4]);
+        assert!(std::ptr::eq(first.as_ptr(), second.as_ptr()));
+        assert_eq!(builds.load(Ordering::Relaxed), 1);
+    }
 
     #[test]
     fn rg16float_texels_encode_two_channels_per_texel() {

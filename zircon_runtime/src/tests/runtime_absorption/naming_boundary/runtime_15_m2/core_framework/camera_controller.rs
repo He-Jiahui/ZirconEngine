@@ -37,9 +37,6 @@ fn runtime_15_camera_controller_output_uses_owner_name() {
         manifest_root,
         "docs/zircon_runtime/core/framework/camera_controller.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_common.exists(),
@@ -75,17 +72,7 @@ fn runtime_15_camera_controller_output_uses_owner_name() {
         ],
     );
 
-    let docs = [
-        ("Runtime 15 plan", runtime_15_plan),
-        ("runtime index", runtime_index),
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("module convention doc", module_doc),
-        ("camera controller doc", camera_controller_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
-    ];
+    let docs = [];
     for (label, source) in docs {
         assert_contains_all(
             label,

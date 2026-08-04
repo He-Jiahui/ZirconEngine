@@ -19,12 +19,10 @@ fn text_rich_bbcode_indent_reduces_wrap_extent_and_insets_logical_start() {
 
     assert!(indented.lines.len() > plain.lines.len());
     assert!(indented.lines[0].frame.x > frame.x);
-    assert!(
-        indented
-            .lines
-            .iter()
-            .all(|line| line.frame.right() <= frame.right() + 0.01)
-    );
+    assert!(indented
+        .lines
+        .iter()
+        .all(|line| line.frame.right() <= frame.right() + 0.01));
 }
 
 #[test]
@@ -43,12 +41,10 @@ fn text_rich_bbcode_list_wraps_continuation_with_hanging_prefix_indent() {
     assert!(layout.lines.len() >= 2);
     assert!(layout.lines[0].text.starts_with("• "));
     assert!(layout.lines[1].frame.x > layout.lines[0].frame.x);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| line.frame.right() <= frame.right() + 0.01)
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| line.frame.right() <= frame.right() + 0.01));
 }
 
 #[test]
@@ -174,12 +170,10 @@ fn text_rich_bbcode_vertical_nested_indent_offsets_every_column() {
     let layout = layout_text("[indent]甲乙丙丁戊己庚辛[/indent]", &style, frame, None);
 
     assert!(layout.lines.len() >= 2);
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| line.frame.y > frame.y + 0.01)
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| line.frame.y > frame.y + 0.01));
 }
 
 #[test]

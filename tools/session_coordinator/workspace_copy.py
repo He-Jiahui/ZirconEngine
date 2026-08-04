@@ -10,7 +10,7 @@ import tarfile
 import threading
 import uuid
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, ContextManager, Mapping
 
@@ -46,6 +46,7 @@ class WorkspaceCopyRecord:
     error_stage: str | None = None
     error_path: str | None = None
     materialization_phase: str | None = None
+    terminal_evidence: ValidationRunEvidence | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -62,6 +63,11 @@ class WorkspaceCopyRecord:
             "errorStage": self.error_stage,
             "errorPath": self.error_path,
             "materializationPhase": self.materialization_phase,
+            "terminalEvidence": (
+                self.terminal_evidence.to_dict()
+                if self.terminal_evidence is not None
+                else None
+            ),
         }
 
     def acceptance_dict(self) -> dict[str, object]:
@@ -352,7 +358,12 @@ class WorkspaceCopyService:
             raise CoordinatorError(
                 "validation_copy_foreign_session", "Validation copy belongs to another Session"
             )
-        return self._record_from_row(row)
+        return replace(
+            self._record_from_row(row),
+            terminal_evidence=self._terminal.latest_for_job(
+                session_id=session_id, job_id=job_id
+            ),
+        )
 
     def _materialize_async_worker(self, record: WorkspaceCopyRecord) -> None:
         try:

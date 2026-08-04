@@ -488,7 +488,11 @@ impl RenderHybridGiExtract {
 }
 
 const fn non_zero_override(value: u32, profile_default: u32) -> u32 {
-    if value == 0 { profile_default } else { value }
+    if value == 0 {
+        profile_default
+    } else {
+        value
+    }
 }
 
 impl Default for RenderHybridGiExtract {

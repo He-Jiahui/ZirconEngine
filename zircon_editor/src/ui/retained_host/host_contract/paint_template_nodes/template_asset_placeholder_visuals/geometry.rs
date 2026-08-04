@@ -1,6 +1,6 @@
 use super::{
-    FrameRect, TYPED_THUMBNAIL_SURFACE_INSET_RATIO, TemplatePaneNodeData,
-    VISUAL_SURFACE_INSET_RATIO, WorkbenchAssetVisualMetrics, is_typed_thumbnail_visual,
+    is_typed_thumbnail_visual, FrameRect, TemplatePaneNodeData, WorkbenchAssetVisualMetrics,
+    TYPED_THUMBNAIL_SURFACE_INSET_RATIO, VISUAL_SURFACE_INSET_RATIO,
 };
 
 pub(super) fn thumbnail_surface_rect(
@@ -46,15 +46,6 @@ pub(super) fn has_paintable_thumbnail_extent(rect: &FrameRect) -> bool {
         && (rect.y + rect.height).is_finite()
 }
 
-pub(super) fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {
-    has_paintable_thumbnail_extent(outer)
-        && has_paintable_thumbnail_extent(inner)
-        && inner.x >= outer.x
-        && inner.y >= outer.y
-        && inner.x + inner.width <= outer.x + outer.width
-        && inner.y + inner.height <= outer.y + outer.height
-}
-
 fn thumbnail_surface_inset(
     node: &TemplatePaneNodeData,
     shortest_edge: f32,
@@ -75,7 +66,7 @@ fn thumbnail_surface_inset(
 #[cfg(test)]
 mod tests {
     use super::{
-        FrameRect, TemplatePaneNodeData, has_paintable_thumbnail_extent, thumbnail_surface_rect,
+        has_paintable_thumbnail_extent, thumbnail_surface_rect, FrameRect, TemplatePaneNodeData,
     };
     use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
@@ -96,17 +87,15 @@ mod tests {
             width: 0.0,
             ..valid.clone()
         }));
-        assert!(
-            thumbnail_surface_rect(
-                &node,
-                &FrameRect {
-                    x: f32::NAN,
-                    ..valid.clone()
-                },
-                metrics,
-            )
-            .is_none()
-        );
+        assert!(thumbnail_surface_rect(
+            &node,
+            &FrameRect {
+                x: f32::NAN,
+                ..valid.clone()
+            },
+            metrics,
+        )
+        .is_none());
         assert!(!has_paintable_thumbnail_extent(&FrameRect {
             x: f32::MAX,
             ..valid

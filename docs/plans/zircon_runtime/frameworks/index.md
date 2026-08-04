@@ -59,7 +59,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 | # | 问题 | 证据 | 承接计划 |
 |---|------|------|---------|
 | P1 | 单 crate 巨石：1,075,165 行 current Rust source 仍是单编译单元，无法按域并行/增量编译 | `zircon_runtime/src`、`zircon_runtime/Cargo.toml` | 01 |
-| P2 | 历史声明顺序、graphics→scene 与 graphics→ui 直接边已硬切清零；current crate-DAG 阻断收敛为 `asset→text=2`、`scene→animation=2`、`rhi→rhi_wgpu=1`，另有 source-cubemap projection 两处测试反向构造 concrete Runtime `TaskPool` | `01/baselines/2026-07-30-runtime-domain-dependencies-production-only.json`、`src/core/framework/render/environment/source_cubemap/tests/projection.rs` | 01、05 |
+| P2 | 历史声明顺序、graphics→scene、graphics→ui、asset→text 与 `rhi→rhi_wgpu` 直接边已硬切清零；source-cubemap projection 测试也已改用中立 `ParallelSliceExecutor`，current crate-DAG 阻断只剩 `scene→animation=2` | `01/baselines/2026-07-30-runtime-domain-dependencies-production-only.json`、`01/2026-07-30-m1-contracts-kernel-test-boundary.md`、`01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md` | 01、05 |
 | P3 | 域 feature/cfg 与 profile/domain CI source matrix 已落地；真实剩余是运行期 module/plugin selection 仍手写在 `runtime_profile/defaults.rs`，尚未与 feature preset TOML 单源生成，current-main acceptance 也 pending | `zircon_runtime/runtime-feature-presets.toml`、`src/plugin/runtime_profile/defaults.rs` | 03 |
 | P4 | 四阶段 lifecycle、InitLevel、descriptor 与统一 sorter spine 已落地；Minimal 等生产组装仍有独立构造/选择路径，真实 readiness signal、SDK/native/managed consumers 与 current managed acceptance 未闭合 | `src/core/runtime/lifecycle.rs`、`src/builtin/runtime_modules`、`zircon_app/src/plugins` | 02 |
 | P5 | runtime `declare_plugin!`、generated manifest parity、typed `PluginLoadError` 与 live-host/fixture reload 已落地；dist ABI identity/capability/symbol 仍手写，Rust `cargo-zircon` 三命令不存在，gltf importer reload callbacks 仍为空 | `zircon_plugins/plugin_sdk/src/declaration.rs`、`zircon_plugins/gltf_importer/dist/src/lib.rs`、`zircon_runtime/src/plugin/native_plugin_loader` | 04 |
@@ -125,7 +125,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 
 ### D5：跨域接缝全部走契约
 
-历史 asset→ui、graphics→ui、graphics→scene 生产直接边已硬切为 0；对应共享类型/服务继续由中立 contract + handle/registry 承接，不恢复旧 owner 或 facade shim。current successor 还必须处理 `asset→text`、`scene→animation` 与 `rhi→rhi_wgpu` 三条硬反向边，才可执行 D1 对应物理拆分。详见计划 01 current baseline 与计划 05。
+历史 asset→ui、graphics→ui、graphics→scene、asset→text 与 rhi→rhi_wgpu 生产直接边已硬切为 0；对应共享类型/服务继续由中立 contract + handle/registry 或物理 backend crate 承接，不恢复旧 owner 或 facade shim。current successor 只剩 `scene→animation=2` 硬反向边需要在物理拆分前收敛。详见计划 01 current baseline 与计划 05。
 
 ### D6：规范即守卫
 

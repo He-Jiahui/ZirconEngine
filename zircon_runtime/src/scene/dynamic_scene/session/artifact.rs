@@ -1,18 +1,18 @@
-use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::io::{self, Write};
+use std::io::{self as std_io, Write};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use zircon_runtime_interface::serialization::CanonicalTextWriteError;
 use zircon_runtime_interface::serialization::write_canonical_text_to;
+use zircon_runtime_interface::serialization::CanonicalTextWriteError;
 
 use super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
     RuntimeSessionArchivePayload, RuntimeSessionArchiveStatistics, RuntimeSessionSlot,
-    RuntimeSessionSlotSummary, io,
+    RuntimeSessionSlotSummary,
 };
 
 pub const MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES: usize = 512 * 1024 * 1024;
@@ -44,7 +44,7 @@ pub(super) enum RuntimeSessionArchiveSealFailure {
     },
     Io {
         operation: &'static str,
-        kind: io::ErrorKind,
+        kind: std_io::ErrorKind,
         reason: String,
     },
 }
@@ -101,7 +101,7 @@ impl RuntimeSessionArchiveSealFailure {
                 reason,
             } => CanonicalTextWriteError::Io {
                 operation,
-                source: io::Error::new(*kind, reason.clone()),
+                source: std_io::Error::new(*kind, reason.clone()),
             }
             .into(),
         }
@@ -300,13 +300,13 @@ impl BoundedArchiveBytes {
 }
 
 impl Write for BoundedArchiveBytes {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buffer: &[u8]) -> std_io::Result<usize> {
         self.budget.write_all(buffer)?;
         self.bytes.extend_from_slice(buffer);
         Ok(buffer.len())
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std_io::Result<()> {
         Ok(())
     }
 }
@@ -328,12 +328,12 @@ impl ArchiveByteBudget {
 }
 
 impl Write for ArchiveByteBudget {
-    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+    fn write(&mut self, buffer: &[u8]) -> std_io::Result<usize> {
         let projected = self.written_bytes.saturating_add(buffer.len());
         if projected > self.limit_bytes {
             self.overflow_at = Some(projected);
-            return Err(io::Error::new(
-                io::ErrorKind::OutOfMemory,
+            return Err(std_io::Error::new(
+                std_io::ErrorKind::OutOfMemory,
                 "runtime session archive artifact byte limit exceeded",
             ));
         }
@@ -341,7 +341,7 @@ impl Write for ArchiveByteBudget {
         Ok(buffer.len())
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std_io::Result<()> {
         Ok(())
     }
 }
@@ -474,8 +474,8 @@ fn record_slot_counts(
 mod tests {
     use super::*;
     use crate::scene::{
+        dynamic_scene::{session::RuntimeSessionMetadata, DynamicResource, DynamicScene},
         NodeKind, World,
-        dynamic_scene::{DynamicResource, DynamicScene, session::RuntimeSessionMetadata},
     };
 
     #[test]
@@ -516,16 +516,16 @@ mod tests {
         };
 
         for count in [1usize, 1_000, 100_000] {
-            let payload = RuntimeSessionArchivePayload {
-                format_version: super::super::RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
-                slots: (0..count)
+            let payload = RuntimeSessionArchivePayload::new(
+                super::super::RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+                (0..count)
                     .map(|index| {
                         let mut slot = template.clone();
                         slot.slot_id = format!("slot-{index:06}");
                         slot
                     })
                     .collect(),
-            };
+            );
             let manifest = build_manifest(&payload);
             let index = build_slot_index(&manifest);
             assert_eq!(manifest.slot_count(), count);

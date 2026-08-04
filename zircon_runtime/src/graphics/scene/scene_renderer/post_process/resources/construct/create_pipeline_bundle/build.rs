@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::{
-    post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT, SCENE_COLOR_HDR_FORMAT,
+    SCENE_COLOR_HDR_FORMAT, post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
 };
 
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
@@ -15,6 +15,7 @@ use super::exposure_histogram_pipeline::exposure_histogram_pipeline;
 use super::exposure_resolve_pipeline::exposure_resolve_pipeline;
 use super::fxaa_pipeline::fxaa_pipeline;
 use super::hzb_pipeline::{hzb_msaa_pipeline, hzb_pipeline};
+use super::half_res_transparency_pipeline::{composite_pipeline, depth_downsample_pipeline};
 use super::motion_blur_pipeline::motion_blur_pipeline;
 use super::motion_vector_neighbor_max_pipeline::motion_vector_neighbor_max_pipeline;
 use super::motion_vector_tile_max_pipeline::motion_vector_tile_max_pipeline;
@@ -37,6 +38,8 @@ pub(crate) fn create_pipeline_bundle(
     cluster_bind_group_layout: &wgpu::BindGroupLayout,
     hzb_bind_group_layout: &wgpu::BindGroupLayout,
     hzb_msaa_bind_group_layout: &wgpu::BindGroupLayout,
+    half_res_transparency_depth_downsample_bind_group_layout: &wgpu::BindGroupLayout,
+    half_res_transparency_composite_bind_group_layout: &wgpu::BindGroupLayout,
     exposure_histogram_bind_group_layout: &wgpu::BindGroupLayout,
     exposure_resolve_bind_group_layout: &wgpu::BindGroupLayout,
     color_lut_bake_bind_group_layout: &wgpu::BindGroupLayout,
@@ -71,6 +74,14 @@ pub(crate) fn create_pipeline_bundle(
         cluster_pipeline: cluster_pipeline(device, cluster_bind_group_layout),
         hzb_pipeline: hzb_pipeline(device, hzb_bind_group_layout),
         hzb_msaa_pipeline: hzb_msaa_pipeline(device, hzb_msaa_bind_group_layout),
+        half_res_transparency_depth_downsample_pipeline: depth_downsample_pipeline(
+            device,
+            half_res_transparency_depth_downsample_bind_group_layout,
+        ),
+        half_res_transparency_composite_pipeline: composite_pipeline(
+            device,
+            half_res_transparency_composite_bind_group_layout,
+        ),
         exposure_histogram_pipeline: exposure_histogram_pipeline(
             device,
             exposure_histogram_bind_group_layout,
@@ -182,7 +193,7 @@ const fn bloom_target_format() -> wgpu::TextureFormat {
 
 #[cfg(test)]
 mod tests {
-    use super::{bloom_target_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT};
+    use super::{POST_PROCESS_INTERMEDIATE_HDR_FORMAT, bloom_target_format};
 
     #[test]
     fn bloom_pipeline_targets_intermediate_hdr_resource_format() {

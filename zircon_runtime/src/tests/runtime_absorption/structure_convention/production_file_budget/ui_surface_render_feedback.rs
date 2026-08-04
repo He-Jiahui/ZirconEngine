@@ -13,9 +13,6 @@ fn runtime_15_ui_surface_render_feedback_commands_are_child_owners() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "feedback parent keeps component semantics, layout, metadata parsing, and child mounts",
@@ -133,16 +130,4 @@ fn runtime_15_ui_surface_render_feedback_commands_are_child_owners() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI surface render feedback command/color owner split",
-            "runtime_15_ui_surface_render_feedback_command_color_owner_split_static_passed_cargo_deferred",
-            "ui/surface/render/feedback.rs",
-            "ui/surface/render/feedback/colors.rs",
-            "ui/surface/render/feedback/commands.rs",
-            "runtime_15_ui_surface_render_feedback_commands_are_child_owners",
-        ],
-    );
 }

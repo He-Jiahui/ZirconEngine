@@ -28,15 +28,6 @@ fn runtime_15_core_runtime_registration_structure_tests_are_folder_backed() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let lifecycle_doc = read_repo("docs/zircon_runtime/core/runtime/lifecycle.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/lock_poison.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/lock_poison.rs",
-    );
 
     assert!(
         !retired_flat.exists(),
@@ -112,40 +103,6 @@ fn runtime_15_core_runtime_registration_structure_tests_are_folder_backed() {
             "core/runtime/tests/registration/structure/service_count_paths.rs",
             "core/runtime/tests/registration/structure/service_list_caches.rs",
             "runtime_15_core_runtime_registration_structure_tests_are_folder_backed",
-            "2026-06-24",
-        ],
-    );
-    for (label, source) in [
-        ("module convention doc", module_doc.as_str()),
-        ("core runtime lifecycle doc", lifecycle_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 core runtime registration structure owner split",
-                "runtime_15_core_runtime_registration_structure_owner_split_static_passed_cargo_deferred",
-                "core/runtime/tests/registration/structure/mod.rs",
-                "core/runtime/tests/registration/structure/service_count_paths.rs",
-                "core/runtime/tests/registration/structure/service_list_caches.rs",
-                "runtime_15_core_runtime_registration_structure_tests_are_folder_backed",
-            ],
-        );
-    }
-    assert_contains_all_exact(
-        "core runtime registration status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 M3 core runtime registration structure owner split",
-            "runtime_15_core_runtime_registration_structure_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all_exact(
-        "core runtime registration status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 M3 core runtime registration structure owner split",
             "2026-06-24",
         ],
     );

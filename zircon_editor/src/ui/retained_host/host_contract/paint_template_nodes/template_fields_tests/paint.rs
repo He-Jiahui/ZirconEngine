@@ -81,6 +81,18 @@ fn stepper_workbench_field_paints_right_arrows() {
 }
 
 #[test]
+fn number_field_stepper_property_paints_right_arrows_without_the_legacy_control_id() {
+    let mut node = positioned_field_node("WorkbenchNumberFieldDemo", "42", 12.0, 8.0, 67.0, 32.0);
+    node.component_role = "number-field".into();
+    node.layout_stepper = true;
+    let stepper_divider = field_style(&node).stepper_divider;
+    let bytes = paint_template_nodes_for_test(112, 48, model_rc(vec![node]));
+
+    assert_eq!(pixel_at(&bytes, 112, 61, 16), stepper_divider);
+    assert!(changed_pixel_count(&bytes, 112, 64, 15, 12, 20) > 0);
+}
+
+#[test]
 fn stepper_workbench_field_honors_declared_layout_offset() {
     let mut node = positioned_field_node("WorkbenchInputStepper", "42", 12.0, 8.0, 67.0, 32.0);
     node.layout_offset_x = 5.0;
@@ -151,5 +163,31 @@ fn search_workbench_field_prefers_shell_search_asset_pixels() {
             .as_ref()
             .map(|image| !image.resource_key.starts_with("missing-icon:"))
             .unwrap_or(false)
+    );
+}
+
+#[test]
+fn search_workbench_field_paints_a_clear_action_only_for_a_nonempty_query() {
+    let mut search = positioned_field_node("SearchEdited", "material", 12.0, 10.0, 184.0, 28.0);
+    search.component_role = "search-field".into();
+    search.has_clear_action = true;
+    let bytes = paint_template_nodes_for_test(220, 48, model_rc(vec![search]));
+
+    let mut empty_search = positioned_field_node("SearchEdited", "", 12.0, 10.0, 184.0, 28.0);
+    empty_search.component_role = "search-field".into();
+    empty_search.has_clear_action = true;
+    let empty_bytes = paint_template_nodes_for_test(220, 48, model_rc(vec![empty_search]));
+
+    assert!(
+        bytes
+            .chunks_exact(4)
+            .zip(empty_bytes.chunks_exact(4))
+            .enumerate()
+            .any(|(index, (query, empty))| {
+                let x = index % 220;
+                let y = index / 220;
+                (166..188).contains(&x) && (14..34).contains(&y) && query != empty
+            }),
+        "a nonempty search should paint its trailing clear affordance"
     );
 }

@@ -58,11 +58,19 @@ impl CoreEditContext {
     ) -> Result<R, EditCommandError> {
         let mut read = Some(read);
         let mut result = None;
+        let mut duplicate_callback = false;
         self.gateway
             .with_world(&mut |scene| {
-                result = Some(read.take().expect("gateway must invoke once")(scene));
+                let Some(read) = read.take() else {
+                    duplicate_callback = true;
+                    return;
+                };
+                result = Some(read(scene));
             })
             .map_err(gateway_failure)?;
+        if duplicate_callback {
+            return Err(gateway_callback_protocol_failure());
+        }
         result.ok_or_else(missing_scene)
     }
 
@@ -72,11 +80,19 @@ impl CoreEditContext {
     ) -> Result<R, EditCommandError> {
         let mut write = Some(write);
         let mut result = None;
+        let mut duplicate_callback = false;
         self.gateway
             .with_world_mut(&mut |scene| {
-                result = Some(write.take().expect("gateway must invoke once")(scene));
+                let Some(write) = write.take() else {
+                    duplicate_callback = true;
+                    return;
+                };
+                result = Some(write(scene));
             })
             .map_err(gateway_failure)?;
+        if duplicate_callback {
+            return Err(gateway_callback_protocol_failure());
+        }
         result.ok_or_else(missing_scene)
     }
 
@@ -111,6 +127,12 @@ fn gateway_failure(error: GatewayError) -> EditCommandError {
     EditCommandError::ExternalEffect {
         source: Box::new(error),
     }
+}
+
+fn gateway_callback_protocol_failure() -> EditCommandError {
+    gateway_failure(GatewayError::Protocol {
+        message: "borrowed world callback was invoked more than once".to_owned(),
+    })
 }
 
 impl Default for CoreEditContext {

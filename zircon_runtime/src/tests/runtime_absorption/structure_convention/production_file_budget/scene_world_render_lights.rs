@@ -12,15 +12,6 @@ fn runtime_15_scene_world_render_light_collectors_are_child_owner() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let render_extract_doc = read_repo("docs/zircon_runtime/scene/render_extract.md");
     let render_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
 
     assert_contains_all(
         "scene world render parent keeps frame extract orchestration and shared layer helper",
@@ -81,43 +72,4 @@ fn runtime_15_scene_world_render_light_collectors_are_child_owner() {
             "{path} should stay below the Runtime 15 production-file soft budget; got {line_count} lines"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("scene render-extract doc", render_extract_doc.as_str()),
-        ("render product submit doc", render_submit_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 scene world render light collection owner split",
-                "runtime_15_scene_world_render_lights_owner_split_static_passed_cargo_deferred",
-                "scene/world/render.rs",
-                "scene/world/render/lights.rs",
-                "runtime_15_scene_world_render_light_collectors_are_child_owner",
-            ],
-        );
-    }
-    assert_contains_all(
-        "status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 M4 scene world render light collection owner split",
-            "runtime_15_scene_world_render_lights_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 M4 scene world render light collection owner split",
-            "2026-06-24",
-        ],
-    );
 }

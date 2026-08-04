@@ -71,6 +71,8 @@ pub(super) struct PendingMeshDraw {
     pub(super) transform_revision: u64,
     pub(super) mobility: Mobility,
     pub(super) static_state: RenderMeshStaticState,
+    /// Stable resource identity used by GPUScene material-payload preparation.
+    pub(super) material_id: crate::core::resource::ResourceId,
     pub(super) material_textures: MaterialTextureSet,
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
@@ -83,6 +85,7 @@ pub(super) struct PendingMeshDraw {
     pub(super) common: Arc<RendererCommon>,
     pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
+    pub(super) half_resolution_transparency: bool,
     pub(super) model_matrix: [[f32; 4]; 4],
     pub(super) draw_tint: Vec4,
     pub(super) skinned: bool,

@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use super::{
     DecisionCenterInstanceId, DecisionNotification, DecisionNotificationError,

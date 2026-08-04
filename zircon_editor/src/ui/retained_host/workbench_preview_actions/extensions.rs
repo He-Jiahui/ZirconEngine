@@ -119,6 +119,8 @@ pub(super) const WORKBENCH_EXTENSION_PREVIEW_ACTION_IDS: &[&str] = &[
     "workbench.extension.blend_space.output.select",
     "workbench.extension.blend_space.preview.invoke",
     "workbench.extension.blend_space.apply.invoke",
+    "workbench.extension.blend_space.search.edit",
+    "workbench.extension.blend_space.search.commit",
     "workbench.extension.blend_space.asset.edit",
     "workbench.extension.blend_space.asset.commit",
     "workbench.extension.blend_space.x_axis.edit",

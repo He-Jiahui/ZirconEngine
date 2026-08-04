@@ -1,11 +1,12 @@
 use super::*;
 use crate::core::framework::render::{
-    FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract, RenderFrameExtract,
-    RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderWorldSnapshotHandle, ShadowPcfQuality,
-    ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
+    RenderFrameExtract, RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
+use crate::graphics::scene::scene_renderer::shadow::shadow_light_params_hash;
 use crate::graphics::scene::scene_renderer::shadow::slot::{
     GPU_SHADOW_SLOT_PCF_QUALITY_HIGH, GPU_SHADOW_SLOT_PCF_QUALITY_LOW,
     GPU_SHADOW_SLOT_PCF_QUALITY_MASK, GPU_SHADOW_SLOT_PCF_QUALITY_MEDIUM,
@@ -224,18 +225,21 @@ fn render_shadow_frame_plan_assigns_point_light_contiguous_face_slots() {
             slot_count: POINT_LIGHT_SHADOW_FACE_COUNT
         })
     );
-    assert!(plan
-        .slots()
-        .iter()
-        .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0));
-    assert!(plan
-        .slots()
-        .iter()
-        .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d()));
-    assert!(plan
-        .atlas_passes()
-        .iter()
-        .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY));
+    assert!(
+        plan.slots()
+            .iter()
+            .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0)
+    );
+    assert!(
+        plan.slots()
+            .iter()
+            .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d())
+    );
+    assert!(
+        plan.atlas_passes()
+            .iter()
+            .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY)
+    );
     assert_eq!(
         plan.atlas_passes()
             .iter()
@@ -248,6 +252,17 @@ fn render_shadow_frame_plan_assigns_point_light_contiguous_face_slots() {
             }))
             .collect::<Vec<_>>()
     );
+
+    let cache_inputs = plan.static_shadow_cache_inputs();
+    assert_eq!(cache_inputs.len(), plan.atlas_passes().len());
+    for (pass, input) in plan.atlas_passes().iter().zip(cache_inputs) {
+        assert_eq!(input.slot_key, pass.slot_key);
+        assert_eq!(input.atlas_slot_generation, pass.atlas_slot_generation);
+        assert_eq!(
+            input.light_params_hash,
+            shadow_light_params_hash(&plan.slots()[pass.slot_index as usize])
+        );
+    }
 }
 
 #[test]
@@ -284,6 +299,41 @@ fn render_shadow_frame_plan_assigns_spot_light_slot_view_key() {
         plan.atlas_passes()[0].view_key,
         Some(VisibilityViewKey::ShadowSpot { light: 3 })
     );
+}
+
+#[test]
+fn render_shadow_frame_plan_static_cache_inputs_fail_closed_for_misaligned_slots() {
+    let mut allocator =
+        ShadowAtlasAllocator::new(super::super::atlas::ShadowAtlasConfig::new_square(1024));
+    let lighting = LightingExtract {
+        spot_lights: vec![RenderSpotLightSnapshot {
+            node_id: 3,
+            light_id: 303,
+            layer_mask: default_light_layer_mask(),
+            position: Vec3::ZERO,
+            direction: Vec3::new(0.0, -1.0, 0.0),
+            color: Vec3::ONE,
+            intensity: 3.0,
+            range: 6.0,
+            inner_angle_radians: 0.25,
+            outer_angle_radians: 0.5,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
+            shadow: Some(shadow(ShadowResolutionTier::T512)),
+        }],
+        ..LightingExtract::default()
+    };
+
+    let frame = shadow_frame(lighting);
+    let mut plan = build_shadow_frame_plan(
+        &mut allocator,
+        &frame,
+        ShadowAtlasResourceConfig::new(1024, 1024, 16),
+    );
+    assert_eq!(plan.static_shadow_cache_inputs().len(), 1);
+
+    plan.atlas_passes.pop();
+
+    assert!(plan.static_shadow_cache_inputs().is_empty());
 }
 
 #[test]

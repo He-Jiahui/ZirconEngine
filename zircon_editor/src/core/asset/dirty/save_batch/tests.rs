@@ -248,6 +248,39 @@ fn save_dirty_views_returns_stable_partial_results_and_retries_only_dirty_items(
 }
 
 #[test]
+fn cancelled_dirty_view_keeps_its_document_dirty_for_retry() {
+    let (transactions, dirty) = state();
+    dirty.register_document(document(1)).unwrap();
+    dirty.mark_external_effect(document(1), effect()).unwrap();
+    let toolkits = DocumentToolkitRegistry::<()>::default();
+    register_toolkit(&toolkits, 1);
+    let request = SaveDirtyViewsRequest::prepare(
+        &toolkits.snapshot(),
+        [candidate(&transactions, &dirty, 1, 64)],
+    )
+    .unwrap();
+
+    let result = request
+        .apply_completions(
+            [(document(1), SaveDirtyViewCompletion::Cancelled)],
+            &dirty,
+            transactions.as_ref(),
+        )
+        .unwrap();
+
+    assert_eq!(
+        result.outcomes()[0].status(),
+        &SaveDirtyViewOutcomeStatus::Cancelled
+    );
+    assert!(dirty.snapshot(document(1)).unwrap().is_dirty());
+    assert_eq!(
+        result.retry_documents().collect::<Vec<_>>(),
+        vec![document(1)]
+    );
+    assert!(!result.all_saved());
+}
+
+#[test]
 fn malformed_completion_sets_are_rejected_before_dirty_state_changes() {
     let (transactions, dirty) = state();
     dirty.register_document(document(1)).unwrap();

@@ -20,6 +20,8 @@ pub struct RenderDeviceLimitDiagnostics {
     pub max_texture_dimension_2d: u32,
     pub max_texture_array_layers: u32,
     pub max_sampled_textures_per_shader_stage: u32,
+    pub max_binding_array_elements_per_shader_stage: u32,
+    pub max_binding_array_sampler_elements_per_shader_stage: u32,
     pub max_storage_buffers_per_shader_stage: u32,
     pub max_storage_buffer_binding_size: u64,
 }

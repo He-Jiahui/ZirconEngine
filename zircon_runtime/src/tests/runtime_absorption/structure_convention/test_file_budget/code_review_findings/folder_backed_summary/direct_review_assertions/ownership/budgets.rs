@@ -22,10 +22,6 @@ pub(super) fn assert_direct_assertions_child_ownership_children_line_budgets_are
             DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD,
             read_runtime_src(DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD),
         ),
-        (
-            DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD,
-            read_runtime_src(DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(

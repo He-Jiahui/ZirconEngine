@@ -102,7 +102,7 @@ fn padded_uniform_contents(payload: &RenderMaterialPropertyUniformPayload) -> Ve
     contents
 }
 
-fn standard_material_uniform_contents(
+pub(crate) fn standard_material_uniform_contents(
     material: &MaterialRuntime,
 ) -> [u8; GPU_MATERIAL_UNIFORM_MIN_SIZE] {
     standard_material_uniform_contents_from_values(

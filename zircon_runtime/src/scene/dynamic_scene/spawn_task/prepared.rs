@@ -5,7 +5,7 @@ use crate::{
     scene::{EntityRemap, LevelSystem, World},
 };
 
-use super::super::{DynamicScene, DynamicSceneError, scene::CompiledSceneSpawn};
+use super::super::{scene::CompiledSceneSpawn, DynamicScene, DynamicSceneError};
 
 /// A validated dynamic scene payload that is ready to apply on the main world.
 #[derive(Clone, Debug, PartialEq)]
@@ -257,13 +257,13 @@ struct ByteCounter {
 #[cfg(test)]
 mod tests {
     use std::sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
+        Arc,
     };
 
     use crate::scene::{
-        DefaultLevelManager, DynamicScene, DynamicSceneError, NodeKind, Resource, World,
-        components::Name, ecs::LifecycleEventKind,
+        components::Name, ecs::LifecycleEventKind, DefaultLevelManager, DynamicScene,
+        DynamicSceneError, NodeKind, Resource, World,
     };
 
     use super::PreparedDynamicSceneSpawn;
@@ -328,10 +328,9 @@ mod tests {
     fn dynamic_scene_asset_reload_level_transaction_is_target_bound_and_replays_live_callbacks() {
         let mut source = World::empty();
         source.spawn_node(NodeKind::Empty);
-        let prepared = PreparedDynamicSceneSpawn::new(
-            DynamicScene::from_world(&source).expect("source scene should capture"),
-        )
-        .expect("captured scene should prepare");
+        let scene = DynamicScene::from_world(&source).expect("source scene should capture");
+        let prepared =
+            PreparedDynamicSceneSpawn::new(scene.clone()).expect("captured scene should prepare");
         let manager = DefaultLevelManager::default();
         let first = manager.create_level(World::empty(), Default::default());
         let second = manager.create_level(World::empty(), Default::default());

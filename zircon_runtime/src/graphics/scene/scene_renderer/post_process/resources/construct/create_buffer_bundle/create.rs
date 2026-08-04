@@ -6,6 +6,7 @@ use super::default_exposure_buffer::default_exposure_buffer;
 use super::default_exposure_histogram_buffer::default_exposure_histogram_buffer;
 use super::depth_of_field_prepare_params_buffer::depth_of_field_prepare_params_buffer;
 use super::exposure_params_buffer::exposure_params_buffer;
+use super::half_res_transparency_params_buffer::half_res_transparency_params_buffer;
 use super::hybrid_gi_probe_buffer::hybrid_gi_probe_buffer;
 use super::hybrid_gi_trace_region_buffer::hybrid_gi_trace_region_buffer;
 use super::hzb_params_buffer::hzb_params_buffer;
@@ -22,6 +23,7 @@ pub(in super::super) fn create_buffer_bundle(device: &wgpu::Device) -> BufferBun
         cluster_params_buffer: cluster_params_buffer(device),
         depth_of_field_prepare_params_buffer: depth_of_field_prepare_params_buffer(device),
         hzb_params_buffer: hzb_params_buffer(device),
+        half_res_transparency_params_buffer: half_res_transparency_params_buffer(device),
         exposure_params_buffer: exposure_params_buffer(device),
         color_lut_bake_params_buffer: color_lut_bake_params_buffer(device),
         default_exposure_buffer: default_exposure_buffer(device),

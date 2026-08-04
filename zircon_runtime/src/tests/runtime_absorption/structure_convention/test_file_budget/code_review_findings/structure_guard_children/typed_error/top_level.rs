@@ -6,12 +6,7 @@ fn typed_error_top_level_child_tree() -> String {
         read_runtime_src(TYPED_ERROR_TOP_LEVEL_DELEGATION_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER),
-        read_runtime_src(TYPED_ERROR_STATUS_DOCS_CHILD_OWNER),
-        read_runtime_src(
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation.rs",
-        ),
         read_runtime_src(TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER),
-        read_runtime_src(TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD_OWNER),
     ]
     .join("\n")
@@ -69,10 +64,7 @@ pub(super) fn assert_typed_error_top_level_checks_are_current() {
         &[
             "fn runtime_15_typed_error_structure_guard_is_folder_backed",
             "fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
-            "fn runtime_15_typed_error_structure_guard_folder_backed_status_is_current",
             "fn runtime_15_typed_error_structure_guard_budgets_are_focused",
-            "runtime_15_typed_error_source_inventory_is_child_owner",
-            "runtime_15_typed_error_status_docs_are_folder_backed",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs",
             "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs",
             "review_f5_texture_loader_uses_typed_error",

@@ -57,6 +57,224 @@ fn graph_resource_authoring_moves_the_compiled_plan_without_cloning_it() {
     )));
 }
 
+#[test]
+fn compile_half_resolution_transparency_is_profile_gated_and_declares_depth_aware_resources() {
+    let mut extract = test_extract();
+    extract
+        .particles
+        .sprites
+        .push(RenderParticleSpriteSnapshot::default());
+    let disabled = RenderPipelineAsset::default_forward_plus()
+        .compile(&extract)
+        .expect("default graph should compile");
+    let enabled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_half_resolution_transparency(true)
+                .with_half_resolution_transparency_depth_sigma(144),
+        )
+        .expect("half-resolution transparency graph should compile");
+
+    assert_eq!(enabled.half_resolution_transparency_depth_sigma(), 144);
+
+    assert!(!disabled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "halfres-transparency-depth-downsample"));
+    for pass_name in [
+        "halfres-transparency-depth-downsample",
+        "particle-render",
+        "halfres-transparent-mesh",
+        "halfres-transparency-composite",
+    ] {
+        assert!(
+            enabled
+                .graph()
+                .passes()
+                .iter()
+                .any(|pass| pass.name == pass_name),
+            "enabled graph should contain `{pass_name}`"
+        );
+    }
+
+    assert_pass_reads(
+        &enabled,
+        "halfres-transparency-depth-downsample",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
+    );
+    assert_pass_writes(
+        &enabled,
+        "halfres-transparency-depth-downsample",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+    );
+    assert_pass_writes(
+        &enabled,
+        "particle-render",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+    );
+    assert!(!enabled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "transparent-mesh"));
+    assert_pass_reads(
+        &enabled,
+        "halfres-transparent-mesh",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+    );
+    assert_pass_writes(
+        &enabled,
+        "halfres-transparent-mesh",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+    );
+    assert_pass_reads(
+        &enabled,
+        "halfres-transparent-mesh",
+        PostProcessGraphResourceNames::SHADOW_ATLAS,
+    );
+    for resource_name in [
+        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        PostProcessGraphResourceNames::LIGHT_ZBINS,
+        PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+    ] {
+        assert_pass_reads(&enabled, "halfres-transparent-mesh", resource_name);
+    }
+    assert_pass_reads(
+        &enabled,
+        "halfres-transparency-composite",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+    );
+    assert_pass_reads(
+        &enabled,
+        "halfres-transparency-composite",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+    );
+    assert_pass_writes(
+        &enabled,
+        "halfres-transparency-composite",
+        PostProcessGraphResourceNames::SCENE_COLOR,
+    );
+
+    let half_color = texture_lifetime(
+        &enabled,
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+    );
+    let half_depth = texture_lifetime(
+        &enabled,
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+    );
+    assert_eq!(
+        (half_color.width, half_color.height),
+        (
+            extract.view.effective_render_size().x.div_ceil(2),
+            extract.view.effective_render_size().y.div_ceil(2)
+        )
+    );
+    assert_eq!(half_color.format, crate::rhi::TextureFormat::Rgba16Float);
+    assert_eq!(half_depth.format, crate::rhi::TextureFormat::Depth32Float);
+    assert_eq!(half_color.sample_count, 1);
+    assert_eq!(half_depth.sample_count, 1);
+}
+
+#[test]
+fn compile_half_resolution_transparency_falls_back_for_multisample_graphs() {
+    let extract = test_extract();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_half_resolution_transparency(true)
+                .with_graph_msaa_sample_count(4),
+        )
+        .expect("multisample graph should compile through the full-resolution fallback");
+
+    for pass_name in [
+        "halfres-transparency-depth-downsample",
+        "halfres-transparency-composite",
+    ] {
+        assert!(
+            !compiled
+                .graph()
+                .passes()
+                .iter()
+                .any(|pass| pass.name == pass_name),
+            "multisample graph should not contain `{pass_name}`"
+        );
+    }
+}
+
+#[test]
+fn compile_half_resolution_transparency_keeps_complete_graph_for_particle_only_renderer() {
+    let mut extract = test_extract();
+    extract
+        .particles
+        .sprites
+        .push(RenderParticleSpriteSnapshot::default());
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_disabled(BuiltinRenderFeature::Mesh)
+                .with_half_resolution_transparency(true),
+        )
+        .expect("particle-only half-resolution graph should compile");
+
+    for pass_name in [
+        "halfres-transparency-depth-downsample",
+        "particle-render",
+        "halfres-transparency-composite",
+    ] {
+        assert!(
+            compiled
+                .graph()
+                .passes()
+                .iter()
+                .any(|pass| pass.name == pass_name),
+            "particle-only graph should contain `{pass_name}`"
+        );
+    }
+    assert_pass_writes(
+        &compiled,
+        "particle-render",
+        PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+    );
+}
+
+#[test]
+fn compile_half_resolution_transparency_preserves_plugin_transparent_pass_replacement() {
+    let transparent_replacement = RenderFeatureDescriptor::new(
+        "test-transparent-replacement",
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .with_replaced_pass("transparent-mesh");
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([transparent_replacement])
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_half_resolution_transparency(true),
+        )
+        .expect("transparent pass replacement should compile before half-resolution injection");
+
+    for pass_name in [
+        "transparent-mesh",
+        "halfres-transparency-depth-downsample",
+        "halfres-transparency-composite",
+    ] {
+        assert!(
+            !compiled
+                .graph()
+                .passes()
+                .iter()
+                .any(|pass| pass.name == pass_name),
+            "plugin-owned transparent path should not contain `{pass_name}`"
+        );
+    }
+}
+
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),

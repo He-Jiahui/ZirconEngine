@@ -1,9 +1,8 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
+use crate::core::notifications::ToastSeverity;
+use crate::ui::activity::ActivityToastView;
 use crate::ui::host::play_pending_decision::PlayPendingDecisionOption;
-use crate::ui::retained_host::workbench_notifications::{
-    WorkbenchNotification, WorkbenchNotificationSeverity,
-};
 
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
@@ -174,22 +173,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .any(|entry| entry_id(entry) == option_id && is_pending_play_decision_entry(entry))
     }
 
-    pub(crate) fn push_workbench_notifications(
+    pub(crate) fn sync_activity_toasts(
         &mut self,
-        notifications: &[WorkbenchNotification],
+        notifications: &[ActivityToastView],
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        if notifications.is_empty() {
-            return Ok(false);
-        }
-
         let mut changed = false;
         if self.has_control(WORKBENCH_TOAST_CONTROL_ID) {
-            self.push_toast_queue(notifications)?;
-            changed = true;
+            changed |= self.sync_toast_queue(notifications)?;
         }
         if self.has_control(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID) {
-            self.push_notification_history(notifications)?;
-            changed = true;
+            changed |= self.sync_notification_history(notifications)?;
         }
 
         if changed {
@@ -199,24 +192,60 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(changed)
     }
 
-    fn push_toast_queue(
+    fn sync_toast_queue(
         &mut self,
-        notifications: &[WorkbenchNotification],
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        notifications: &[ActivityToastView],
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         let queue = notifications
             .iter()
             .take(MAX_TOAST_QUEUE)
-            .map(WorkbenchNotification::toast_queue_entry)
+            .map(activity_toast_queue_entry)
             .collect::<Vec<_>>();
         let queue_length = queue.len() as i64;
-        let active = &notifications[0];
+        let visible = !notifications.is_empty();
+        let (id, message, severity, duration_ms) = notifications
+            .first()
+            .map(|notification| {
+                (
+                    notification.id().to_string(),
+                    notification.message().to_string(),
+                    toast_severity_name(notification.severity()).to_string(),
+                    duration_millis(notification.remaining_lifetime()),
+                )
+            })
+            .unwrap_or_default();
+        let expired_id = if visible {
+            String::new()
+        } else {
+            self.control_string(WORKBENCH_TOAST_CONTROL_ID, CURRENT_TOAST_ID)
+                .unwrap_or_default()
+        };
+        let expected_visibility = if visible { "visible" } else { "collapsed" };
+        let changed = self
+            .control_string(WORKBENCH_TOAST_CONTROL_ID, "visibility")
+            .as_deref()
+            != Some(expected_visibility)
+            || self.control_bool(WORKBENCH_TOAST_CONTROL_ID, OPEN) != visible
+            || self.control_bool(WORKBENCH_TOAST_CONTROL_ID, POPUP_OPEN) != visible
+            || self
+                .control_string(WORKBENCH_TOAST_CONTROL_ID, TEXT)
+                .as_deref()
+                != Some(message.as_str())
+            || self
+                .control_string(WORKBENCH_TOAST_CONTROL_ID, CURRENT_TOAST_ID)
+                .as_deref()
+                != Some(id.as_str())
+            || self.control_string_array(WORKBENCH_TOAST_CONTROL_ID, TOAST_QUEUE) != queue;
+        if !changed {
+            return Ok(false);
+        }
 
-        self.set_visible(WORKBENCH_TOAST_CONTROL_ID, true)?;
+        self.set_visible(WORKBENCH_TOAST_CONTROL_ID, visible)?;
         for property in [OPEN, POPUP_OPEN] {
             self.mutate_control_property(
                 WORKBENCH_TOAST_CONTROL_ID,
                 property,
-                UiValue::Bool(true),
+                UiValue::Bool(visible),
             )?;
         }
         self.mutate_control_property(WORKBENCH_TOAST_CONTROL_ID, FOCUSED, UiValue::Bool(false))?;
@@ -224,42 +253,47 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             TEXT,
-            UiValue::String(active.toast_message().to_string()),
+            UiValue::String(message.clone()),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             VALUE,
-            UiValue::String(active.id.clone()),
+            UiValue::String(id.clone()),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             VALUE_TEXT,
-            UiValue::String(active.toast_message().to_string()),
+            UiValue::String(message),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             SEVERITY,
-            UiValue::String(active.severity.as_str().to_string()),
+            UiValue::String(severity.clone()),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             COLOR,
-            UiValue::String(active.severity.as_str().to_string()),
+            UiValue::String(severity.clone()),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             ICON,
-            UiValue::String(active.severity.icon().to_string()),
+            UiValue::String(toast_severity_icon(
+                notifications.first().map(ActivityToastView::severity),
+            )),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             ACTION_LABEL,
-            UiValue::String(active.action_label.clone().unwrap_or_default()),
+            UiValue::String(String::new()),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             ACTION_COLOR,
-            UiValue::String(severity_action_color(active.severity).to_string()),
+            UiValue::String(
+                toast_severity_color(notifications.first().map(ActivityToastView::severity))
+                    .to_string(),
+            ),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
@@ -269,12 +303,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             CURRENT_TOAST_ID,
-            UiValue::String(active.id.clone()),
+            UiValue::String(id),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             EXPIRED_TOAST_ID,
-            UiValue::String(String::new()),
+            UiValue::String(expired_id),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
@@ -284,49 +318,83 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             AUTO_HIDE_DURATION_MS,
-            UiValue::Int(active.auto_hide_duration_ms),
+            UiValue::Int(duration_ms),
         )?;
-        Ok(())
+        Ok(true)
     }
 
-    fn push_notification_history(
+    fn sync_notification_history(
         &mut self,
-        notifications: &[WorkbenchNotification],
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        notifications: &[ActivityToastView],
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         let counters = self.notification_counters();
+        let existing =
+            self.control_string_array(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, NOTIFICATIONS);
+        let pending_decisions = existing
+            .iter()
+            .filter(|entry| is_pending_play_decision_entry(entry))
+            .cloned()
+            .collect::<Vec<_>>();
         let retained = RetainedNotificationHistory::merge(
-            notifications
+            pending_decisions
                 .iter()
-                .map(WorkbenchNotification::history_entry),
-            self.control_string_array(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, NOTIFICATIONS),
+                .cloned()
+                .chain(notifications.iter().map(activity_toast_history_entry)),
             MAX_NOTIFICATION_HISTORY,
-            counters.overflow_count,
+            0,
         );
-
-        let selected_id = notifications
+        let selected_id = pending_decisions
             .first()
-            .map(|notification| notification.id.clone())
+            .map(|entry| entry_id(entry).to_string())
+            .or_else(|| {
+                notifications
+                    .first()
+                    .map(|notification| notification.id().to_string())
+            })
             .unwrap_or_default();
-        let notification_generation = next_notification_generation(counters.generation, true);
-        self.set_visible(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, true)?;
-        for property in [OPEN, POPUP_OPEN, FOCUSED, SELECTED] {
-            self.mutate_control_property(
-                WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-                property,
-                UiValue::Bool(false),
-            )?;
+        let history_changed = existing != retained.entries;
+        let notification_generation =
+            next_notification_generation(counters.generation, history_changed);
+        let visible = !retained.entries.is_empty();
+        let changed = history_changed
+            || self
+                .control_string(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, "visibility")
+                .as_deref()
+                != Some(if visible { "visible" } else { "collapsed" })
+            || self
+                .control_string(
+                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+                    SELECTED_NOTIFICATION_ID,
+                )
+                .as_deref()
+                != Some(selected_id.as_str())
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, FOCUSED) == Some(true)
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, SELECTED) == Some(true);
+        if !changed {
+            return Ok(false);
         }
-        for property in [
-            INPUT_INTERACTIVE,
-            INPUT_CLICKABLE,
-            INPUT_HOVERABLE,
-            INPUT_FOCUSABLE,
-        ] {
-            self.mutate_control_property(
-                WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-                property,
-                UiValue::Bool(false),
-            )?;
+
+        self.set_visible(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, visible)?;
+        if pending_decisions.is_empty() {
+            for property in [OPEN, POPUP_OPEN, FOCUSED, SELECTED] {
+                self.mutate_control_property(
+                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+                    property,
+                    UiValue::Bool(false),
+                )?;
+            }
+            for property in [
+                INPUT_INTERACTIVE,
+                INPUT_CLICKABLE,
+                INPUT_HOVERABLE,
+                INPUT_FOCUSABLE,
+            ] {
+                self.mutate_control_property(
+                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+                    property,
+                    UiValue::Bool(false),
+                )?;
+            }
         }
         self.mutate_control_property(
             WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
@@ -356,9 +424,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
             FOCUSED_INDEX,
-            UiValue::Int(0),
+            UiValue::Int(if visible { 0 } else { -1 }),
         )?;
-        Ok(())
+        Ok(true)
     }
 
     fn notification_counters(&self) -> NotificationCounters {
@@ -435,10 +503,67 @@ pub(super) fn entry_unread(entry: &str) -> bool {
     })
 }
 
-fn severity_action_color(severity: WorkbenchNotificationSeverity) -> &'static str {
+fn activity_toast_queue_entry(notification: &ActivityToastView) -> String {
+    format!(
+        "{}|message={}|title={}|severity={}|auto_hide_duration_ms={}",
+        pipe_value(notification.id()),
+        pipe_value(notification.message()),
+        pipe_value(notification.title()),
+        toast_severity_name(notification.severity()),
+        duration_millis(notification.remaining_lifetime()),
+    )
+}
+
+fn activity_toast_history_entry(notification: &ActivityToastView) -> String {
+    format!(
+        "{}|title={}|message={}|severity={}|unread=true|kind=toast",
+        pipe_value(notification.id()),
+        pipe_value(notification.title()),
+        pipe_value(notification.message()),
+        toast_severity_name(notification.severity()),
+    )
+}
+
+fn pipe_value(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| match ch {
+            '|' | '=' | '\n' | '\r' | '\t' => ' ',
+            _ => ch,
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn duration_millis(duration: std::time::Duration) -> i64 {
+    duration.as_millis().min(i64::MAX as u128) as i64
+}
+
+fn toast_severity_name(severity: ToastSeverity) -> &'static str {
     match severity {
-        WorkbenchNotificationSeverity::Info => "#238f98",
-        WorkbenchNotificationSeverity::Success => "#2d9368",
-        WorkbenchNotificationSeverity::Error => "#bf5148",
+        ToastSeverity::Info => "info",
+        ToastSeverity::Success => "success",
+        ToastSeverity::Warning => "warning",
+        ToastSeverity::Error => "error",
+    }
+}
+
+fn toast_severity_icon(severity: Option<ToastSeverity>) -> &'static str {
+    match severity {
+        Some(ToastSeverity::Success) => "check-circle",
+        Some(ToastSeverity::Warning) => "alert-triangle",
+        Some(ToastSeverity::Error) => "alert-circle",
+        Some(ToastSeverity::Info) | None => "info",
+    }
+}
+
+fn toast_severity_color(severity: Option<ToastSeverity>) -> &'static str {
+    match severity {
+        Some(ToastSeverity::Info) | None => "#238f98",
+        Some(ToastSeverity::Success) => "#2d9368",
+        Some(ToastSeverity::Warning) => "#b87918",
+        Some(ToastSeverity::Error) => "#bf5148",
     }
 }

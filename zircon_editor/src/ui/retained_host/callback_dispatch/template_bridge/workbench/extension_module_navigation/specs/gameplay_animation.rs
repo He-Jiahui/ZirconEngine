@@ -289,6 +289,8 @@ const BLEND_SPACE_COMMAND_ACTIONS: &[ActionControl] = &[
     ),
 ];
 const BLEND_SPACE_FIELD_ACTIONS: &[&str] = &[
+    "workbench.extension.blend_space.search.edit",
+    "workbench.extension.blend_space.search.commit",
     "workbench.extension.blend_space.asset.edit",
     "workbench.extension.blend_space.asset.commit",
     "workbench.extension.blend_space.x_axis.edit",

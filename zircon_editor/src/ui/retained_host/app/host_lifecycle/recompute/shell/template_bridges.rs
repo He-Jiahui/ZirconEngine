@@ -1,5 +1,6 @@
 use super::super::*;
 use crate::ui::retained_host::callback_dispatch;
+use crate::ui::workbench::autolayout::ResolutionContext;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use zircon_runtime::diagnostic_log::write_error;
 
@@ -9,6 +10,11 @@ impl RetainedEditorHost {
         model: &WorkbenchViewModel,
     ) -> callback_dispatch::BuiltinWorkbenchWindowLayoutFrames {
         let shell_size = UiSize::new(self.shell_size.width, self.shell_size.height);
+        let resolution = ResolutionContext::from_physical_size_with_scale_mode(
+            self.shell_size,
+            self.shell_scale_factor,
+            self.shell_scale_mode,
+        );
         {
             zircon_runtime::profile_scope!(
                 "editor",
@@ -40,7 +46,7 @@ impl RetainedEditorHost {
                 .workbench_window_bridge
                 .recompute_mounted_layout_with_workbench_model_at_scale(
                     workbench_mount_frame,
-                    self.shell_scale_factor,
+                    resolution.effective_scale_factor(),
                     model,
                     &self.chrome_metrics,
                 )
@@ -73,5 +79,8 @@ mod tests {
         assert!(production.contains("editor_root_template_bridge_layout"));
         assert!(production.contains("editor_workbench_template_bridge_layout"));
         assert!(production.matches("write_error(").count() >= 2);
+        assert!(production.contains("ResolutionContext::from_physical_size_with_scale_mode"));
+        assert!(production.contains("effective_scale_factor()"));
+        assert!(production.contains("self.shell_scale_mode"));
     }
 }

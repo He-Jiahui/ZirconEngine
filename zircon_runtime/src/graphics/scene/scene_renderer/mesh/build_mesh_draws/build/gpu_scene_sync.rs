@@ -137,6 +137,8 @@ fn primitive_data_for_pending_draw(
         first_instance_index: entry.first_instance_index,
         instance_count: entry.instance_count,
         payload_slot,
+        material_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        material_payload_padding: [0; 3],
     }
 }
 

@@ -29,19 +29,11 @@ impl NewProjectDraft {
         if location.is_empty() {
             return Err(ProjectAuthorityError::EmptyProjectLocation);
         }
-        let location = PathBuf::from(location);
-        let location = if location.is_absolute() {
-            location
-        } else {
-            std::env::current_dir()
-                .map_err(|source| ProjectAuthorityError::CurrentDirectory { source })?
-                .join(location)
-        };
-        Ok(location.join(project_name))
+        Ok(PathBuf::from(location).join(project_name))
     }
 
     pub fn validate_for_creation(&self) -> Result<PathBuf, ProjectAuthorityError> {
-        let root = self.project_root()?;
+        let root = super::filesystem::resolve_project_path(&self.project_root()?)?;
         super::filesystem::validate_creation_target(&root)?;
         Ok(root)
     }
@@ -55,5 +47,52 @@ fn default_project_location() -> PathBuf {
     if let Some(home) = std::env::var_os("HOME") {
         return PathBuf::from(home).join("ZirconProjects");
     }
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+    // Keep the fallback unresolved so the shared project-path resolver owns current-directory
+    // resolution and Windows path identity rules.
+    PathBuf::from(".")
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::{NewProjectDraft, NewProjectTemplate};
+
+    #[test]
+    fn project_root_leaves_relative_locations_for_the_shared_path_resolver() {
+        let draft = NewProjectDraft {
+            project_name: "Resolver Owned Project".to_string(),
+            location: "relative-project-parent".to_string(),
+            template: NewProjectTemplate::RenderableEmpty,
+        };
+
+        assert_eq!(
+            draft.project_root().unwrap(),
+            PathBuf::from("relative-project-parent").join("Resolver Owned Project")
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn drive_relative_creation_location_is_rejected_by_the_shared_path_resolver() {
+        let draft = NewProjectDraft {
+            project_name: "Resolver Owned Project".to_string(),
+            location: r"C:ambiguous-project-parent".to_string(),
+            template: NewProjectTemplate::RenderableEmpty,
+        };
+
+        assert!(matches!(
+            draft.validate_for_creation(),
+            Err(super::ProjectAuthorityError::Io { source, .. })
+                if source.kind() == std::io::ErrorKind::InvalidInput
+        ));
+    }
+
+    #[test]
+    fn default_location_does_not_hide_current_directory_errors() {
+        let source = include_str!("new_project_draft.rs");
+        let swallowed_current_directory = ["current_dir()", ".unwrap_or_else"].concat();
+
+        assert!(!source.contains(&swallowed_current_directory));
+    }
 }

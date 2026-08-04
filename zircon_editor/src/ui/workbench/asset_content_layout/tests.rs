@@ -1,11 +1,11 @@
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::{
-    asset_content_paint_metadata, parse_activity_content_identity, AssetContentLayoutMetrics,
-    AssetContentPaintMetadata, AssetContentPaintNodeInput, AssetContentRect, AssetContentSurface,
-    AssetContentSurfaceProfile,
+    AssetContentLayoutMetrics, AssetContentPaintMetadata, AssetContentPaintNodeInput,
+    AssetContentRect, AssetContentSurface, AssetContentSurfaceProfile,
+    asset_content_paint_metadata, parse_activity_content_identity,
 };
-use super::{compact_file_like_display_name, RuntimeFileNameCompaction};
+use super::{RuntimeFileNameCompaction, compact_file_like_display_name};
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::retained_host::primitives::ModelRc;
@@ -115,6 +115,92 @@ fn activity_generation_metadata_selects_fixed_nodes_and_only_visible_scroll_grou
         vec![0, 3, 4, 5]
     );
     assert!(parse_activity_content_identity("AssetsActivityContentItemName00").is_some());
+}
+
+#[test]
+fn activity_reference_metadata_virtualizes_each_list_with_its_own_scroll_offset() {
+    let nodes = view_model_with_asset_metadata(
+        vec![
+            node(
+                "AssetsActivityReferenceLeftScrollBody",
+                0.0,
+                20.0,
+                100.0,
+                60.0,
+            ),
+            node(
+                "AssetsActivityReferenceLeftRowPanel01",
+                0.0,
+                20.0,
+                96.0,
+                34.0,
+            ),
+            node(
+                "AssetsActivityReferenceLeftRowNameText01",
+                8.0,
+                24.0,
+                56.0,
+                10.0,
+            ),
+            node(
+                "AssetsActivityReferenceLeftRowPanel02",
+                0.0,
+                58.0,
+                96.0,
+                34.0,
+            ),
+            node(
+                "AssetsActivityReferenceLeftRowNameText02",
+                8.0,
+                62.0,
+                56.0,
+                10.0,
+            ),
+            node(
+                "AssetsActivityReferenceRightScrollBody",
+                120.0,
+                20.0,
+                100.0,
+                60.0,
+            ),
+            node(
+                "AssetsActivityReferenceRightRowPanel01",
+                120.0,
+                20.0,
+                96.0,
+                34.0,
+            ),
+            node(
+                "AssetsActivityReferenceRightRowPanel02",
+                120.0,
+                58.0,
+                96.0,
+                34.0,
+            ),
+        ],
+        AssetContentSurface::Activity,
+    );
+    let metadata = nodes
+        .metadata::<AssetContentPaintMetadata>()
+        .expect("generation metadata");
+
+    assert_eq!(
+        metadata.visible_activity_node_rows(
+            0.0,
+            40.0,
+            0.0,
+            0.0,
+            0.0,
+            AssetContentRect {
+                x: 0.0,
+                y: 0.0,
+                width: 240.0,
+                height: 120.0,
+            },
+        ),
+        vec![0, 3, 4, 5, 6, 7],
+        "the scrolled References list must not keep its first row in the painter plan"
+    );
 }
 
 #[test]

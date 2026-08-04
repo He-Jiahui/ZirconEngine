@@ -8,7 +8,9 @@ fn runtime_15_render_material_management_tests_are_child_owners() {
     let query_execution =
         read_runtime_src("core/framework/render/material/management/tests/query_execution.rs");
 
-    let plan_08 = read_repo("docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let plan_08 = read_repo(
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

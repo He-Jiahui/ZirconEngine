@@ -116,6 +116,7 @@ fn text_and_ime_inputs_record_focused_input_routes() {
                 kind: zircon_runtime_interface::ui::dispatch::UiImeInputEventKind::Cancel,
                 text: String::new(),
                 cursor_range: None,
+                preedit_clauses: Vec::new(),
                 delete_surrounding: None,
             }),
         )

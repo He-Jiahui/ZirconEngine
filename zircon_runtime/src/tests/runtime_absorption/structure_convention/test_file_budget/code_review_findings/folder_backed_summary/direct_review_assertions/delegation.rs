@@ -82,7 +82,6 @@ fn runtime_15_code_review_findings_direct_assertions_are_child_owner() {
             "runtime_15_code_review_findings_p0_direct_assertions_are_child_owner",
             "runtime_15_code_review_findings_render_direct_assertions_are_child_owner",
             "runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_guard_folder_backed_status_is_current",
         ],
     );
     for (_, child_path, anchor) in DIRECT_REVIEW_ASSERTIONS_GUARD_CHILDREN {

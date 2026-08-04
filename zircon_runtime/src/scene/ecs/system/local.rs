@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use crate::scene::World;
 use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError};
+use crate::scene::World;
 
 pub struct LocalParam<T>(PhantomData<fn() -> T>);
 

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::{asset_manager_handle, AssetManager};
 use zircon_runtime::asset::{AssetImportError, AssetUri};
 use zircon_runtime::core::framework::foundation::ConfigManager;
@@ -34,10 +34,17 @@ impl EditorUiHost {
         let project = asset_manager.current_project_snapshot().ok_or_else(|| {
             EditorError::Project("runtime did not retain the opened project generation".to_string())
         })?;
+        // A successful runtime activation always begins a fresh project-settings generation,
+        // including reopening the same root without an intervening UI close.
+        self.settings.clear_project_layer();
         let editor_asset_manager = self.editor_asset_manager()?;
         editor_asset_manager.refresh_from_runtime_project()?;
         self.restart_ui_asset_workspace_watcher()?;
-        let document = EditorProjectDocument::load_from_activated_project(&project, project_info)?;
+        let document = EditorProjectDocument::load_from_activated_project(
+            &project,
+            project_info,
+            self.settings.as_ref(),
+        )?;
         let catalog = editor_asset_manager.catalog_snapshot();
         write_log(
             "editor_project_open",
@@ -202,6 +209,17 @@ pub(crate) fn resolve_existing_project_asset_path(
     Ok(project.source_path_for_uri(&uri)?)
 }
 
+pub(crate) fn project_open_is_degraded(
+    registry_asset_count: usize,
+    registry_ready_asset_count: usize,
+    registry_failed_asset_count: usize,
+    settings_source: &str,
+) -> bool {
+    registry_failed_asset_count != 0
+        || registry_ready_asset_count != registry_asset_count
+        || !settings_source.starts_with("persisted-")
+}
+
 fn project_opened_diagnostic(
     project_root: &Path,
     project_name: &str,
@@ -218,13 +236,21 @@ fn project_opened_diagnostic(
 ) -> String {
     // Product diagnostics are whitespace-delimited key/value records, so every free-form field
     // must be encoded as one token before F1/F5 tooling can compare it across machines.
+    let project_root = ProjectPaths::display_path(project_root);
     let project_root = percent_encode_diagnostic_token(&project_root.to_string_lossy());
     let manifest_identity =
         percent_encode_diagnostic_token(&format!("{project_name}@v{manifest_version}"));
     let scene_uri = percent_encode_diagnostic_token(default_scene_uri);
+    let is_degraded = project_open_is_degraded(
+        registry_asset_count,
+        registry_ready_asset_count,
+        registry_failed_asset_count,
+        settings_source,
+    );
     let settings_source = percent_encode_diagnostic_token(settings_source);
+    let result = if is_degraded { "degraded" } else { "completed" };
     format!(
-        "editor_project_open result=completed project_root={project_root} manifest_identity={manifest_identity} scene_uri={scene_uri} registry_asset_count={registry_asset_count} registry_ready_asset_count={registry_ready_asset_count} registry_failed_asset_count={registry_failed_asset_count} registry_diagnostic_count={registry_diagnostic_count} project_generation={project_generation} project_generation_publish_epoch={project_generation_publish_epoch} catalog_asset_count={catalog_asset_count} settings_source={settings_source}",
+        "editor_project_open result={result} project_root={project_root} manifest_identity={manifest_identity} scene_uri={scene_uri} registry_asset_count={registry_asset_count} registry_ready_asset_count={registry_ready_asset_count} registry_failed_asset_count={registry_failed_asset_count} registry_diagnostic_count={registry_diagnostic_count} project_generation={project_generation} project_generation_publish_epoch={project_generation_publish_epoch} catalog_asset_count={catalog_asset_count} settings_source={settings_source}",
     )
 }
 
@@ -355,8 +381,8 @@ mod tests {
             1,
             "res://scenes/main.scene.toml",
             7,
-            6,
-            1,
+            7,
+            0,
             2,
             3,
             9,
@@ -369,13 +395,101 @@ mod tests {
         assert!(diagnostic.contains("manifest_identity=F1%20Save%40v1"));
         assert!(diagnostic.contains("scene_uri=res%3A%2F%2Fscenes%2Fmain.scene.toml"));
         assert!(diagnostic.contains("registry_asset_count=7"));
-        assert!(diagnostic.contains("registry_ready_asset_count=6"));
-        assert!(diagnostic.contains("registry_failed_asset_count=1"));
+        assert!(diagnostic.contains("registry_ready_asset_count=7"));
+        assert!(diagnostic.contains("registry_failed_asset_count=0"));
         assert!(diagnostic.contains("registry_diagnostic_count=2"));
         assert!(diagnostic.contains("project_generation=3"));
         assert!(diagnostic.contains("project_generation_publish_epoch=9"));
         assert!(diagnostic.contains("catalog_asset_count=7"));
         assert!(diagnostic.contains("settings_source=persisted-v1"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn project_open_diagnostic_uses_a_display_path_for_verbatim_roots() {
+        let diagnostic = project_opened_diagnostic(
+            Path::new(r"\\?\C:\F1 Project"),
+            "F1 Save",
+            1,
+            "res://scenes/main.scene.toml",
+            7,
+            7,
+            0,
+            2,
+            3,
+            9,
+            7,
+            "persisted-v1",
+        );
+
+        assert!(diagnostic.contains("project_root=C%3A%5CF1%20Project"));
+        assert!(!diagnostic.contains("%3F%5C"));
+    }
+
+    #[test]
+    fn project_open_diagnostic_marks_failed_asset_imports_as_degraded() {
+        let diagnostic = project_opened_diagnostic(
+            Path::new("C:\\F1 Project"),
+            "Broken F1 Asset",
+            1,
+            "res://scenes/main.scene.toml",
+            7,
+            6,
+            1,
+            2,
+            3,
+            9,
+            7,
+            "persisted-v1",
+        );
+
+        assert!(diagnostic.starts_with("editor_project_open result=degraded"));
+        assert!(diagnostic.contains("registry_ready_asset_count=6"));
+        assert!(diagnostic.contains("registry_failed_asset_count=1"));
+    }
+
+    #[test]
+    fn project_open_diagnostic_marks_incomplete_asset_registry_as_degraded() {
+        let diagnostic = project_opened_diagnostic(
+            Path::new("C:\\F1 Project"),
+            "Incomplete F1 Registry",
+            1,
+            "res://scenes/main.scene.toml",
+            7,
+            6,
+            0,
+            1,
+            3,
+            9,
+            7,
+            "persisted-v1",
+        );
+
+        assert!(diagnostic.starts_with("editor_project_open result=degraded"));
+        assert!(diagnostic.contains("registry_asset_count=7"));
+        assert!(diagnostic.contains("registry_ready_asset_count=6"));
+        assert!(diagnostic.contains("registry_failed_asset_count=0"));
+    }
+
+    #[test]
+    fn project_open_diagnostic_marks_fallback_settings_as_degraded() {
+        let diagnostic = project_opened_diagnostic(
+            Path::new("C:\\F1 Project"),
+            "Fallback F1 Settings",
+            1,
+            "res://scenes/main.scene.toml",
+            7,
+            7,
+            0,
+            0,
+            3,
+            9,
+            7,
+            "degraded-missing",
+        );
+
+        assert!(diagnostic.starts_with("editor_project_open result=degraded"));
+        assert!(diagnostic.contains("settings_source=degraded-missing"));
     }
 
     #[test]

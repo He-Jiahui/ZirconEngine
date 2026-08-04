@@ -24,20 +24,12 @@ pub(super) fn assert_typed_error_structure_guard_line_budgets() {
             read_runtime_src(TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD_OWNER),
         ),
         (
-            TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD_OWNER,
-            read_runtime_src(TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD_OWNER),
-        ),
-        (
             TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD_OWNER,
             read_runtime_src(TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD_OWNER),
         ),
         (
             TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER,
             read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER),
-        ),
-        (
-            TYPED_ERROR_STATUS_DOCS_CHILD_OWNER,
-            read_runtime_src(TYPED_ERROR_STATUS_DOCS_CHILD_OWNER),
         ),
         (
             TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER,
@@ -54,10 +46,6 @@ pub(super) fn assert_typed_error_structure_guard_line_budgets() {
         (
             TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER,
             read_runtime_src(TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER),
-        ),
-        (
-            TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD_OWNER,
-            read_runtime_src(TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD_OWNER),
         ),
         (
             TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD_OWNER,

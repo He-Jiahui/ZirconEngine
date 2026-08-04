@@ -2,6 +2,10 @@ use super::*;
 
 #[path = "proof_commands/rich_table.rs"]
 mod rich_table;
+#[path = "proof_commands/viewport.rs"]
+mod viewport;
+
+pub(super) use viewport::proof_scrolled_plain_text_viewport;
 
 pub(super) fn proof_horizontal_rich_table() -> UiRenderCommand {
     rich_table::proof_horizontal_rich_table()
@@ -73,15 +77,97 @@ pub(super) fn proof_text(
     }
 }
 
+pub(super) fn proof_arabic_justify() -> UiRenderCommand {
+    const TEXT: &str = "سَلَام\nذ";
+    let frame = UiFrame::new(42.0, 314.0, 876.0, 52.0);
+    let mut command = proof_text(
+        103,
+        frame,
+        TEXT,
+        UiTextDirection::RightToLeft,
+        Some("ar"),
+        UiTextRenderMode::Native,
+    );
+    command.style.font_size = 24.0;
+    command.style.line_height = 26.0;
+    command.style.text_align = UiTextAlign::Justify;
+    command.text_layout = Some(layout_text(TEXT, &command.style, frame, None));
+    command
+}
+
+const SHARP_CORNER_TEXT: &str = "A/M/W · 尖角";
+const SHARP_CORNER_FRAME_WIDTH: f32 = 410.0;
+const SHARP_CORNER_FRAME_HEIGHT: f32 = 58.0;
+
+pub(super) fn proof_sdf_sharp_corner_sample() -> UiRenderCommand {
+    proof_sharp_corner_sample(107, 42.0, UiTextRenderMode::Sdf)
+}
+
 pub(super) fn proof_msdf_sharp_corner_sample() -> UiRenderCommand {
+    proof_sharp_corner_sample(123, 508.0, UiTextRenderMode::Msdf)
+}
+
+fn proof_sharp_corner_sample(
+    node_id: u64,
+    x: f32,
+    render_mode: UiTextRenderMode,
+) -> UiRenderCommand {
     proof_text(
-        123,
-        UiFrame::new(508.0, 594.0, 510.0, 58.0),
-        "A/M/W · MSDF 尖角",
+        node_id,
+        UiFrame::new(
+            x,
+            594.0,
+            SHARP_CORNER_FRAME_WIDTH,
+            SHARP_CORNER_FRAME_HEIGHT,
+        ),
+        SHARP_CORNER_TEXT,
         UiTextDirection::LeftToRight,
-        Some("zh-Hans"),
-        UiTextRenderMode::Msdf,
+        Some("en"),
+        render_mode,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn arabic_justify_proof_materializes_tatweel_without_source_range_drift() {
+        let command = proof_arabic_justify();
+        assert_eq!(command.style.text_render_mode, UiTextRenderMode::Native);
+        let layout = command
+            .text_layout
+            .as_ref()
+            .expect("Arabic justify proof needs resolved layout");
+        let first_line = &layout.lines[0];
+
+        assert_eq!(layout.lines.len(), 2);
+        assert!(first_line.text.contains('\u{0640}'));
+        assert_eq!(first_line.source_range.end, "سَلَام".len());
+        assert!(
+            first_line
+                .runs
+                .iter()
+                .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end })
+        );
+        assert!((first_line.glyph_advances.iter().sum::<f32>() - command.frame.width).abs() < 0.1);
+    }
+
+    #[test]
+    fn sharp_corner_samples_isolate_render_mode_from_fixture_content() {
+        let sdf = proof_sdf_sharp_corner_sample();
+        let msdf = proof_msdf_sharp_corner_sample();
+
+        assert_eq!(sdf.text, msdf.text);
+        assert_eq!(sdf.frame.y, msdf.frame.y);
+        assert_eq!(sdf.frame.width, msdf.frame.width);
+        assert_eq!(sdf.frame.height, msdf.frame.height);
+        assert_eq!(sdf.style.language, msdf.style.language);
+        assert_eq!(sdf.style.font_size, msdf.style.font_size);
+        assert_eq!(sdf.style.line_height, msdf.style.line_height);
+        assert_eq!(sdf.style.text_render_mode, UiTextRenderMode::Sdf);
+        assert_eq!(msdf.style.text_render_mode, UiTextRenderMode::Msdf);
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -322,6 +408,7 @@ pub(super) fn proof_mixed_bidi_editable_geometry() -> UiRenderCommand {
                 start: "LTR abc ".len(),
                 end: "LTR abc אבג".len(),
             },
+            preedit_clauses: Vec::new(),
             text: "אבג".to_string(),
             restore_text: None,
         }),

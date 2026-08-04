@@ -11,7 +11,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::text::{
     apply_text_edit_action, hit_test_text_layout, line_end_boundary, line_start_boundary,
-    word_range_at,
+    word_range_at, UiTextHitTest,
 };
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
@@ -34,7 +34,8 @@ pub(super) fn dispatch_pointer_text_edit(
     if matches!(route.kind, UiPointerEventKind::Up) {
         return dispatch_pointer_text_release(surface, pointer, route, target);
     }
-    let source_offset = text_pointer_source_offset(surface, target, route)?;
+    let hit = text_pointer_hit(surface, target, route)?;
+    let source_offset = hit.source_offset;
     let editable = editable_text_state_for_node(surface, target)?;
     let primary_press = route.activation_phase == UiPointerActivationPhase::PrimaryPress;
     let secondary_press = route.activation_phase == UiPointerActivationPhase::SecondaryPress;
@@ -61,26 +62,14 @@ pub(super) fn dispatch_pointer_text_edit(
             "text_pointer_secondary_selection_preserved"
         });
         if reset_selection {
-            apply_text_edit_action(
-                editable,
-                UiTextEditAction::MoveCaret {
-                    offset: source_offset,
-                    extend_selection: false,
-                },
-            )
+            move_pointer_caret(editable, hit, false)
         } else {
             editable
         }
     } else {
         let extend_selection =
             pointer.metadata.modifiers.shift || matches!(route.kind, UiPointerEventKind::Move);
-        apply_text_edit_action(
-            editable,
-            UiTextEditAction::MoveCaret {
-                offset: source_offset,
-                extend_selection,
-            },
-        )
+        move_pointer_caret(editable, hit, extend_selection)
     };
 
     if matches!(route.kind, UiPointerEventKind::Down) {
@@ -252,11 +241,11 @@ fn text_pointer_capture_matches(
         .is_some_and(|pointer_id| surface.input.pointer_capture_owner(pointer_id) == Some(target))
 }
 
-fn text_pointer_source_offset(
+fn text_pointer_hit(
     surface: &UiSurface,
     target: UiNodeId,
     route: &UiPointerRoute,
-) -> Option<usize> {
+) -> Option<UiTextHitTest> {
     let layout = surface
         .render_extract
         .list
@@ -267,7 +256,23 @@ fn text_pointer_source_offset(
                 .then(|| command.text_layout.as_ref())
                 .flatten()
         })?;
-    Some(hit_test_text_layout(layout, route.point).source_offset)
+    Some(hit_test_text_layout(layout, route.point))
+}
+
+fn move_pointer_caret(
+    editable: zircon_runtime_interface::ui::surface::UiEditableTextState,
+    hit: UiTextHitTest,
+    extend_selection: bool,
+) -> zircon_runtime_interface::ui::surface::UiEditableTextState {
+    let mut next = apply_text_edit_action(
+        editable,
+        UiTextEditAction::MoveCaret {
+            offset: hit.source_offset,
+            extend_selection,
+        },
+    );
+    next.caret.affinity = hit.affinity;
+    next
 }
 
 fn push_text_pointer_context_popup_effect(

@@ -1,7 +1,7 @@
 use super::*;
 use crate::core::framework::render::{
     RenderImageAssetUsage, RenderImageFallbackKind, RenderSamplerAddressMode,
-    RenderSamplerDescriptor, RenderSamplerFilter,
+    RenderSamplerDescriptor, RenderSamplerFilter, TextureMetadata, TextureMipPolicy,
 };
 
 #[test]
@@ -95,12 +95,70 @@ fn rgba8_mip_uploads_pack_layers_inside_each_mip_level() {
 }
 
 #[test]
+fn rgba8_resident_mip_uploads_rebase_destination_and_preserve_source_offsets() {
+    assert_eq!(
+        rgba8_resident_mip_uploads(8, 4, 4, 2, 1..4, 2..4),
+        vec![
+            ResidentRgba8MipUpload {
+                source: Rgba8MipUpload {
+                    level: 1,
+                    layer: 0,
+                    width: 4,
+                    height: 2,
+                    offset: 256,
+                },
+                destination_level: 0,
+            },
+            ResidentRgba8MipUpload {
+                source: Rgba8MipUpload {
+                    level: 1,
+                    layer: 1,
+                    width: 4,
+                    height: 2,
+                    offset: 288,
+                },
+                destination_level: 0,
+            },
+        ],
+        "only source mips absent from the prior physical range are uploaded; retained tail mips are copied on-GPU"
+    );
+}
+
+#[test]
+fn resident_mip_range_requires_a_contiguous_tail() {
+    assert_eq!(
+        normalize_resident_mip_range(6, 2..6).expect("valid tail range"),
+        2..6
+    );
+    assert!(normalize_resident_mip_range(6, 2..5).is_none());
+    assert!(normalize_resident_mip_range(6, 6..6).is_none());
+    assert!(normalize_resident_mip_range(6, 7..7).is_none());
+}
+
+#[test]
 fn rgba8_material_texture_view_keeps_current_d2_binding_contract() {
     let view = texture_view_descriptor(&test_descriptor(vec![RenderImageUsage::Sampled]));
 
     assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2));
     assert_eq!(view.base_array_layer, 0);
     assert_eq!(view.array_layer_count, Some(1));
+}
+
+#[test]
+fn runtime_mipgen_uses_linear_storage_with_an_srgb_sampling_view() {
+    let mut descriptor = test_descriptor(vec![RenderImageUsage::CopyDst]);
+    descriptor.color_space = RenderImageColorSpace::Srgb;
+    descriptor.metadata.color_space = RenderImageColorSpace::Srgb;
+    descriptor.metadata.mip_policy = TextureMipPolicy::GenerateRuntime;
+    descriptor.mip_count = 3;
+
+    let view = texture_view_descriptor(&descriptor);
+    let usages = wgpu_texture_usages(&descriptor, wgpu::TextureFormat::Rgba8Unorm, true);
+
+    assert_eq!(view.format, Some(wgpu::TextureFormat::Rgba8UnormSrgb));
+    assert!(usages.contains(wgpu::TextureUsages::TEXTURE_BINDING));
+    assert!(usages.contains(wgpu::TextureUsages::STORAGE_BINDING));
+    assert!(usages.contains(wgpu::TextureUsages::COPY_DST));
 }
 
 #[test]
@@ -233,6 +291,28 @@ fn sampler_descriptor_maps_texture_asset_sampler_settings() {
     assert_eq!(sampler.mipmap_filter, wgpu::MipmapFilterMode::Nearest);
 }
 
+#[test]
+fn sampler_descriptor_uses_texture_metadata_anisotropy() {
+    let mut descriptor = test_descriptor(vec![RenderImageUsage::Sampled]);
+    descriptor.metadata.max_anisotropy = 8;
+
+    let sampler = sampler_descriptor_for_image(&descriptor);
+
+    assert_eq!(sampler.anisotropy_clamp, 8);
+}
+
+#[test]
+fn sampler_descriptor_caps_anisotropy_for_viewport_quality() {
+    let mut descriptor = test_descriptor(vec![RenderImageUsage::Sampled]);
+    descriptor.metadata.max_anisotropy = 16;
+
+    let capped = sampler_descriptor_for_image_with_anisotropy_cap(&descriptor, 6);
+    let disabled = sampler_descriptor_for_image_with_anisotropy_cap(&descriptor, 1);
+
+    assert_eq!(capped.anisotropy_clamp, 4);
+    assert_eq!(disabled.anisotropy_clamp, 1);
+}
+
 fn test_descriptor(usage: Vec<RenderImageUsage>) -> RenderImageDescriptor {
     RenderImageDescriptor {
         width: 4,
@@ -241,6 +321,10 @@ fn test_descriptor(usage: Vec<RenderImageUsage>) -> RenderImageDescriptor {
         dimension: RenderImageDimension::D2,
         format: RGBA8_UNORM_FORMAT.to_string(),
         color_space: RenderImageColorSpace::Linear,
+        metadata: TextureMetadata {
+            color_space: RenderImageColorSpace::Linear,
+            ..TextureMetadata::default()
+        },
         sampler: RenderSamplerDescriptor::default(),
         usage,
         asset_usage: vec![

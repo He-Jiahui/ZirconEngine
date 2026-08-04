@@ -44,8 +44,8 @@ pub struct SceneViewportSettings {
     pub preview_skybox: bool,
 }
 
-/// Resolved snap values supplied by the editor settings registry. This is a
-/// value projection, not part of the serializable viewport or scene state.
+/// Resolved snap values supplied by the immutable editor settings authority snapshot.
+/// This is a value projection, not part of the serializable viewport or scene state.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct SceneViewportSnapSteps {
     pub(crate) translate_step: Real,
@@ -64,7 +64,7 @@ impl Default for SceneViewportSnapSteps {
 }
 
 /// Presentation projection that combines transient viewport controls with
-/// snap values resolved from `SettingsRegistry` for a single UI frame.
+/// snap values resolved from the authority snapshot for a single UI frame.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneViewportChromeSettings {
     pub mode: SceneModeActivation,

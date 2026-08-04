@@ -9,6 +9,7 @@ mod exposure_histogram_pipeline;
 mod exposure_resolve_pipeline;
 mod fxaa_pipeline;
 mod hzb_pipeline;
+mod half_res_transparency_pipeline;
 mod motion_blur_pipeline;
 mod motion_vector_neighbor_max_pipeline;
 mod motion_vector_tile_max_pipeline;

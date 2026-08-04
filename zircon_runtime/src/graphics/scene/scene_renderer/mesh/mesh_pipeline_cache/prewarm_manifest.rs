@@ -98,6 +98,16 @@ impl MeshPipelineCache {
         }
 
         for (variant_index, request) in manifest.variants.iter().enumerate() {
+            let Some(source) = manifest.source_for(request) else {
+                report.record_failure(
+                    variant_index,
+                    format!(
+                        "shader pipeline prewarm source {} is missing from the manifest",
+                        request.source_id.as_str()
+                    ),
+                );
+                continue;
+            };
             if self
                 .geometry_source_descriptor(request.key.geometry_source)
                 .is_none()
@@ -149,10 +159,10 @@ impl MeshPipelineCache {
 
             let oit_source = if requires_oit && !oit_hit {
                 let source = MeshPipelineShaderSource {
-                    wgsl_source: request.wgsl_source.clone(),
-                    source_hash: String::new(),
-                    cache_content_hashes: request.include_content_hashes.clone(),
-                    template_revision: request.template_revision.clone(),
+                    wgsl_source: source.wgsl_source.clone(),
+                    source_hash: source.source_hash(),
+                    cache_content_hashes: source.include_content_hashes.clone(),
+                    template_revision: source.template_revision.clone(),
                     segments: Vec::new(),
                 };
                 match source.into_oit_fragment_store_source() {
@@ -173,7 +183,7 @@ impl MeshPipelineCache {
             let shader = (!primary_hit || !companion_hit).then(|| {
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("zircon-runtime-shader-pipeline-prewarm-module"),
-                    source: wgpu::ShaderSource::Wgsl(request.wgsl_source.as_str().into()),
+                    source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
                 })
             });
             let (primary_pipeline, companion_pipeline) = match shader.as_ref() {

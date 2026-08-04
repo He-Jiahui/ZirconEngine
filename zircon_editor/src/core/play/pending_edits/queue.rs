@@ -147,16 +147,21 @@ impl PendingEditQueue {
 
         if retention.is_latest() {
             if let Some(location) = state.find_cohort(target, deferred.invocation(), &retention) {
-                let existing = state.intent_at(location);
+                let (existing_payload_bytes, id) = {
+                    let existing = state
+                        .intent_at(location)
+                        .ok_or(PendingEditQueueError::QueueStateInconsistent)?;
+                    (existing.payload_bytes(), existing.id)
+                };
                 let resulting_payload_bytes = state
                     .payload_bytes
-                    .checked_sub(existing.payload_bytes())
+                    .checked_sub(existing_payload_bytes)
                     .and_then(|bytes| bytes.checked_add(payload_bytes))
                     .ok_or(PendingEditQueueError::PayloadAccountingOverflow)?;
                 self.reject_payload_limit(resulting_payload_bytes)?;
-                let id = existing.id;
                 state
                     .intent_at_mut(location)
+                    .ok_or(PendingEditQueueError::QueueStateInconsistent)?
                     .replace(target, deferred, payload_bytes, now);
                 state.payload_bytes = resulting_payload_bytes;
                 return Ok(PendingEditEnqueueReport {
@@ -178,7 +183,12 @@ impl PendingEditQueue {
             }
             let cohort_count = state.cohort_count(target, deferred.invocation(), &retention);
             if let Some(existing) = state.find_cohort(target, deferred.invocation(), &retention) {
-                if state.intent_at(existing).retention != retention {
+                if state
+                    .intent_at(existing)
+                    .ok_or(PendingEditQueueError::QueueStateInconsistent)?
+                    .retention
+                    != retention
+                {
                     return Err(PendingEditQueueError::RetentionPolicyConflict);
                 }
             }
@@ -187,9 +197,13 @@ impl PendingEditQueue {
             }
         }
 
-        let evicted_payload_bytes = eviction
-            .map(|location| state.intent_at(location).payload_bytes())
-            .unwrap_or(0);
+        let evicted_payload_bytes = match eviction {
+            Some(location) => state
+                .intent_at(location)
+                .ok_or(PendingEditQueueError::QueueStateInconsistent)?
+                .payload_bytes(),
+            None => 0,
+        };
         let resulting_entries = state
             .len()
             .checked_sub(usize::from(eviction.is_some()))
@@ -212,7 +226,10 @@ impl PendingEditQueue {
             .ok_or(PendingEditQueueError::IdentifierExhausted)?;
         let mut evicted_ids = Vec::new();
         if let Some(location) = eviction {
-            evicted_ids.push(state.remove(location).id);
+            let evicted = state
+                .remove(location)
+                .ok_or(PendingEditQueueError::QueueStateInconsistent)?;
+            evicted_ids.push(evicted.id);
         }
         state.entries.push_back(PendingEditIntent::new(
             id,
@@ -367,26 +384,20 @@ impl PendingEditQueue {
                 max_oldest_age: self.limits.max_oldest_age,
             });
         }
-        if let Some((intent, age)) = state
+        if let Some((intent, age, max_age)) = state
             .retry_entries
             .iter()
             .chain(state.entries.iter())
-            .map(|intent| (intent, now.saturating_duration_since(intent.enqueued_at())))
-            .find(|(intent, age)| {
-                intent
-                    .retention
-                    .bounded_limits()
-                    .is_some_and(|limits| *age > limits.max_age())
+            .find_map(|intent| {
+                let limits = intent.retention.bounded_limits()?;
+                let age = now.saturating_duration_since(intent.enqueued_at());
+                (age > limits.max_age()).then_some((intent, age, limits.max_age()))
             })
         {
             return Err(PendingEditQueueError::RetentionAgeExceeded {
                 operation_id: intent.invocation.operation_id.to_string(),
                 oldest_age: age,
-                max_oldest_age: intent
-                    .retention
-                    .bounded_limits()
-                    .expect("bounded intent must retain its limits")
-                    .max_age(),
+                max_oldest_age: max_age,
             });
         }
         Ok(())
@@ -493,26 +504,25 @@ impl PendingEditQueueState {
             .map(|(location, _)| location)
     }
 
-    fn intent_at(&self, location: PendingEditLocation) -> &PendingEditIntent {
+    fn intent_at(&self, location: PendingEditLocation) -> Option<&PendingEditIntent> {
         match location {
-            PendingEditLocation::Retry(index) => &self.retry_entries[index],
-            PendingEditLocation::Pending(index) => &self.entries[index],
+            PendingEditLocation::Retry(index) => self.retry_entries.get(index),
+            PendingEditLocation::Pending(index) => self.entries.get(index),
         }
     }
 
-    fn intent_at_mut(&mut self, location: PendingEditLocation) -> &mut PendingEditIntent {
+    fn intent_at_mut(&mut self, location: PendingEditLocation) -> Option<&mut PendingEditIntent> {
         match location {
-            PendingEditLocation::Retry(index) => &mut self.retry_entries[index],
-            PendingEditLocation::Pending(index) => &mut self.entries[index],
+            PendingEditLocation::Retry(index) => self.retry_entries.get_mut(index),
+            PendingEditLocation::Pending(index) => self.entries.get_mut(index),
         }
     }
 
-    fn remove(&mut self, location: PendingEditLocation) -> PendingEditIntent {
+    fn remove(&mut self, location: PendingEditLocation) -> Option<PendingEditIntent> {
         match location {
             PendingEditLocation::Retry(index) => self.retry_entries.remove(index),
             PendingEditLocation::Pending(index) => self.entries.remove(index),
         }
-        .expect("queue location must resolve while the state lock is held")
     }
 }
 
@@ -540,6 +550,7 @@ pub enum PendingEditQueueError {
     RetentionPolicyConflict,
     PayloadEncoding(String),
     PayloadAccountingOverflow,
+    QueueStateInconsistent,
 }
 
 impl Display for PendingEditQueueError {
@@ -589,7 +600,24 @@ impl Display for PendingEditQueueError {
             Self::PayloadAccountingOverflow => {
                 formatter.write_str("pending edit payload accounting overflowed")
             }
+            Self::QueueStateInconsistent => formatter
+                .write_str("pending edit queue changed while an operation was being admitted"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn removing_a_stale_location_fails_without_panicking() {
+        let mut state = PendingEditQueueState::default();
+
+        assert!(state.intent_at(PendingEditLocation::Pending(0)).is_none());
+        assert!(state.intent_at_mut(PendingEditLocation::Retry(0)).is_none());
+        assert!(state.remove(PendingEditLocation::Pending(0)).is_none());
+        assert!(state.remove(PendingEditLocation::Retry(0)).is_none());
     }
 }
 

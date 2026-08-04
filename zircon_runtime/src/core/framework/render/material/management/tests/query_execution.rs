@@ -207,13 +207,11 @@ fn material_management_query_selection_returns_page_details_in_display_order() {
         query_selection.selection.issue_index.diagnostics,
         vec![records[1].material_id]
     );
-    assert!(
-        query_selection
-            .selection
-            .issue_index
-            .validation_errors
-            .is_empty()
-    );
+    assert!(query_selection
+        .selection
+        .issue_index
+        .validation_errors
+        .is_empty());
 }
 
 #[test]

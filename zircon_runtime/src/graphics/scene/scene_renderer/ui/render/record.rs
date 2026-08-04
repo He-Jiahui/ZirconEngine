@@ -4,7 +4,9 @@ use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
-use super::prepare_screen_space_ui;
+use super::{prepare_screen_space_ui, ScreenSpaceUiVertex};
+
+const SCREEN_SPACE_UI_MIN_VERTEX_BUFFER_CAPACITY_BYTES: u64 = 4 * 1024;
 
 impl ScreenSpaceUiRenderer {
     pub(crate) fn record(
@@ -19,10 +21,10 @@ impl ScreenSpaceUiRenderer {
     ) -> Result<(), GraphicsError> {
         let pass_clear_color = wgpu::Color::TRANSPARENT;
         self.last_attachment_ops = attachment_ops;
-        let Some(prepared) =
-            prepare_screen_space_ui(device, frame, attachment_ops, pass_clear_color)
+        let Some(prepared) = prepare_screen_space_ui(frame, attachment_ops, pass_clear_color)
         else {
             self.last_text_prepare_report = Default::default();
+            self.image_system.clear_frame_state();
             record_empty_screen_space_ui_pass(
                 encoder,
                 color_view,
@@ -31,6 +33,7 @@ impl ScreenSpaceUiRenderer {
             );
             return Ok(());
         };
+        self.write_screen_space_ui_vertex_buffer(device, queue, prepared.vertices.as_slice());
         self.text_system
             .prepare(
                 device,
@@ -42,9 +45,13 @@ impl ScreenSpaceUiRenderer {
             )
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         self.last_text_prepare_report = self.text_system.prepare_report();
-        let prepared_images =
-            self.image_system
-                .prepare(device, frame.viewport_size, &prepared.images, streamer);
+        let prepared_images = self.image_system.prepare(
+            device,
+            queue,
+            frame.viewport_size,
+            &prepared.images,
+            streamer,
+        );
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("zircon-screen-space-ui-pass"),
@@ -60,7 +67,7 @@ impl ScreenSpaceUiRenderer {
             multiview_mask: None,
         });
         pass.set_pipeline(&self.pipeline);
-        if let Some(vertex_buffer) = prepared.vertex_buffer.as_ref() {
+        if let Some(vertex_buffer) = self.vertex_buffer.as_ref() {
             pass.set_vertex_buffer(0, vertex_buffer.slice(..));
         }
 
@@ -84,7 +91,7 @@ impl ScreenSpaceUiRenderer {
 
         if !prepared.post_text_draws.is_empty() {
             pass.set_pipeline(&self.pipeline);
-            if let Some(vertex_buffer) = prepared.vertex_buffer.as_ref() {
+            if let Some(vertex_buffer) = self.vertex_buffer.as_ref() {
                 pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             }
             for draw in &prepared.post_text_draws {
@@ -108,6 +115,60 @@ impl ScreenSpaceUiRenderer {
     pub(crate) fn last_attachment_ops(&self) -> RenderGraphAttachmentOps {
         self.last_attachment_ops
     }
+
+    fn write_screen_space_ui_vertex_buffer(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        vertices: &[ScreenSpaceUiVertex],
+    ) {
+        if vertices.is_empty() {
+            return;
+        }
+
+        let vertex_bytes = bytemuck::cast_slice(vertices);
+        let required_byte_len = vertex_bytes.len();
+        let requires_reallocation = self.vertex_buffer.is_none()
+            || self.vertex_buffer_capacity_bytes < required_byte_len as u64;
+        if requires_reallocation {
+            self.vertex_buffer_capacity_bytes =
+                screen_space_ui_vertex_buffer_capacity(required_byte_len);
+            self.vertex_buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("zircon-screen-space-ui-vertices"),
+                size: self.vertex_buffer_capacity_bytes,
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
+        }
+
+        let payload_hash = *blake3::hash(vertex_bytes).as_bytes();
+        let write_required = screen_space_ui_vertex_buffer_write_required(
+            requires_reallocation,
+            self.vertex_buffer_payload_hash,
+            payload_hash,
+        );
+        if write_required {
+            if let Some(vertex_buffer) = self.vertex_buffer.as_ref() {
+                queue.write_buffer(vertex_buffer, 0, vertex_bytes);
+                self.vertex_buffer_payload_hash = Some(payload_hash);
+            }
+        }
+    }
+}
+
+pub(super) fn screen_space_ui_vertex_buffer_write_required(
+    requires_reallocation: bool,
+    current_payload_hash: Option<[u8; 32]>,
+    next_payload_hash: [u8; 32],
+) -> bool {
+    requires_reallocation || current_payload_hash != Some(next_payload_hash)
+}
+
+fn screen_space_ui_vertex_buffer_capacity(required_byte_len: usize) -> u64 {
+    (required_byte_len as u64)
+        .max(SCREEN_SPACE_UI_MIN_VERTEX_BUFFER_CAPACITY_BYTES)
+        .checked_next_power_of_two()
+        .unwrap_or(required_byte_len as u64)
 }
 
 fn record_empty_screen_space_ui_pass(

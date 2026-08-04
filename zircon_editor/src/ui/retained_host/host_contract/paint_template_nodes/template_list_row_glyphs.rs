@@ -1,4 +1,5 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::paint_geometry::intersect;
 use super::render_commands::HostPaintCommand;
 use super::template_icon_assets::push_icon_asset_pixels;
 use super::template_row_metrics::workbench_row_palette;
@@ -9,7 +10,7 @@ mod selection;
 mod shapes;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::{
-    ListRowAdornmentKind, list_row_adornment_kind,
+    list_row_adornment_kind, ListRowAdornmentKind,
 };
 
 const LIST_ROW_CHECK_ICON: &str = "zircon_editor_shell/controls/check.svg";
@@ -26,6 +27,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     opacity: f32,
 ) {
     let adornment = geometry::list_row_adornment_rect(rect);
+    if intersect(&adornment, clip).is_none() {
+        return;
+    }
     match list_row_adornment_kind(node) {
         ListRowAdornmentKind::Check => {
             if push_icon_asset_pixels(

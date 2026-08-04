@@ -21,11 +21,11 @@ mod scene_bind_group_layout;
 
 pub(in crate::graphics::scene::scene_renderer) use ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
 pub(in crate::graphics::scene::scene_renderer) use lightmap_binding::{
-    lightmap_bind_group_layout_entries, LightmapGpuBindings, SceneLightmapResources,
+    LightmapGpuBindings, SceneLightmapResources, lightmap_bind_group_layout_entries,
 };
 pub(in crate::graphics::scene::scene_renderer) use probe_buffer::{
-    reflection_probe_bind_group_layout_entries, ReflectionProbeGpuBindings,
-    SceneReflectionProbeResources, PLANAR_REFLECTION_TEXTURE_SIZE,
+    PLANAR_REFLECTION_TEXTURE_SIZE, ReflectionProbeGpuBindings, SceneReflectionProbeResources,
+    reflection_probe_bind_group_layout_entries,
 };
 pub use realtime_ibl_gpu_timestamps::RealtimeIblGpuTimingReport;
 pub(in crate::graphics::scene::scene_renderer) use realtime_ibl_runtime::{

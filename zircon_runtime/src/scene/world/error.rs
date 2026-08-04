@@ -2,8 +2,8 @@ use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
 use crate::scene::{
-    EntityId,
     ecs::{EntityRegistryError, StorageError},
+    EntityId,
 };
 
 pub type SceneResult<T> = std::result::Result<T, SceneError>;
@@ -109,7 +109,10 @@ pub enum SceneError {
     #[error("property `{property_path}` rejects zero-length quaternion")]
     ZeroLengthQuaternion { property_path: String },
     #[error("entity {entity} has zero {axis}-scale in its transform")]
-    ZeroScaleTransform { entity: EntityId, axis: &'static str },
+    ZeroScaleTransform {
+        entity: EntityId,
+        axis: &'static str,
+    },
     #[error("property `{property_path}` expected finite {expected}")]
     NonFinitePropertyValue {
         property_path: String,
@@ -132,6 +135,10 @@ pub enum SceneError {
         property_path: String,
         index_kind: &'static str,
     },
+    #[error("bundle commit requires final-state validation")]
+    BundleFinalStateNotValidated,
+    #[error("bundle staged {staged} components but received {committed} commit values")]
+    BundleCommitIncomplete { staged: usize, committed: usize },
     #[error("{0}")]
     Message(String),
 }

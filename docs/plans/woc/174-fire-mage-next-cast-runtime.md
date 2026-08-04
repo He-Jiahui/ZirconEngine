@@ -1,6 +1,6 @@
 ---
 title: WOS174 Fire Mage next-cast runtime foundation
-status: in_progress
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -81,3 +81,13 @@ while also supporting non-Fire next-cast producers without text identities.
 | 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
 | WOS174a | 通用 next-cast 规则层和 v85 持久化分区 | in_progress | 2026-08-01 | `combat/next_cast_modifier_state`、`WorldState` v85、静态守卫 |
+
+## 二次审查
+
+2026-08-03: second static review confirmed the canonical next-cast row shape,
+strict target partitions, free/instant consumption on an eligible successful
+cast, v85 default migration, Combustion's off-GCD state and post-hit ordering.
+The focused Fire-proc and next-cast world-state packages now explicitly bind
+`zr_vm:project`; `node examples/woc/tools/wos174_fire_mage_next_cast_static_guard.mjs`
+passed. Dynamic ZrVM execution remains pending and is not replaced by a host
+runtime.

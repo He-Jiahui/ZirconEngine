@@ -148,7 +148,6 @@ RUNTIME_07_TEST_FILES = (
     "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context/split_layout/status_docs.rs",
     "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context/status_docs.rs",
     "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_error_paths.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
     "zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs",
     "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
     "zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs",

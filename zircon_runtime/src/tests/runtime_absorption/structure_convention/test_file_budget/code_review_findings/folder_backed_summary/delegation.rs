@@ -50,7 +50,6 @@ fn runtime_15_code_review_findings_folder_backed_summary_is_child_owner() {
             "super::late_api_cleanup_child_owners::assert_late_api_cleanup_child_owners_are_folder_backed",
             "super::typed_error_child_owners::assert_typed_error_child_owners_are_folder_backed",
             "code review findings children should preserve all 78 review guards",
-            "super::status_docs::assert_code_review_findings_status_docs_are_synced",
         ],
     );
     for (_, child_path, anchor) in FOLDER_BACKED_SUMMARY_GUARD_CHILDREN {

@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::{RuntimePrepareExternalBufferBinding, RuntimePrepareGpuReadbackRequest};
-use crate::rhi_wgpu::gpu_readback_queue::GpuReadbackQueue;
+use zr_rhi_wgpu::GpuReadbackQueue;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginReadbacks {
     pub(super) outputs: RenderPluginRendererOutputs,

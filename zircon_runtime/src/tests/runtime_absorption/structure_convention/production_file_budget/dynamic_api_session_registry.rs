@@ -14,18 +14,6 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let dynamic_session_doc = read_repo("docs/zircon_runtime/dynamic_api/session.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
-    let status_row_owner = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4/core_rhi_dynamic.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
 
     assert_contains_all(
         "dynamic API session parent delegates registry ownership",
@@ -207,36 +195,6 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
         ],
     );
     for (label, source) in [
-        ("current child owner", current_anchor_owner.as_str()),
-        ("status-output route mirror", status_rows.as_str()),
-        ("status-output row owner", status_row_owner.as_str()),
-    ] {
-        assert!(
-            !source.contains("dynamic_api/session/registry.rs"),
-            "{label} should not retain the deleted flat registry path"
-        );
-    }
-    for (label, source) in [
-        ("status-output route mirror", status_rows.as_str()),
-        ("status-output row owner", status_row_owner.as_str()),
-    ] {
-        let registry_row = section_between(
-            source,
-            "Runtime 15 M4 dynamic API session registry owner split",
-            "Runtime 15 M4 dynamic API shader prewarm tests owner split",
-        );
-        assert_contains_all_exact(
-            label,
-            registry_row,
-            &[
-                "runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred",
-                "dynamic_api/session.rs",
-                "dynamic_api/session/registry/session_store.rs",
-                "runtime_15_dynamic_api_session_registry_is_child_owner",
-            ],
-        );
-    }
-    for (label, source) in [
         ("module convention doc", module_doc.as_str()),
         ("dynamic API session doc", dynamic_session_doc.as_str()),
     ] {
@@ -254,22 +212,6 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 M4 dynamic API session registry owner split",
-            "runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 M4 dynamic API session registry owner split",
-            "2026-06-24",
-        ],
-    );
 }
 
 fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {

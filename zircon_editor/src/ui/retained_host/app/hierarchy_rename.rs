@@ -6,7 +6,7 @@ use crate::ui::retained_host::{HostTextInputFocusData, UiHostContext};
 
 use super::{FrameRect, HostInvalidationMask, RetainedEditorHost, SceneEntries, callback_dispatch};
 
-pub(in crate::ui::retained_host::app) const HIERARCHY_INLINE_RENAME_CONTROL_ID: &str =
+pub(in crate::ui::retained_host) const HIERARCHY_INLINE_RENAME_CONTROL_ID: &str =
     "HierarchyInlineRename";
 pub(in crate::ui::retained_host::app) const HIERARCHY_INLINE_RENAME_EDIT_ACTION_ID: &str =
     "HierarchyInlineRenameEdit";

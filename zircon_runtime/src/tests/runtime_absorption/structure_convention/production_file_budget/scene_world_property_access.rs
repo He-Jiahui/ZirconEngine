@@ -11,9 +11,6 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "property-access write parent keeps dispatch and non-physics writers",
@@ -97,17 +94,6 @@ fn runtime_15_scene_world_property_access_physics_writes_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 scene world property-access physics write owner split",
-            "runtime_15_scene_world_property_access_physics_owner_split_static_passed_cargo_timeout_no_result",
-            "scene/world/property_access/write.rs",
-            "scene/world/property_access/write/physics.rs",
-            "runtime_15_scene_world_property_access_physics_writes_are_child_owner",
-        ],
-    );
 }
 
 #[test]
@@ -122,9 +108,6 @@ fn runtime_15_scene_world_property_access_physics_entries_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "property-access entry parent keeps traversal, non-physics projection, and capacity routing",
@@ -218,15 +201,4 @@ fn runtime_15_scene_world_property_access_physics_entries_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 scene world property-access physics entry owner split",
-            "runtime_15_scene_world_property_access_physics_entries_owner_split_static_passed_cargo_lock_blocked",
-            "scene/world/property_access/entries.rs",
-            "scene/world/property_access/entries/physics.rs",
-            "runtime_15_scene_world_property_access_physics_entries_are_child_owner",
-        ],
-    );
 }

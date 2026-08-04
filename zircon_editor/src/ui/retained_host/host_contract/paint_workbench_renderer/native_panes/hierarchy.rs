@@ -11,7 +11,7 @@ use crate::ui::retained_host::hierarchy_pointer::{
 pub(super) use viewport::hierarchy_viewport_frame;
 
 use super::super::super::data::{
-    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, PaneData,
+    FrameRect, HostPaneInteractionStateData, HostTextInputFocusData, PaneData, SceneNodeData,
 };
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::intersect;

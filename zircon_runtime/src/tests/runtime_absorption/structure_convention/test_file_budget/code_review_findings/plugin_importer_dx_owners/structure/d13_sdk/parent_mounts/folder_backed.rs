@@ -40,10 +40,8 @@ pub(super) fn assert_plugin_importer_d13_sdk_structure_assertions_are_child_owne
             PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD,
             PLUGIN_IMPORTER_D13_REVIEW_CHILDREN_CHILD,
             PLUGIN_IMPORTER_D13_BUDGETS_CHILD,
-            PLUGIN_IMPORTER_D13_STATUS_MIRRORS_CHILD,
             "runtime_15_plugin_importer_d13_sdk_structure_assertions_are_child_owner",
             PLUGIN_IMPORTER_D13_FOLDER_BACKED_GUARD,
-            PLUGIN_IMPORTER_D13_STATUS_GUARD,
         ],
     );
     assert_plugin_importer_d13_sdk_child_owners_are_folder_backed();
@@ -95,7 +93,6 @@ pub(super) fn assert_plugin_importer_d13_sdk_structure_assertions_guard_is_folde
             PLUGIN_IMPORTER_D13_FOLDER_BACKED_SLICE,
             PLUGIN_IMPORTER_D13_FOLDER_BACKED_STATUS,
             PLUGIN_IMPORTER_D13_FOLDER_BACKED_GUARD,
-            PLUGIN_IMPORTER_D13_STATUS_GUARD,
         ],
     );
 }

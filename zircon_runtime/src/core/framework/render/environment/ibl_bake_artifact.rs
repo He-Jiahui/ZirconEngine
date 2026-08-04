@@ -1,12 +1,12 @@
 use super::rgba16f::{
-    RGBA16F_TEXEL_SIZE_BYTES, append_rgb_as_rgba16f_texels, append_rgba16f_texels,
-    decode_rgb_from_rgba16f_texels, decode_rgba16f_texels,
+    append_rgb_as_rgba16f_texels, append_rgba16f_texels, decode_rgb_from_rgba16f_texels,
+    decode_rgba16f_texels, RGBA16F_TEXEL_SIZE_BYTES,
 };
 use super::{
-    IblBakeKey, SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, SourceCubemapIrradianceCube,
+    source_cubemap_sample_count, IblBakeKey, SourceCubemapIrradianceCube,
     SourceCubemapIrradianceSh9, SourceCubemapMipChain, SourceCubemapPmremLayout,
-    source_cubemap_sample_count,
+    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};

@@ -167,7 +167,7 @@ fn enable_project_plugin_feature_dependencies_with_catalog(
     feature_id: &str,
     catalog_label: &str,
 ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
-    let packages = catalog.package_manifests();
+    let packages = catalog.package_manifests().cloned().collect::<Vec<_>>();
     let mut candidate = Arc::unwrap_or_clone(
         catalog.complete_project_manifest(&manifest.plugins, RuntimeTargetMode::EditorHost),
     );

@@ -1,5 +1,5 @@
 use crate::scene::ecs::events::metrics::{
-    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EventCapacityMetrics,
+    EventCapacityMetrics, EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES,
 };
 
 const EVENT_CAPACITY_LOW_WATER_DIVISOR: usize = 4;

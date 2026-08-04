@@ -19,7 +19,7 @@ status: in_progress
 
 # 17 编辑器必要服务：设置分层 / 自动保存 / 崩溃恢复 / 日志诊断 / 通知 / 本地化
 
-> 2026-08-02 实仓复核：M1 的三层 `SettingsRegistry` 与 legacy preferences 硬切、M2 的 autosave 调度骨架，以及 M3 的 Decision 通知中心已经落入当前源码；设置页贡献/热应用、布局真实持久化、session guard/restore flow、Toast/Progress、统一日志和 i18n 仍未完成。计划状态保持 `in_progress`，未落地模块不得据此视为已验收。
+> 2026-08-04 实仓复核：M1 的三层 `SettingsRegistry` 与 legacy preferences 硬切、M2 的 autosave 调度骨架，以及 M3 的 Decision/Toast/Progress 通知、`core/logging/` 与 `core/i18n/` 核心已经落入当前源码；设置页贡献/热应用、布局真实持久化、session guard/restore flow 接线、通知与日志生产者/activity 迁移、命令/设置/通知词条接线仍未完成。计划状态保持 `in_progress`，未落地模块不得据此视为已验收。
 
 ## 参照证据（dev/）
 
@@ -33,15 +33,15 @@ status: in_progress
 
 **布局持久化空壳已移除**（06 已证）：旧 `workbench/layout/manager/persistence.rs` 四函数只做克隆/透传且零文件 IO，现已从 owner tree 删除。真实 User/Project 布局持久化仍由 EditorLayout06 M3 基于 `SettingsScope` 实现；不得为满足旧路径或旧测试恢复无效壳层。
 
-**恢复已具 autosave 调度骨架**：`core/recovery/autosave.rs` 已有 `AutosavePolicy`、`AutosaveScheduler`、`AutosaveJobPolicy`，并通过 mutex group / job spec 接入后台任务；`EditorEventJournal` + `EditorEventReplay::replay` 仍是第二素材线。当前真正缺口是 session guard、启动残锁检测、restore flow 与逐文档恢复决策，而不是重新实现 autosave 调度器。
+**恢复核心已落**：`core/recovery/autosave.rs` 已有 `AutosavePolicy`、`AutosaveScheduler`、`AutosaveJobPolicy`，并通过 mutex group / job spec 接入后台任务；`session_guard/` 已把唯一持久记录、OS 生命周期租约、staged 原子发布和 durability 状态分离，`restore_flow.rs` 已保留残锁并要求逐文档显式决策；`EditorEventJournal` + `EditorEventReplay::replay` 仍是第二素材线。当前真正缺口是项目激活 owner 的 live/residual 裁决、prepared-project 启动接线、恢复通知呈现与 03 journal 兜底，而不是重新实现 autosave 或第二套锁。
 
 **通知呈现件**：`ui/activity/` 实测为 `slot.rs/view.rs/window.rs` 三件（槽位/视图/窗口）——通知中心呈现层的迁移对象即此三件。
 
-**日志分散**：runtime 侧 `tasks/diagnostics.rs`（任务观测）、`ZrHostApiV3.diagnostics{emit, metric}`（插件诊断域）、`--log-level/--log-filter`（CLI 既有）、04 Play 子进程 stdout/stderr、09 导入警告、13 编译诊断——**六个来源无汇聚面**。
+**日志汇聚核心已落**：`core/logging/` 提供有界内存记录、频道/severity 过滤、类型化跳转目标、按日且可跨进程续写的滚动文件 sink，并已挂入 `EditorContext`；runtime `tasks/diagnostics.rs`、插件 `ZrHostApiV3.diagnostics{emit, metric}`、CLI、04 Play stdout/stderr、09 导入、13 编译诊断这六个生产者及活动面板数据源仍未迁移，不能把核心目录视为全链完成。
 
-**通知中心已落 Decision 子域**：`core/notifications/service.rs` 与 `notifications/decision/` 已提供 pending/receipt 有界决策通知；`ui/activity/` 呈现层、Toast/Progress 两类生命周期，以及 14/09/04/11/12 的生产者收口仍未完成。
+**通知中心核心已落三类子域**：`core/notifications/service.rs` 与 `notifications/{identity,decision,toast,progress}/` 提供共享身份、pending/receipt 有界决策、显式 expiry Toast 与 JobId 投影 Progress；`ui/activity/` 呈现层和 14/09/04/11/12 的生产者收口仍未完成。
 
-**本地化**：无框架，UI 文案硬编码中英混排。
+**本地化核心已落**：`core/i18n/` 内嵌 en/zh-CN TOML 双包，提供显式服务引用的 `tr!`、语言热切换及“当前语言→en→raw key”回退链，并挂入 `EditorContext`；通知的 Decision/Toast/Progress 已有只读本地化展示投影，08 命令、设置页和 `ui/activity/` 消费端仍需由各自 owner 迁移。
 
 ## 目标
 
@@ -83,14 +83,18 @@ zircon_editor/src/core/settings/
   mod.rs / registry.rs / scope.rs / definition.rs / defaults.rs / io.rs
   keymap_overrides.rs / page.rs                 # 已落地：三层读写、定义与页面描述符
 zircon_editor/src/core/recovery/
-  mod.rs / autosave.rs                          # 已落地
-  session_guard.rs / restore_flow.rs             # 待落地
+  mod.rs / autosave.rs / restore_flow.rs          # 恢复核心已落；项目激活待接线
+  session_guard/{record,mutation,ownership_lease,guard}.rs
+                                                   # 锁事实/发布/排他/生命周期分离
 zircon_editor/src/core/logging/
-  mod.rs / sink.rs / entry.rs / rolling_file.rs  # 待创建
+  mod.rs / config.rs / source.rs / severity.rs / jump.rs / entry.rs
+  filter.rs / record.rs / store.rs / service.rs / rolling_file.rs
+                                                   # 汇聚核心已落；六来源与面板待接线
 zircon_editor/src/core/notifications/
-  mod.rs / service.rs / decision/                # 已落 Decision；Toast/Progress 待补
+  mod.rs / service.rs / identity/ / decision/ / toast/ / progress/  # 核心已落；生产者/activity 待接线
 zircon_editor/src/core/i18n/
-  mod.rs / catalog.rs / macros.rs                # 待创建
+  mod.rs / catalog.rs / locale.rs / error.rs / service.rs / macros.rs
+                                                   # 核心已落；命令/设置/通知词条待接线
 ```
 
 五服务全挂 `EditorContext`（01）；**全部事件化**——面板只是订阅者，headless（16 commandlet）下 settings/logging 照常运转（commandlet 的 `--diagnostics` 输出即 logging 落盘面）。
@@ -154,9 +158,20 @@ zircon_editor/src/core/i18n/
 ### 已处理
 
 - front matter 已提升为 `in_progress`；现状节与模块图已按 `core/settings/`、`core/recovery/autosave.rs`、`core/notifications/service.rs` 和 `notifications/decision/` 的真实落点更新。
-- legacy preferences 硬切已完成；设置页贡献/热应用、真实布局持久化、session guard/restore flow、Toast/Progress 被明确保留为待接线项，没有因 status 提升而误标完成。
+- legacy preferences 硬切已完成；设置页贡献/热应用、真实布局持久化、session guard/restore flow 仍待接线。Toast/Progress 核心契约已落在 `core/notifications/{identity,toast,progress}/`，但生产者清单收口与 activity 呈现迁移尚未验收，不得因核心模块已创建而误标 M3.2 完成。
 
 ### 实现风险 / 技术债
 
-- 目标 3 `EditorLog`（`core/logging/`）与目标 5 i18n（`core/i18n/`）两个模块目录当前仍不存在；M3 切片 3.1 和 3.3 必须从 owner 创建与消费接线开始，不能复用 settings/notification 的进度宣称。
-- Decision 已落地不代表通知中心三类契约完成；Toast、Progress、`ui/activity/` 呈现迁移和生产者收口仍需单独验收。
+- `core/logging/` 汇聚核心已创建，但六来源接入、`--diagnostics` 路径配置与活动面板消费仍未完成；`core/i18n/` 已接入通知只读展示投影，但命令/设置、`ui/activity/` 消费端和插件包词条尚未完成。不得把任一核心目录进度宣称为 M3 整体完成。
+- Decision、Toast、Progress 的核心数据契约已落地不代表通知中心 M3.2 完成；14/09/04/11/12 生产者收口、`ui/activity/` 呈现迁移和 current-source managed validation 仍需单独验收。
+
+## 产出记录与时间
+
+| 日期 | 切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-08-04 | M3.1/M3.3 独立审查前向修复 | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 独立审查先后暴露日志的文件/总线顺序、sink 可重入、CWD 根推断、项目回滚解绑、无界 FIFO 事件保留、canonical bus 回执未进入重同步，以及 i18n 的 locale 事件反序、无界事件保留与回执丢失。未回滚已集成代码：日志改为 emission 内 FIFO 入队、锁外有序派发，并以条目/字节预算拒绝溢出 record；发生本地或 bus 断裂时，以 `through_sequence` 事实要求订阅者重建 store snapshot，不伪造不可证明的精确丢失区间。i18n 改为 transition 内 FIFO 入队、锁外派发，并在条目/字节预算溢出后合并为最新 locale resync。两者都会把 sink 的 `Rejected/Backpressured` 吸收为待派发 resync，失败的 resync 保留至下一事实事件重试，完成计数只在送达后增加；canonical bounded inbox 仅在每个被淘汰订阅者也收到 marker 时确认完成，否则继续重试。i18n failure absorb/retry 与普通 locale transition 共用线性化锁；并发回归接受“旧 locale resync 后新 change”或“直接合并到最新 locale resync”两种收敛序列。项目成功打开才绑定真实根并在关闭/失败回滚后解绑。受控多线程交错、慢 sink 饱和、字节预算、失败重试和 bounded inbox 交错回归已加入。两位独立审查者最终均为 `Critical/Important/Minor = 0/0/0`；限定格式、diff、FIFO/生命周期/回退链和无 panic 静态守卫通过，未运行 Cargo，托管验证待回执。 |
+| 2026-08-04 | M3.1 logging aggregation core | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 新建 `core/logging/`：类型化 `LogSource`/`LogJump` 构造边界、条目与频道/severity 过滤、有条目数和字节数双上限的内存环、按日滚动并在进程重启后续写下一段的文件 sink；日志 record 以 sequence 通知接入 canonical bus，但实体仍只从 store 查询。成功打开项目后以真实 `<project>/.zircon/logs` 绑定 sink，关闭项目后解绑。限定 rustfmt、diff、无 panic 路径、单行落盘、受控并发顺序和可重入事件静态守卫通过；两位独立审查最终 `0/0/0`。未运行 Cargo，六来源生产者、CLI diagnostics 路径和活动面板仍未接线。 |
+| 2026-08-04 | M3.3 i18n core | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 新建 `core/i18n/` 和 en/zh-CN 内嵌 TOML 包；`EditorI18nService` 以显式服务引用实现语言切换、当前语言→en→raw key 回退和 `tr!` 宏，语言变更只以 `editor.i18n` 事实事件通知订阅者，并挂入 `EditorContext`。限定 rustfmt、diff、无 panic 路径和双包/回退链静态守卫通过；两位独立审查最终 `0/0/0`。未运行 Cargo，08 命令、设置页、`ui/activity/` 消费端与插件词条尚未迁移。 |
+| 2026-08-04 | M3.3 notification i18n presentation | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 新增 `core/notifications/presentation.rs`，将 Decision、Toast、Progress 的不可变快照投影为本地化读模型；翻译发生在消费边界，ticket、option id、通知来源、expiry、severity、resolved receipt 与权威 job snapshot 原样保留，不引入第二状态或动作入口。补入现有 play-pending-edit 与启动 Play 词条的 en/zh-CN 资源；回归覆盖语言热切换后的 decision identity、raw key 回退 toast 和 progress snapshot 保真。二审前向修复为单次捕获并公开 locale、以该快照完成全部 key 回退解析，及完整比较 resolved receipt 的 sequence/ticket/option；两位独立审查最终均为 `Critical/Important/Minor = 0/0/0`。限定 rustfmt、diff、五个生产 key 双包一致性、只读边界、locale 快照、receipt identity 和模块导出静态守卫通过；未运行 Cargo，托管验证待回执。 |
+| 2026-08-04 | M3.2 notification core forward repair | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 新建共享 identity、Toast、Progress 子域并挂入 `EditorNotificationService`；Toast 以显式时钟管理 expiry、容量和 duplicate，Progress 从 `JobTicket` 仅提取 `JobId` 并随 active progress snapshot 清理陈旧绑定。Decision 迁至共享 identity，保留式 pending-edit 用例已走真实 option callback 和 receipt 链路。局部格式、diff 与静态契约守卫通过，两轮独立审查最终 `0/0/0`；未运行 Cargo，生产者及 activity 迁移未完成。 |
+| 2026-08-04 | M2 session guard / restore flow 前向修复 | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 前向修复 residual takeover 的 read-then-replace 竞态：`SessionGuard` 在验证前取得且整个 guard 生命周期持有项目 OS 租约（Windows `Global\` 命名 mutex / Unix `.zircon` 非阻塞 `flock`），避免 takeover、heartbeat、release 之间覆盖 successor；记录写入先 stage+flush 再原子发布，Windows 因本层没有 parent-directory fsync 等价物、Unix 因发布后目录同步失败时均以 `PublishedWithDurabilityUncertainty` 保留已生效 guard，而不伪装为未变更。重复 key 的锁记录改为拒绝；`RestoreFlow` 对残锁但无较新 autosave 返回 `ResidualTakeoverRequired`，并拒绝无候选时的额外决议。按模块边界拆为 `record`、`mutation`、`ownership_lease`、`guard`，根模块仅导出。限定 rustfmt、diff、14 项所有权/发布/解析/恢复静态守卫通过；并发 takeover、live guard heartbeat/release、重复字段和 residual-only 决议回归已加入。两位独立审查分别为 `0/0/0` 与 `0/0/1`；后者仅 Markdown 的 `Global\` 字面量，已按源码单分隔符修正并复查。未运行 Cargo；项目启动 liveness 裁决、prepared-project 接线、恢复 UI 与托管验证仍待外部 owner/协调器。 |

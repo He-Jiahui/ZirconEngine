@@ -12,6 +12,7 @@ impl RetainedViewportController {
             zircon_runtime::profile_scope!("editor", "viewport", "controller_build_lazy_state");
             Self {
                 shared: Arc::new(Mutex::new(ViewportState::lazy(core))),
+                viewport_lifecycle: Arc::new(Mutex::new(())),
             }
         })
     }

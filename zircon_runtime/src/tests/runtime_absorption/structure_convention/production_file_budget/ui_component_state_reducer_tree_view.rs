@@ -11,9 +11,6 @@ fn runtime_15_ui_component_state_reducer_tree_view_editing_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "tree-view parent keeps navigation, selection, and expansion responsibilities",
@@ -114,15 +111,4 @@ fn runtime_15_ui_component_state_reducer_tree_view_editing_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI component state-reducer tree view editing owner split",
-            "runtime_15_ui_component_state_reducer_tree_view_editing_owner_split_static_passed_cargo_deferred",
-            "ui/component/state_reducer/tree_view.rs",
-            "ui/component/state_reducer/tree_view/editing.rs",
-            "runtime_15_ui_component_state_reducer_tree_view_editing_is_child_owner",
-        ],
-    );
 }

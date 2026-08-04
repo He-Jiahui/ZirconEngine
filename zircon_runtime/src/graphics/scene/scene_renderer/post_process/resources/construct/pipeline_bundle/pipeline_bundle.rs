@@ -8,6 +8,10 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::construc
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) hzb_msaa_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) half_res_transparency_depth_downsample_pipeline:
+        wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) half_res_transparency_composite_pipeline:
+        wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) exposure_histogram_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) exposure_resolve_pipeline:

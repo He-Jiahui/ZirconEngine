@@ -74,6 +74,42 @@ fn mesh_draw_command_list_sorts_by_phase_then_sort_key() {
 }
 
 #[test]
+fn mesh_pass_buffers_split_material_marked_transparency_without_losing_counts() {
+    let buffers = MeshPassCommandBuffers::from_cached_command_hits(
+        MeshDrawCommandList::from_commands(vec![
+            command(RenderPhase::Transparent3d, 10, 1),
+            command(RenderPhase::Transparent3d, 20, 2).with_half_resolution_transparency(true),
+        ]),
+        Default::default(),
+    );
+
+    assert_eq!(buffers.transparent().commands().len(), 1);
+    assert!(!buffers.transparent().commands()[0].uses_half_resolution_transparency());
+    assert_eq!(buffers.half_resolution_transparent().commands().len(), 1);
+    assert!(
+        buffers.half_resolution_transparent().commands()[0].uses_half_resolution_transparency()
+    );
+    assert_eq!(buffers.stats().transparent_command_count, 2);
+}
+
+#[test]
+fn mesh_pass_buffers_restore_marked_transparency_for_full_resolution_fallback() {
+    let mut buffers = MeshPassCommandBuffers::from_cached_command_hits(
+        MeshDrawCommandList::from_commands(vec![
+            command(RenderPhase::Transparent3d, 10, 1),
+            command(RenderPhase::Transparent3d, 20, 2).with_half_resolution_transparency(true),
+        ]),
+        Default::default(),
+    );
+
+    buffers.merge_half_resolution_transparent_into_transparent();
+
+    assert_eq!(buffers.transparent().commands().len(), 2);
+    assert!(buffers.half_resolution_transparent().commands().is_empty());
+    assert_eq!(buffers.stats().transparent_command_count, 2);
+}
+
+#[test]
 fn mesh_draw_command_list_reports_draw_and_instance_sources() {
     let commands = MeshDrawCommandList::from_commands(vec![
         command(RenderPhase::Opaque3d, 1, 1),

@@ -6,7 +6,7 @@ display_name = "Showcase Selection Section"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.ShowcaseSelectionSection]
 root = "selection_section_root"
@@ -16,7 +16,7 @@ default_classes = ["showcase-panel", "material-surface"]
 component = "Label"
 control_id = "ComponentShowcaseSelectionSectionTitle"
 classes = ["showcase-section-title"]
-props = { text = "Selection and References", font_size = 13.0, font_weight = 700 }
+props = { text = "Selection and References", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.emphasis.weight" }
 layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 
 [nodes.dropdown_demo]
@@ -35,7 +35,7 @@ events = [
 component = "ComboBox"
 control_id = "ComboBoxDemo"
 classes = ["showcase-field", "material-control", "material-outlined-field"]
-props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall", layout_min_height = "$editor.control.height.default", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [
   { id = "UiComponentShowcase/ComboBoxChanged", event = "Change", route = "component_lab.showcase.select_option.combo_box" },

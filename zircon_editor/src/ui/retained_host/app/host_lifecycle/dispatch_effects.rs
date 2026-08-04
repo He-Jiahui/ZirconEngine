@@ -1,6 +1,9 @@
+use crate::core::notifications::{
+    NotificationId, NotificationSource, ToastNotification, ToastSeverity,
+};
 use crate::ui::retained_host::app::{HostInvalidationMask, RetainedEditorHost};
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
-use crate::ui::retained_host::workbench_notifications::workbench_dispatch_error_notification;
+use std::time::Duration;
 
 mod side_effects;
 mod status;
@@ -51,10 +54,26 @@ impl RetainedEditorHost {
         match result {
             Ok(effects) => self.apply_dispatch_effects(effects),
             Err(error) => {
-                let notification = workbench_dispatch_error_notification(&error);
-                self.publish_workbench_notifications(std::slice::from_ref(&notification));
+                if let Some(notification) = dispatch_error_toast(&error) {
+                    self.publish_activity_toasts(std::slice::from_ref(&notification));
+                }
                 self.set_status_line(error);
             }
         }
     }
+}
+
+fn dispatch_error_toast(error: &str) -> Option<ToastNotification> {
+    let id = NotificationId::parse("editor.dispatch.failed").ok()?;
+    let source = NotificationSource::builtin("editor.retained_host").ok()?;
+    let message = ToastNotification::bounded_message(error, "The editor command could not complete.");
+    ToastNotification::new(
+        id,
+        source,
+        ToastSeverity::Error,
+        "editor.notification.command_failed.title",
+        message,
+        Duration::from_secs(7),
+    )
+    .ok()
 }

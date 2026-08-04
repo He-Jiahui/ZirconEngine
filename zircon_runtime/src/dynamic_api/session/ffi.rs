@@ -4,6 +4,7 @@ use zircon_runtime_interface::{
     ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedByteBuffer,
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
     ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -194,6 +195,19 @@ pub(in crate::dynamic_api) unsafe fn present_viewport(
             Ok(()) => ZrStatus::ok(),
             Err(error) => error_status(error),
         }
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn submit_highlight_set(
+    handle: ZrRuntimeSessionHandle,
+    request: ZrRuntimeHighlightSetV1,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        if !unsafe { request.validate() } {
+            return invalid_argument(b"invalid runtime highlight set");
+        }
+        session.submit_highlight_set(request);
+        ZrStatus::ok()
     })
 }
 

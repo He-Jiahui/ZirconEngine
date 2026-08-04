@@ -1,6 +1,6 @@
 ---
 title: WOS212 imbue talent scaling runtime closure
-status: implementing
+status: completed
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -58,3 +58,9 @@ endpoints exactly.
   required selection snapshot.
 - Existing RNG, hit, spell-power, crit, resource, aura replacement and threat
   ownership remain unchanged.
+
+## 状态与产出记录
+
+| 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
+|---|---|---|---|---|
+| M1 | WOS109 imbue 天赋解析、持久化迁移与 Seal Judgement 语义 | `accepted` | 2026-08-03 | WOS208-212 静态守卫、两项生成一致性检查、范围 diff 检查及独立二审均通过；未运行 ZrVM/Cargo。 |

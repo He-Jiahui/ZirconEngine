@@ -9,7 +9,6 @@ use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextRange, UiTextRunKind, UiTextWrap,
 };
 
-use crate::text::text_style;
 use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
@@ -17,6 +16,7 @@ use super::candidate_line::{
     trim_word_break_trailing_spaces,
 };
 use super::direction::resolve_direction;
+use crate::text::text_style;
 
 pub(super) fn wrap_source_runs_with_provider(
     runs: &[UiTextSourceRun],
@@ -36,62 +36,132 @@ pub(super) fn wrap_source_runs_with_line_widths_provider(
     style: &UiResolvedStyle,
     provider: &mut SharedTextLayoutSession,
 ) -> Vec<CandidateLine> {
+    wrap_source_fragments_with_line_widths_provider(
+        |visit| {
+            for run in runs {
+                visit_source_segments_preserving_hard_lines(
+                    run.text(),
+                    run.source_range.start,
+                    |segment| visit(run.kind, segment.text, segment.range, segment.hard_break),
+                );
+            }
+        },
+        wrap,
+        first_line_width,
+        continuation_width,
+        style,
+        provider,
+    )
+}
+
+/// Wraps one physical source range while advancing a cursor through sorted rich runs.
+/// The caller may invoke this for consecutive hard lines without re-scanning or cloning runs.
+pub(super) fn wrap_source_run_range_with_line_widths_provider(
+    runs: &[UiTextSourceRun],
+    range: UiTextRange,
+    run_cursor: &mut usize,
+    wrap: UiTextWrap,
+    first_line_width: f32,
+    continuation_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<CandidateLine> {
+    while *run_cursor < runs.len() && runs[*run_cursor].source_range.end <= range.start {
+        *run_cursor = (*run_cursor).saturating_add(1);
+    }
+
+    wrap_source_fragments_with_line_widths_provider(
+        |visit| {
+            while *run_cursor < runs.len() {
+                let run = &runs[*run_cursor];
+                if run.source_range.start >= range.end {
+                    break;
+                }
+                let fragment_start = range.start.max(run.source_range.start);
+                let fragment_end = range.end.min(run.source_range.end);
+                let local_start = fragment_start.saturating_sub(run.source_range.start);
+                let local_end = fragment_end.saturating_sub(run.source_range.start);
+                if let Some(fragment) = run.text().get(local_start..local_end) {
+                    visit_source_segments_preserving_hard_lines(
+                        fragment,
+                        fragment_start,
+                        |segment| visit(run.kind, segment.text, segment.range, segment.hard_break),
+                    );
+                }
+                if run.source_range.end > range.end {
+                    break;
+                }
+                *run_cursor = (*run_cursor).saturating_add(1);
+            }
+        },
+        wrap,
+        first_line_width,
+        continuation_width,
+        style,
+        provider,
+    )
+}
+
+fn wrap_source_fragments_with_line_widths_provider(
+    segments: impl FnOnce(&mut dyn for<'a> FnMut(UiTextRunKind, &'a str, UiTextRange, bool)),
+    wrap: UiTextWrap,
+    first_line_width: f32,
+    continuation_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<CandidateLine> {
     let mut lines = Vec::new();
     let mut current = CandidateLine::empty();
     let mut current_advance = 0.0_f32;
 
-    for run in runs {
-        for segment in split_preserving_hard_lines(run.text(), run.source_range.start) {
-            if segment.hard_break {
-                push_current_line(&mut lines, &mut current);
-                current_advance = 0.0;
-                continue;
-            }
-            match wrap {
-                UiTextWrap::None => {
-                    append_segment(&mut current, run.kind, &segment.text, segment.range)
-                }
-                UiTextWrap::Word => append_word_wrapped_segment(
-                    &mut lines,
-                    &mut current,
-                    run.kind,
-                    &segment.text,
-                    segment.range,
-                    first_line_width,
-                    continuation_width,
-                    style,
-                    provider,
-                    &mut current_advance,
-                    false,
-                ),
-                UiTextWrap::WordSmart => append_word_wrapped_segment(
-                    &mut lines,
-                    &mut current,
-                    run.kind,
-                    &segment.text,
-                    segment.range,
-                    first_line_width,
-                    continuation_width,
-                    style,
-                    provider,
-                    &mut current_advance,
-                    true,
-                ),
-                UiTextWrap::Glyph => append_glyph_wrapped_segment(
-                    &mut lines,
-                    &mut current,
-                    run.kind,
-                    &segment.text,
-                    segment.range,
-                    first_line_width,
-                    continuation_width,
-                    style,
-                    provider,
-                    &mut current_advance,
-                ),
-            }
+    segments(&mut |kind, text, range, hard_break| {
+        if hard_break {
+            push_current_line(&mut lines, &mut current);
+            current_advance = 0.0;
+            return;
         }
-    }
+        match wrap {
+            UiTextWrap::None => append_segment(&mut current, kind, text, range),
+            UiTextWrap::Word => append_word_wrapped_segment(
+                &mut lines,
+                &mut current,
+                kind,
+                text,
+                range,
+                first_line_width,
+                continuation_width,
+                style,
+                provider,
+                &mut current_advance,
+                false,
+            ),
+            UiTextWrap::WordSmart => append_word_wrapped_segment(
+                &mut lines,
+                &mut current,
+                kind,
+                text,
+                range,
+                first_line_width,
+                continuation_width,
+                style,
+                provider,
+                &mut current_advance,
+                true,
+            ),
+            UiTextWrap::Glyph => append_glyph_wrapped_segment(
+                &mut lines,
+                &mut current,
+                kind,
+                text,
+                range,
+                first_line_width,
+                continuation_width,
+                style,
+                provider,
+                &mut current_advance,
+            ),
+        }
+    });
 
     push_current_line(&mut lines, &mut current);
     if lines.is_empty() {
@@ -107,11 +177,15 @@ struct TextSegment<'a> {
     hard_break: bool,
 }
 
-fn split_preserving_hard_lines(text: &str, source_start: usize) -> Vec<TextSegment<'_>> {
-    let mut segments = Vec::new();
-    for line in crate::text::hard_lines(text) {
+fn visit_source_segments_preserving_hard_lines(
+    text: &str,
+    source_start: usize,
+    mut visit: impl FnMut(TextSegment<'_>),
+) {
+    let mut emitted = false;
+    crate::text::visit_hard_lines(text, |line| {
         if !line.content.is_empty() {
-            segments.push(TextSegment {
+            visit(TextSegment {
                 text: &text[line.content.clone()],
                 range: UiTextRange {
                     start: source_start + line.content.start,
@@ -119,9 +193,12 @@ fn split_preserving_hard_lines(text: &str, source_start: usize) -> Vec<TextSegme
                 },
                 hard_break: false,
             });
+            emitted = true;
         }
-        if !line.separator.is_empty() {
-            segments.push(TextSegment {
+        if !line.separator.is_empty() || line.is_run_cap_break() {
+            visit(TextSegment {
+                // A capped hard line has no source separator, but it must still end the
+                // candidate line so a later width/glyph pass cannot reshape the whole run.
                 text: &text[line.separator.clone()],
                 range: UiTextRange {
                     start: source_start + line.separator.start,
@@ -129,10 +206,11 @@ fn split_preserving_hard_lines(text: &str, source_start: usize) -> Vec<TextSegme
                 },
                 hard_break: true,
             });
+            emitted = true;
         }
-    }
-    if segments.is_empty() {
-        segments.push(TextSegment {
+    });
+    if !emitted {
+        visit(TextSegment {
             text,
             range: UiTextRange {
                 start: source_start,
@@ -141,7 +219,6 @@ fn split_preserving_hard_lines(text: &str, source_start: usize) -> Vec<TextSegme
             hard_break: false,
         });
     }
-    segments
 }
 
 fn append_word_wrapped_segment(

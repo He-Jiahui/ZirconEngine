@@ -1,4 +1,4 @@
-use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime::scene::{NodeId, Scene, WorldInspectionField};
 use zircon_runtime_interface::math::Vec3;
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest, ReflectedValue};
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -46,19 +46,13 @@ impl EditorState {
         }
 
         let parent = parse_parent_field(&self.parent_field)?;
-        let parsed = [
-            self.transform_fields[0].parse::<f32>(),
-            self.transform_fields[1].parse::<f32>(),
-            self.transform_fields[2].parse::<f32>(),
-        ];
-        let [Ok(x), Ok(y), Ok(z)] = parsed else {
-            return Err("Transform fields must be valid numbers".to_string());
-        };
+        let translation = parse_finite_vec3_fields(&self.transform_fields, "position")?;
+        let scale = parse_finite_vec3_fields(&self.scale_fields, "scale")?;
         let mut commands = Vec::new();
 
         for node_id in &selected {
             let mut reflected_updates =
-                self.prepare_reflected_node_updates(parent, Vec3::new(x, y, z))?;
+                self.prepare_reflected_node_updates(parent, translation, scale)?;
             reflected_updates.extend(self.prepare_reflected_component_updates(*node_id)?);
             for update in reflected_updates {
                 let result = self.capture_scene_command(|scene| {
@@ -91,6 +85,7 @@ impl EditorState {
         &self,
         parent: Option<NodeId>,
         translation: Vec3,
+        scale: Vec3,
     ) -> Result<Vec<ReflectedInspectorUpdate>, String> {
         let name = self.name_field.trim().to_string();
         if name.is_empty() {
@@ -111,6 +106,11 @@ impl EditorState {
                 component_type_path: LOCAL_TRANSFORM_COMPONENT_TYPE_PATH.to_string(),
                 field_name: "translation".to_string(),
                 value: ReflectedValue::Vec3(translation.to_array()),
+            },
+            ReflectedInspectorUpdate {
+                component_type_path: LOCAL_TRANSFORM_COMPONENT_TYPE_PATH.to_string(),
+                field_name: "scale".to_string(),
+                value: ReflectedValue::Vec3(scale.to_array()),
             },
         ])
     }
@@ -188,6 +188,11 @@ impl EditorState {
                 format!("{:.2}", node.translation.y),
                 format!("{:.2}", node.translation.z),
             ];
+            self.scale_fields = [
+                format!("{:.2}", node.scale.x),
+                format!("{:.2}", node.scale.y),
+                format!("{:.2}", node.scale.z),
+            ];
             self.viewport_controller.set_orbit_target(node.translation);
             return;
         }
@@ -195,6 +200,7 @@ impl EditorState {
         self.name_field.clear();
         self.parent_field.clear();
         self.transform_fields = [String::new(), String::new(), String::new()];
+        self.scale_fields = [String::new(), String::new(), String::new()];
         self.inspector_dynamic_fields.clear();
     }
 }
@@ -209,28 +215,47 @@ struct SelectedInspectorState {
     name: String,
     parent: Option<NodeId>,
     translation: Vec3,
+    scale: Vec3,
 }
 
 fn selected_inspector_state(scene: &Scene, selected: NodeId) -> Option<SelectedInspectorState> {
     let hierarchy = scene.inspection_artifact();
     let row = hierarchy.hierarchy_row(selected)?;
-    let translation = scene
-        .inspection_fields_artifact(selected)?
-        .fields()
-        .iter()
-        .find(|field| {
-            field.component_type_path == LOCAL_TRANSFORM_COMPONENT_TYPE_PATH
-                && field.field_name == "translation"
-        })
-        .and_then(|field| match &field.value {
-            ReflectedValue::Vec3([x, y, z]) => Some(Vec3::new(*x, *y, *z)),
-            _ => None,
-        })?;
+    let fields = scene.inspection_fields_artifact(selected)?;
+    let translation = inspection_vec3_field(fields.fields(), "translation")?;
+    let scale = inspection_vec3_field(fields.fields(), "scale")?;
     Some(SelectedInspectorState {
         name: row.display_name.clone(),
         parent: row.parent,
         translation,
+        scale,
     })
+}
+
+fn parse_finite_vec3_fields(fields: &[String; 3], label: &str) -> Result<Vec3, String> {
+    let parsed = fields.each_ref().map(|field| field.trim().parse::<f32>());
+    let [Ok(x), Ok(y), Ok(z)] = parsed else {
+        return Err(format!("Transform {label} fields must be finite numbers"));
+    };
+    let value = Vec3::new(x, y, z);
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(format!("Transform {label} fields must be finite numbers"))
+    }
+}
+
+fn inspection_vec3_field(fields: &[WorldInspectionField], field_name: &str) -> Option<Vec3> {
+    fields
+        .iter()
+        .find(|field| {
+            field.component_type_path == LOCAL_TRANSFORM_COMPONENT_TYPE_PATH
+                && field.field_name == field_name
+        })
+        .and_then(|field| match &field.value {
+            ReflectedValue::Vec3([x, y, z]) => Some(Vec3::new(*x, *y, *z)),
+            _ => None,
+        })
 }
 
 fn split_reflected_field_id(field_id: &str) -> Result<(String, String), String> {

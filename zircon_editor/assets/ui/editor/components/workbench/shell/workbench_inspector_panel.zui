@@ -193,12 +193,8 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationX"
 classes = ["workbench-axis-value-field"]
-props = { value = "0 deg" }
+props = { value = "0 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [
-  { id = "Inspector/TransformRotationXEdit", event = "Change", route = "workbench.inspector.transform.rotation_x.edit" },
-  { id = "Inspector/TransformRotationXCommit", event = "Submit", route = "workbench.inspector.transform.rotation_x.commit" },
-]
 
 [nodes.rotation_axis_y]
 component = "WorkbenchLabel"
@@ -211,12 +207,8 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationY"
 classes = ["workbench-axis-value-field"]
-props = { value = "90 deg" }
+props = { value = "90 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [
-  { id = "Inspector/TransformRotationYEdit", event = "Change", route = "workbench.inspector.transform.rotation_y.edit" },
-  { id = "Inspector/TransformRotationYCommit", event = "Submit", route = "workbench.inspector.transform.rotation_y.commit" },
-]
 
 [nodes.rotation_axis_z]
 component = "WorkbenchLabel"
@@ -229,12 +221,8 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationZ"
 classes = ["workbench-axis-value-field"]
-props = { value = "0 deg" }
+props = { value = "0 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
-events = [
-  { id = "Inspector/TransformRotationZEdit", event = "Change", route = "workbench.inspector.transform.rotation_z.edit" },
-  { id = "Inspector/TransformRotationZCommit", event = "Submit", route = "workbench.inspector.transform.rotation_z.commit" },
-]
 
 [nodes.scale_row]
 component = "HorizontalGroup"

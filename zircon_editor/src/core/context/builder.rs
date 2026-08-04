@@ -11,8 +11,16 @@ use crate::core::editor_message::{
     EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TransactionMessage,
 };
 use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::i18n::{
+    EditorI18nEventSink, EditorI18nService, EditorLocale, LocaleChangeDelivery,
+};
 use crate::core::jobs::{EditorJobLimits, EditorJobSystem};
+use crate::core::logging::{EditorLogEventSink, EditorLogService, LogEventDelivery, LogRecord};
 use crate::core::notifications::EditorNotificationService;
+use crate::core::settings::{
+    EDITOR_LOCALE_KEY, SettingChange, SettingsAuthority, SettingsChangeSubscriber,
+    SettingsPersistenceService, SettingsSnapshot,
+};
 use zircon_runtime::core::runtime::tasks::JobScheduler;
 
 use super::{EditorContext, ToolSchedulerService};
@@ -20,6 +28,149 @@ use super::{EditorContext, ToolSchedulerService};
 struct EditorMessageTransactionEventSink {
     bus: SharedEditorMessageBus,
     topic: EditorTopic,
+}
+
+const LOG_RECORD_EVENT_SCHEMA: &str = "zircon.editor.log.recorded.v1";
+const LOG_RESYNC_EVENT_SCHEMA: &str = "zircon.editor.log.resync.v1";
+const I18N_LOCALE_CHANGED_EVENT_SCHEMA: &str = "zircon.editor.i18n.locale-changed.v1";
+const I18N_LOCALE_RESYNC_EVENT_SCHEMA: &str = "zircon.editor.i18n.locale-resync.v1";
+
+struct EditorMessageLogEventSink {
+    bus: SharedEditorMessageBus,
+    topic: EditorTopic,
+}
+
+impl EditorMessageLogEventSink {
+    fn new(bus: SharedEditorMessageBus) -> Self {
+        Self {
+            bus,
+            topic: EditorTopic::log(),
+        }
+    }
+}
+
+impl EditorLogEventSink for EditorMessageLogEventSink {
+    fn publish(&self, record: &LogRecord) -> LogEventDelivery {
+        let report = self.bus.publish(
+            self.topic.clone(),
+            EditorMessage::custom(
+                LOG_RECORD_EVENT_SCHEMA,
+                serde_json::json!({ "sequence": record.sequence() }),
+            ),
+        );
+        if report.error().is_some() || !report.dropped().is_empty() {
+            LogEventDelivery::Rejected
+        } else if report.backpressured().is_empty() {
+            LogEventDelivery::Delivered
+        } else {
+            LogEventDelivery::Backpressured
+        }
+    }
+
+    fn resync_required(&self, through_sequence: u64) -> LogEventDelivery {
+        let report = self.bus.publish(
+            self.topic.clone(),
+            EditorMessage::custom(
+                LOG_RESYNC_EVENT_SCHEMA,
+                serde_json::json!({
+                    "through_sequence": through_sequence,
+                }),
+            ),
+        );
+        if report.error().is_some() {
+            LogEventDelivery::Rejected
+        } else if !report.backpressured().is_empty() {
+            LogEventDelivery::Backpressured
+        } else if !canonical_resync_replaces_every_dropped_delivery(&report) {
+            LogEventDelivery::Rejected
+        } else if report.delivered().is_empty() {
+            LogEventDelivery::NotConfigured
+        } else {
+            LogEventDelivery::Delivered
+        }
+    }
+}
+
+struct EditorMessageI18nEventSink {
+    bus: SharedEditorMessageBus,
+    topic: EditorTopic,
+}
+
+struct EditorI18nSettingsChangeSubscriber {
+    i18n: Arc<EditorI18nService>,
+}
+
+impl SettingsChangeSubscriber for EditorI18nSettingsChangeSubscriber {
+    fn settings_changed(&self, changes: &[SettingChange], snapshot: &SettingsSnapshot) {
+        if changes
+            .iter()
+            .any(|change| change.key.as_str() == EDITOR_LOCALE_KEY)
+        {
+            if let Err(error) = self.i18n.synchronize_settings_snapshot(snapshot) {
+                tracing::error!(%error, "validated editor locale could not be hot-applied");
+            }
+        }
+    }
+}
+
+impl EditorMessageI18nEventSink {
+    fn new(bus: SharedEditorMessageBus) -> Self {
+        Self {
+            bus,
+            topic: EditorTopic::i18n(),
+        }
+    }
+}
+
+impl EditorI18nEventSink for EditorMessageI18nEventSink {
+    fn locale_changed(&self, locale: &EditorLocale) -> LocaleChangeDelivery {
+        let report = self.bus.publish(
+            self.topic.clone(),
+            EditorMessage::custom(
+                I18N_LOCALE_CHANGED_EVENT_SCHEMA,
+                serde_json::json!({ "locale": locale.as_str() }),
+            ),
+        );
+        if report.error().is_some() || !report.dropped().is_empty() {
+            LocaleChangeDelivery::Rejected
+        } else if report.backpressured().is_empty() {
+            LocaleChangeDelivery::Delivered
+        } else {
+            LocaleChangeDelivery::Backpressured
+        }
+    }
+
+    fn locale_resync_required(&self, locale: &EditorLocale) -> LocaleChangeDelivery {
+        let report = self.bus.publish(
+            self.topic.clone(),
+            EditorMessage::custom(
+                I18N_LOCALE_RESYNC_EVENT_SCHEMA,
+                serde_json::json!({ "locale": locale.as_str() }),
+            ),
+        );
+        if report.error().is_some() {
+            LocaleChangeDelivery::Rejected
+        } else if !report.backpressured().is_empty() {
+            LocaleChangeDelivery::Backpressured
+        } else if !canonical_resync_replaces_every_dropped_delivery(&report) {
+            LocaleChangeDelivery::Rejected
+        } else if report.delivered().is_empty() {
+            LocaleChangeDelivery::NotConfigured
+        } else {
+            LocaleChangeDelivery::Delivered
+        }
+    }
+}
+
+fn canonical_resync_replaces_every_dropped_delivery(
+    report: &crate::core::editor_message::EditorMessageDispatchReport,
+) -> bool {
+    // A bounded inbox can evict an old fact and enqueue this marker in one publish. The marker
+    // is complete only when every evicted subscriber appears in that same publish's delivery set.
+    report
+        .dropped()
+        .iter()
+        .all(|subscriber| report.delivered().contains(subscriber))
 }
 
 impl EditorMessageTransactionEventSink {
@@ -117,11 +268,15 @@ impl EditorContextBuilder {
 
     pub fn build(self) -> Arc<EditorContext> {
         let events = Arc::new(EditorEventService::new(self.bus.clone()));
+        let i18n = Arc::new(EditorI18nService::default());
+        i18n.configure_event_sink(Arc::new(EditorMessageI18nEventSink::new(self.bus.clone())));
         let jobs = EditorJobSystem::with_scheduler_and_bus(
             self.scheduler,
             self.bus.clone(),
             EditorJobLimits::default(),
         );
+        let logs = EditorLogService::default();
+        logs.configure_event_sink(Arc::new(EditorMessageLogEventSink::new(self.bus.clone())));
         let notifications = EditorNotificationService::default();
         let transactions = EditorTransactionEngine::with_event_sink(
             CoreEditContext::new(self.gateway.clone()),
@@ -130,15 +285,27 @@ impl EditorContextBuilder {
         let commands = EditorCommandRegistryHandle::default_workbench();
         let command_eval = CommandEvalSnapshotHandle::default();
         let tools = ToolSchedulerService::new(self.bus.clone());
+        let settings = Arc::new(SettingsAuthority::at_startup());
+        if let Err(error) = i18n.synchronize_user_locale(settings.as_ref()) {
+            tracing::error!(%error, "persisted editor locale could not be applied at startup");
+        }
+        settings.configure_change_subscriber(Arc::new(EditorI18nSettingsChangeSubscriber {
+            i18n: Arc::clone(&i18n),
+        }));
+        let settings_persistence = SettingsPersistenceService::new(Arc::clone(&settings));
         Arc::new(EditorContext::new(
             self.bus,
             events,
+            i18n,
             jobs,
+            logs,
             notifications,
             transactions,
             commands,
             command_eval,
             tools,
+            settings,
+            settings_persistence,
             self.gateway,
         ))
     }
@@ -151,11 +318,300 @@ mod tests {
         TransactionId,
     };
     use crate::core::editor_message::{
-        EditorMessageInboxLimits, EditorMessagePayload, EditorTopic, TransactionMessage,
-        TOPIC_TRANSACTION,
+        EditorMessage, EditorMessageInboxLimits, EditorMessagePayload, EditorTopic,
+        SharedEditorMessageBus, TOPIC_TRANSACTION, TransactionMessage,
+    };
+    use crate::core::i18n::EditorLocale;
+    use crate::core::logging::{
+        EditorLogEventSink, LogEntry, LogEventDelivery, LogSeverity, LogSource,
     };
 
-    use super::EditorMessageTransactionEventSink;
+    use super::{
+        EditorContextBuilder, EditorMessageTransactionEventSink, I18N_LOCALE_CHANGED_EVENT_SCHEMA,
+        I18N_LOCALE_RESYNC_EVENT_SCHEMA, LOG_RECORD_EVENT_SCHEMA, LOG_RESYNC_EVENT_SCHEMA,
+    };
+
+    #[test]
+    fn builder_exposes_one_immutable_settings_snapshot_from_its_context() {
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler()).build();
+
+        let first = context.settings().snapshot();
+        let second = context.settings().snapshot();
+
+        assert!(std::sync::Arc::ptr_eq(&first, &second));
+        assert_eq!(
+            context.settings_persistence().diagnostics().queue_entries,
+            0
+        );
+        assert!(
+            context
+                .logs()
+                .snapshot(&crate::core::logging::LogFilter::default())
+                .is_empty()
+        );
+        assert_eq!(
+            context.i18n().translate("command.file.open").as_ref(),
+            "Open"
+        );
+    }
+
+    #[test]
+    fn builder_hot_applies_the_user_locale_setting_to_i18n() {
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler()).build();
+        let topic = EditorTopic::i18n();
+        let subscriber = context.bus().register_subscriber([topic]).unwrap();
+        let locale_key =
+            crate::core::settings::SettingsKey::parse(crate::core::settings::EDITOR_LOCALE_KEY)
+                .unwrap();
+
+        context
+            .settings()
+            .set(
+                crate::core::settings::SettingsScope::User,
+                &locale_key,
+                crate::core::settings::SettingValue::Enum("zh-CN".to_owned()),
+            )
+            .unwrap();
+
+        assert_eq!(context.settings().snapshot().locale(), "zh-CN");
+        assert_eq!(context.i18n().active_locale().as_str(), "zh-CN");
+        assert!(matches!(
+            context.bus().drain_deliveries(subscriber).as_slice(),
+            [delivery]
+                if matches!(delivery.message().payload(),
+                    EditorMessagePayload::Custom { schema_id, payload }
+                        if schema_id == I18N_LOCALE_CHANGED_EVENT_SCHEMA
+                            && payload["locale"] == serde_json::json!("zh-CN"))
+        ));
+
+        let subscriber = context
+            .bus()
+            .register_subscriber([EditorTopic::i18n()])
+            .unwrap();
+        context
+            .settings()
+            .clear(crate::core::settings::SettingsScope::User, &locale_key)
+            .unwrap();
+
+        assert_eq!(context.settings().snapshot().locale(), "en");
+        assert_eq!(context.i18n().active_locale().as_str(), "en");
+        assert!(matches!(
+            context.bus().drain_deliveries(subscriber).as_slice(),
+            [delivery]
+                if matches!(delivery.message().payload(),
+                    EditorMessagePayload::Custom { schema_id, payload }
+                        if schema_id == I18N_LOCALE_CHANGED_EVENT_SCHEMA
+                            && payload["locale"] == serde_json::json!("en"))
+        ));
+    }
+
+    #[test]
+    fn log_service_publishes_sequence_notifications_to_the_canonical_log_topic() {
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler()).build();
+        let topic = EditorTopic::log();
+        let subscriber = context.bus().register_subscriber([topic.clone()]).unwrap();
+        let report = context
+            .logs()
+            .emit(
+                LogEntry::new(
+                    LogSource::editor(),
+                    LogSeverity::Info,
+                    "context ready",
+                    7,
+                    None,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+
+        assert_eq!(report.event_delivery(), LogEventDelivery::Delivered);
+        let deliveries = context.bus().drain_deliveries(subscriber);
+        assert_eq!(deliveries.len(), 1);
+        assert!(matches!(
+            deliveries[0].message().payload(),
+            EditorMessagePayload::Custom { schema_id, payload }
+                if schema_id == LOG_RECORD_EVENT_SCHEMA
+                    && payload["sequence"] == serde_json::json!(report.record().sequence())
+        ));
+        assert_eq!(
+            context
+                .logs()
+                .record(report.record().sequence())
+                .unwrap()
+                .entry()
+                .message(),
+            "context ready"
+        );
+    }
+
+    #[test]
+    fn i18n_service_publishes_locale_changes_to_the_canonical_topic() {
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler()).build();
+        let topic = EditorTopic::i18n();
+        let subscriber = context.bus().register_subscriber([topic.clone()]).unwrap();
+
+        assert!(
+            context
+                .i18n()
+                .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
+                .unwrap()
+        );
+
+        let deliveries = context.bus().drain_deliveries(subscriber);
+        assert_eq!(deliveries.len(), 1);
+        assert!(matches!(
+            deliveries[0].message().payload(),
+            EditorMessagePayload::Custom { schema_id, payload }
+                if schema_id == I18N_LOCALE_CHANGED_EVENT_SCHEMA
+                    && payload["locale"] == serde_json::json!("zh-CN")
+        ));
+    }
+
+    #[test]
+    fn bounded_canonical_log_inbox_receives_a_sequence_resync_after_eviction() {
+        let bus = SharedEditorMessageBus::with_inbox_limits(EditorMessageInboxLimits::new(0, 1, 1));
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler())
+            .with_bus(bus)
+            .build();
+        let subscriber = context
+            .bus()
+            .register_subscriber([EditorTopic::log()])
+            .unwrap();
+
+        context
+            .logs()
+            .emit(LogEntry::new(LogSource::editor(), LogSeverity::Info, "first", 1, None).unwrap())
+            .unwrap();
+        let second = context
+            .logs()
+            .emit(LogEntry::new(LogSource::editor(), LogSeverity::Info, "second", 2, None).unwrap())
+            .unwrap();
+
+        assert_eq!(second.event_delivery(), LogEventDelivery::Rejected);
+        let deliveries = context.bus().drain_deliveries(subscriber);
+        assert!(matches!(
+            deliveries.as_slice(),
+            [delivery]
+                if matches!(delivery.message().payload(),
+                    EditorMessagePayload::Custom { schema_id, payload }
+                        if schema_id == LOG_RESYNC_EVENT_SCHEMA
+                            && payload["through_sequence"] == serde_json::json!(2))
+        ));
+        let diagnostics = context.logs().diagnostics();
+        assert_eq!(diagnostics.resync_required_records, 1);
+        assert_eq!(diagnostics.event_resyncs, 1);
+        assert_eq!(diagnostics.failed_event_resyncs, 0);
+    }
+
+    #[test]
+    fn bounded_canonical_i18n_inbox_receives_the_latest_locale_resync_after_eviction() {
+        let bus = SharedEditorMessageBus::with_inbox_limits(EditorMessageInboxLimits::new(0, 1, 1));
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler())
+            .with_bus(bus)
+            .build();
+        let subscriber = context
+            .bus()
+            .register_subscriber([EditorTopic::i18n()])
+            .unwrap();
+
+        assert!(
+            context
+                .i18n()
+                .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
+                .unwrap()
+        );
+        assert!(
+            context
+                .i18n()
+                .set_active_locale(EditorLocale::parse("en").unwrap())
+                .unwrap()
+        );
+
+        let deliveries = context.bus().drain_deliveries(subscriber);
+        assert!(matches!(
+            deliveries.as_slice(),
+            [delivery]
+                if matches!(delivery.message().payload(),
+                    EditorMessagePayload::Custom { schema_id, payload }
+                        if schema_id == I18N_LOCALE_RESYNC_EVENT_SCHEMA
+                            && payload["locale"] == serde_json::json!("en"))
+        ));
+        let diagnostics = context.i18n().event_diagnostics();
+        assert_eq!(diagnostics.dropped_events, 1);
+        assert_eq!(diagnostics.resyncs, 1);
+        assert_eq!(diagnostics.failed_resyncs, 0);
+    }
+
+    #[test]
+    fn undeliverable_canonical_resync_is_rejected_instead_of_counted_as_unsubscribed() {
+        let bus = SharedEditorMessageBus::with_inbox_limits(EditorMessageInboxLimits::new(0, 0, 1));
+        let log_sink = super::EditorMessageLogEventSink::new(bus.clone());
+        let locale_sink = super::EditorMessageI18nEventSink::new(bus.clone());
+        let log_subscriber = bus.register_subscriber([EditorTopic::log()]).unwrap();
+        let locale_subscriber = bus.register_subscriber([EditorTopic::i18n()]).unwrap();
+
+        assert_eq!(log_sink.resync_required(1), LogEventDelivery::Rejected);
+        assert_eq!(
+            crate::core::i18n::EditorI18nEventSink::locale_resync_required(
+                &locale_sink,
+                &EditorLocale::parse("zh-CN").unwrap(),
+            ),
+            crate::core::i18n::LocaleChangeDelivery::Rejected
+        );
+        assert!(bus.drain_deliveries(log_subscriber).is_empty());
+        assert!(bus.drain_deliveries(locale_subscriber).is_empty());
+    }
+
+    #[test]
+    fn canonical_resync_retries_when_only_some_dropped_subscribers_receive_the_marker() {
+        let limits = EditorMessageInboxLimits::new(1, 1, 1).with_byte_limits(2_048, 1_200);
+        let bus = SharedEditorMessageBus::with_inbox_limits(limits);
+        let log_sink = super::EditorMessageLogEventSink::new(bus.clone());
+        let locale_sink = super::EditorMessageI18nEventSink::new(bus.clone());
+        let blocked_log = bus
+            .register_subscriber([EditorTopic::transaction(), EditorTopic::log()])
+            .unwrap();
+        let blocked_locale = bus
+            .register_subscriber([EditorTopic::transaction(), EditorTopic::i18n()])
+            .unwrap();
+        let log_receiver = bus.register_subscriber([EditorTopic::log()]).unwrap();
+        let locale_receiver = bus.register_subscriber([EditorTopic::i18n()]).unwrap();
+        let lossless = EditorMessage::new(EditorMessagePayload::Transaction(
+            TransactionMessage::Started {
+                transaction: TransactionId::from_sequence(1),
+                history: HistoryContextId::Global,
+                label: "x".repeat(1_024),
+                timestamp_frame: 1,
+            },
+        ));
+
+        let report = bus.publish(EditorTopic::transaction(), lossless);
+        assert_eq!(report.delivered().len(), 2);
+        assert_eq!(log_sink.resync_required(7), LogEventDelivery::Rejected);
+        assert_eq!(
+            crate::core::i18n::EditorI18nEventSink::locale_resync_required(
+                &locale_sink,
+                &EditorLocale::parse("zh-CN").unwrap(),
+            ),
+            crate::core::i18n::LocaleChangeDelivery::Rejected
+        );
+        assert_eq!(bus.drain_deliveries(blocked_log).len(), 1);
+        assert_eq!(bus.drain_deliveries(blocked_locale).len(), 1);
+        assert!(matches!(
+            bus.drain_deliveries(log_receiver).as_slice(),
+            [delivery]
+                if matches!(delivery.message().payload(),
+                    EditorMessagePayload::Custom { schema_id, .. }
+                        if schema_id == LOG_RESYNC_EVENT_SCHEMA)
+        ));
+        assert!(matches!(
+            bus.drain_deliveries(locale_receiver).as_slice(),
+            [delivery]
+                if matches!(delivery.message().payload(),
+                    EditorMessagePayload::Custom { schema_id, .. }
+                        if schema_id == I18N_LOCALE_RESYNC_EVENT_SCHEMA)
+        ));
+    }
 
     #[test]
     fn transaction_event_adapter_publishes_every_lifecycle_kind_to_the_canonical_topic() {

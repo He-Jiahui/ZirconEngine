@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 
 const TRANSPARENT_SURFACE: [u8; 4] = [0, 0, 0, 0];
@@ -36,7 +36,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub muted_text: [u8; 4],
     pub primary_rest_surface: [u8; 4],
     pub primary_hot_surface: [u8; 4],
+    pub primary_pressed_surface: [u8; 4],
     pub primary_text: [u8; 4],
+    pub primary_pressed_text: [u8; 4],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,33 +54,33 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_muted: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn add_component_text_color()
--> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn add_component_text_color(
+) -> [u8; 4] {
     add_component_text_color_from_host(current_host_palette())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn add_component_glyph_color()
--> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn add_component_glyph_color(
+) -> [u8; 4] {
     add_component_glyph_color_from_host(current_host_palette())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_transparent_surface()
--> [u8; 4] {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_transparent_surface(
+) -> [u8; 4] {
     TRANSPARENT_SURFACE
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_palette()
--> WorkbenchButtonPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_palette(
+) -> WorkbenchButtonPalette {
     workbench_button_palette_from_host(current_host_palette())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_command_palette()
--> WorkbenchButtonCommandPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_command_palette(
+) -> WorkbenchButtonCommandPalette {
     workbench_button_command_palette_from_host(current_host_palette())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_selection_palette()
--> WorkbenchButtonSelectionPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_button_selection_palette(
+) -> WorkbenchButtonSelectionPalette {
     workbench_button_selection_palette_from_host(current_host_palette())
 }
 
@@ -119,7 +121,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         muted_text: palette.accent,
         primary_rest_surface: palette.accent,
         primary_hot_surface: palette.focus_ring,
+        primary_pressed_surface: palette.surface_selected,
         primary_text: palette.shell_background,
+        primary_pressed_text: palette.text,
     }
 }
 

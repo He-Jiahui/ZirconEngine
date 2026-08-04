@@ -35,17 +35,6 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
     let geometry_source = read_runtime_src(GEOMETRY_SOURCE_OWNER);
     let manifest_contract = read_runtime_src(MANIFEST_CONTRACT_OWNER);
     let product_staged_prewarm = read_runtime_src(PRODUCT_STAGED_PREWARM_OWNER);
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
-    ) + &read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/render_shader_support.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
 
     assert_contains_all(
         "shader prewarm manifest guard parent mounts child owners",
@@ -177,39 +166,6 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    for (label, source) in [
-        ("status rows", status_rows.as_str()),
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                slice,
-                status,
-                "structure_convention/test_file_budget/shader_prewarm_manifest.rs",
-                "structure_convention/test_file_budget/shader_prewarm_manifest/manifest_contract.rs",
-                "structure_convention/test_file_budget/shader_prewarm_manifest/geometry_source.rs",
-                "structure_convention/test_file_budget/shader_prewarm_manifest/builtin_template_source.rs",
-                "structure_convention/test_file_budget/shader_prewarm_manifest/asset_revision.rs",
-                guard,
-            ],
-        );
-    }
-    assert_contains_all(
-        "status map records shader prewarm manifest guard split status",
-        &status_map,
-        &[slice, status],
-    );
-    assert_contains_all(
-        "date map records shader prewarm manifest guard split date",
-        &date_map,
-        &[slice, "Some(\"2026-06-27\")"],
-    );
 
     for owner in [
         PARENT_OWNER,

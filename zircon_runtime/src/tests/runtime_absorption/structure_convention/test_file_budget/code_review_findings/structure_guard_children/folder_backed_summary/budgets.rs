@@ -24,10 +24,6 @@ pub(super) fn assert_folder_backed_summary_structure_line_budgets() {
             read_runtime_src(FOLDER_BACKED_SUMMARY_CHILD_OWNERSHIP_CHILD_OWNER),
         ),
         (
-            FOLDER_BACKED_SUMMARY_STATUS_MIRRORS_CHILD_OWNER,
-            read_runtime_src(FOLDER_BACKED_SUMMARY_STATUS_MIRRORS_CHILD_OWNER),
-        ),
-        (
             FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNER,
             read_runtime_src(FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNER),
         ),

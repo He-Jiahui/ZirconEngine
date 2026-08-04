@@ -4,8 +4,8 @@ use crate::text::{TextSize, TextStyle};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::TextRange;
+use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::{ShapedGlyph, ShapedGlyphRun};
 
 use super::tab::tab_aligned_width;
@@ -33,16 +33,13 @@ where
     P: TextShapeRunProvider + ?Sized,
 {
     let metrics = line_metrics_with_provider(style, provider);
-    let (width, line_count) = crate::text::hard_lines(text).into_iter().fold(
-        (0.0_f32, 0_usize),
-        |(width, line_count), line| {
-            let line = text.get(line.content).unwrap_or_default();
-            (
-                width.max(measure_line_width_with_provider(line, style, provider)),
-                line_count.saturating_add(1),
-            )
-        },
-    );
+    let mut width = 0.0_f32;
+    let mut line_count = 0_usize;
+    crate::text::visit_hard_lines(text, |line| {
+        let line = text.get(line.content).unwrap_or_default();
+        width = width.max(measure_line_width_with_provider(line, style, provider));
+        line_count = line_count.saturating_add(1);
+    });
     let line_count = line_count.max(1) as f32;
     TextSize::new(width, metrics.line_height * line_count)
 }

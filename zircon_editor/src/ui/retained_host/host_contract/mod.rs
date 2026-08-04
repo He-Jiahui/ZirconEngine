@@ -1,5 +1,5 @@
 mod chrome_command_stream;
-mod data;
+pub(crate) mod data;
 mod diagnostics;
 mod frame_geometry;
 mod globals;
@@ -20,7 +20,8 @@ pub(in crate::ui::retained_host) use paint_template_nodes::{
     clear_visual_asset_pixels_cache, invalidate_editor_sprite_atlas_cache,
 };
 mod paint_text;
-mod paint_theme;
+pub(crate) mod paint_theme;
+mod search_field_clear_action;
 mod paint_workbench;
 mod paint_workbench_renderer;
 mod presenter;
@@ -41,10 +42,13 @@ pub(crate) use diagnostics::{HostInvalidationDiagnostics, STARTUP_REFRESH_DIAGNO
 pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
 pub(crate) use menu_popup_metrics::menu_popup_text_width;
 pub(crate) use paint_text::measure_runtime_text_width;
+pub(in crate::ui::retained_host) use paint_theme::{HostControlMetrics, METRICS, current_host_metrics};
 pub(crate) use paint_theme::{
-    HostControlMetrics, METRICS, apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
-    apply_host_palette_from_tokens, apply_host_text_preferences, current_host_metrics,
-    project_host_text_preferences,
+    apply_host_appearance_from_tokens, apply_host_metrics_from_tokens, apply_host_palette_from_tokens,
+    apply_host_text_preferences, project_host_text_preferences,
+};
+pub(crate) use search_field_clear_action::{
+    search_field_clear_action_frame, search_field_clear_action_hit_test,
 };
 #[cfg(test)]
 pub(crate) fn paint_host_frame_for_test(

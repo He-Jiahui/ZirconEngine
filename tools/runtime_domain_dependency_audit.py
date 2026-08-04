@@ -25,7 +25,6 @@ RUNTIME_DOMAINS = frozenset(
         "plugin",
         "render_graph",
         "rhi",
-        "rhi_wgpu",
         "scene",
         "script",
         "text",

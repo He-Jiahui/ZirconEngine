@@ -35,10 +35,11 @@ pub use archetype::{
     ArchetypeId, ArchetypeIndex, ArchetypeMove, ArchetypeRecord, ArchetypeSignature,
 };
 pub use bundle::Bundle;
+pub use bundle::BundleStaging;
 pub use change_detection::{
-    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks,
+    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref,
     ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, Ref,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
 };
 pub use commands::{
     Command, CommandQueue, Commands, CommandsParam, DeferredCommandError, DeferredCommandOperation,
@@ -54,9 +55,9 @@ pub use entity::{
 };
 pub(crate) use events::EventObserverHandle;
 pub use events::{
-    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES, Event,
-    EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage, EventReadIter,
-    EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
+    Event, EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage,
+    EventReadIter, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
+    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
 };
 pub use frame_performance_diagnostics::EcsFramePerformanceDiagnostics;
 pub use internal_scene_system::InternalSceneSystem;
@@ -67,22 +68,22 @@ pub use messages::{
 };
 pub(crate) use native_system_schedule_diagnostics::NativeSystemCallbackTiming;
 pub use native_system_schedule_diagnostics::{
-    NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC, NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC,
-    NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC,
+    NativeSystemScheduleDiagnostics, NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC,
+    NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC, NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC,
     NATIVE_SYSTEM_CONSERVATIVE_WORLD_WRITER_COUNT_DIAGNOSTIC,
     NATIVE_SYSTEM_READY_DELAY_MS_DIAGNOSTIC, NATIVE_SYSTEM_WORKER_BATCH_COUNT_DIAGNOSTIC,
-    NATIVE_SYSTEM_WORKER_UTILIZATION_DIAGNOSTIC, NativeSystemScheduleDiagnostics,
+    NATIVE_SYSTEM_WORKER_UTILIZATION_DIAGNOSTIC,
 };
 pub use observer::{ObserverId, ObserverStore};
 pub use query::{
     Added, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, Changed,
-    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
-    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
-    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, QueryAccess, QueryAccessError, QueryCombinationIter,
-    QueryCombinationMutIter, QueryData, QueryDataAccess, QueryEntityError, QueryEntityItem,
-    QueryFilter, QueryIter, QueryManyCachedIter, QueryManyIter, QueryManyMutIter,
-    QueryManyUniqueMutIter, QueryMutData, QueryMutIter, QuerySingleError, QueryState,
-    QueryStateCacheStats, UniqueEntityArray, With, Without,
+    QueryAccess, QueryAccessError, QueryCombinationIter, QueryCombinationMutIter, QueryData,
+    QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter,
+    QueryManyCachedIter, QueryManyIter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
+    QueryMutIter, QuerySingleError, QueryState, QueryStateCacheStats, UniqueEntityArray, With,
+    Without, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::{
@@ -97,10 +98,11 @@ pub use schedule_conflict_graph::{
     ScheduleParallelBatch,
 };
 pub use schedule_error::ScheduleError;
+pub(crate) use storage::PreflightedComponentInsert;
 pub use schedule_parallel_executor::{
-    SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC, SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
     ScheduleParallelExecutionReport, ScheduleParallelExecutor, ScheduleParallelExecutorError,
-    ScheduleParallelTaskRegistry,
+    ScheduleParallelTaskRegistry, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC,
+    SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
 };
 pub use storage::{
     ComponentRemoveResult, ComponentStorage, ComponentStorageLocation, StorageError,

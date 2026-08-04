@@ -1,10 +1,11 @@
 use super::super::render_commands::HostPaintCommandKind;
 use super::commands::push_dialog_commands;
-use super::identity::{DialogKind, DialogPaintState, dialog_paint_state};
+use super::identity::{dialog_paint_state, DialogKind, DialogPaintState};
 use super::layout::{body_rect, dialog_has_visible_area, pixel_aligned_rect};
 use super::metrics::dialog_metrics_from_host;
 use super::style::{dialog_border_color, dialog_palette_from_host};
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::retained_host::host_contract::paint_text::HostTextLayoutPolicy;
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
 #[test]
@@ -150,6 +151,57 @@ fn dialog_body_reserves_a_separate_interaction_rail_after_the_title() {
 }
 
 #[test]
+fn dialog_body_uses_the_full_content_band_for_wrapped_copy() {
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 260.0,
+        height: 180.0,
+    };
+    let metrics = super::metrics::dialog_metrics();
+    let action_top = 164.0;
+    let body = body_rect(&rect, DialogKind::ConfirmDialog, Some(action_top))
+        .expect("the dialog has a content band above its action rail");
+
+    assert!(body.height > metrics.body_line_height);
+    assert!(body.y + body.height <= action_top - metrics.content_action_gap);
+}
+
+#[test]
+fn dialog_body_command_requests_word_wrap_from_the_retained_text_renderer() {
+    let message = "Imported assets require validation before opening this project.";
+    let node = TemplatePaneNodeData {
+        role: "Dialog".to_string(),
+        popup_open: true,
+        text: "Open project".to_string(),
+        value_text: message.to_string(),
+        ..TemplatePaneNodeData::default()
+    };
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 280.0,
+        height: 180.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_dialog_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+
+    let body = commands
+        .iter()
+        .find(|command| command.text.as_deref() == Some(message))
+        .expect("dialog body command");
+    assert_eq!(body.text_layout_policy, HostTextLayoutPolicy::WordWrap);
+}
+
+#[test]
 fn short_confirm_dialog_compacts_the_body_action_gap_before_dropping_content() {
     let rect = FrameRect {
         x: 10.0,
@@ -264,9 +316,7 @@ fn narrow_dialog_keeps_chrome_but_omits_text_that_cannot_fit_inside_the_surface(
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| !matches!(command.kind, HostPaintCommandKind::Text))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| !matches!(command.kind, HostPaintCommandKind::Text)));
 }

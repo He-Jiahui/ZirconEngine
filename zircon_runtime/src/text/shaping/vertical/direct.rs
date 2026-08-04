@@ -30,7 +30,7 @@ struct BackendGlyph {
     vertical_substituted: bool,
 }
 
-pub(super) fn shape_vertical_request(
+pub(in crate::text::shaping) fn shape_vertical_request(
     request: BackendShapeRequest<'_>,
     bidi: &BidiParagraph<'_>,
     fallback_spans: &[FallbackTextSpan],

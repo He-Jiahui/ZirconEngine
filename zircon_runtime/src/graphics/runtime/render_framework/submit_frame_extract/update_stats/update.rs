@@ -39,12 +39,17 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
 
     update_quality_profile(state, context);
     let gpu_timer_frame_result = state.renderer.last_gpu_timer_frame_result().cloned();
+    let gpu_pipeline_statistics_frame_result = state
+        .renderer
+        .last_gpu_pipeline_statistics_frame_result()
+        .cloned();
     let store_lint_count = context
         .compiled_pipeline()
         .graph()
         .store_lint_report()
         .count();
     let store_lint_count = store_lint_count.min(u32::MAX as usize) as u32;
+    let persistent_texture_resident_bytes = state.renderer.persistent_texture_resident_bytes();
     let RenderFrameworkState {
         stats,
         frame_profiler,
@@ -57,8 +62,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
         frame_generation,
         cpu_submit_time_us,
         gpu_timer_frame_result.as_ref(),
+        gpu_pipeline_statistics_frame_result.as_ref(),
         memory_budget,
         degrade_ladder,
         store_lint_count,
+        persistent_texture_resident_bytes,
     )
 }

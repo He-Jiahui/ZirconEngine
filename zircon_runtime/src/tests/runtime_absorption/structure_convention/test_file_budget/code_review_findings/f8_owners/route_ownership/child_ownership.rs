@@ -24,7 +24,6 @@ pub(super) fn assert_f8_route_ownership_guard_is_child_backed() {
             F8_ROUTE_DESCRIPTOR_PRIVACY_ROUTES_CHILD,
             F8_ROUTE_LEAF_OWNERS_CHILD,
             F8_ROUTE_CHILD_OWNERSHIP_CHILD,
-            F8_ROUTE_STATUS_MIRRORS_CHILD,
             F8_ROUTE_OWNERSHIP_CHILD_SPLIT_STATUS,
             F8_ROUTE_OWNERSHIP_CHILD_SPLIT_GUARD,
         ],
@@ -51,6 +50,4 @@ pub(super) fn assert_f8_route_ownership_guard_is_child_backed() {
             "F8 route-ownership child source blob should contain child guard {child_guard}"
         );
     }
-
-    super::status_mirrors::assert_f8_route_ownership_status_mirrors_are_current();
 }

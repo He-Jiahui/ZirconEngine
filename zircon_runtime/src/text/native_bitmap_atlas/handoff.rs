@@ -4,6 +4,7 @@ use super::NativeBitmapAtlasPrepareReport;
 pub(crate) enum NativeBitmapAtlasHandoff {
     SingleStorageReplacement,
     MixedStorageReplacement,
+    NoVisibleGlyphs,
     TransparentPlaceholder,
     GlyphonFallback,
 }
@@ -38,6 +39,12 @@ pub(crate) fn native_bitmap_atlas_handoff_for_report(
         NativeBitmapAtlasHandoff::SingleStorageReplacement
     } else if report.mixed_storage_replacement_ready {
         NativeBitmapAtlasHandoff::MixedStorageReplacement
+    } else if report.visible_raster_glyph_count == 0
+        && report.visible_missing_raster_image_count == 0
+        && report.unsupported_glyph_count == 0
+        && !report.submission.has_placeholder_work()
+    {
+        NativeBitmapAtlasHandoff::NoVisibleGlyphs
     } else if report.retry_submission.has_byte_budget_rejections() {
         NativeBitmapAtlasHandoff::GlyphonFallback
     } else if report.retry_state.has_queue_overflow() {
@@ -59,7 +66,7 @@ pub(crate) fn native_bitmap_atlas_glyphon_fallback_reason_for_report(
         return None;
     }
 
-    if report.missing_raster_image_count > 0 {
+    if report.visible_missing_raster_image_count > 0 {
         return Some(NativeBitmapAtlasGlyphonFallbackReason::MissingRasterImage);
     }
     if report.retry_submission.has_byte_budget_rejections() {
@@ -108,13 +115,14 @@ pub(crate) fn native_bitmap_atlas_first_frame_degradation_for_report(
             return (report.approximate_raster_image_count > 0)
                 .then_some(NativeBitmapAtlasFirstFrameDegradation::ApproximateBucketReplacement);
         }
+        NativeBitmapAtlasHandoff::NoVisibleGlyphs => return None,
         NativeBitmapAtlasHandoff::TransparentPlaceholder => {
             return Some(NativeBitmapAtlasFirstFrameDegradation::TransparentPlaceholder);
         }
         NativeBitmapAtlasHandoff::GlyphonFallback => {}
     }
 
-    if report.missing_raster_image_count > 0
+    if report.visible_missing_raster_image_count > 0
         || report.source_image_count < report.visible_raster_glyph_count
     {
         return Some(NativeBitmapAtlasFirstFrameDegradation::GlyphonFallback);

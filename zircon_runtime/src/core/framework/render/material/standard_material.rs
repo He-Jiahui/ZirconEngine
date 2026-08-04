@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::framework::render::RenderQueueValue;
 use crate::core::framework::render::advanced_lighting::StandardPbrMaterialFeatures;
+use crate::core::framework::render::RenderQueueValue;
 use crate::core::resource::AssetReference;
 
 use super::{
@@ -63,6 +63,8 @@ pub struct StandardMaterialDescriptor {
     pub depth_bias: f32,
     #[serde(default)]
     pub taa_reactive_mask_strength: f32,
+    #[serde(default)]
+    pub separate_translucency: bool,
     #[serde(
         default,
         skip_serializing_if = "StandardPbrMaterialFeatures::is_default"

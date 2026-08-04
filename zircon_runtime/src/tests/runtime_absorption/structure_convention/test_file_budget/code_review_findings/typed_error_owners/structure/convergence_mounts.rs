@@ -12,12 +12,8 @@ mod root_inventory;
 mod root_paths;
 #[path = "convergence_mounts/root_sources.rs"]
 mod root_sources;
-#[path = "convergence_mounts/root_statuses.rs"]
-mod root_statuses;
 #[path = "convergence_mounts/runtime_parents.rs"]
 mod runtime_parents;
-#[path = "convergence_mounts/status_mirrors.rs"]
-mod status_mirrors;
 #[path = "convergence_mounts/top_level.rs"]
 mod top_level;
 

@@ -64,6 +64,8 @@ function main() {
       `invalid base cast time for ${ability.id}`);
     invariant(Number.isFinite(ability.base_cooldown) && ability.base_cooldown >= 0,
       `invalid base cooldown for ${ability.id}`);
+    invariant(typeof ability.school === 'string' && ability.school.length > 0,
+      `invalid school for ${ability.id}`);
     invariant(typeof ability.exclusive_group === 'string' &&
       typeof ability.requires_form === 'string' &&
       typeof ability.requires_stealth === 'boolean' &&
@@ -98,7 +100,7 @@ function main() {
   }));
   const catalogSha = hashText(JSON.stringify({ abilities: extracted.abilities, classes }));
   const document = {
-    schema_version: 3,
+    schema_version: 4,
     source_commit: SOURCE_COMMIT,
     generated_by: 'examples/woc/tools/known_ability_catalog_codegen.mjs',
     source_blobs: { [CLASSES_PATH]: createHash('sha256').update(sourceBlob).digest('hex') },
@@ -150,6 +152,9 @@ function renderZr(document) {
     .join('\n');
   const baseCooldownRows = document.abilities
     .map((ability) => `    if (code == ${ability.code}) { return ${floatLiteral(ability.base_cooldown)}; }`)
+    .join('\n');
+  const schoolRows = document.abilities
+    .map((ability) => `    if (code == ${ability.code}) { return ${JSON.stringify(ability.school)}; }`)
     .join('\n');
   const primarySelfBuffKindRows = document.abilities
     .filter((ability) => ability.primary_self_buff_kind.length > 0)
@@ -237,6 +242,8 @@ function renderZr(document) {
     baseCastTimeRows + '\n    return 0.0;\n}\n\n' +
     'pub baseCooldown(code: int): float {\n    if (!abilityExists(code)) { return 0.0; }\n' +
     baseCooldownRows + '\n    return 0.0;\n}\n\n' +
+    'pub abilitySchool(code: int): string {\n    if (!abilityExists(code)) { return ""; }\n' +
+    schoolRows + '\n    return "";\n}\n\n' +
     'pub primarySelfBuffKind(code: int): string {\n    if (!abilityExists(code)) { return ""; }\n' +
     primarySelfBuffKindRows + '\n    return "";\n}\n\n' +
     'pub primarySelfBuffValue(code: int): float {\n    if (!abilityExists(code)) { return 0.0; }\n' +

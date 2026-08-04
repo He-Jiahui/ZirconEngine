@@ -36,7 +36,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
         x: rect.x + (rect.width - width).max(0.0) * 0.5 + node.layout_offset_x,
         y: rect.y + node.layout_offset_y,
         width,
-        height: metrics.bubble_height.min(rect.height.max(0.0)),
+        height: tooltip_bubble_height(node, metrics).min(rect.height.max(0.0)),
+    }
+}
+
+fn tooltip_bubble_height(
+    node: &TemplatePaneNodeData,
+    metrics: super::metrics::WorkbenchTooltipMetrics,
+) -> f32 {
+    if tooltip_body(node).is_empty() {
+        // Icon-button labels are title-only; retain only the space required to paint that line.
+        metrics.title_top + metrics.title_line_height + metrics.border_width * 2.0
+    } else {
+        metrics.bubble_height
     }
 }
 

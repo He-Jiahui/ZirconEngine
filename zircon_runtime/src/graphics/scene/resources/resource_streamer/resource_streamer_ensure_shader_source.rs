@@ -177,7 +177,8 @@ impl ResourceStreamer {
         shader_id: ResourceId,
         traversal: &mut ShaderSourcePreparationTraversal,
     ) -> Result<(), GraphicsError> {
-        let registry = asset_manager.resource_manager().registry();
+        let resource_manager = asset_manager.resource_manager();
+        let registry = resource_manager.registry();
         let dependencies = shader_dependency_ids(asset_manager, shader_id)
             .into_iter()
             .filter_map(|dependency_id| registry.get(dependency_id).cloned())
@@ -238,7 +239,8 @@ pub(super) fn shader_dependency_ids(
     asset_manager: &ProjectAssetManager,
     shader_id: ResourceId,
 ) -> Vec<ResourceId> {
-    let registry = asset_manager.resource_manager().registry();
+    let resource_manager = asset_manager.resource_manager();
+    let registry = resource_manager.registry();
     registry
         .get(shader_id)
         .into_iter()

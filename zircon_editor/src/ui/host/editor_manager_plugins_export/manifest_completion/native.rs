@@ -19,7 +19,7 @@ impl EditorManager {
         self.complete_project_plugin_manifest_with_native_report(manifest, &native_report)
     }
 
-    pub(in crate::ui::host::editor_manager_plugins_export) fn complete_project_plugin_manifest_with_native_report(
+    pub(in crate::ui::host) fn complete_project_plugin_manifest_with_native_report(
         &self,
         manifest: &ProjectManifest,
         native_report: &NativePluginLoadReport,
@@ -28,7 +28,7 @@ impl EditorManager {
         self.complete_project_plugin_manifest_with_native_projection(manifest, &projection)
     }
 
-    pub(in crate::ui::host::editor_manager_plugins_export) fn complete_project_plugin_manifest_with_native_projection(
+    pub(in crate::ui::host) fn complete_project_plugin_manifest_with_native_projection(
         &self,
         manifest: &ProjectManifest,
         projection: &NativePluginLoadProjection,

@@ -8,6 +8,7 @@ use super::super::template_node_labels::template_node_label;
 use super::super::template_status_control_geometry::{
     frame_is_within, status_chip_radius, status_control_offset_rect, workbench_status_metrics,
 };
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_chip(
     commands: &mut Vec<HostPaintCommand>,
@@ -19,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
 ) {
     let parent_rect = rect;
     let control_rect = status_control_offset_rect(node, parent_rect);
-    if !frame_is_within(parent_rect, &control_rect) {
+    if !frame_is_within(parent_rect, &control_rect) || intersect(&control_rect, clip).is_none() {
         return;
     }
     let style = select_workbench_status_chip_style(node);

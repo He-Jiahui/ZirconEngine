@@ -21,7 +21,7 @@ pub(in crate::scene::dynamic_scene::session) fn slot<'a>(
     archive: &'a RuntimeSessionArchive,
     slot_id: &str,
 ) -> Option<&'a RuntimeSessionSlot> {
-    archive.slots.iter().find(|slot| slot.slot_id == slot_id)
+    archive.indexed_slot(slot_id)
 }
 
 pub(in crate::scene::dynamic_scene::session) fn slots(

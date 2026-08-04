@@ -1,7 +1,7 @@
 use std::mem::MaybeUninit;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::QueryEntityError;
+use crate::scene::EntityId;
 
 pub(super) fn collect_many_query_items<Item, const N: usize>(
     entities: [EntityId; N],

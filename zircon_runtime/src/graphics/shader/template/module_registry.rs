@@ -17,6 +17,8 @@ const IRRADIANCE_VOLUME_INCLUDE_TOKEN: &str = "zr_irradiance_volume.wgsl";
 const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
 const VOLUMETRIC_INCLUDE_TOKEN: &str = "zr_volumetric.wgsl";
 const OIT_INCLUDE_TOKEN: &str = "zr_oit.wgsl";
+const NORMAL_INCLUDE_TOKEN: &str = "zr_normal.wgsl";
+const BINDLESS_MATERIAL_INCLUDE_TOKEN: &str = "zr_bindless_material.wgsl";
 const PBR_EXTRAS_INCLUDE_TOKEN: &str = "zr_pbr_extras.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
@@ -24,7 +26,7 @@ const STANDARD_PBR_SHADING_INCLUDE_TOKEN: &str = "zr_shading_standard_pbr.wgsl";
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE_TOKEN: &str = "zr_gbuffer_encode_standard_pbr.wgsl";
 const SUBSURFACE_GBUFFER_ENCODE_INCLUDE_TOKEN: &str = "zr_gbuffer_encode_subsurface.wgsl";
 const VIRTUAL_GEOMETRY_INCLUDE_TOKEN: &str = "zr_geometry_virtual_geometry.wgsl";
-const BUILTIN_MODULE_INCLUDE_TOKENS: [&str; 19] = [
+const BUILTIN_MODULE_INCLUDE_TOKENS: [&str; 21] = [
     SURFACE_TYPES_INCLUDE_TOKEN,
     SCENE_RUNTIME_INCLUDE_TOKEN,
     GPU_SCENE_INCLUDE_TOKEN,
@@ -34,6 +36,8 @@ const BUILTIN_MODULE_INCLUDE_TOKENS: [&str; 19] = [
     ENVIRONMENT_INCLUDE_TOKEN,
     VOLUMETRIC_INCLUDE_TOKEN,
     OIT_INCLUDE_TOKEN,
+    NORMAL_INCLUDE_TOKEN,
+    BINDLESS_MATERIAL_INCLUDE_TOKEN,
     PBR_EXTRAS_INCLUDE_TOKEN,
     LIGHT_GRID_INCLUDE_TOKEN,
     SHADOW_INCLUDE_TOKEN,
@@ -105,6 +109,8 @@ fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_
 }
 "#;
 const OIT_INCLUDE: &str = include_str!("../includes/zr_oit.wgsl");
+const NORMAL_INCLUDE: &str = include_str!("../includes/zr_normal.wgsl");
+const BINDLESS_MATERIAL_INCLUDE: &str = include_str!("../includes/zr_bindless_material.wgsl");
 const PBR_EXTRAS_CORE_INCLUDE: &str = include_str!("../includes/zr_pbr_extras_core.wgsl");
 const PBR_EXTRAS_INCLUDE: &str = concat!(
     include_str!("../includes/zr_pbr_extras_core.wgsl"),
@@ -358,6 +364,11 @@ fn builtin_module_include_for_token(token: &str) -> Option<ShaderTemplateInclude
         ENVIRONMENT_INCLUDE_TOKEN => Some(environment_include()),
         VOLUMETRIC_INCLUDE_TOKEN => Some(volumetric_include()),
         OIT_INCLUDE_TOKEN => Some(oit_include()),
+        NORMAL_INCLUDE_TOKEN => Some(ShaderTemplateInclude::new(
+            NORMAL_INCLUDE_TOKEN,
+            NORMAL_INCLUDE,
+        )),
+        BINDLESS_MATERIAL_INCLUDE_TOKEN => Some(bindless_material_include()),
         PBR_EXTRAS_INCLUDE_TOKEN => Some(pbr_extras_include()),
         LIGHT_GRID_INCLUDE_TOKEN => Some(light_grid_include()),
         SHADOW_INCLUDE_TOKEN => Some(shadow_include()),
@@ -415,6 +426,10 @@ pub(crate) fn scene_runtime_include() -> ShaderTemplateInclude {
 
 pub(crate) fn gpu_scene_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(GPU_SCENE_INCLUDE_TOKEN, GPU_SCENE_INCLUDE)
+}
+
+pub(crate) fn bindless_material_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(BINDLESS_MATERIAL_INCLUDE_TOKEN, BINDLESS_MATERIAL_INCLUDE)
 }
 
 pub(crate) fn lightmap_include() -> ShaderTemplateInclude {
@@ -668,6 +683,20 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![PBR_EXTRAS_INCLUDE_TOKEN]
         );
+    }
+
+    #[test]
+    fn builtin_normal_include_resolves_bc5_reconstruction_helpers() {
+        let registry = ShaderModuleRegistry::with_builtin_modules();
+        let resolved = registry
+            .resolve_roots([NORMAL_INCLUDE_TOKEN.to_string()])
+            .expect("builtin normal include should resolve");
+
+        assert_eq!(resolved.ordered_sources.len(), 1);
+        assert_eq!(resolved.ordered_sources[0].token, NORMAL_INCLUDE_TOKEN);
+        assert!(resolved.ordered_sources[0]
+            .source
+            .contains("zr_reconstruct_bc5_normal"));
     }
 
     #[test]

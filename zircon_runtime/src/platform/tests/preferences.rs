@@ -16,6 +16,7 @@ use crate::core::manager::{
 };
 use crate::core::{CoreError, CoreRuntime};
 use crate::foundation as foundation_runtime;
+use crate::platform::preferences::UnavailablePreferenceStorageBackend;
 
 use super::super::*;
 

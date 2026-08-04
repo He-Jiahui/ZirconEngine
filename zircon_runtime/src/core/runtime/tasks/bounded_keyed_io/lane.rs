@@ -19,6 +19,7 @@ use fence_prerequisites::{
     capture_fence_prerequisites, fence_prerequisite_failure, plan_fence_prerequisites,
     release_fence_pins,
 };
+use shutdown::diagnostics_for_state;
 pub use shutdown::BoundedKeyedIoShutdownGuard;
 
 type TerminalObserver = Arc<dyn Fn(BoundedKeyedIoTerminal) + Send + Sync + 'static>;

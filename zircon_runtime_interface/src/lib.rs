@@ -92,7 +92,7 @@ pub use runtime_api::{
     ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_BUTTON_START_V1,
     ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1,
     ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
-    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1, ZR_RUNTIME_GET_API_SYMBOL_V3,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1, ZR_RUNTIME_GET_API_SYMBOL_V4,
     ZR_RUNTIME_IME_CURSOR_HIDDEN_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
     ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
     ZR_RUNTIME_IME_STATE_DISABLED_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
@@ -116,12 +116,14 @@ pub use runtime_api::{
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
     ZR_RUNTIME_WINDOW_THEME_DARK_V1, ZR_RUNTIME_WINDOW_THEME_LIGHT_V1,
     ZR_RUNTIME_WINDOW_THEME_UNKNOWN_V1, ZrHostApiV1, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeApiV3, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrRuntimeApiV4, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeCaptureAccessibilityTreeFnV1, ZrRuntimeCreateSessionFnV2, ZrRuntimeCursorGrabModeV1,
     ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
     ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeDrainPluginEventsFnV1, ZrRuntimeEventV1,
     ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV3,
+    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeGetApiFnV4,
+    ZrRuntimeEntityIdSliceV1, ZrRuntimeHighlightRenderAttributesV1, ZrRuntimeHighlightSetV1,
+    ZrRuntimeSubmitHighlightSetFnV1,
     ZrRuntimeHarvestOperationFnV1, ZrRuntimeHostFetchFnV1, ZrRuntimeHostFetchRequestV1,
     ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeCoordinateSpaceV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
@@ -136,9 +138,10 @@ pub use runtime_api::{
     ZrRuntimeUnsubscribePluginEventFnV1, ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1,
     ZrRuntimeWakeSinkV1,
 };
+pub use runtime_api::ZrRuntimeImeTextRangeV1;
 pub use status::{ZrStatus, ZrStatusCode};
 pub use version::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V3,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V4,
 };
 
 #[cfg(test)]

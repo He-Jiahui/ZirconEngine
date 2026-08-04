@@ -38,9 +38,6 @@ fn runtime_15_resource_streamer_construction_uses_owner_name() {
         manifest_root,
         "docs/zircon_runtime/graphics/render-product-submit.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_resource_streamer_new.exists(),
@@ -74,9 +71,6 @@ fn runtime_15_resource_streamer_construction_uses_owner_name() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("graphics render-product doc", graphics_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,

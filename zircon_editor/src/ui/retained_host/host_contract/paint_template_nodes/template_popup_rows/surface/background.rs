@@ -1,7 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::geometry::frame_is_within;
 use super::super::layers::popup_background_order;
 
 mod style;
@@ -15,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
     order: i32,
     opacity: f32,
 ) {
-    if intersect(rect, clip).is_none() || !frame_is_within(clip, rect) {
+    if intersect(rect, clip).is_none() {
         return;
     }
     let style = popup_background_style();

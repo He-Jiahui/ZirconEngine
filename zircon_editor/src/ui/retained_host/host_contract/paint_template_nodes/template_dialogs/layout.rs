@@ -68,19 +68,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn body_re
     }
 
     let top = action_rail_floor(rect);
-    let body_bottom = top + metrics.body_line_height;
-    let body_fits = action_top
+    let available_bottom = action_top
         .map(|action_top| {
-            let available_gap = action_top - body_bottom;
-            available_gap.min(metrics.content_action_gap) >= metrics.content_gap
+            let preferred = action_top - metrics.content_action_gap;
+            let compact = action_top - metrics.content_gap;
+            if preferred - top >= metrics.body_line_height {
+                preferred
+            } else {
+                compact
+            }
         })
-        .unwrap_or_else(|| body_bottom <= rect.y + rect.height - metrics.action_bottom);
-    body_fits
+        .unwrap_or_else(|| rect.y + rect.height - metrics.action_bottom);
+    let height = available_bottom - top;
+    (height >= metrics.body_line_height)
         .then(|| FrameRect {
             x: content_left(rect, metrics.padding_x),
             y: top,
             width: content_width(rect, metrics.padding_x),
-            height: metrics.body_line_height,
+            height,
         })
         .filter(|frame| frame_is_within(rect, frame))
 }

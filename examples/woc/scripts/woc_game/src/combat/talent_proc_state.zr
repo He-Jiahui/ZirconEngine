@@ -87,6 +87,7 @@ pub class TalentProcResponse {
     pub var hasCostPct: bool;
     pub var costPct: float;
     pub var resetCooldown: bool;
+    pub var cooldownSeconds: float;
     pub var belowFraction: float;
     pub var window: float;
     pub var name: string;
@@ -105,6 +106,7 @@ pub class TalentProcResponse {
         this.hasCostPct = false;
         this.costPct = 0.0;
         this.resetCooldown = false;
+        this.cooldownSeconds = 0.0;
         this.belowFraction = 0.0;
         this.window = 0.0;
         this.name = "";
@@ -277,6 +279,7 @@ pub responseFromCatalog(index: int, responseIndex: int): TalentProcResponse {
     result.hasCostPct = catalog.responseHasCostPct(index, responseIndex);
     result.costPct = catalog.responseCostPct(index, responseIndex);
     result.resetCooldown = catalog.responseResetCooldown(index, responseIndex);
+    result.cooldownSeconds = catalog.responseCooldownSeconds(index, responseIndex);
     result.belowFraction = catalog.responseBelowFraction(index, responseIndex);
     result.window = catalog.responseWindow(index, responseIndex);
     result.name = catalog.responseName(index, responseIndex);
@@ -465,11 +468,11 @@ pub planResponse(
         if (!hasCooldown) return result;
         result.applies = true;
         result.cooldownAbilityId = response.abilityId;
-        if (response.resetCooldown || currentCooldown - response.amount <= 0.0) {
+        if (response.resetCooldown || currentCooldown - response.cooldownSeconds <= 0.0) {
             result.cooldownMutation = 2;
         } else {
             result.cooldownMutation = 1;
-            result.cooldownRemaining = currentCooldown - response.amount;
+            result.cooldownRemaining = currentCooldown - response.cooldownSeconds;
         }
     } else if (response.kind == contract.resourceResponseCode()) {
         if (response.resourceType != "" && !ownerResourceMatches) return result;
@@ -628,7 +631,7 @@ pub contractTest(): int {
     var refund = new TalentProcResponse();
     refund.kind = contract.cooldownRefundResponseCode();
     refund.abilityId = "fireball";
-    refund.amount = 3.0;
+    refund.cooldownSeconds = 3.0;
     var refundPlan = planResponse(definition, refund, <uint>3, <uint>8, 0, true, true, 2.0);
     if (!refundPlan.applies || refundPlan.cooldownMutation != 2 || refundPlan.cooldownAbilityId != "fireball") return -16;
     resetProcState(state);

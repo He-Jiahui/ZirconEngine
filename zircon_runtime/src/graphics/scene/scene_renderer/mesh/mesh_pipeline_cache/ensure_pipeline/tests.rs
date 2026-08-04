@@ -1,12 +1,12 @@
 use std::fs;
 use std::sync::Arc;
 
-use crate::asset::{pipeline::manager::ProjectAssetManager, AssetReference};
+use crate::asset::{AssetReference, pipeline::manager::ProjectAssetManager};
 use crate::core::framework::render::{
-    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
-    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderDefinitionValue,
-    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
-    GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_ID_STANDARD_PBR,
+    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
+    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
+    RenderShaderDefinitionValue, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
+    ShaderPipelineDiagnosticStage, ShaderQualityTier, ShaderVariantPrewarmManifest,
 };
 use crate::core::resource::ResourceId;
 use crate::dynamic_api::{
@@ -17,15 +17,18 @@ use crate::graphics::backend::RenderBackend;
 use crate::graphics::pipeline::PipelineAsyncQueueResult;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::{
-    default_pipeline_key, fallback_shader_uri, PipelineKey, ResourceStreamer,
-    GPU_MATERIAL_UNIFORM_MIN_SIZE,
+    GPU_MATERIAL_UNIFORM_MIN_SIZE, PipelineKey, ResourceStreamer, default_pipeline_key,
+    fallback_shader_uri,
 };
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
-use crate::graphics::shader::{prewarm_shader_variants_to_disk, ShaderVariantCacheDisk};
+use crate::graphics::shader::{ShaderVariantCacheDisk, prewarm_shader_variants_to_disk};
 
 use super::super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline_standard_material_template_source;
-use super::super::MeshPipelineCache;
+use super::super::{
+    MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT, MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS,
+    MeshPipelineCache, PipelineCreationTarget,
+};
 use super::mesh_shader_module_cache_key;
 
 struct AsyncWorkerReleaseGuard {
@@ -131,6 +134,100 @@ fn runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss() {
 }
 
 #[test]
+fn pipeline_creation_diagnostic_saturation_discards_the_uncertain_cache_entries() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let pipeline_key = default_pipeline_key();
+    let shader_variant_key = pipeline_key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+    let variant_id = MeshPipelineVariantId::new(u32::MAX - 1);
+
+    for index in 0..MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS {
+        cache.track_pipeline_creation_error_scope(
+            &shader_variant_key,
+            PipelineCreationTarget::MeshPass(MeshPassPipelineKind::Base),
+            variant_id,
+            format!("pending-shader-{index}"),
+            device.push_error_scope(wgpu::ErrorFilter::Validation),
+        );
+    }
+
+    let saturated_shader_key = "saturated-shader".to_string();
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-saturated-diagnostic-test-shader"),
+        source: wgpu::ShaderSource::Wgsl(
+            "@vertex\nfn vs_main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4<f32> {\n    let positions = array<vec2<f32>, 3>(vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));\n    return vec4<f32>(positions[index], 0.0, 1.0);\n}\n".into(),
+        ),
+    });
+    cache
+        .shader_modules
+        .insert(saturated_shader_key.clone(), shader_module);
+    let saturated_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("zircon-saturated-diagnostic-test-pipeline"),
+        layout: Some(&cache.mesh_pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: cache
+                .shader_modules
+                .get(&saturated_shader_key)
+                .expect("the saturation fixture must retain its shader module before tracking"),
+            entry_point: Some("vs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            buffers: &[],
+        },
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        fragment: None,
+        multiview_mask: None,
+        cache: None,
+    });
+    cache
+        .mesh_variant_pipelines
+        .insert(variant_id, saturated_pipeline);
+
+    cache.track_pipeline_creation_error_scope(
+        &shader_variant_key,
+        PipelineCreationTarget::MeshPass(MeshPassPipelineKind::Base),
+        variant_id,
+        saturated_shader_key.clone(),
+        device.push_error_scope(wgpu::ErrorFilter::Validation),
+    );
+
+    assert!(
+        !cache.shader_modules.contains_key(&saturated_shader_key),
+        "a pipeline without capacity for its validation scope must not retain its shader module"
+    );
+    assert!(
+        !cache.mesh_variant_pipelines.contains_key(&variant_id),
+        "a pipeline without capacity for its validation scope must not remain drawable"
+    );
+    assert!(
+        cache
+            .shader_variant_miss_report()
+            .pipeline_diagnostics()
+            .iter()
+            .any(
+                |diagnostic| diagnostic.stage == ShaderPipelineDiagnosticStage::PipelineCreation
+                    && diagnostic.message.contains("diagnostic queue is saturated")
+            ),
+        "scope saturation must be visible to runtime diagnostics"
+    );
+}
+
+#[test]
 fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
     let backend = RenderBackend::new_offscreen()
         .expect("offscreen backend required for environment-only PBR Base prewarm gate");
@@ -223,6 +320,42 @@ fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
     );
     assert_eq!(cache.mesh_variant_pipelines.len(), 1);
 
+    let viewer_shader_key = cache
+        .shader_modules
+        .keys()
+        .next()
+        .cloned()
+        .expect("the prewarm must retain the Base shader module before its cache-hit check");
+    let residual_error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+    let _ = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-prewarm-residual-validation-error"),
+        source: wgpu::ShaderSource::Wgsl("this is intentionally invalid WGSL".into()),
+    });
+    cache.track_pipeline_creation_error_scope(
+        &viewer_shader_variant,
+        PipelineCreationTarget::MeshPass(MeshPassPipelineKind::Base),
+        viewer_variant_id,
+        viewer_shader_key.clone(),
+        residual_error_scope,
+    );
+    let error = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect_err("a cache-hit prewarm must report a retained WGPU validation error");
+    assert!(
+        format!("{error:?}").contains("pipeline validation failed"),
+        "the cache-hit prewarm must expose its retained pipeline validation error: {error:?}"
+    );
+    assert!(
+        !cache
+            .mesh_variant_pipelines
+            .contains_key(&viewer_variant_id),
+        "a retained WGPU error must evict the cache-hit Base pipeline"
+    );
+    assert!(
+        !cache.shader_modules.contains_key(&viewer_shader_key),
+        "a retained WGPU error must evict the cache-hit Base shader module"
+    );
+
     let error = pollster::block_on(error_scope.pop());
     assert!(
         error.is_none(),
@@ -266,6 +399,383 @@ fn runtime_environment_only_pbr_base_prewarm_stays_synchronous_when_async_compil
 }
 
 #[test]
+fn runtime_environment_only_pbr_base_queue_uses_the_async_skip_draw_placeholder() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base queue gate");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    cache.set_async_pipeline_compile_enabled(true);
+
+    let queue_report = cache
+        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("environment-only PBR queue should resolve the builtin shader revision");
+
+    assert!(!queue_report.pipeline_ready());
+    assert!(!queue_report.cache_hit());
+    assert!(cache.async_pipeline_compile_enabled());
+    assert_eq!(cache.async_pipeline_compile_pending_count(), 1);
+}
+
+#[test]
+fn runtime_environment_only_pbr_base_queue_never_falls_back_to_sync_when_worker_is_unavailable() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base queue gate");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    cache
+        .pipeline_variant_registry
+        .enable_environment_only_pbr_base_profile();
+    let mut pipeline_key = default_pipeline_key();
+    let (_, shader_revision, _) = streamer
+        .ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))
+        .expect("builtin PBR shader should resolve before the nonblocking queue test");
+    pipeline_key.shader_revision = shader_revision;
+    pipeline_key.receive_shadows = false;
+    let expected_variant = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &pipeline_key,
+        ShaderQualityTier::default(),
+    );
+    cache.set_async_pipeline_compile_enabled(true);
+    cache.async_base_pipeline_compiler = None;
+
+    let queue_report = cache
+        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("a missing worker must preserve the nonblocking queue contract");
+
+    assert!(!queue_report.pipeline_ready());
+    assert!(
+        cache
+            .ensure_pipeline_for_variant(&device, &streamer, expected_variant)
+            .is_none(),
+        "a background warmup with no worker must not create a synchronous PSO"
+    );
+    assert!(
+        cache
+            .shader_variant_miss_report()
+            .pipeline_diagnostics()
+            .iter()
+        .any(|diagnostic| diagnostic.message.contains("async Base pipeline compiler is unavailable")),
+        "worker loss must remain visible through the pipeline diagnostics"
+    );
+    let diagnostic_count = cache
+        .shader_variant_miss_report()
+        .pipeline_diagnostics()
+        .len();
+    assert!(
+        cache
+            .ensure_pipeline_for_variant(&device, &streamer, expected_variant)
+            .is_none(),
+        "a terminal background failure must retain the SkipDraw placeholder"
+    );
+    assert_eq!(
+        cache
+            .shader_variant_miss_report()
+            .pipeline_diagnostics()
+            .len(),
+        diagnostic_count,
+        "terminal background failures must not requeue or rediagnose every frame"
+    );
+    let error = cache
+        .environment_only_pbr_base_pipeline_ready()
+        .expect_err("one-shot evidence must receive a terminal worker error");
+    assert!(error
+        .to_string()
+        .contains("async Base pipeline compiler is unavailable"));
+}
+
+#[test]
+fn runtime_environment_only_pbr_base_queue_defers_admission_while_async_budget_is_full() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base queue gate");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let (blocker_started, wait_for_blocker_start) = std::sync::mpsc::sync_channel(0);
+    let (release_blocker, wait_for_blocker_release) = std::sync::mpsc::sync_channel(0);
+    let blocker_id = MeshPipelineVariantId::new(u32::MAX);
+    assert_eq!(
+        cache
+            .async_base_pipeline_compiler
+            .as_mut()
+            .expect("the test backend should create its async pipeline worker")
+            .try_queue(blocker_id, move || {
+                blocker_started
+                    .send(())
+                    .expect("test should still observe the blocked worker");
+                wait_for_blocker_release
+                    .recv()
+                    .expect("test should release the blocked worker");
+                Err("test-only blocked predecessor".to_string())
+            }),
+        PipelineAsyncQueueResult::Queued
+    );
+    wait_for_blocker_start
+        .recv()
+        .expect("the predecessor should block the async compiler before filling its budget");
+    let _blocker_release_guard = AsyncWorkerReleaseGuard {
+        release: Some(release_blocker),
+    };
+    for offset in 1..MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT {
+        let queued_id = MeshPipelineVariantId::new(u32::MAX - offset as u32);
+        assert_eq!(
+            cache
+                .async_base_pipeline_compiler
+                .as_mut()
+                .expect("the async compiler should remain available while its budget is filled")
+                .try_queue(
+                    queued_id,
+                    || Err("test-only queued predecessor".to_string()),
+                ),
+            PipelineAsyncQueueResult::Queued
+        );
+    }
+    assert_eq!(
+        cache.async_pipeline_compile_pending_count(),
+        MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT as u32,
+        "the blocked predecessor and queued successors must consume the full async budget"
+    );
+    cache
+        .pipeline_variant_registry
+        .enable_environment_only_pbr_base_profile();
+    let mut pipeline_key = default_pipeline_key();
+    let (_, shader_revision, _) = streamer
+        .ensure_shader_source(&AssetReference::from_locator(fallback_shader_uri()))
+        .expect("builtin PBR shader should resolve before the full-budget queue test");
+    pipeline_key.shader_revision = shader_revision;
+    pipeline_key.receive_shadows = false;
+    let expected_variant = cache.resolve_variant(
+        MeshPassPipelineKind::Base,
+        &pipeline_key,
+        ShaderQualityTier::default(),
+    );
+    cache.set_async_pipeline_compile_enabled(true);
+
+    let queue_report = cache
+        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("a full worker budget must preserve the nonblocking retry contract");
+
+    assert!(!queue_report.pipeline_ready());
+    assert!(
+        cache
+            .ensure_pipeline_for_variant(&device, &streamer, expected_variant)
+            .is_none(),
+        "a full async budget must not create a synchronous PSO"
+    );
+    assert_eq!(
+        cache
+            .environment_only_pbr_base_pipeline_ready()
+            .expect("a full async budget must remain a recoverable admission state"),
+        false,
+        "the environment variant must remain pending until capacity is reclaimed"
+    );
+    assert!(
+        cache
+            .shader_variant_miss_report()
+            .pipeline_diagnostics()
+            .iter()
+            .all(|diagnostic| !diagnostic
+                .message
+                .contains("queue remained full after draining ready completions")),
+        "bounded queue backpressure must not become a terminal pipeline diagnostic"
+    );
+}
+
+#[test]
+fn runtime_environment_only_pbr_base_queue_retries_after_async_capacity_is_reclaimed() {
+    let backend = RenderBackend::new_offscreen()
+        .expect("offscreen backend required for environment-only PBR Base queue recovery");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = test_texture_bind_group_layout(&device);
+    let mut streamer = ResourceStreamer::new_for_test(
+        Arc::new(ProjectAssetManager::default()),
+        &device,
+        &queue,
+        &texture_layout,
+    );
+    let scene_layout = test_scene_bind_group_layout(&device);
+    let material_layout = test_standard_material_bind_group_layout(&device);
+    let gpu_scene = test_gpu_scene(&device);
+    let mut cache = MeshPipelineCache::new(
+        &device,
+        &queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+        &scene_layout,
+        &material_layout,
+        gpu_scene.scene_bind_group_layout(),
+    );
+    let (blocker_started, wait_for_blocker_start) = std::sync::mpsc::sync_channel(0);
+    let (release_blocker, wait_for_blocker_release) = std::sync::mpsc::sync_channel(0);
+    let blocker_id = MeshPipelineVariantId::new(u32::MAX);
+    assert_eq!(
+        cache
+            .async_base_pipeline_compiler
+            .as_mut()
+            .expect("the test backend should create its async pipeline worker")
+            .try_queue(blocker_id, move || {
+                blocker_started
+                    .send(())
+                    .expect("test should still observe the blocked worker");
+                wait_for_blocker_release
+                    .recv()
+                    .expect("test should release the blocked worker");
+                Err("test-only blocked predecessor".to_string())
+            }),
+        PipelineAsyncQueueResult::Queued
+    );
+    wait_for_blocker_start
+        .recv()
+        .expect("the predecessor should block the async compiler before filling its budget");
+    let mut blocker_release_guard = AsyncWorkerReleaseGuard {
+        release: Some(release_blocker.clone()),
+    };
+    let (successor_started, wait_for_successor_start) = std::sync::mpsc::sync_channel(0);
+    let (release_successor, wait_for_successor_release) = std::sync::mpsc::sync_channel(0);
+    let mut successor_release_guard = AsyncWorkerReleaseGuard {
+        release: Some(release_successor.clone()),
+    };
+    let blocked_successor_id = MeshPipelineVariantId::new(u32::MAX - 1);
+    assert_eq!(
+        cache
+            .async_base_pipeline_compiler
+            .as_mut()
+            .expect("the async compiler should accept the blocked successor")
+            .try_queue(blocked_successor_id, move || {
+                successor_started
+                    .send(())
+                    .expect("test should observe the blocked successor");
+                wait_for_successor_release
+                    .recv()
+                    .expect("test should release the blocked successor");
+                Err("test-only blocked successor".to_string())
+            }),
+        PipelineAsyncQueueResult::Queued
+    );
+    for offset in 2..MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT {
+        let queued_id = MeshPipelineVariantId::new(u32::MAX - offset as u32);
+        assert_eq!(
+            cache
+                .async_base_pipeline_compiler
+                .as_mut()
+                .expect("the async compiler should remain available while its budget is filled")
+                .try_queue(queued_id, || Err("test-only queued predecessor".to_string())),
+            PipelineAsyncQueueResult::Queued
+        );
+    }
+    let (completion_observed, wait_for_completion) = std::sync::mpsc::channel();
+    cache
+        .async_base_pipeline_compiler
+        .as_mut()
+        .expect("the async compiler must observe the blocker completion")
+        .set_completion_observer(completion_observed);
+    cache
+        .pipeline_variant_registry
+        .enable_environment_only_pbr_base_profile();
+    cache.set_async_pipeline_compile_enabled(true);
+
+    let queue_report = cache
+        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("a full async budget must retain a recoverable environment admission");
+    assert!(!queue_report.pipeline_ready());
+    let repeated_queue_report = cache
+        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("a repeated full-budget admission attempt must remain nonblocking");
+    assert!(
+        !repeated_queue_report.pipeline_ready(),
+        "a repeated full-budget admission attempt must keep the SkipDraw placeholder"
+    );
+    release_blocker
+        .send(())
+        .expect("the blocked predecessor must still be waiting for its release");
+    wait_for_completion
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("the predecessor completion must be enqueued before retrying admission");
+    wait_for_successor_start
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("the worker must block on the successor before retry admission");
+    blocker_release_guard.release = None;
+
+    assert!(
+        !cache
+            .environment_only_pbr_base_pipeline_ready()
+            .expect("reclaiming capacity must not create a terminal pipeline error"),
+        "the target has not been admitted before the host retries it"
+    );
+    let retry_report = cache
+        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect("the next admission attempt must queue the environment variant after capacity returns");
+    assert!(!retry_report.pipeline_ready());
+    assert_eq!(
+        cache.async_pipeline_compile_pending_count(),
+        MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT as u32,
+        "the retry must restore the full async budget by admitting the target instead of falling back synchronously"
+    );
+    release_successor
+        .send(())
+        .expect("the target must be admitted before releasing the successor");
+    successor_release_guard.release = None;
+    let prewarm = cache
+        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
+        .expect(
+            "the retried environment variant must complete instead of retaining a full-budget failure",
+        );
+    assert!(prewarm.pipeline_ready());
+    assert!(cache
+        .environment_only_pbr_base_pipeline_ready()
+        .expect("the recovered environment variant must not retain a full-queue failure"));
+}
+
+#[test]
 fn runtime_environment_only_provider_fallback_resolves_generic_base_without_async_placeholder() {
     let backend = RenderBackend::new_offscreen()
         .expect("offscreen backend required for environment-only PBR provider fallback");
@@ -306,15 +816,20 @@ fn runtime_environment_only_provider_fallback_resolves_generic_base_without_asyn
         ShaderQualityTier::default(),
     );
 
-    assert!(!cache
-        .pipeline_and_shader_key_for_variant(generic_variant)
-        .expect("generic Base variant key after provider upgrade")
-        .2
-        .features
-        .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
-    assert!(cache
-        .ensure_pipeline_for_variant(&device, &streamer, generic_variant)
-        .is_some(), "provider fallback must not hand BaseScenePass an async placeholder");
+    assert!(
+        !cache
+            .pipeline_and_shader_key_for_variant(generic_variant)
+            .expect("generic Base variant key after provider upgrade")
+            .2
+            .features
+            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
+    );
+    assert!(
+        cache
+            .ensure_pipeline_for_variant(&device, &streamer, generic_variant)
+            .is_some(),
+        "provider fallback must not hand BaseScenePass an async placeholder"
+    );
     assert_eq!(cache.async_pipeline_compile_pending_count(), 0);
 }
 

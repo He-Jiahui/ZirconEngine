@@ -1,4 +1,5 @@
 use crate::core::math::UVec2;
+use crate::graphics::backend::GpuPipelineStatisticsScope;
 use crate::graphics::scene::scene_renderer::post_process::hzb_build_dispatch_groups;
 use crate::graphics::visibility::HzbBuildPlan;
 use wgpu::util::DeviceExt;
@@ -7,7 +8,7 @@ use super::super::super::params::hzb_params::HzbParams;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use crate::core::framework::render::COMPUTE_SHADER_PARAMS_BINDING;
 use crate::graphics::shader::{
-    hzb_build_dispatch_plan, HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE,
+    HZB_SCENE_DEPTH_RESOURCE, HZB_SOURCE_RESOURCE, HZB_TARGET_RESOURCE, hzb_build_dispatch_plan,
 };
 
 const HZB_MAX_MIP_COUNT: usize = u32::BITS as usize;
@@ -58,6 +59,7 @@ pub(super) fn execute_hzb_build_mip_with_resources(
     target_size: UVec2,
     target_mip_level: u32,
     params_upload_buffer: &wgpu::Buffer,
+    pipeline_statistics_scope: Option<&GpuPipelineStatisticsScope>,
     resources: HzbBuildMipResources<'_>,
 ) {
     let params_size = std::mem::size_of::<HzbParams>() as u64;
@@ -115,9 +117,15 @@ pub(super) fn execute_hzb_build_mip_with_resources(
         label: Some("HzbBuildPass"),
         timestamp_writes: None,
     });
+    if let Some(scope) = pipeline_statistics_scope {
+        scope.begin_compute(&mut pass);
+    }
     pass.set_pipeline(resources.pipeline);
     pass.set_bind_group(0, &bind_group, &[]);
     pass.dispatch_workgroups(dispatch_groups[0], dispatch_groups[1], dispatch_groups[2]);
+    if let Some(scope) = pipeline_statistics_scope {
+        scope.end_compute(&mut pass);
+    }
 }
 
 impl ScenePostProcessResources {
@@ -140,6 +148,7 @@ impl ScenePostProcessResources {
         target_mip_level: u32,
         scene_depth_sample_count: u32,
         params_upload_buffer: &wgpu::Buffer,
+        pipeline_statistics_scope: Option<&GpuPipelineStatisticsScope>,
     ) {
         let (bind_group_layout, pipeline) = if scene_depth_sample_count > 1 {
             (&self.hzb_msaa_bind_group_layout, &self.hzb_msaa_pipeline)
@@ -155,6 +164,7 @@ impl ScenePostProcessResources {
             target_size,
             target_mip_level,
             params_upload_buffer,
+            pipeline_statistics_scope,
             HzbBuildMipResources {
                 bind_group_layout,
                 pipeline,

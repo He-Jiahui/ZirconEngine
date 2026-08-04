@@ -4,14 +4,14 @@ use bytemuck::bytes_of;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::scene::EntityId;
-use crate::core::math::{is_finite_mat4, Mat4};
+use crate::core::math::{Mat4, is_finite_mat4};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::primitives::{SceneEnvironmentSh9, SceneUniform};
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
@@ -419,6 +419,18 @@ fn record_depth_only_pass(
 
 fn add_replay_stats(total: &mut MeshDrawReplayStats, next: MeshDrawReplayStats) {
     total.draw_call_count = total.draw_call_count.saturating_add(next.draw_call_count);
+    total.indirect_count_draw_call_count = total
+        .indirect_count_draw_call_count
+        .saturating_add(next.indirect_count_draw_call_count);
+    total.fixed_multi_draw_call_count = total
+        .fixed_multi_draw_call_count
+        .saturating_add(next.fixed_multi_draw_call_count);
+    total.per_draw_indirect_draw_call_count = total
+        .per_draw_indirect_draw_call_count
+        .saturating_add(next.per_draw_indirect_draw_call_count);
+    total.direct_draw_call_count = total
+        .direct_draw_call_count
+        .saturating_add(next.direct_draw_call_count);
     total.state_change_count = total
         .state_change_count
         .saturating_add(next.state_change_count);
@@ -472,7 +484,9 @@ mod tests {
         let source = include_str!("shadow_map_renderer.rs");
 
         assert!(source.contains("create_forward_shadow_receiver_bind_group"));
-        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
+        assert!(
+            source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])")
+        );
         assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
     }
 

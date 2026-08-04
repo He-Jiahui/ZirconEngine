@@ -6,7 +6,7 @@ use super::{
     animation::AnimationEditorPaneData,
     basic::{
         AssetBrowserPaneData, AssetsActivityPaneData, ConsolePaneData, GeneratedBottomPaneData,
-        ProjectOverviewPaneData,
+        ProjectOverviewPaneData, TemplateV2PaneData,
     },
     build_export::BuildExportPaneData,
     hierarchy::HierarchyPaneData,

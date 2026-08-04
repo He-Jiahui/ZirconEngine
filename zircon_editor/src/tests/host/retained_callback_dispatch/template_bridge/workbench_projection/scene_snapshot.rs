@@ -39,6 +39,7 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         name: "GameplayRoot".to_string(),
         parent: "World".to_string(),
         translation: ["12.0".to_string(), "3.5".to_string(), "-8.0".to_string()],
+        scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),
@@ -413,6 +414,7 @@ fn componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_sna
         name: "SceneNode_13".to_string(),
         parent: "SceneNode_12".to_string(),
         translation: ["0.0".to_string(), "1.0".to_string(), "2.0".to_string()],
+        scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         plugin_components: Vec::new(),
     };
     let thirteen_entries = numbered_scene_entries(13, 12);

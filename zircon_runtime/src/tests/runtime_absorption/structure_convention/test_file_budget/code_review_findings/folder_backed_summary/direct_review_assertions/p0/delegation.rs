@@ -49,10 +49,8 @@ fn runtime_15_code_review_findings_p0_direct_assertions_are_child_owner() {
             P0_DIRECT_ASSERTIONS_PARENT_MOUNTS_CHILD,
             P0_DIRECT_ASSERTIONS_REVIEW_CHILDREN_CHILD,
             P0_DIRECT_ASSERTIONS_BUDGETS_CHILD,
-            P0_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD,
             "runtime_15_code_review_findings_p0_direct_assertions_are_child_owner",
             P0_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            P0_DIRECT_ASSERTIONS_STATUS_GUARD,
         ],
     );
 

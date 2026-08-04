@@ -29,15 +29,6 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let advanced_doc =
         include_str!("../../../../../../docs/zircon_runtime/core/framework/render/advanced.md");
-    let status_rows = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_06_09/runtime_07/performance.rs"
-    );
-    let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/pre_runtime_15/runtime_06_10.rs"
-    );
-    let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/pre_runtime_15/runtime_06_10.rs"
-    );
 
     for required in [
         "pub(super) fn validate_viewport_generation",
@@ -101,28 +92,6 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
         );
     }
 
-    for doc_anchor in [
-        "Runtime 07 render submit viewport/provider errors",
-        "render_submit_viewport_provider_errors_review_guard_static_passed_cargo_timeout_no_result_full_runtime07_pending",
-        "review_f4_render_submit_capability_gaps_return_typed_errors",
-        "p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred",
-        "RenderFrameworkError::UnsupportedCapability",
-        "viewport_record_mut_after_generation_check",
-        "submit_frame_extract production paths must return RenderFrameworkError",
-    ] {
-        assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_07_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || render_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || advanced_doc.contains(doc_anchor)
-                || status_rows.contains(doc_anchor)
-                || status_map.contains(doc_anchor)
-                || date_map.contains(doc_anchor),
-            "F4 render submit typed-error docs/status should record `{doc_anchor}`"
-        );
-    }
     let f4_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F4 |"))

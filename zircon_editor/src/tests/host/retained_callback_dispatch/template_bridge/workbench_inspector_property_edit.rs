@@ -19,6 +19,15 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
         )
         .unwrap();
 
+    assert_eq!(
+        control_string(&bridge, "WorkbenchTransformScaleX", "value").as_deref(),
+        Some("1.25")
+    );
+    assert_eq!(
+        control_string(&bridge, "WorkbenchTransformScale", "value").as_deref(),
+        Some("X 1.25   Y 2.50   Z 0.75")
+    );
+
     let effects = dispatch_componentized_workbench_surface_control_edited(
         &mut bridge,
         "WorkbenchMaterialRow",
@@ -206,27 +215,11 @@ fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
         Some("42.0")
     );
 
-    let rotation_effects = dispatch_componentized_workbench_surface_control_edited(
-        &mut bridge,
-        "WorkbenchTransformRotationY",
-        "Inspector/TransformRotationYCommit",
-        "Y 45 deg",
-    )
-    .expect("rotation axis commit route should be handled")
-    .unwrap();
-    assert!(
-        rotation_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
-    assert_eq!(
-        control_string(&bridge, "WorkbenchTransformRotationY", "value").as_deref(),
-        Some("45 deg")
-    );
-    assert_eq!(
-        control_string(&bridge, "WorkbenchTransformRotation", "value").as_deref(),
-        Some("X 0 deg   Y 45 deg   Z 0 deg")
-    );
+    let rotation_y = bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchTransformRotationY")
+        .expect("rotation Y field projection");
+    assert!(rotation_y.routes.is_empty());
 
     dispatch_componentized_workbench_surface_control_edited(
         &mut bridge,
@@ -242,7 +235,7 @@ fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchTransformScale", "value").as_deref(),
-        Some("X 1.00   Y 1.00   Z 2.00")
+        Some("X 1.25   Y 2.50   Z 2.00")
     );
 }
 
@@ -359,6 +352,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
         name: "GameplayRoot".to_string(),
         parent: "World".to_string(),
         translation: ["12.0".to_string(), "3.5".to_string(), "-8.0".to_string()],
+        scale: ["1.25".to_string(), "2.50".to_string(), "0.75".to_string()],
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),

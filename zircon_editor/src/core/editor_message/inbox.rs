@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
-use super::retention::{EditorMessageCoalescingKey, EditorMessageRetention};
 use super::EditorMessageDelivery;
+use super::retention::{EditorMessageCoalescingKey, EditorMessageRetention};
 
 const DEFAULT_LOSSLESS_CAPACITY: usize = 4_096;
 const DEFAULT_BOUNDED_CAPACITY: usize = 256;

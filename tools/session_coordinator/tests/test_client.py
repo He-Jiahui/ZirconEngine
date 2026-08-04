@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import http.client
+import http.server
 import io
 import json
 import os
@@ -239,7 +240,7 @@ class CoordinatorClientTests(unittest.TestCase):
             calls,
         )
 
-    def test_command_post_timeout_reports_not_accepted_without_replaying(self) -> None:
+    def test_command_post_timeout_keeps_unfenced_missing_request_unknown(self) -> None:
         client = CoordinatorClient(
             "http://127.0.0.1:43123", "", reconciliation_timeout_seconds=0
         )
@@ -267,8 +268,11 @@ class CoordinatorClientTests(unittest.TestCase):
         ):
             client.command("baseline.scan")
 
-        self.assertEqual("command_post_not_accepted", rejected.exception.code)
-        self.assertEqual("not_accepted", rejected.exception.details["submission"])
+        self.assertEqual("command_post_timeout", rejected.exception.code)
+        self.assertEqual("unknown", rejected.exception.details["submission"])
+        self.assertEqual(
+            "command_request_not_found", rejected.exception.details["lastQueryError"]
+        )
         request_id = rejected.exception.details["requestId"]
         self.assertEqual(
             [
@@ -319,7 +323,7 @@ class CoordinatorClientTests(unittest.TestCase):
             "repository-b", rejected.exception.details["actualRepositoryKey"]
         )
 
-    def test_command_post_disconnect_queries_request_and_reports_unknown_submission(self) -> None:
+    def test_command_post_disconnect_keeps_unfenced_missing_request_unknown(self) -> None:
         client = CoordinatorClient(
             "http://127.0.0.1:43123", "", reconciliation_timeout_seconds=0
         )
@@ -349,9 +353,12 @@ class CoordinatorClientTests(unittest.TestCase):
         ):
             client.command("cargo.run_reserved", {"job_id": "job-a"})
 
-        self.assertEqual("command_post_not_accepted", rejected.exception.code)
+        self.assertEqual("command_post_timeout", rejected.exception.code)
         self.assertEqual("post_response", rejected.exception.details["phase"])
-        self.assertEqual("not_accepted", rejected.exception.details["submission"])
+        self.assertEqual("unknown", rejected.exception.details["submission"])
+        self.assertEqual(
+            "command_request_not_found", rejected.exception.details["lastQueryError"]
+        )
         request_id = rejected.exception.details["requestId"]
         self.assertEqual(
             [
@@ -368,6 +375,89 @@ class CoordinatorClientTests(unittest.TestCase):
             ],
             calls,
         )
+
+    def test_get_overtakes_late_post_without_proving_not_accepted(self) -> None:
+        repository_key = "repository-a"
+        post_received = threading.Event()
+        allow_post = threading.Event()
+        post_completed = threading.Event()
+        state: dict[str, object] = {"postCount": 0, "requestId": None}
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                if self.path == "/health":
+                    self._write_json(200, {"status": "ok", "repository_key": repository_key})
+                    return
+                if self.path.startswith("/command/requests/"):
+                    self._write_json(
+                        404,
+                        {
+                            "error": {
+                                "code": "command_request_not_found",
+                                "message": "request is not visible yet",
+                                "details": {},
+                            }
+                        },
+                    )
+                    return
+                self._write_json(404, {"error": {"code": "not_found"}})
+
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                state["requestId"] = payload["request_id"]
+                post_received.set()
+                allow_post.wait(timeout=5)
+                state["postCount"] = int(state["postCount"]) + 1
+                post_completed.set()
+                self._write_json(200, {"status": "late-post-completed"})
+
+            def _write_json(self, status: int, payload: dict[str, object]) -> None:
+                encoded = json.dumps(payload).encode("utf-8")
+                try:
+                    self.send_response(status)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(encoded)))
+                    self.end_headers()
+                    self.wfile.write(encoded)
+                except OSError:
+                    pass
+
+            def log_message(self, _format: str, *_args: object) -> None:
+                return
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        client = CoordinatorClient(
+            f"http://127.0.0.1:{server.server_port}",
+            "",
+            expected_repository_key=repository_key,
+            timeout_seconds=0.1,
+            command_timeout_seconds=0.05,
+            reconciliation_timeout_seconds=0,
+        )
+        try:
+            with self.assertRaises(CoordinatorClientError) as rejected:
+                client.command("baseline.scan")
+
+            self.assertTrue(post_received.is_set())
+            self.assertEqual("command_post_timeout", rejected.exception.code)
+            self.assertEqual("unknown", rejected.exception.details["submission"])
+            self.assertEqual(
+                "command_request_not_found", rejected.exception.details["lastQueryError"]
+            )
+            self.assertEqual(0, state["postCount"])
+
+            allow_post.set()
+            self.assertTrue(post_completed.wait(timeout=2))
+            self.assertEqual(1, state["postCount"])
+            self.assertEqual(rejected.exception.details["requestId"], state["requestId"])
+        finally:
+            allow_post.set()
+            server.shutdown()
+            server.server_close()
+            server_thread.join(timeout=2)
 
     def test_command_truncated_post_response_queries_durable_request(self) -> None:
         client = CoordinatorClient(

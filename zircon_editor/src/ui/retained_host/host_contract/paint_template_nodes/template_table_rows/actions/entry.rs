@@ -1,4 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::is_hot_workbench_table_row_state;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
@@ -8,7 +9,7 @@ use super::super::style::table_row_style;
 use super::geometry::{table_action_button_rect, table_action_icon_rect};
 use super::glyphs::{push_table_gear, push_table_kebab};
 use super::metrics::table_action_metrics;
-use super::palette::{WorkbenchTableActionPalette, table_action_palette};
+use super::palette::{table_action_palette, WorkbenchTableActionPalette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 const TABLE_HEADER_ACTION_ICON: &str = "zircon_editor_shell/activity/settings.svg";
@@ -30,7 +31,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         return;
     }
     if is_table_header(node) {
+        if intersect(&button_rect, clip).is_none() {
+            return;
+        }
         push_table_action_button_slot(commands, &button_rect, clip, order, false, opacity);
+        if intersect(&action_rect, clip).is_none() {
+            return;
+        }
         if push_icon_asset_pixels(
             commands,
             TABLE_HEADER_ACTION_ICON,
@@ -54,7 +61,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         if !should_paint_table_row_action(node, style.state) {
             return;
         }
+        if intersect(&button_rect, clip).is_none() {
+            return;
+        }
         push_table_action_button_slot(commands, &button_rect, clip, order, true, opacity);
+        if intersect(&action_rect, clip).is_none() {
+            return;
+        }
         if push_icon_asset_pixels(
             commands,
             TABLE_ROW_ACTION_ICON,

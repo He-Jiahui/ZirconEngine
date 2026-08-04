@@ -102,8 +102,8 @@ impl RenderExposureSettings {
 #[cfg(test)]
 mod tests {
     use super::{
-        EXPOSURE_BUFFER_WORD_COUNT, EXPOSURE_HISTOGRAM_BIN_COUNT, RenderExposureMode,
-        RenderExposureSettings,
+        RenderExposureMode, RenderExposureSettings, EXPOSURE_BUFFER_WORD_COUNT,
+        EXPOSURE_HISTOGRAM_BIN_COUNT,
     };
     use crate::core::framework::render::DEFAULT_CAMERA_EXPOSURE_EV100;
 

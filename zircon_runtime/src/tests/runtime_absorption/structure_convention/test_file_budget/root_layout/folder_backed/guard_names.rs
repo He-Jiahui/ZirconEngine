@@ -29,7 +29,6 @@ pub(super) struct GuardNames {
     pub(super) scene_ecs_reflect_foundation_guard: String,
     pub(super) scene_ecs_systems_guard: String,
     pub(super) shader_prewarm_manifest_guard: String,
-    pub(super) status_output_row_data_guard: String,
 }
 
 pub(super) fn guard_names() -> GuardNames {
@@ -153,10 +152,6 @@ pub(super) fn guard_names() -> GuardNames {
         shader_prewarm_manifest_guard: format!(
             "{}{}",
             "fn runtime_15_shader_prewarm", "_manifest_tests_are_folder_backed"
-        ),
-        status_output_row_data_guard: format!(
-            "{}{}",
-            "fn runtime_15_status_output_runtime_15", "_row_data_is_child_owner"
         ),
     }
 }

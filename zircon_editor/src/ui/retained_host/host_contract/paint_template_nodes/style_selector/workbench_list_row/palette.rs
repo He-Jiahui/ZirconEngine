@@ -6,7 +6,6 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchListRowPalette
 {
     pub marked_surface: [u8; 4],
-    pub marked_hot_surface: [u8; 4],
     pub pressed_surface: [u8; 4],
     pub hot_surface: [u8; 4],
     pub focus_border: [u8; 4],
@@ -25,8 +24,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     palette: HostMaterialPalette,
 ) -> WorkbenchListRowPalette {
     WorkbenchListRowPalette {
-        marked_surface: palette.surface_selected,
-        marked_hot_surface: palette.accent_soft,
+        marked_surface: palette.surface_pressed,
         pressed_surface: palette.surface_pressed,
         hot_surface: palette.surface_hover,
         focus_border: palette.focus_ring,

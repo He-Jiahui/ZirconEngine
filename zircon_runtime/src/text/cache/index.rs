@@ -8,7 +8,7 @@ pub(super) struct TextCacheLookup {
     pub(super) candidate_count: usize,
 }
 
-pub(super) trait IndexedTextCacheEntry<K> {
+pub(crate) trait IndexedTextCacheEntry<K> {
     fn cache_key(&self) -> &K;
 }
 
@@ -21,7 +21,7 @@ struct TextCacheLruLinks {
 // Slots keep entry addresses independent from collision-bucket maintenance.
 // The linked index owns recency, making touch and eviction constant time.
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct IndexedTextCache<K: Eq + Hash, E> {
+pub(crate) struct IndexedTextCache<K: Eq + Hash, E> {
     entries: HashMap<TextCacheSlot, E>,
     buckets: HashMap<K, Vec<TextCacheSlot>>,
     bucket_positions: HashMap<TextCacheSlot, usize>,

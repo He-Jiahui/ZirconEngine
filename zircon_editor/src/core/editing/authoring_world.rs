@@ -61,12 +61,17 @@ impl EditorAuthoringWorld {
         }
         let mut read = Some(read);
         let mut result = None;
+        let mut duplicate_callback = false;
         self.gateway
             .with_world(&mut |scene| {
-                result = Some(read.take().expect("gateway must invoke once")(scene));
+                let Some(read) = read.take() else {
+                    duplicate_callback = true;
+                    return;
+                };
+                result = Some(read(scene));
             })
             .ok()?;
-        result
+        (!duplicate_callback).then_some(result).flatten()
     }
 
     pub(crate) fn try_with_world_mut<R>(&self, write: impl FnOnce(&mut Scene) -> R) -> Option<R> {
@@ -75,12 +80,17 @@ impl EditorAuthoringWorld {
         }
         let mut write = Some(write);
         let mut result = None;
+        let mut duplicate_callback = false;
         self.gateway
             .with_world_mut(&mut |scene| {
-                result = Some(write.take().expect("gateway must invoke once")(scene));
+                let Some(write) = write.take() else {
+                    duplicate_callback = true;
+                    return;
+                };
+                result = Some(write(scene));
             })
             .ok()?;
-        result
+        (!duplicate_callback).then_some(result).flatten()
     }
 
     #[cfg(test)]

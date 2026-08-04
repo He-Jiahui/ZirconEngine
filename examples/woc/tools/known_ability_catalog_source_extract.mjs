@@ -18,6 +18,7 @@ const abilities = Object.values(ABILITIES)
     base_cost: definition.cost,
     base_cast_time: definition.castTime,
     base_cooldown: definition.cooldown,
+    school: definition.school,
     exclusive_group: definition.exclusiveGroup ?? '',
     requires_form: definition.requiresForm ?? '',
     requires_stealth: Boolean(definition.requiresStealth),

@@ -16,20 +16,12 @@ fn runtime_15_typed_error_structure_guard_budgets_are_focused() {
             read_runtime_src(TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD),
         ),
         (
-            TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD,
-            read_runtime_src(TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD),
-        ),
-        (
             TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD,
             read_runtime_src(TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD),
         ),
         (
             TYPED_ERROR_SOURCE_INVENTORY_CHILD,
             read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD),
-        ),
-        (
-            TYPED_ERROR_STATUS_DOCS_CHILD,
-            read_runtime_src(TYPED_ERROR_STATUS_DOCS_CHILD),
         ),
         (
             TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD,
@@ -46,10 +38,6 @@ fn runtime_15_typed_error_structure_guard_budgets_are_focused() {
         (
             TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD,
             read_runtime_src(TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD),
-        ),
-        (
-            TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD,
-            read_runtime_src(TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD),
         ),
         (
             TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD,

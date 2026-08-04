@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
+    management::{RenderMaterialManagementRecord, RenderMaterialManagementSnapshot},
     RenderMaterialDependencySet, RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy,
     RenderMaterialPropertyUniformField, RenderMaterialPropertyUniformSummary,
     RenderMaterialPropertyUniformUnsupported, RenderMaterialPropertyValue,
     RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
     RenderMaterialValidationError,
-    management::{RenderMaterialManagementRecord, RenderMaterialManagementSnapshot},
 };
 use crate::core::resource::{AssetReference, ResourceId};
 

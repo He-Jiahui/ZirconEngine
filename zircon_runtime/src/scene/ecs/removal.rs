@@ -1,4 +1,4 @@
-use std::any::{TypeId, type_name};
+use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 

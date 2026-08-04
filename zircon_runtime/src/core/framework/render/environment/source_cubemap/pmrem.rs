@@ -1,9 +1,9 @@
 use super::{
-    SourceCubemapPrefilterQuality, normalize_or_positive_z, sample_source_cubemap_trilinear,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size,
-    source_cubemap_roughness_from_pmrem_mip,
+    normalize_or_positive_z, sample_source_cubemap_trilinear, source_cubemap_face_mip_offset,
+    source_cubemap_mip_size, source_cubemap_roughness_from_pmrem_mip,
+    SourceCubemapPrefilterQuality,
 };
-use crate::core::framework::render::environment::{CubemapFace, cubemap_texel_direction};
+use crate::core::framework::render::environment::{cubemap_texel_direction, CubemapFace};
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
 
@@ -421,9 +421,9 @@ fn cross3(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
 #[cfg(test)]
 mod tests {
     use super::{
-        SourceCubemapPrefilterQuality, distribution_ggx, ggx_light_direction_pdf,
-        ggx_sample_count_for_mip, prefilter_pmrem_mips_from_source,
-        prefilter_pmrem_mips_from_source_with_parallel_executor, source_lod_for_pdf,
+        distribution_ggx, ggx_light_direction_pdf, ggx_sample_count_for_mip,
+        prefilter_pmrem_mips_from_source, prefilter_pmrem_mips_from_source_with_parallel_executor,
+        source_lod_for_pdf, SourceCubemapPrefilterQuality,
     };
     use crate::core::framework::tasks::ParallelSliceExecutor;
     use crate::core::math::Real;

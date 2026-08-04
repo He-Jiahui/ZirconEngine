@@ -18,6 +18,8 @@ pub(super) fn hover_button_style(
         }
         WorkbenchButtonKind::Tertiary => {
             style.surface = button_palette.surface_hover;
+            style.text = button_palette.text;
+            style.glyph = button_palette.text;
         }
         WorkbenchButtonKind::Danger => {
             style.surface = button_palette.surface_hover;
@@ -54,9 +56,14 @@ pub(super) fn pressed_button_style(
 pub(super) fn focused_button_style(
     kind: WorkbenchButtonKind,
     interaction: ButtonInteractionState,
+    focus_uses_hover_surface: bool,
 ) -> WorkbenchButtonStyle {
     let button_palette = workbench_button_palette();
-    let mut style = hover_button_style(kind, interaction);
+    let mut style = if focus_uses_hover_surface {
+        hover_button_style(kind, interaction)
+    } else {
+        normal_button_style(kind, interaction)
+    };
     style.border = button_palette.focus_border;
     style
 }

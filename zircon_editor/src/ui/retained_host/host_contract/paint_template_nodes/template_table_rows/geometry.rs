@@ -1,4 +1,4 @@
-use super::super::data::FrameRect;
+use super::super::super::data::FrameRect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_paintable_table_row_extent(
     rect: &FrameRect,

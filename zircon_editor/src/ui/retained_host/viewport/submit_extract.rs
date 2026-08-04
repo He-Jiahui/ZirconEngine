@@ -16,30 +16,42 @@ impl RetainedViewportController {
         size: UVec2,
     ) -> Result<bool, RenderFrameworkError> {
         zircon_runtime::profile_scope!("editor", "viewport", "submit_extract_with_ui");
-        let mut shared = self.lock_shared();
-        let Some(viewport) = shared.ensure_viewport(size)? else {
+        let _operation = self.lock_viewport_lifecycle();
+        let Some((viewport, render_framework)) = self.ensure_viewport(size)? else {
             return Ok(false);
+        };
+        let ui = {
+            let shared = self.lock_shared();
+            merge_ui_with_world_space_submissions(ui, &shared.last_world_space_ui_surfaces)
         };
         extract.apply_viewport_size(size);
         apply_editor_viewport_render_defaults(&mut extract);
-        let ui = merge_ui_with_world_space_submissions(ui, &shared.last_world_space_ui_surfaces);
-        let render_framework = shared.render_framework()?;
         render_framework.submit_frame_extract_with_ui(viewport, extract, ui)?;
-        shared.last_error = None;
+        let mut shared = self.lock_shared();
+        if shared
+            .viewport
+            .is_some_and(|active| active.handle == viewport)
+        {
+            shared.last_error = None;
+        }
         Ok(true)
     }
 
     pub(crate) fn visible_spatial_snapshot(
         &self,
     ) -> Result<Option<RenderVisibleSpatialQuerySnapshot>, RenderFrameworkError> {
-        let shared = self.lock_shared();
-        let Some(viewport) = shared.viewport else {
-            return Ok(None);
+        let _operation = self.lock_viewport_lifecycle();
+        let (viewport, render_framework) = {
+            let shared = self.lock_shared();
+            let Some(viewport) = shared.viewport else {
+                return Ok(None);
+            };
+            let Some(render_framework) = shared.resolve_stored_render_framework()? else {
+                return Ok(None);
+            };
+            (viewport.handle, render_framework)
         };
-        let Some(render_framework) = shared.resolve_stored_render_framework()? else {
-            return Ok(None);
-        };
-        render_framework.query_visible_spatial_snapshot(viewport.handle)
+        render_framework.query_visible_spatial_snapshot(viewport)
     }
 
     #[cfg(test)]
@@ -49,15 +61,20 @@ impl RetainedViewportController {
         size: UVec2,
     ) -> Result<bool, RenderFrameworkError> {
         zircon_runtime::profile_scope!("editor", "viewport", "submit_extract");
-        let mut shared = self.lock_shared();
-        let Some(viewport) = shared.ensure_viewport(size)? else {
+        let _operation = self.lock_viewport_lifecycle();
+        let Some((viewport, render_framework)) = self.ensure_viewport(size)? else {
             return Ok(false);
         };
         extract.apply_viewport_size(size);
         apply_editor_viewport_render_defaults(&mut extract);
-        let render_framework = shared.render_framework()?;
         render_framework.submit_frame_extract(viewport, extract)?;
-        shared.last_error = None;
+        let mut shared = self.lock_shared();
+        if shared
+            .viewport
+            .is_some_and(|active| active.handle == viewport)
+        {
+            shared.last_error = None;
+        }
         Ok(true)
     }
 }

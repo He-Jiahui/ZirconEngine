@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::scene::EntityId;
 use crate::scene::ecs::ComponentId;
+use crate::scene::EntityId;
 
 use super::id::ArchetypeId;
 use super::move_result::ArchetypeMove;

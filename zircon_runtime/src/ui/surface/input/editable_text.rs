@@ -2,10 +2,8 @@ mod ime_context;
 mod mutation;
 mod state_transition;
 
-pub(super) use mutation::{
-    TextComponentEventKind, apply_editable_text_state,
-    commit_editable_text_composition_for_focus_loss,
-};
+pub(in crate::ui::surface) use mutation::commit_editable_text_composition_for_focus_loss;
+pub(super) use mutation::{apply_editable_text_state, TextComponentEventKind};
 
 use zircon_runtime_interface::ui::{
     dispatch::{
@@ -155,6 +153,15 @@ pub(super) fn dispatch_ime_input(
         return with_editable_text_route_policy(surface, result);
     };
 
+    if let Err(error) = ime.validate() {
+        let mut result = owner_routed_result(surface, event, Some(target), "ime.payload");
+        result
+            .diagnostics
+            .notes
+            .push(format!("invalid IME payload: {error}"));
+        return with_editable_text_route_policy(surface, result);
+    }
+
     let component_event_kind = match ime.kind {
         UiImeInputEventKind::Commit => TextComponentEventKind::Submit,
         _ => TextComponentEventKind::Change,
@@ -164,6 +171,7 @@ pub(super) fn dispatch_ime_input(
             editable,
             &ime.text,
             ime.cursor_range,
+            &ime.preedit_clauses,
             text_input_constraints_for_node(surface, target),
         ),
         UiImeInputEventKind::Commit => committed_text_state(

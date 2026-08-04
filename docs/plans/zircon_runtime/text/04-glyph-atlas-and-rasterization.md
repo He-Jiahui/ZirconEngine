@@ -413,6 +413,15 @@ bevy 对照:`FontAtlasKey { font_size_bits, variations_hash, hinting, font_smoot
 
 Coordinator handoff（2026-08-01）：Text04 完整 Plan/scope registration 在 coordinator health 阶段超时且没有 receipt；按规则不重试、不查询数据库、不等待 maintenance/validation queue。coordinator wakeup 后提交 source residency focused/scale/ignored p50-p95、instance draw focused/upward 与 exact ignored WGPU product framebuffer；当前没有 queued/running ticket。
 
+2026-08-03 Text04 Native contract capture forward fix: the generic runtime UI text contract
+helper no longer captures its first submitted frame. Text-bearing extracts retain one WGPU
+backend and viewport across at most 120 uniquely identified submissions, then require two
+consecutive frames with zero raster pending/failure/missing-image/placeholder/requeued-upload/
+upload-failure telemetry before framebuffer capture. The new pure settle-contract regression
+locks every nonzero telemetry input and the consecutive-frame requirement. This only repairs
+test-driving infrastructure; it does not assert a WGPU pass, create a PNG, or change this
+failure from `open / implementation_complete / resolving_failure / managed_validation_pending`.
+
 2026-07-31 PERF-MVP-245 retry 产品预算 current-source 复核：native bitmap 产品入口不再使用 unlimited policy；Text09 权威的 256 glyph / 2 MiB 确定性帧预算被 old retry 与 new visible work 各分 128 glyph / 1 MiB，retained blocked queue 另有 256 entry / 2 MiB hard cap，超限以独立 overflow/rejected counter fail-closed 到 Glyphon。retry/new 只对 persistent-slot miss 计预算，同 `GlyphRasterKey`/generation 在帧内去重；队列保留旧项顺序并轮转 backpressured 项，300 帧回归固定三项各尝试 100 次。Text09 对 CPU time 的契约仍是只观测不 gate，因此本阶段不新增无标定毫秒/像素常数；current-source Cargo、规模 telemetry 与产品像素尚未执行，failure 保持 open。
 
 2026-07-31 Text04 raster completion API current-source 复核：native atlas/source cache/worker pool 已硬切到唯一 `face_epoch` identity 与 `drain_completed_for_face_epoch(..., TextRasterCompletionDrainBudget)`；旧 `TextRasterWorkTarget`、`drain_completed_for_target` 及 completion-side page-generation 字段在 Text owner 扫描为 0。真实 page generation 仍只由 allocation/staging/upload owner 校验，避免 CPU raster completion 因 page churn 被错误丢弃。7 月 31 日 partial-feature `zircon_runtime --lib` 生产 check 已覆盖这些 owner，但 focused lib-test、Editor09 upward gate、独立复审与受管 commit SHA 仍待完成，接口 failure 不转 fixed。

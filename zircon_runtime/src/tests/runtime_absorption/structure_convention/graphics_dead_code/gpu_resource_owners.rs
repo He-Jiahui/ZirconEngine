@@ -21,14 +21,15 @@ fn runtime_15_gpu_texture_resource_owner_cleanup() {
         "gpu texture retained owner contract",
         &gpu_texture,
         &[
-            "pub(crate) const RETAINED_TEXTURE_BINDING_OWNER_COUNT: usize = 4;",
+            "pub(crate) const RETAINED_TEXTURE_BINDING_OWNER_COUNT: usize = 5;",
             "pub(crate) fn retained_texture_binding_owner_count(&self) -> usize",
             "&self.id",
             "&self.texture",
             "&self.view",
             "&self.sampler",
+            "&self.sampler_cache",
             "self.retained_texture_binding_owner_count()",
-            "GpuTextureResource must retain identity, texture, view, and sampler while exposing bindings",
+            "GpuTextureResource must retain identity, texture, view, sampler, and sampler-cache lifetime while exposing bindings",
         ],
     );
 

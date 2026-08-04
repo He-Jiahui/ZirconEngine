@@ -108,9 +108,9 @@ pub(crate) fn with_active_script_runtime_call_context<R>(
 }
 
 /// Borrows the runtime payload carried by a gameplay host call frame.
-pub(crate) fn runtime_context_for_frame(
-    frame: &ScriptHostCallFrame<'_>,
-) -> Result<&ScriptRuntimeCallContext, ScriptHostError> {
+pub(crate) fn runtime_context_for_frame<'a>(
+    frame: &'a ScriptHostCallFrame<'a>,
+) -> Result<&'a ScriptRuntimeCallContext, ScriptHostError> {
     frame
         .runtime_context::<ScriptRuntimeCallContext>()
         .ok_or_else(|| ScriptHostError::new("script runtime context is not active"))

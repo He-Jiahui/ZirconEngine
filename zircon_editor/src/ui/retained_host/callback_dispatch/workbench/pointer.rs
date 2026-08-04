@@ -1,6 +1,6 @@
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
-use zircon_runtime_interface::ui::dispatch::UiPointerEvent;
+use zircon_runtime_interface::ui::{binding::UiEventKind, dispatch::UiPointerEvent};
 
 use super::super::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 
@@ -37,6 +37,29 @@ pub(crate) fn dispatch_componentized_workbench_pointer_event(
             Ok(dirty) => dirty,
             Err(error) => return Some(Err(error.to_string())),
         };
+    let cleared_search_control = match bridge.clear_search_field_from_pointer_route(&route) {
+        Ok(control_id) => control_id,
+        Err(error) => return Some(Err(error.to_string())),
+    };
+    if let Some(control_id) = cleared_search_control {
+        return match super::control::dispatch_componentized_workbench_control(
+            runtime,
+            bridge,
+            &control_id,
+            UiEventKind::Change,
+        ) {
+            Some(Ok(mut effects)) => {
+                effects.request_paint_only();
+                Some(Ok(effects))
+            }
+            Some(Err(error)) => Some(Err(error)),
+            None => {
+                let mut effects = UiHostEventEffects::default();
+                effects.request_paint_only();
+                Some(Ok(effects))
+            }
+        };
+    }
     let Some((control_id, event_kind)) = bridge.activation_route_for_pointer_route(&route) else {
         if hover_feedback_dirty
             || press_feedback_dirty

@@ -1,9 +1,6 @@
 use std::path::Path;
 
-use super::super::support::{
-    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
-    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows,
-};
+use super::super::support::{assert_contains_all, read_repo_text};
 
 #[test]
 fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
@@ -40,9 +37,6 @@ fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
         manifest_root,
         "docs/engine-architecture/non-network-server-naming-m1.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let status_slice = read_runtime_15_naming_status_map(manifest_root);
-    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "editor workbench extension feedback",
@@ -68,9 +62,6 @@ fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
         ("structure convention", structure_convention),
         ("module convention doc", module_doc),
         ("non-network server naming doc", non_network_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
     ] {
         assert_contains_all(
             label,
@@ -177,9 +168,6 @@ fn runtime_15_editor_workbench_archived_fixtures_use_current_names() {
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !repo_root
@@ -294,9 +282,6 @@ fn runtime_15_editor_workbench_archived_fixtures_use_current_names() {
             "hard-cutover migration smells doc",
             hard_cutover_doc.as_str(),
         ),
-        ("status row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

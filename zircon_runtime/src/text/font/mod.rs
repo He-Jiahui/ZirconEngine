@@ -22,7 +22,7 @@ mod vertical_metrics;
 
 pub(crate) use database::{FontAssetUpdateReport, FontDatabase, SystemFontPolicy};
 pub(crate) use decoration_metrics::{
-    TextDecorationKind, TextDecorationMetrics, TextDecorationMetricsCache, text_decoration_frame,
+    text_decoration_frame, TextDecorationKind, TextDecorationMetrics, TextDecorationMetricsCache,
 };
 #[cfg(test)]
 pub(crate) use default_families::default_runtime_font_families;
@@ -40,5 +40,5 @@ pub(crate) use shared::{
 pub(crate) use shared::{
     mutate_shared_font_database, shared_font_database_generation, shared_font_database_snapshot,
 };
-pub(crate) use source_manifest::{LoadedTextFontSource, load_text_font_source};
+pub(crate) use source_manifest::{load_text_font_source, LoadedTextFontSource};
 pub(crate) use vertical_metrics::FontVerticalMetrics;

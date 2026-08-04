@@ -4,10 +4,10 @@ use zircon_editor::core::asset::{
 };
 use zircon_editor::core::commands::EditorCommandDescriptor;
 use zircon_editor::core::editor_extension::{
-    AssetImporterDescriptor, ComponentDrawerDescriptor, EditorExtensionRegistry,
-    EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
-    ViewDescriptor,
+    AssetImporterDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
+    EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -122,8 +122,8 @@ pub(crate) fn register_importer_and_inspector(
             .with_required_capabilities([ASSET_FIXTURE_CAPABILITY]),
         ),
     )?;
-    registry.register_component_drawer(
-        ComponentDrawerDescriptor::new(
+    registry.register_inspector_customization(
+        InspectorCustomizationDescriptor::new(
             MODEL_IMPORT_SETTINGS_COMPONENT,
             "asset://plugin_sdk_examples/editor/model_import_settings.zui",
             "sdk.example.ModelImportSettingsController",

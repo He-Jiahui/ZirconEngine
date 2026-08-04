@@ -11,9 +11,15 @@ use zircon_runtime_interface::ui::{
     },
 };
 
-use crate::text::SharedTextLayoutSession;
+use crate::text::{SharedTextLayoutSession, TextDocumentKey};
 
-use super::shaper::{layout_text, layout_text_with_provider};
+use super::shaper::{
+    layout_text, layout_text_with_provider, layout_text_with_provider_and_viewport,
+    layout_text_with_viewport,
+};
+use super::{
+    layout_engine::layout_parsed_text_with_provider_and_viewport, rich_text::UiParsedText,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiTextLayoutResolution {
@@ -109,6 +115,48 @@ pub(crate) struct UiPreeditSpan {
     pub text: String,
 }
 
+/// A document-local viewport for bounded plain-text layout.
+///
+/// This is deliberately separate from render clipping: the offset identifies the rows that
+/// must be shaped, while the clip still controls what is emitted to the renderer.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct UiTextViewport {
+    pub(crate) offset_y: f32,
+    pub(crate) extent_y: f32,
+    pub(crate) overscan_screens: usize,
+}
+
+impl UiTextViewport {
+    pub(crate) const DEFAULT_OVERSCAN_SCREENS: usize = 2;
+
+    pub(crate) fn new(offset_y: f32, extent_y: f32, overscan_screens: usize) -> Option<Self> {
+        (offset_y.is_finite() && extent_y.is_finite() && extent_y > 0.0).then_some(Self {
+            offset_y: offset_y.max(0.0),
+            extent_y,
+            overscan_screens,
+        })
+    }
+
+    pub(crate) fn from_document_and_clip(
+        document_frame: UiFrame,
+        clip_frame: UiFrame,
+    ) -> Option<Self> {
+        Self::new(
+            clip_frame.y - document_frame.y,
+            clip_frame.height,
+            Self::DEFAULT_OVERSCAN_SCREENS,
+        )
+    }
+
+    pub(crate) fn cache_key(self) -> (u32, u32, usize) {
+        (
+            self.offset_y.to_bits(),
+            self.extent_y.to_bits(),
+            self.overscan_screens,
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct UiTextLayoutRequest<'a> {
     pub text: &'a str,
@@ -116,6 +164,8 @@ pub(crate) struct UiTextLayoutRequest<'a> {
     pub frame: UiFrame,
     pub clip_frame: Option<UiFrame>,
     pub preedit: Option<&'a UiPreeditSpan>,
+    pub viewport: Option<UiTextViewport>,
+    pub document_key: Option<TextDocumentKey>,
 }
 
 impl<'a> UiTextLayoutRequest<'a> {
@@ -131,6 +181,8 @@ impl<'a> UiTextLayoutRequest<'a> {
             frame,
             clip_frame,
             preedit: None,
+            viewport: None,
+            document_key: None,
         }
     }
 
@@ -139,11 +191,34 @@ impl<'a> UiTextLayoutRequest<'a> {
         self
     }
 
+    pub(crate) const fn with_viewport(mut self, viewport: UiTextViewport) -> Self {
+        self.viewport = Some(viewport);
+        self
+    }
+
+    pub(crate) const fn with_document_key(mut self, document_key: TextDocumentKey) -> Self {
+        self.document_key = Some(document_key);
+        self
+    }
+
+    pub(crate) const fn layout_viewport(&self) -> Option<UiTextViewport> {
+        if self.preedit.is_some() {
+            None
+        } else {
+            self.viewport
+        }
+    }
+
     pub(crate) fn style_key(&self) -> UiTextStyleKey {
         UiTextStyleKey::from_style(self.style)
     }
 
     pub(crate) fn source_hash(&self) -> u64 {
+        if self.preedit.is_none() {
+            if let Some(document_key) = self.document_key {
+                return document_key.fingerprint();
+            }
+        }
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         self.text.hash(&mut hasher);
         if let Some(preedit) = self.preedit {
@@ -152,6 +227,10 @@ impl<'a> UiTextLayoutRequest<'a> {
             preedit.text.hash(&mut hasher);
         }
         hasher.finish()
+    }
+
+    pub(crate) const fn has_stable_viewport_document(&self) -> bool {
+        self.document_key.is_some() && self.preedit.is_none() && self.viewport.is_some()
     }
 
     pub(crate) fn resolved_text(&self) -> Cow<'_, str> {
@@ -170,13 +249,20 @@ impl<'a> UiTextLayoutRequest<'a> {
 }
 
 pub(crate) fn resolve_text_layout(request: &UiTextLayoutRequest<'_>) -> UiTextLayoutResolution {
-    resolve_text_layout_inner(request, |resolved_text| {
-        layout_text(
+    resolve_text_layout_inner(request, |resolved_text| match request.layout_viewport() {
+        Some(viewport) => layout_text_with_viewport(
             resolved_text,
             request.style,
             request.frame,
             request.clip_frame,
-        )
+            viewport,
+        ),
+        None => layout_text(
+            resolved_text,
+            request.style,
+            request.frame,
+            request.clip_frame,
+        ),
     })
 }
 
@@ -184,15 +270,41 @@ pub(crate) fn resolve_text_layout_with_provider(
     request: &UiTextLayoutRequest<'_>,
     provider: &mut SharedTextLayoutSession,
 ) -> UiTextLayoutResolution {
-    resolve_text_layout_inner(request, |resolved_text| {
-        layout_text_with_provider(
+    resolve_text_layout_inner(request, |resolved_text| match request.layout_viewport() {
+        Some(viewport) => layout_text_with_provider_and_viewport(
+            resolved_text,
+            request.style,
+            request.frame,
+            request.clip_frame,
+            viewport,
+            request.document_key,
+            provider,
+        ),
+        None => layout_text_with_provider(
             resolved_text,
             request.style,
             request.frame,
             request.clip_frame,
             provider,
-        )
+        ),
     })
+}
+
+pub(crate) fn resolve_text_layout_with_provider_and_parsed(
+    request: &UiTextLayoutRequest<'_>,
+    parsed: &UiParsedText,
+    provider: &mut SharedTextLayoutSession,
+) -> UiTextLayoutResolution {
+    let layout = layout_parsed_text_with_provider_and_viewport(
+        parsed,
+        request.style,
+        request.frame,
+        request.clip_frame,
+        request.layout_viewport(),
+        request.document_key,
+        provider,
+    );
+    resolution_from_layout(request, layout)
 }
 
 fn resolve_text_layout_inner(
@@ -201,6 +313,13 @@ fn resolve_text_layout_inner(
 ) -> UiTextLayoutResolution {
     let resolved_text = request.resolved_text();
     let layout = layout(resolved_text.as_ref());
+    resolution_from_layout(request, layout)
+}
+
+fn resolution_from_layout(
+    request: &UiTextLayoutRequest<'_>,
+    layout: UiResolvedTextLayout,
+) -> UiTextLayoutResolution {
     let size = UiSize::new(layout.measured_width, layout.measured_height);
     let first_baseline = layout
         .lines
@@ -219,6 +338,7 @@ fn resolve_text_layout_inner(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime_interface::ui::layout::UiFrame;
     use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
     #[test]
@@ -265,6 +385,36 @@ mod tests {
         style.font_weight = 600;
 
         assert_ne!(key, UiTextStyleKey::from_style(&style));
+    }
+
+    #[test]
+    fn preedit_request_disables_viewport_layout() {
+        let style = UiResolvedStyle::default();
+        let preedit = UiPreeditSpan {
+            range: UiTextRange { start: 0, end: 0 },
+            text: "x".to_string(),
+        };
+        let viewport = UiTextViewport::new(40.0, 20.0, 2).expect("finite viewport");
+        let request =
+            UiTextLayoutRequest::new("source", &style, UiFrame::new(0.0, 0.0, 120.0, 80.0), None)
+                .with_viewport(viewport)
+                .with_preedit(&preedit);
+
+        assert_eq!(request.viewport, Some(viewport));
+        assert_eq!(request.layout_viewport(), None);
+    }
+
+    #[test]
+    fn viewport_derives_a_document_local_offset_from_absolute_frames() {
+        let viewport = UiTextViewport::from_document_and_clip(
+            UiFrame::new(20.0, -180.0, 240.0, 1_600.0),
+            UiFrame::new(20.0, 60.0, 240.0, 80.0),
+        )
+        .expect("finite document and clip frames");
+
+        assert_eq!(viewport.offset_y, 240.0);
+        assert_eq!(viewport.extent_y, 80.0);
+        assert_eq!(viewport.overscan_screens, 2);
     }
 
     #[test]

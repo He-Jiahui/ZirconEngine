@@ -1,11 +1,11 @@
 use serde::Deserialize;
 use zircon_runtime::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, Texture2DArrayAsset,
+    AssetImportContext, AssetImportError, AssetImportOutcome, Texture2DArrayAsset,
     TextureArrayLayerSource, TextureArrayLayout, TextureAsset, TextureAssetDescriptor,
 };
 
-use crate::importers::apply_texture_import_settings;
-use crate::manifest_source::{decode_manifest_image, DecodedManifestImage};
+use crate::importers::{apply_texture_import_settings, texture_import_outcome};
+use crate::manifest_source::{DecodedManifestImage, decode_manifest_image};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -40,11 +40,8 @@ pub fn import_texture_array_manifest(
                 context.source_path.display()
             ))
         })?;
-    let texture = apply_texture_import_settings(context, texture)?;
-    Ok(AssetImportOutcome::new(
-        context.uri.clone(),
-        ImportedAsset::Texture(texture),
-    ))
+    let (texture, diagnostics) = apply_texture_import_settings(context, texture)?;
+    Ok(texture_import_outcome(context, texture, diagnostics))
 }
 
 fn resolved_layers(
@@ -99,7 +96,7 @@ fn sliced_layers(
             return Err(AssetImportError::Parse(format!(
                 "texture array slice must evenly divide image height {}",
                 source.rgba.height()
-            )))
+            )));
         }
     };
     let layers = (0..count)

@@ -8,7 +8,7 @@ use crate::render_graph::{
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::{
-    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
+    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
 };
 
 pub(super) fn materialize_transient_texture_slots(

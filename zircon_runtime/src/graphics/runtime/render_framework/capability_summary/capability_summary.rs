@@ -22,12 +22,25 @@ pub(in crate::graphics::runtime::render_framework) fn capability_summary(
         supports_async_copy: caps.supports_async_copy,
         supports_pipeline_cache: caps.supports_pipeline_cache,
         supports_gpu_timestamp: caps.supports_gpu_timestamp,
+        supports_subgroup: caps.supports_subgroup,
+        supports_pipeline_statistics_query: caps.supports_pipeline_statistics_query,
         supports_storage_buffers: caps.supports_storage_buffers,
         supports_fragment_writable_storage: caps.supports_fragment_writable_storage,
         max_storage_buffers_per_shader_stage: caps.max_storage_buffers_per_shader_stage,
         max_storage_buffer_binding_size: caps.max_storage_buffer_binding_size,
+        max_binding_array_elements_per_shader_stage: caps
+            .device_limits
+            .as_ref()
+            .map(|limits| limits.max_binding_array_elements_per_shader_stage)
+            .unwrap_or(0),
+        max_binding_array_sampler_elements_per_shader_stage: caps
+            .device_limits
+            .as_ref()
+            .map(|limits| limits.max_binding_array_sampler_elements_per_shader_stage)
+            .unwrap_or(0),
         supports_indirect_draw: caps.supports_indirect_draw,
         supports_multi_draw_indirect: caps.supports_multi_draw_indirect,
+        supports_multi_draw_indirect_count: caps.supports_multi_draw_indirect_count,
         supports_indirect_first_instance: caps.supports_indirect_first_instance,
         supports_buffer_readback: caps.supports_buffer_readback,
         acceleration_structures_supported: caps.acceleration_structures.supported,
@@ -73,5 +86,16 @@ mod tests {
         let caps = RenderBackendCaps::new("timestamps").with_gpu_timestamp(true);
 
         assert!(capability_summary(&caps).supports_gpu_timestamp);
+    }
+
+    #[test]
+    fn capability_summary_preserves_optional_compute_and_observation_gates() {
+        let caps = RenderBackendCaps::new("optional-gates")
+            .with_subgroup(true)
+            .with_pipeline_statistics_query(true);
+        let summary = capability_summary(&caps);
+
+        assert!(summary.supports_subgroup);
+        assert!(summary.supports_pipeline_statistics_query);
     }
 }

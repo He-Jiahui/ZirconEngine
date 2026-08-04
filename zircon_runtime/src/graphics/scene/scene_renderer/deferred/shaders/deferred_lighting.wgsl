@@ -118,11 +118,18 @@ fn deferred_standard_pbr_isotropic_ggx(
 }
 
 fn scene_view_dir_ws(world_position: vec3<f32>) -> vec3<f32> {
+    let camera_direction_weight = clamp(scene.camera_view_direction.w, 0.0, 1.0);
+    if (camera_direction_weight <= 0.0) {
+        return normalize_or_zero(scene.camera_world_position.xyz - world_position);
+    }
+    if (camera_direction_weight >= 1.0) {
+        return normalize_or_zero(scene.camera_view_direction.xyz);
+    }
     let perspective_view_dir = normalize_or_zero(scene.camera_world_position.xyz - world_position);
     return normalize_or_zero(mix(
         perspective_view_dir,
         scene.camera_view_direction.xyz,
-        clamp(scene.camera_view_direction.w, 0.0, 1.0),
+        camera_direction_weight,
     ));
 }
 
@@ -166,21 +173,19 @@ fn shade_light_vector_normalized(light_vector: vec3<f32>, radiance: vec3<f32>, w
     return shade_standard_pbr_light_vector_normalized(light_vector, radiance, world_normal, roughness, direct_f0, direct_diffuse_brdf, world_view);
 }
 
-fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, world_position: vec3<f32>, distance_to_light: f32) -> f32 {
-    let range = max(light.position_range.w, EPSILON);
-    if (distance_to_light >= range) {
-        return 0.0;
-    }
-
+fn punctual_light_visibility(light: ZrGpuLightData, light_type: u32, light_vector_to_light: vec3<f32>, distance_to_light: f32, range: f32) -> f32 {
     var visibility = pow(clamp(1.0 - distance_to_light / range, 0.0, 1.0), 2.0);
+    let light_to_surface = select(
+        vec3<f32>(0.0, 0.0, 0.0),
+        -light_vector_to_light,
+        distance_to_light > EPSILON,
+    );
     if (light_type == ZR_GPU_LIGHT_TYPE_SPOT) {
-        let light_to_surface = normalize_or_zero(world_position - light.position_range.xyz);
         let cone = dot(normalize_or_zero(light.direction_type.xyz), light_to_surface);
         let inner = light.spot_angles_size.x;
         let outer = light.spot_angles_size.y;
         visibility = visibility * clamp((cone - outer) / max(inner - outer, EPSILON), 0.0, 1.0);
     } else if (light_type == ZR_GPU_LIGHT_TYPE_RECT) {
-        let light_to_surface = normalize_or_zero(world_position - light.position_range.xyz);
         visibility = visibility * max(dot(normalize_or_zero(light.direction_type.xyz), light_to_surface), 0.0);
     }
     return visibility;
@@ -219,7 +224,12 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, world_norm
 
     let to_light = light.position_range.xyz - world_position;
     let distance_to_light = length(to_light);
-    let visibility = punctual_light_visibility(light, light_type, world_position, distance_to_light);
+    let range = max(light.position_range.w, EPSILON);
+    if (distance_to_light >= range) {
+        return vec3<f32>(0.0, 0.0, 0.0);
+    }
+    let light_vector = to_light / max(distance_to_light, EPSILON);
+    let visibility = punctual_light_visibility(light, light_type, light_vector, distance_to_light, range);
     if (visibility <= 0.0) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -229,7 +239,7 @@ fn shade_gpu_light_index(light_index: u32, world_position: vec3<f32>, world_norm
         shadow_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
     }
     return shade_light_vector_normalized(
-        to_light / max(distance_to_light, EPSILON),
+        light_vector,
         base_radiance * visibility * shadow_visibility,
         world_normal,
         roughness,
@@ -272,7 +282,12 @@ fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>,
 
     let to_light = light.position_range.xyz - world_position;
     let distance_to_light = length(to_light);
-    let visibility = punctual_light_visibility(light, light_type, world_position, distance_to_light);
+    let range = max(light.position_range.w, EPSILON);
+    if (distance_to_light >= range) {
+        return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
+    }
+    let light_vector = to_light / max(distance_to_light, EPSILON);
+    let visibility = punctual_light_visibility(light, light_type, light_vector, distance_to_light, range);
     if (visibility <= 0.0) {
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
@@ -281,7 +296,7 @@ fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>,
         shadow_visibility = zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
     }
     return shade_standard_pbr_light_vector_components_normalized(
-        to_light / max(distance_to_light, EPSILON),
+        light_vector,
         base_radiance * visibility * shadow_visibility,
         world_normal,
         roughness,
@@ -291,7 +306,7 @@ fn shade_gpu_light_index_components(light_index: u32, world_position: vec3<f32>,
     );
 }
 
-fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, shading_model_id: u32, receive_shadows: bool) -> vec3<f32> {
+fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal_normalized: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir_normalized: vec3<f32>, shading_model_id: u32, receive_shadows: bool) -> vec3<f32> {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
@@ -303,8 +318,8 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: 
         return vec3<f32>(0.0, 0.0, 0.0);
     }
 
-    let world_normal = normalize_or_zero(normal);
-    let world_view = normalize_or_zero(view_dir);
+    let world_normal = normal_normalized;
+    let world_view = view_dir_normalized;
     var direct_f0 = vec3<f32>(0.0);
     var direct_diffuse_brdf = vec3<f32>(0.0);
     if (shading_model_id != ZR_SHADING_MODEL_BLINN_PHONG_ID) {
@@ -340,7 +355,7 @@ fn gpu_light_lighting(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: 
     return accumulated;
 }
 
-fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32>, normal: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir: vec3<f32>, receive_shadows: bool) -> ZrDeferredLightingComponents {
+fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32>, normal_normalized: vec3<f32>, roughness: f32, metallic: f32, diffuse_color: vec3<f32>, view_dir_normalized: vec3<f32>, receive_shadows: bool) -> ZrDeferredLightingComponents {
     if (zr_light_grid_params.light_count == 0u || zr_light_grid_params.bin_count == 0u) {
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
@@ -352,8 +367,8 @@ fn gpu_light_lighting_components(frag_coord: vec2<f32>, world_position: vec3<f32
         return ZrDeferredLightingComponents(vec3<f32>(0.0), vec3<f32>(0.0));
     }
 
-    let world_normal = normalize_or_zero(normal);
-    let world_view = normalize_or_zero(view_dir);
+    let world_normal = normal_normalized;
+    let world_view = view_dir_normalized;
     let direct_metallic = clamp(metallic, 0.0, 1.0);
     let direct_f0 = mix(
         vec3<f32>(0.04),
@@ -420,7 +435,7 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
     let ambient = scene.ambient_color.rgb * occlusion;
     let diffuse_color = deferred_diffuse_color(albedo);
     let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, shading_model_id, receive_shadows);
-    let environment_lights = zr_environment_pbr_indirect(
+    let environment_lights = zr_environment_pbr_indirect_normalized(
         world_position,
         normal,
         view_dir,
@@ -450,7 +465,7 @@ fn shade_deferred_subsurface_components(position: vec4<f32>, coord: vec2<i32>, a
     let view_dir = scene_view_dir_ws(world_position);
     let diffuse_color = deferred_diffuse_color(albedo);
     let direct = gpu_light_lighting_components(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, receive_shadows);
-    let environment = zr_environment_pbr_components(
+    let environment = zr_environment_pbr_components_normalized(
         world_position,
         normal,
         view_dir,

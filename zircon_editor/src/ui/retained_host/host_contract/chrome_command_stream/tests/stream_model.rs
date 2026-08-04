@@ -1,11 +1,10 @@
 use super::super::{
-    ChromeCommandKind, ChromeCommandLayer, ChromeCommandStream, ChromeImagePayload,
-    ChromeImageUvRect, build_chrome_command_stream,
+    build_chrome_command_stream, ChromeCommandKind, ChromeCommandLayer, ChromeCommandStream,
+    ChromeImagePayload, ChromeImageUvRect,
 };
 use super::support::{
-    LEGACY_CENTER_BAND, LEGACY_DOCUMENT_PANEL, LEGACY_VIEWPORT_PANEL,
     presentation_with_componentized_workbench_frame_owner, presentation_with_viewport_image,
-    stream_has_quad_color,
+    stream_has_quad_color, LEGACY_CENTER_BAND, LEGACY_DOCUMENT_PANEL, LEGACY_VIEWPORT_PANEL,
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
@@ -20,12 +19,10 @@ fn full_command_stream_records_full_ui_draw_list() {
     assert!(stats.text_command_count > 0);
     assert!(stats.draw_call_count > 0);
     assert_eq!(stats.image_upload_bytes, 16);
-    assert!(
-        stream
-            .commands()
-            .iter()
-            .any(|command| matches!(&command.kind, ChromeCommandKind::Image { .. }))
-    );
+    assert!(stream
+        .commands()
+        .iter()
+        .any(|command| matches!(&command.kind, ChromeCommandKind::Image { .. })));
     assert!(stream.commands().iter().any(|command| {
         matches!(
             &command.kind,
@@ -68,12 +65,10 @@ fn patch_command_stream_does_not_rebuild_static_layer() {
     assert!(!stream.is_full_rebuild());
     assert_eq!(stats.static_command_count, 0);
     assert!(stats.dynamic_command_count > 0);
-    assert!(
-        stream
-            .commands()
-            .iter()
-            .all(|command| { !matches!(command.layer, ChromeCommandLayer::Static) })
-    );
+    assert!(stream
+        .commands()
+        .iter()
+        .all(|command| { !matches!(command.layer, ChromeCommandLayer::Static) }));
 }
 
 #[test]
@@ -105,7 +100,7 @@ fn viewport_image_patch_can_carry_upload_bytes_for_gpu() {
     assert!(image.rgba.is_none());
     assert_eq!(
         stream
-            .image_resource("viewport:test-initial")
+            .image_resource("viewport:test-initial", 0)
             .map(|resource| resource.rgba.as_slice()),
         Some(&[255; 16][..])
     );

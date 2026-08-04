@@ -117,7 +117,6 @@ fn assert_behavior_test_anchors() {
         include_str!("../../../dynamic_api/tests/session_profiles.rs"),
         include_str!("../../time.rs"),
         include_str!("inventory.rs"),
-        include_str!("../plan_status/cargo_gates/early.rs"),
     ];
     for behavior_anchor in EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS {
         assert!(

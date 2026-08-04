@@ -28,18 +28,12 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
     let root_layout_folder_sources = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/sources.rs",
     );
-    let root_layout_status_scan = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/status_scan.rs",
-    );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/test_file_budget.rs",
-    );
 
     assert_contains_all(
         "test-file budget parent mounts final child guard owners",
@@ -97,28 +91,6 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
             "fn runtime_15_ui_shared_core_tests_are_folder_backed",
         ],
     );
-    assert_contains_all(
-        "root-layout folder-backed support tracks the new child owners",
-        &format!(
-            "{root_layout_folder}\n{root_layout_folder_assertions}\n{root_layout_folder_sources}\n{root_layout_status_scan}"
-        ),
-        &[
-            "structure_convention/test_file_budget/core_framework.rs",
-            "structure_convention/test_file_budget/ui_v2_asset.rs",
-            "structure_convention/test_file_budget/ui_shared_core.rs",
-            "runtime_15_test_file_budget_parent_guard_child_owner_split",
-        ],
-    );
-    assert_contains_all(
-        "root-layout status scan counts the new child owners",
-        &root_layout_status_scan,
-        &[
-            "structure_convention/test_file_budget/core_framework.rs",
-            "structure_convention/test_file_budget/module_layout.rs",
-            "structure_convention/test_file_budget/ui_v2_asset.rs",
-            "structure_convention/test_file_budget/ui_shared_core.rs",
-        ],
-    );
 
     for (path, source) in [
         (
@@ -150,30 +122,6 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 test file budget parent guard child-owner split",
-                "runtime_15_test_file_budget_parent_guard_child_owner_split_static_passed_cargo_deferred",
-                "structure_convention/test_file_budget/mod.rs",
-                "structure_convention/test_file_budget/core_framework.rs",
-                "structure_convention/test_file_budget/ui_v2_asset.rs",
-                "structure_convention/test_file_budget/ui_shared_core.rs",
-                "structure_convention/test_file_budget/module_layout.rs",
-                "runtime_15_test_file_budget_parent_guard_child_owner_split",
-            ],
         );
     }
 }

@@ -1,17 +1,17 @@
+use super::ScreenSpaceUiNativePrepareReport;
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
 use super::resolved_batches::{AutoTextRasterRouteFrameReport, ResolvedScreenSpaceUiTextBatches};
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use super::ScreenSpaceUiNativePrepareReport;
 use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;
 use crate::graphics::scene::scene_renderer::ui::sdf_render::ScreenSpaceUiSdfPrepareReport;
+use crate::text::TextLayoutFallbackReport;
 use crate::text::font::MissingGlyphDiagnosticsReport;
 use crate::text::native_bitmap_atlas::{
-    native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasHandoff,
-    NativeBitmapAtlasPrepareReport,
+    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
+    native_bitmap_atlas_handoff_for_report,
 };
-use crate::text::TextLayoutFallbackReport;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScreenSpaceUiTextPrepareReport {
@@ -37,6 +37,11 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(crate) visible_raster_glyph_count: usize,
     pub(crate) source_image_count: usize,
     pub(crate) missing_raster_image_count: usize,
+    /// Missing source rasters whose glyphs affect the current frame.
+    ///
+    /// Product capture gates use this instead of the total diagnostic count,
+    /// which also retains offscreen cache misses for observability.
+    pub(crate) visible_missing_raster_image_count: usize,
     /// Visible native glyphs deliberately emitted as transparent placeholders.
     ///
     /// A source raster can be present while atlas allocation is deferred, so this
@@ -52,6 +57,9 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(super) source_cache_lru_touch_count: usize,
     pub(super) source_cache_budget_linked_eviction_count: usize,
     pub(super) source_cache_linked_raster_invalidation_count: usize,
+    pub(super) atlas_slot_cache_hit_count: usize,
+    pub(super) atlas_slot_cache_miss_count: usize,
+    pub(super) atlas_slot_cache_insert_count: usize,
     pub(super) atlas_resident_page_byte_len: usize,
     pub(super) worker_request_submitted_count: usize,
     /// Outstanding native raster work after the frame completion drain.
@@ -70,11 +78,12 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(crate) worker_failed_count: usize,
     pub(super) upload_command_count: usize,
     pub(super) upload_copy_count: usize,
+    pub(super) upload_copy_byte_len: usize,
     pub(super) upload_byte_len: usize,
     pub(super) renderer_upload_request_count: usize,
     pub(super) renderer_upload_byte_len: usize,
-    pub(super) renderer_upload_requeued_count: usize,
-    pub(super) renderer_upload_failure_count: usize,
+    pub(crate) renderer_upload_requeued_count: usize,
+    pub(crate) renderer_upload_failure_count: usize,
     pub(super) renderer_upload_ready_to_write_texture: bool,
 }
 
@@ -126,6 +135,7 @@ pub(super) fn text_raster_upload_report(
         visible_raster_glyph_count: native_bitmap_atlas.visible_raster_glyph_count,
         source_image_count: native_bitmap_atlas.source_image_count,
         missing_raster_image_count: native_bitmap_atlas.missing_raster_image_count,
+        visible_missing_raster_image_count: native_bitmap_atlas.visible_missing_raster_image_count,
         visible_placeholder_count,
         approximate_raster_image_count: native_bitmap_atlas.approximate_raster_image_count,
         source_cache_hit_count: native_bitmap_atlas.source_cache.hit_count,
@@ -141,6 +151,9 @@ pub(super) fn text_raster_upload_report(
         source_cache_linked_raster_invalidation_count: native_bitmap_atlas
             .source_cache
             .linked_raster_invalidation_count,
+        atlas_slot_cache_hit_count: native_bitmap_atlas.submission.slot_cache_hit_count,
+        atlas_slot_cache_miss_count: native_bitmap_atlas.submission.slot_cache_miss_count,
+        atlas_slot_cache_insert_count: native_bitmap_atlas.submission.slot_cache_insert_count,
         atlas_resident_page_byte_len: native_bitmap_atlas.submission.resident_page_byte_len,
         worker_request_submitted_count: native_bitmap_atlas
             .source_cache
@@ -176,6 +189,7 @@ pub(super) fn text_raster_upload_report(
             ),
         upload_command_count: native_bitmap_atlas.submission.upload_command_count,
         upload_copy_count: native_bitmap_atlas.submission.upload_copy_count,
+        upload_copy_byte_len: native_bitmap_atlas.submission.upload_copy_byte_len,
         upload_byte_len: native_bitmap_atlas.submission.upload_byte_len,
         renderer_upload_request_count: bitmap_atlas_renderer.upload_request_count,
         renderer_upload_byte_len: bitmap_atlas_renderer.upload_byte_len,

@@ -7,7 +7,7 @@ use crate::core::framework::render::{
 
 use super::resolved_stack::RenderResolvedPostProcessSettings;
 use super::volume_component::{
-    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS, VolumeComponentApplyError, VolumeComponentDescriptor,
+    VolumeComponentApplyError, VolumeComponentDescriptor, BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -138,8 +138,8 @@ mod tests {
 
     use super::super::resolved_stack::RenderResolvedPostProcessSettings;
     use super::super::volume_component::{
-        BUILTIN_POST_PROCESS_VOLUME_COMPONENTS, VolumeComponentDescriptor, VolumeParamSchema,
-        VolumeParamValue, interp_float_lerp,
+        interp_float_lerp, VolumeComponentDescriptor, VolumeParamSchema, VolumeParamValue,
+        BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
     };
     use super::{VolumeComponentRegistry, VolumeRegistryError};
 

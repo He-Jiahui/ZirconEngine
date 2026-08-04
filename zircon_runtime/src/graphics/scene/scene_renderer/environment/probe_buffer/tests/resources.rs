@@ -1,26 +1,28 @@
 use std::sync::Arc;
 
 use crate::asset::{
-    texture_asset_from_ibl_bake_artifact_pmrem, AssetUri, ProjectAssetManager, TextureAsset,
+    AssetUri, ProjectAssetManager, TextureAsset, texture_asset_from_ibl_bake_artifact_pmrem,
 };
 use crate::core::framework::render::{
-    build_source_cubemap_from_equirect, IblBakeArtifactBlob, IblBakeArtifactContents,
-    IblBakeArtifactDescriptor, IblBakeArtifactPayload, ProbeInfluenceShape, ProceduralSkyParams,
-    PlanarReflectionProbeData, PlanarUpdateMode, ReflectionProbeData, RenderCameraTarget,
-    RenderLayerSet,
+    IblBakeArtifactBlob, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactPayload, PlanarReflectionProbeData, PlanarUpdateMode, ProbeInfluenceShape,
+    ProceduralSkyParams, ReflectionProbeData, RenderCameraTarget, RenderLayerSet,
+    build_source_cubemap_from_equirect,
 };
 use crate::core::math::{Mat4, Quat, UVec2, Vec3};
-use crate::core::resource::{ResourceHandle, ResourceId, ResourceKind, ResourceRecord, TextureMarker};
+use crate::core::resource::{
+    ResourceHandle, ResourceId, ResourceKind, ResourceRecord, TextureMarker,
+};
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::scene::world::World;
 
-use super::super::resources::{
-    SceneReflectionProbeResources, MAX_REFLECTION_PROBES, REFLECTION_PROBE_FACE_SIZE,
-    REFLECTION_PROBE_MIP_COUNT,
-};
 use super::super::reflection_probe_bind_group_layout_entries;
+use super::super::resources::{
+    MAX_REFLECTION_PROBES, REFLECTION_PROBE_FACE_SIZE, REFLECTION_PROBE_MIP_COUNT,
+    SceneReflectionProbeResources,
+};
 use super::super::upload::ReflectionProbeAssetRejectionReason;
 
 #[test]
@@ -49,6 +51,121 @@ fn render_probe_prepare_reads_registry_before_candidate_upload_loop() {
     assert!(
         registry_read < candidate_loop,
         "probe prepare must read candidate revisions under one short registry lock before loading assets"
+    );
+}
+
+#[test]
+fn render_probe_candidate_distance_rotates_only_box_influences() {
+    let source = include_str!("../resources.rs");
+    let distance = source
+        .split("fn probe_distance_to_influence")
+        .nth(1)
+        .and_then(|text| text.split("fn record_probe_asset_rejection").next())
+        .expect("probe candidate-distance helper");
+
+    let position_delta = distance
+        .find("let position_delta = world_position - probe.position();")
+        .expect("candidate distance must retain the world-space center delta");
+    let box_branch = distance
+        .find("ProbeInfluenceShape::Box { half_extents, .. } => {")
+        .expect("candidate distance must retain box influence distance");
+    let box_rotation = distance
+        .find("let local = probe.rotation().conjugate() * position_delta;")
+        .expect("box candidate distance must retain local-space rotation");
+    let sphere_branch = distance
+        .find("ProbeInfluenceShape::Sphere { radius, .. } =>")
+        .expect("candidate distance must retain sphere influence distance");
+    let sphere_distance = distance
+        .find("(position_delta.length() - radius).max(0.0)")
+        .expect("sphere candidate distance must use its rotation-invariant center distance");
+
+    assert!(
+        position_delta < box_branch
+            && box_branch < box_rotation
+            && box_rotation < sphere_branch
+            && sphere_branch < sphere_distance,
+        "only box candidate distances may rotate the world-space center delta"
+    );
+}
+
+#[test]
+fn render_probe_prepare_evaluates_candidate_distance_once_before_sorting() {
+    let source = include_str!("../resources.rs");
+    let prepare_start = source
+        .find("fn prepare(")
+        .expect("probe prepare implementation");
+    let prepare_end = source[prepare_start..]
+        .find("fn write_probe_header")
+        .map(|offset| prepare_start + offset)
+        .expect("probe prepare boundary");
+    let prepare = &source[prepare_start..prepare_end];
+    let sort = prepare
+        .find("candidates.sort_by")
+        .expect("candidate distance sort");
+    let candidate_loop = prepare
+        .find("in candidates {")
+        .expect("probe candidate upload loop");
+    let distance_call = "probe_distance_to_influence(probe, camera_position)";
+
+    assert_eq!(
+        prepare[..sort].matches(distance_call).count(),
+        1,
+        "each eligible probe must calculate its distance once before sorting"
+    );
+    assert!(
+        prepare[..sort].contains(".then(|| {"),
+        "distance caching must stay inside the eligible-candidate closure"
+    );
+    let sort_body = &prepare[sort..candidate_loop];
+    assert!(
+        sort_body.contains("left.3.total_cmp(&right.3)"),
+        "candidate sorting must compare the cached distance"
+    );
+    assert!(
+        !sort_body.contains(distance_call),
+        "candidate sorting must not recalculate geometry for each comparison"
+    );
+    assert!(
+        sort_body.contains("right.0.priority().cmp(&left.0.priority())")
+            && sort_body.contains("left.0.probe_id().cmp(&right.0.probe_id())"),
+        "candidate sorting must retain priority and probe-ID tie ordering"
+    );
+}
+
+#[test]
+fn render_probe_prepare_partitions_over_capacity_candidates_before_final_sort() {
+    let source = include_str!("../resources.rs");
+    let prepare_start = source
+        .find("fn prepare(")
+        .expect("probe prepare implementation");
+    let prepare_end = source[prepare_start..]
+        .find("fn write_probe_header")
+        .map(|offset| prepare_start + offset)
+        .expect("probe prepare boundary");
+    let prepare = &source[prepare_start..prepare_end];
+
+    let capacity_guard = prepare
+        .find("if candidates.len() > MAX_REFLECTION_PROBES {")
+        .expect("candidate selection must branch only when capacity is exceeded");
+    let partition = prepare
+        .find("candidates.select_nth_unstable_by(")
+        .expect("over-capacity candidate selection must partition instead of full-sorting");
+    let truncate = prepare
+        .find("candidates.truncate(MAX_REFLECTION_PROBES);")
+        .expect("partitioned candidates must retain only the configured capacity");
+    let final_sort = prepare
+        .rfind("candidates.sort_by(candidate_order);")
+        .expect("the selected candidates must retain deterministic upload ordering");
+
+    assert!(
+        capacity_guard < partition && partition < truncate && truncate < final_sort,
+        "candidate selection must partition then truncate before the final deterministic sort"
+    );
+    let partition_body = &prepare[partition..truncate];
+    assert!(
+        partition_body.contains("MAX_REFLECTION_PROBES")
+            && partition_body.contains("candidate_order"),
+        "the partition must use the configured capacity and the canonical candidate comparator"
     );
 }
 

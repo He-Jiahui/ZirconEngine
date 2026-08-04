@@ -9,7 +9,7 @@ use super::create_grid_buffer::create_grid_buffer;
 use super::create_line_pipeline::create_line_pipeline;
 use super::create_sky_pipeline::create_sky_pipeline;
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::{
-    volumetric_apply_bind_group_layout_entries, VolumetricApplyFallbackResources,
+    VolumetricApplyFallbackResources, volumetric_apply_bind_group_layout_entries,
 };
 
 impl ViewportOverlayRenderer {

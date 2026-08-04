@@ -61,7 +61,11 @@ Editor17 M3.2 仍为 planned。`core/notifications/{center,kinds}` 的 `Toast / 
 
 ## 修复结果与回传
 
-Open state：等待 Editor17 M3.2 notifications owner 落地 typed Decision + receipt authority，并以 fixed return 回传 Editor04。Editor04 typed producer 与 resolution barrier 已冻结在 snapshot `856`；在回传前 M1.3 状态保持 `core source complete / UI decision consumer blocked`，不得宣称产品闭环。
+Open state：`source_complete_static_green / independent_second_review_green / managed_validation_pending`。Editor17 已落地 typed Decision + receipt authority，并把 Editor04 的 typed producer 接入同一数据源；Editor04 的 resolution barrier 仍是唯一的 next-Play 门禁。当前记录尚未取得 current-source 受管 Cargo 结果或受管提交，因此不得写 `fixed-*` return 或宣称产品验收。
+
+2026-08-04 的前向修复将 retained-host 回归改为真实交互链路：`PlaySessionController` 在 Play 期间接收 deferred edit，stop 返回真实 prompt，`WorkbenchNotificationCenter` 的 option callback 发布并消费 discard receipt，随后 modal 关闭、队列清空且下一次 Play 放行。该测试不再注入伪造 prompt，也不直接调用 resolution API。共享 `NotificationId` / `NotificationSource` / `NotificationIdentityError` 已从 Decision 子域硬切至 `notifications/identity/`；Decision 不再保留旧 identity 类型或把 shared identity error 回压为 Decision error。
+
+同一 `EditorNotificationService` 现有 Toast 与 Progress 核心契约：Toast 使用显式时钟、到期时释放容量并拒绝 live duplicate；Progress 从 `JobTicket` 只提取 `JobId`，以 active progress snapshot 投影且在终态/陈旧绑定时删除，不持有结果 receiver。生产者清单收口、`ui/activity/` 全面呈现迁移及受管动态验证仍属于 M3.2 后续工作，不在本 failure 中提前完成声明。
 
 ## 产出记录与时间
 
@@ -69,3 +73,4 @@ Open state：等待 Editor17 M3.2 notifications owner 落地 typed Decision + re
 | --- | --- | --- | --- |
 | 2026-07-22 | Editor04 M1.3 -> Editor17 M3.2 failure handoff | open | 实地确认 Exit Play 未消费 `pending_edit_prompt`，现有 WorkbenchNotification 无 Decision kind/option/receipt；Editor04 snapshot 856 已提供 typed prompt、apply/discard API 与 resolving barrier。缺口路由到 Editor17，禁止 status-line/平台对话框临时双轨。 |
 | 2026-07-26 | Editor17 M3.2 P0 Decision authority | `source_complete_static_green / managed_validation_blocked` | 已新增 `core/notifications/decision` 的稳定 ID、typed option、pending/resolved receipt 与幂等重放；`EditorContext` 持有通知 authority；stop 与 backend crash 共用 producer；保留式 NotificationCenter 投影为 Apply/Discard 行，关闭/ Escape 不会静默消解，Apply failure 写入完整 intent 诊断通知。模块与保留式测试、`rustfmt --check`、`git diff --check` 均通过。受管 Cargo/原子 commit 暂不能冻结：共享 `core/mod.rs` 还引用未提交的 `recovery/settings`（本计划）及 `script_build/sync`（Editor13/Editor02）子树。外部 façade 闭包已由 Editor13 `failure-2026-07-22-script-build-facade-validation-copy-closure.md` 跟踪；不得删除 façade、吸收外部业务文件或把共享工作树当验证输入。 |
+| 2026-08-04 | Decision failure forward repair + notification identity convergence | `source_complete_static_green / independent_second_review_green / managed_validation_pending` | 前向修复 retained test 为真实 `queue -> stop -> WorkbenchNotificationCenter option callback -> discard receipt -> next Play` 链路；消除了跨 mutable host sync 的 controller 借用。`NotificationId`、`NotificationSource` 与 identity error 已硬切至共享 `identity/`，旧 Decision identity-error 回压已删除。新增 Toast 显式 expiry/capacity/duplicate 与 Progress ticket-to-id snapshot 生命周期核心契约及边界测试。局部 `rustfmt`、`git diff --check`、identity/interaction/lifecycle 静态守卫通过；两轮独立复审最终 `Critical/Important/Minor = 0/0/0`。未运行 Cargo，待协调器提交 current-source managed validation。 |

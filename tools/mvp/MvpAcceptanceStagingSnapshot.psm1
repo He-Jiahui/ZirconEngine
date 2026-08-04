@@ -8,7 +8,7 @@ if ($null -eq (Get-Variable -Name MvpAcceptanceStagingWriteLeases -Scope Script 
         [System.Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
 }
 
-Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpAcceptanceStagingItems {
     return @(
@@ -114,9 +114,14 @@ function Assert-MvpAcceptancePublishedTreeFreeOfReparsePoints {
 }
 
 function Get-MvpAcceptanceNoFollowDirectoryIdentity {
-    param([Parameter(Mandatory)][string]$Path)
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [string]$CompatibleWriteLeaseRoot
+    )
 
-    return Get-MvpAcceptanceNativeDirectoryIdentity -Path $Path
+    return Get-MvpAcceptanceNativeDirectoryIdentity `
+        -Path $Path `
+        -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
 }
 
 function Open-MvpAcceptanceStagingWriteLease {
@@ -280,10 +285,14 @@ function Open-MvpAcceptanceStagingSnapshotLease {
     param(
         [Parameter(Mandatory)][string]$SnapshotRoot,
         [Parameter(Mandatory)][string]$ExpectedRootIdentity,
+        $StagingWriteLease,
         [scriptblock]$BeforeCreateDirectoryMarkerHook
     )
 
     $rootHandle = $null
+    $ownsRootHandle = $true
+    $registeredWriteLease = $null
+    $writeRootPath = $null
     $parentLease = $null
     $reopenedRootHandle = $null
     $markerStream = $null
@@ -297,10 +306,25 @@ function Open-MvpAcceptanceStagingSnapshotLease {
             throw "Acceptance staging snapshot '$absoluteSnapshotRoot' has no parent directory."
         }
 
-        # Pin the resolved root while acquiring its ancestor lease, then create an exclusive child
-        # marker. Windows permits delete-pending directories with open directory handles, but a
-        # held child file prevents the root from being deleted or renamed and then replaced.
-        $rootHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($absoluteSnapshotRoot, $false)
+        # When the builder still owns the root through a write lease, reuse that registered
+        # handle's identity instead of opening the same directory with incompatible sharing.
+        # The write lease and the child marker together pin the root through snapshot setup.
+        if ($null -ne $StagingWriteLease) {
+            $registeredWriteLease = Get-MvpAcceptanceRegisteredStagingWriteLease -Lease $StagingWriteLease
+            $writeRootPath = [IO.Path]::GetFullPath([string]$registeredWriteLease.root_path)
+            if (-not $writeRootPath.Equals($absoluteSnapshotRoot, [StringComparison]::OrdinalIgnoreCase) -or
+                [string]$registeredWriteLease.root_identity -ne $ExpectedRootIdentity -or
+                $null -eq $registeredWriteLease.root_handle -or
+                $registeredWriteLease.root_handle.IsClosed -or
+                $registeredWriteLease.root_handle.IsInvalid) {
+                throw 'Acceptance snapshot lease does not match the original registered staging write lease.'
+            }
+            $rootHandle = $registeredWriteLease.root_handle
+            $ownsRootHandle = $false
+        }
+        else {
+            $rootHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($absoluteSnapshotRoot, $false)
+        }
         $rootAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($rootHandle)
         Assert-MvpAcceptanceNativeSourceAttributes -Attributes $rootAttributes -Path $absoluteSnapshotRoot
         if (-not (Test-MvpAcceptanceNativeFileAttribute `
@@ -312,11 +336,18 @@ function Open-MvpAcceptanceStagingSnapshotLease {
             throw "Acceptance staging snapshot '$absoluteSnapshotRoot' no longer identifies the published snapshot."
         }
 
-        $parentLease = Open-MvpAcceptanceNoFollowDirectoryLease -DirectoryPath $parent.FullName
+        $parentLease = Open-MvpAcceptanceNoFollowDirectoryLease `
+            -DirectoryPath $parent.FullName `
+            -CompatibleWriteLeaseRoot $writeRootPath
         $marker = New-MvpAcceptanceStagingSnapshotLeaseMarker -DirectoryPath $absoluteSnapshotRoot
         $markerStream = $marker.stream
         $null = $markerPaths.Add($marker.path)
-        $reopenedRootHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($absoluteSnapshotRoot, $false)
+        $reopenedRootHandle = if ($null -ne $registeredWriteLease) {
+            [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForHeldStagingRoot($absoluteSnapshotRoot)
+        }
+        else {
+            [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($absoluteSnapshotRoot, $false)
+        }
         $reopenedAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($reopenedRootHandle)
         Assert-MvpAcceptanceNativeSourceAttributes -Attributes $reopenedAttributes -Path $absoluteSnapshotRoot
         if (-not (Test-MvpAcceptanceNativeFileAttribute `
@@ -418,9 +449,10 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         }
 
         $lease = [pscustomobject]@{
-            root_handle = $rootHandle
+            root_handle = if ($ownsRootHandle) { $rootHandle } else { $null }
             root_path = $absoluteSnapshotRoot
             root_identity = $ExpectedRootIdentity
+            held_staging_write_lease = $StagingWriteLease
             parent_lease = $parentLease
             entry_handles = $entryHandles.ToArray()
             marker_streams = $markerStreams.ToArray()
@@ -445,7 +477,7 @@ function Open-MvpAcceptanceStagingSnapshotLease {
         for ($index = $entryHandles.Count - 1; $index -ge 0; $index--) {
             $entryHandles[$index].Dispose()
         }
-        if ($null -ne $rootHandle) {
+        if ($ownsRootHandle -and $null -ne $rootHandle) {
             $rootHandle.Dispose()
         }
         if ($null -ne $parentLease) {
@@ -480,8 +512,8 @@ function Prepare-MvpAcceptanceStagingSnapshotLeaseForPublication {
         [Parameter(Mandatory)]$StagingWriteLease
     )
 
-    if ($null -eq $Lease -or $null -eq $Lease.root_handle) {
-        throw 'Acceptance publication requires a held snapshot lease root.'
+    if ($null -eq $Lease) {
+        throw 'Acceptance publication requires a held snapshot lease.'
     }
     $rootPath = [string]$Lease.root_path
     $rootIdentity = [string]$Lease.root_identity
@@ -504,6 +536,10 @@ function Prepare-MvpAcceptanceStagingSnapshotLeaseForPublication {
         $writeRootIdentity -ne $rootIdentity) {
         throw 'Acceptance publication snapshot and staging write leases do not identify the same held root.'
     }
+    if ($null -ne $Lease.held_staging_write_lease -and
+        -not [object]::ReferenceEquals($Lease.held_staging_write_lease, $StagingWriteLease)) {
+        throw 'Acceptance publication snapshot lease is not paired with the original registered staging write lease.'
+    }
 
     $writeAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($writeRootHandle)
     Assert-MvpAcceptanceNativeSourceAttributes -Attributes $writeAttributes -Path $rootPath
@@ -514,31 +550,9 @@ function Prepare-MvpAcceptanceStagingSnapshotLeaseForPublication {
         throw "Acceptance publication staging write lease '$rootPath' no longer identifies the frozen root."
     }
 
-    # The initial snapshot root denies both writes and deletes. Its conversion has a tiny reopen
-    # window. The simultaneously verified write lease continues to reject replacement, while
-    # callers reassert their frozen projection after this handle is in place.
-    $Lease.root_handle.Dispose()
-    $Lease.root_handle = $null
-    $publicationRootHandle = $null
-    try {
-        $publicationRootHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollowForPublicationRoot(
-            $rootPath)
-        $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($publicationRootHandle)
-        Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $rootPath
-        if (-not (Test-MvpAcceptanceNativeFileAttribute `
-            -Attributes $attributes `
-            -Expected ([System.IO.FileAttributes]::Directory)) -or
-            [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($publicationRootHandle) -ne $rootIdentity) {
-            throw "Acceptance publication snapshot root '$rootPath' changed during lease conversion."
-        }
-        $Lease.root_handle = $publicationRootHandle
-        $publicationRootHandle = $null
-    }
-    finally {
-        if ($null -ne $publicationRootHandle) {
-            $publicationRootHandle.Dispose()
-        }
-    }
+    # The write lease remains the rename authority. Callers close this snapshot lease only after
+    # their final projection check, then transfer the original delete-owning handle directly into
+    # the move. A publication freeze is applied by the evidence publisher before that handoff.
 }
 
 function Move-MvpAcceptanceStagingDirectoryNoFollow {
@@ -745,20 +759,46 @@ function Copy-MvpAcceptanceStagingTree {
         [scriptblock]$BeforeOpenChildHook,
         [scriptblock]$BeforeOpenDestinationChildHook,
         [AllowNull()][System.Collections.Generic.HashSet[string]]$ExcludedSourcePaths,
-        $Projection
+        $Projection,
+        $DestinationWriteLease
     )
 
     if ($null -eq $SourceHandle) {
         $SourceHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($SourcePath, $true)
     }
-    $destinationParentLease = $null
-    $destinationHandle = $null
-    try {
+        $destinationParentLease = $null
+        $destinationHandle = $null
+        $heldWriteRoot = $null
+        try {
         $destinationParentPath = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($DestinationPath))
         if ([string]::IsNullOrWhiteSpace($destinationParentPath)) {
             throw "Acceptance snapshot destination '$DestinationPath' has no parent directory."
         }
-        $destinationParentLease = Open-MvpAcceptanceNoFollowDirectoryLease -DirectoryPath $destinationParentPath
+        $destinationParentIsHeldWriteRoot = $false
+        if ($null -ne $DestinationWriteLease) {
+            $registeredWriteLease = Get-MvpAcceptanceRegisteredStagingWriteLease -Lease $DestinationWriteLease
+            $heldWriteRoot = [IO.Path]::GetFullPath([string]$registeredWriteLease.root_path)
+            if ($destinationParentPath.Equals($heldWriteRoot, [StringComparison]::OrdinalIgnoreCase)) {
+                $heldRootHandle = $registeredWriteLease.root_handle
+                if ($null -eq $heldRootHandle -or $heldRootHandle.IsClosed -or $heldRootHandle.IsInvalid) {
+                    throw "Acceptance snapshot destination write lease '$heldWriteRoot' no longer holds its root."
+                }
+                $heldRootAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($heldRootHandle)
+                Assert-MvpAcceptanceNativeSourceAttributes -Attributes $heldRootAttributes -Path $heldWriteRoot
+                if (-not (Test-MvpAcceptanceNativeFileAttribute `
+                    -Attributes $heldRootAttributes `
+                    -Expected ([System.IO.FileAttributes]::Directory)) -or
+                    [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($heldRootHandle) -ne [string]$registeredWriteLease.root_identity) {
+                    throw "Acceptance snapshot destination write lease '$heldWriteRoot' no longer identifies the partial root."
+                }
+                $destinationParentIsHeldWriteRoot = $true
+            }
+        }
+        if (-not $destinationParentIsHeldWriteRoot) {
+            $destinationParentLease = Open-MvpAcceptanceNoFollowDirectoryLease `
+                -DirectoryPath $destinationParentPath `
+                -CompatibleWriteLeaseRoot $heldWriteRoot
+        }
         $sourceAttributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($SourceHandle)
         Assert-MvpAcceptanceNativeSourceAttributes -Attributes $sourceAttributes -Path $SourcePath
         $isDirectory = Test-MvpAcceptanceNativeFileAttribute `
@@ -820,7 +860,8 @@ function Copy-MvpAcceptanceStagingTree {
                         -BeforeOpenChildHook $BeforeOpenChildHook `
                         -BeforeOpenDestinationChildHook $BeforeOpenDestinationChildHook `
                         -ExcludedSourcePaths $ExcludedSourcePaths `
-                        -Projection $Projection
+                        -Projection $Projection `
+                        -DestinationWriteLease $DestinationWriteLease
                     $childHandle = $null
                 }
                 finally {
@@ -871,7 +912,8 @@ function Copy-MvpAcceptanceStagingItems {
         [scriptblock]$BeforeOpenChildHook,
         [scriptblock]$BeforeOpenDestinationChildHook,
         [string[]]$ExcludedSourcePaths,
-        [switch]$PassThruProjection
+        [switch]$PassThruProjection,
+        $DestinationWriteLease
     )
 
     $sourceRootLease = $null
@@ -900,9 +942,10 @@ function Copy-MvpAcceptanceStagingItems {
                     -SourcePath $sourcePath `
                     -DestinationPath (Join-Path $DestinationRoot $relativePath) `
                     -BeforeOpenChildHook $BeforeOpenChildHook `
-                    -BeforeOpenDestinationChildHook $BeforeOpenDestinationChildHook `
-                    -ExcludedSourcePaths $excludedPaths `
-                    -Projection $projection
+            -BeforeOpenDestinationChildHook $BeforeOpenDestinationChildHook `
+            -ExcludedSourcePaths $excludedPaths `
+            -Projection $projection `
+            -DestinationWriteLease $DestinationWriteLease
             }
         }
         if ($PassThruProjection) {
@@ -956,6 +999,7 @@ function New-MvpAcceptanceStagingSnapshot {
             -DestinationRoot $partialRoot `
             -BeforeOpenChildHook $BeforeOpenChildHook `
             -BeforeOpenDestinationChildHook $BeforeOpenDestinationChildHook `
+            -DestinationWriteLease $partialWriteLease `
             -PassThruProjection
         $resolvedStagingRoot = [string]$stagingProjection.source_root
         foreach ($requiredFile in @('staging-manifest.json', 'startup-summary.json')) {
@@ -965,7 +1009,8 @@ function New-MvpAcceptanceStagingSnapshot {
         }
         $partialSnapshotLease = Open-MvpAcceptanceStagingSnapshotLease `
             -SnapshotRoot $partialRoot `
-            -ExpectedRootIdentity $partialIdentity
+            -ExpectedRootIdentity $partialIdentity `
+            -StagingWriteLease $partialWriteLease
         Assert-MvpAcceptanceStagingProjection `
             -Root $partialRoot `
             -Projection $stagingProjection.projection `
@@ -977,14 +1022,15 @@ function New-MvpAcceptanceStagingSnapshot {
             -Root $partialRoot `
             -Projection $stagingProjection.projection `
             -ExcludedPaths $partialSnapshotLease.marker_paths
+        Close-MvpAcceptanceStagingSnapshotLease -Lease $partialSnapshotLease
+        $partialSnapshotLease = $null
         $partialSourceHandle = Take-MvpAcceptanceStagingWriteLeaseRootHandle `
             -Lease $partialWriteLease
         Move-MvpAcceptanceStagingDirectoryNoFollow `
             -SourcePath $partialRoot `
             -DestinationPath $snapshotRoot `
             -ExpectedSourceIdentity $partialIdentity `
-            -SourceHandle $partialSourceHandle `
-            -ExcludedSourcePaths $partialSnapshotLease.marker_paths
+            -SourceHandle $partialSourceHandle
         # The move verifies that the published destination retains this identity. Preserve it
         # with the result so later cleanup cannot remove a substituted snapshot directory.
         $snapshotIdentity = $partialIdentity

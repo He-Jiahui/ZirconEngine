@@ -20,11 +20,11 @@ use crate::core::extension::{
 use crate::core::jobs::EditorJobProgressSnapshot;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot};
 use crate::ui::activity::ActivityViewDescriptor;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetDetailsGeneration,
 };
 use crate::ui::host::editor_extension_registration::enabled_asset_types_for_shell;
-use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
     AssetOperationProjectionSnapshot, AssetTypeProjectionSnapshot, AssetWorkspaceSnapshot,
@@ -177,10 +177,10 @@ impl EditorHostEventController {
         keyboard: &UiKeyboardInputEvent,
         source: EditorEventSource,
     ) -> Result<Option<EditorEventRecord>, String> {
-        let Some(command_id) = self.keymap().resolve_keyboard_input(keyboard) else {
+        let Some(command_id) = self.shell.lock().manager.resolve_keyboard_input(keyboard) else {
             return Ok(None);
         };
-        self.dispatch_keymap_command_id(command_id, source)
+        self.dispatch_keymap_command_id(&command_id, source)
             .map(Some)
     }
 
@@ -363,11 +363,12 @@ impl EditorHostEventController {
             .iter()
             .cloned()
             .collect::<CapabilitySet>();
-        inner
+        let customization = inner
             .contributions
             .snapshot()
             .inspector_customizations(&enabled_capabilities)
-            .find(|customization| customization.can_handle(&target_type))
+            .find(|customization| customization.can_handle(&target_type));
+        customization
     }
 
     pub fn ui_template_descriptor(&self, id: &str) -> Option<EditorUiTemplateDescriptor> {
@@ -379,12 +380,13 @@ impl EditorHostEventController {
             .iter()
             .cloned()
             .collect::<CapabilitySet>();
-        inner
+        let descriptor = inner
             .contributions
             .snapshot()
             .ui_templates(&enabled_capabilities)
             .find(|descriptor| descriptor.id() == id)
-            .cloned()
+            .cloned();
+        descriptor
     }
 
     pub(crate) fn plugin_template_revision(&self) -> (u64, Vec<String>) {
@@ -423,7 +425,7 @@ impl EditorHostEventController {
                 ContributionSource::Builtin => None,
             })
             .fold(
-                BTreeMap::new(),
+                BTreeMap::<String, Vec<EditorUiTemplateDescriptor>>::new(),
                 |mut templates_by_owner, (owner_id, template)| {
                     templates_by_owner
                         .entry(owner_id.to_owned())
@@ -682,10 +684,12 @@ fn projected_asset_type_for_kind(
 #[cfg(test)]
 mod performance_tests {
     #[test]
-    fn keyboard_dispatch_reuses_the_controller_keymap() {
+    fn keyboard_dispatch_resolves_the_current_authority_keymap() {
         let source = include_str!("editor_event_runtime_access.rs");
         let reparsing = ["EditorKeymap::", "default_workbench()"].concat();
 
         assert!(!source.contains(&reparsing));
+        assert!(source.contains("manager.resolve_keyboard_input(keyboard)"));
+        assert!(!source.contains("self.keymap().resolve_keyboard_input"));
     }
 }

@@ -1,3 +1,4 @@
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
@@ -6,8 +7,9 @@ use super::super::render_commands::HostPaintCommand;
 use super::geometry::WeightHeatmapGeometry;
 use super::palette::LEGEND_TEXT;
 
-const LEGEND_FONT_SIZE: f32 = 8.0;
-const LEGEND_LINE_HEIGHT: f32 = 10.0;
+const LEGEND_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
+const LEGEND_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 
 pub(super) fn legend_label_width(node: &TemplatePaneNodeData) -> f32 {
     legend_label_width_from_labels(
@@ -27,7 +29,7 @@ pub(super) fn push_heatmap_legend_text(
     push_label(
         commands,
         node.weight_heatmap.high_label.to_string(),
-        geometry.legend.y - 1.0,
+        geometry.legend.y,
         geometry,
         clip,
         order + 5,
@@ -36,7 +38,7 @@ pub(super) fn push_heatmap_legend_text(
     push_label(
         commands,
         node.weight_heatmap.low_label.to_string(),
-        geometry.legend.y + geometry.legend.height - 11.0,
+        geometry.legend.y + geometry.legend.height - LEGEND_LINE_HEIGHT,
         geometry,
         clip,
         order + 5,
@@ -61,6 +63,9 @@ fn push_label(
         y,
         LEGEND_LINE_HEIGHT,
     );
+    if frame.width <= f32::EPSILON || frame.height <= f32::EPSILON {
+        return;
+    }
     commands.push(HostPaintCommand::text(
         frame,
         Some(clip.clone()),
@@ -84,8 +89,10 @@ fn legend_label_width_from_labels(high_label: &str, low_label: &str) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{LEGEND_FONT_SIZE, legend_label_width_from_labels};
+    use super::{LEGEND_FONT_SIZE, legend_label_width_from_labels, push_label};
+    use crate::ui::retained_host::host_contract::data::FrameRect;
     use crate::ui::retained_host::host_contract::paint_text::measure_runtime_text_width;
+    use crate::ui::retained_host::host_contract::paint_template_nodes::template_weight_heatmap::geometry::WeightHeatmapGeometry;
 
     #[test]
     fn heatmap_legend_width_uses_runtime_text_measurement() {
@@ -96,5 +103,37 @@ mod tests {
             measured_width,
             measure_runtime_text_width(high_label, LEGEND_FONT_SIZE).ceil()
         );
+    }
+
+    #[test]
+    fn collapsed_heatmap_does_not_emit_legend_text() {
+        let geometry = WeightHeatmapGeometry::from_frame(
+            &FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: 0.0,
+                height: 32.0,
+            },
+            20.0,
+        );
+        let clip = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 32.0,
+            height: 32.0,
+        };
+        let mut commands = Vec::new();
+
+        push_label(
+            &mut commands,
+            "High".to_string(),
+            0.0,
+            &geometry,
+            &clip,
+            0,
+            1.0,
+        );
+
+        assert!(commands.is_empty());
     }
 }

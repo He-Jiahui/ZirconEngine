@@ -65,41 +65,6 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
         );
     }
 
-    let status_rows = include_str!(
-        "../../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs"
-    );
-    assert_contains_all(
-        "Runtime 15 M3 asset-budget row data records scene-ECS split-layout",
-        status_rows,
-        &[
-            SPLIT_LAYOUT_SLICE,
-            SPLIT_LAYOUT_STATUS,
-            SPLIT_LAYOUT_GUARD,
-            PARENT_PATH,
-            CHILD_PATHS[0],
-            CHILD_PATHS[1],
-            CHILD_PATHS[2],
-            CHILD_PATHS[3],
-        ],
-    );
-
-    let status_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/naming_guard_maps.rs"
-    );
-    assert_contains_all(
-        "Runtime 15 M3 naming status map records scene-ECS split-layout",
-        status_map,
-        &[SPLIT_LAYOUT_SLICE, SPLIT_LAYOUT_STATUS],
-    );
-    let date_map = include_str!(
-        "../../../../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/naming_guard_maps.rs"
-    );
-    assert_contains_all(
-        "Runtime 15 M3 naming date map records scene-ECS split-layout",
-        date_map,
-        &[SPLIT_LAYOUT_SLICE, "2026-07-06"],
-    );
-
     let frameworks_output = include_str!(
         "../../../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
     );

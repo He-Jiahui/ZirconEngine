@@ -2,6 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 
+#[cfg(test)]
+mod assets_workspace_routes;
+
 pub(super) fn insert_workbench_module_bindings(bindings: &mut BTreeMap<String, EditorUiBinding>) {
     for (control_id, action_id) in [
         ("Scene", "workbench.module.scene.select"),

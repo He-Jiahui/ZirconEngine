@@ -8,19 +8,23 @@ var abilityCodes = new container.Array<uint>();
 var sourceIds = new container.Array<uint>();
 var kindCodes = new container.Array<uint>();
 var remaining = new container.Array<float>();
+var values = new container.Array<float>();
 
 abilityCodes.add(<uint>catalog.abilityCode("deep_freeze"));
 sourceIds.add(<uint>41);
 kindCodes.add(contract.motionAuraKindCode("stun"));
 remaining.add(0.10);
+values.add(0.0);
 abilityCodes.add(<uint>catalog.abilityCode("entangling_roots"));
 sourceIds.add(<uint>42);
 kindCodes.add(contract.motionAuraKindCode("root"));
 remaining.add(0.10);
+values.add(0.0);
 abilityCodes.add(<uint>catalog.abilityCode("ice_floes"));
 sourceIds.add(<uint>43);
 kindCodes.add(contract.motionAuraKindCode("ice_floes"));
 remaining.add(0.10);
+values.add(0.0);
 
 if (!motion.rowsAreValid(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
     !motion.isStunned(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
@@ -29,6 +33,27 @@ if (!motion.rowsAreValid(abilityCodes, sourceIds, kindCodes, remaining, 0, 3, tr
     !motion.canCastWhileMoving(false, abilityCodes, sourceIds, kindCodes, remaining, 0, 3, true) ||
     !motion.canCastWhileMoving(true, abilityCodes, sourceIds, kindCodes, remaining, 0, 2, true)) {
     return -1;
+}
+abilityCodes.add(<uint>catalog.abilityCode("frostbolt"));
+sourceIds.add(<uint>44);
+kindCodes.add(contract.motionAuraKindCode("slow"));
+remaining.add(0.10);
+values.add(0.5);
+abilityCodes.add(<uint>catalog.abilityCode("concussive_shot"));
+sourceIds.add(<uint>45);
+kindCodes.add(contract.motionAuraKindCode("slow"));
+remaining.add(0.10);
+values.add(0.3);
+if (motion.movementMultiplier(
+        0.5, 1.0, abilityCodes, sourceIds, kindCodes, remaining, values, 0, 5, true
+    ) != 0.3) {
+    return -3;
+}
+values[4] = 0.0;
+if (motion.movementMultiplier(
+        0.5, 1.0, abilityCodes, sourceIds, kindCodes, remaining, values, 0, 5, true
+    ) != 0.5) {
+    return -4;
 }
 if (motion.remainsActiveAfterTick(0.05, true) ||
     !motion.remainsActiveAfterTick(0.051, true) ||

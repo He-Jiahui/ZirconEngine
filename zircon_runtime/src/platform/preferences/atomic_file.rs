@@ -250,7 +250,7 @@ mod tests {
     };
 
     use super::{map_io_error, AtomicFilePreferenceStorageBackend, PATH_CACHE_MAX_ENTRIES};
-    use crate::core::framework::platform::PreferenceKey;
+    use crate::core::framework::platform::{PreferenceKey, PreferenceStorageBackend};
 
     #[test]
     fn platform_preference_storage_path_cache_is_stable_and_bounded() {

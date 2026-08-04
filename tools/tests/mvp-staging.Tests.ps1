@@ -149,7 +149,7 @@ public static class FixtureProduct
                 creationCaptureDiagnostic = "editor_product_frame_capture_written" + Environment.NewLine;
                 creationProductDiagnostic =
                     "editor_product_frame_diagnostics project_path=" + Uri.EscapeDataString(projectRoot) +
-                    " selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0" +
+                    " selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.00 inspector_scale_y=1.00 inspector_scale_z=1.00" +
                     Environment.NewLine;
             }
             var creationDiagnosticRoot = Environment.GetEnvironmentVariable("ZIRCON_LOG_ROOT");
@@ -191,8 +191,9 @@ public static class FixtureProduct
             var hasSelection = request.IndexOf("Hierarchy", StringComparison.Ordinal) >= 0 &&
                 request.IndexOf("SelectCube", StringComparison.Ordinal) >= 0;
             var hasTransform = request.IndexOf("TransformPositionXCommit", StringComparison.Ordinal) >= 0;
+            var hasScale = request.IndexOf("TransformScaleXCommit", StringComparison.Ordinal) >= 0;
             var hasSave = request.IndexOf("SaveProject", StringComparison.Ordinal) >= 0;
-            if (!hasSelection || hasTransform != hasSave)
+            if (!hasSelection || hasTransform != hasScale || hasTransform != hasSave)
             {
                 return 31;
             }
@@ -225,9 +226,11 @@ public static class FixtureProduct
                 File.WriteAllText(authoredMarkerPath, "authored");
             }
             var translationX = File.Exists(authoredMarkerPath) ? "42" : "0";
+            var scaleX = File.Exists(authoredMarkerPath) ? "1.25" : "1.00";
             var records = hasTransform
                 ? "{\"binding_path\":\"Hierarchy/SelectCube:onClick\",\"source\":\"Cli\"}," +
                     "{\"binding_path\":\"Inspector/TransformPositionXCommit:onSubmit\",\"source\":\"Cli\",\"operation_id\":\"inspector.field.apply_batch\",\"transaction_id\":1}," +
+                    "{\"binding_path\":\"Inspector/TransformScaleXCommit:onSubmit\",\"source\":\"Cli\",\"operation_id\":\"inspector.field.apply_batch\",\"transaction_id\":2}," +
                     "{\"binding_path\":\"WorkbenchMenuBar/SaveProject:onClick\",\"source\":\"Cli\",\"operation_id\":\"file.project.save\",\"save_generation\":2}"
                 : "{\"binding_path\":\"Hierarchy/SelectCube:onClick\",\"source\":\"Cli\"}";
             Console.WriteLine(
@@ -238,7 +241,7 @@ public static class FixtureProduct
                 ",\"selected_model_resource_id\":\"fixture-cube-model-resource\"" +
                 ",\"selected_material_resource_id\":\"fixture-default-material-resource\"" +
                 ",\"opened_project_inspection_generation\":1,\"records\":[" + records + "]," +
-                "\"snapshot\":{\"project_open\":true,\"scene_entry_count\":3,\"selected_node_id\":3,\"selected_node_name\":\"Cube\",\"inspector_translation\":[\"" + translationX + "\",\"0\",\"0\"]}}"
+                "\"snapshot\":{\"project_open\":true,\"scene_entry_count\":3,\"selected_node_id\":3,\"selected_node_name\":\"Cube\",\"inspector_translation\":[\"" + translationX + "\",\"0\",\"0\"],\"inspector_scale\":[\"" + scaleX + "\",\"1.00\",\"1.00\"]}}"
             );
             var automationDiagnosticRoot = Environment.GetEnvironmentVariable("ZIRCON_LOG_ROOT");
             if (!String.IsNullOrWhiteSpace(automationDiagnosticRoot))
@@ -311,7 +314,7 @@ public static class FixtureProduct
                 File.AppendAllText(logPath, "editor_product_frame_capture_written" + Environment.NewLine);
                 File.AppendAllText(logPath,
                     "editor_product_frame_diagnostics project_path=" + Uri.EscapeDataString(args[projectIndex + 1]) +
-                    " selected_node_id=3 selected_node_name=Cube inspector_translation_x=42 inspector_translation_y=0 inspector_translation_z=0" +
+                    " selected_node_id=3 selected_node_name=Cube inspector_translation_x=42 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.25 inspector_scale_y=1.00 inspector_scale_z=1.00" +
                     Environment.NewLine);
             }
         }
@@ -406,7 +409,24 @@ function Invoke-MvpStager {
 
 $stagerSource = Get-Content -LiteralPath $stager -Raw -Encoding UTF8
 $preflightSource = Get-Content -LiteralPath $preflightModule -Raw -Encoding UTF8
+$projectOpenEvidenceSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpProjectOpenEvidence.psm1') -Raw -Encoding UTF8
 Assert-True ($stagerSource -notmatch '`\$') 'MVP staging diagnostics must interpolate their input values.'
+Assert-True ($stagerSource -match 'WindowsPathResolver\.psm1') 'MVP staging must import the shared Windows final-path resolver.'
+Assert-True ($stagerSource -match 'tools\\WindowsPathResolver\.psm1') 'MVP staging must import the shared resolver from tracked tools source.'
+Assert-True ($stagerSource -match 'function Assert-MvpDistinctProfileRuntimeLibraries') 'MVP staging must own the profile-specific runtime-library identity boundary.'
+Assert-True ($stagerSource -match 'Get-ZirconWindowsFileIdentity -Path \$RuntimeLibraryPath') 'MVP staging must compare the runtime DLL through the shared resolver identity.'
+Assert-True ($stagerSource -match 'Get-ZirconWindowsFileIdentity -Path \$EditorRuntimeLibraryPath') 'MVP staging must compare the editor DLL through the shared resolver identity.'
+Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$Path') 'MVP staging must apply approved-root policy to the resolved Windows path.'
+Assert-True ($stagerSource -match 'return \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP staging must resolve every external file and directory input through the shared Windows final-path resolver.'
+Assert-True ($stagerSource -match '\$displayPath = \$resolution\.DisplayPath\.TrimEnd') 'MVP staging must compare its approved-root policy against the resolver display path.'
+Assert-True ($stagerSource -match 'return \$displayPath') 'MVP staging must use its bounded approved display root for PowerShell provider operations.'
+Assert-True ($stagerSource -match '\$resolvedRoot = \(Resolve-ZirconWindowsPath -Path \$Root\)\.OperationalPath') 'MVP staging must derive staged-file containment from the resolver operational path.'
+Assert-True ($stagerSource -match '\$resolvedPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP staging must derive staged-file identity from the resolver operational path.'
+Assert-True ($stagerSource -match '\$createdProjectParentResolution = Resolve-ZirconWindowsPath -Path \(Join-Path \$stageDirectory ''project''\)') 'MVP staging must resolve the created-project parent through the shared Windows final-path resolver.'
+Assert-True ($stagerSource -match '(?s)\$createdProjectExpectedResolution = Resolve-ZirconWindowsPath -Path \(Join-ZirconWindowsPath\s+`\s+-Path \$createdProjectParentResolution\.OperationalPath\s+`\s+-ChildPath \$ProjectName\)') 'MVP staging must derive the created-project identity from the resolved parent, not a caller-specific Windows path form.'
+Assert-True ($stagerSource -match '\$createdProjectExpectedRoot = \$createdProjectExpectedResolution\.OperationalPath') 'MVP staging must compare the created-project root using the resolver operational path.'
+Assert-True ($projectOpenEvidenceSource -match '\$resolvedStagingRoot = \$stagingResolution\.OperationalPath') 'MVP project-open evidence must derive staging containment from the resolver operational path.'
+Assert-True ($projectOpenEvidenceSource -match '\$resolvedProjectRoot = \$projectResolution\.OperationalPath') 'MVP project-open evidence must derive project identity from the resolver operational path.'
 Assert-True ($stagerSource -match 'could not launch from') 'MVP staging launch failures must identify the staged executable path.'
 Assert-True ($stagerSource -match 'first_frame_exit_requested') 'MVP staging must record that each product used the first-frame exit path.'
 Assert-True ($stagerSource -match 'ZIRCON_LOG_ROOT') 'MVP staging must isolate product diagnostics under the stage directory.'
@@ -421,6 +441,9 @@ Assert-True ($stagerSource -match 'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG') 'MVP 
 Assert-True ($stagerSource -match 'ZIRCON_RUNTIME_MVP_INPUT_PROBE') 'MVP staging must request the runtime host input probe before first-frame evidence.'
 Assert-True ($stagerSource -match 'Get-MvpRuntimeFrameCaptureEvidence') 'MVP staging must inspect the captured runtime PNG rather than only checking its path.'
 Assert-True ($stagerSource -match 'Get-MvpEditorWindowCaptureEvidence') 'MVP staging must inspect the captured editor window PNG rather than only checking its path.'
+Assert-True ($stagerSource -match '\$pngEvidenceReferences\s*=\s*@\(') 'MVP staging must compile its PNG evidence helper with an explicit assembly reference collection.'
+Assert-True ($stagerSource -match '\[Security\.Cryptography\.SHA256\]\.Assembly\.Location') 'MVP staging must include the SHA-256 assembly when compiling its PNG evidence helper.'
+Assert-True ($stagerSource -match '-ReferencedAssemblies \$pngEvidenceReferences -ErrorAction Stop') 'MVP staging must pass the complete PNG evidence assembly reference collection to Add-Type.'
 Assert-True ($stagerSource -match 'non_background_pixels') 'MVP staging must record captured runtime PNG pixel evidence.'
 Assert-True ($stagerSource -match 'runtime_product_frame_capture_written') 'MVP staging must require the runtime capture completion diagnostic.'
 Assert-True ($stagerSource -match 'editor_product_frame_capture_written') 'MVP staging must require the editor capture completion diagnostic.'
@@ -524,6 +547,13 @@ Assert-True ($stagerSource -match 'CreateProject cannot be combined with NoLaunc
 Assert-True ($stagerSource -match 'function Assert-MvpProjectName') 'MVP staging must validate a created project name before composing its target path.'
 Assert-True ($stagerSource -match 'GetInvalidFileNameChars') 'MVP staging must reject project names that are not one filesystem directory segment.'
 Assert-True ($stagerSource -match 'createdProjectExpectedRoot') 'MVP staging must bind the created project root to the expected child of stage/project.'
+Assert-True ($stagerSource -match 'createdProjectExpectedResolution\.OperationalPath') 'MVP staging must compare a created project root by physical identity.'
+Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \(\[string\]\$fields\.project_path\)') 'MVP staging must compare editor product diagnostics by physical project identity.'
+Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$reportedProjectPath') 'MVP staging must compare authoring automation project identities through the shared resolver.'
+$releaseSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpStagingRelease.psm1') -Raw -Encoding UTF8
+Assert-True ($releaseSource -match 'Resolve-ZirconWindowsPath -Path \$ProjectDirectory\)\.OperationalPath') 'MVP staging release probes must retain the physical path for filesystem operations.'
+Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$stagedProjectRoot\)\.DisplayPath') 'MVP staging result output must expose a display path rather than a verbatim operational path.'
+Assert-True ($stagerSource -match '\$projectRootArgument = \(Resolve-ZirconWindowsPath -Path \$ProjectRoot\)\.DisplayPath') 'MVP staging must pass a display project path at the product CLI boundary, where the product resolves its physical identity.'
 Assert-True ($stagerSource -match "'--create-project', '--project-name'") 'MVP staging must create projects through the normal staged editor CLI.'
 Assert-True ($stagerSource -match "'--template', 'renderable-empty'") 'MVP staging fresh-project creation must use the renderable-empty template.'
 Assert-True ($stagerSource -match 'Staged created project') 'MVP staging must verify that the staged editor created the canonical project root.'
@@ -544,10 +574,11 @@ Assert-True ($stagerSource -match 'process-execution-journal\.jsonl') 'MVP stagi
 $defaultAuthoringAutomationPath = Join-Path $repoRoot 'tools\mvp\mvp-authoring-automation.json'
 Assert-True (Test-Path -LiteralPath $defaultAuthoringAutomationPath -PathType Leaf) 'The source-bound F5 authoring automation request is missing.'
 $defaultAuthoringAutomation = Get-Content -LiteralPath $defaultAuthoringAutomationPath -Raw -Encoding UTF8 | ConvertFrom-Json
-Assert-True ($defaultAuthoringAutomation.bindings.Count -eq 3) 'The F5 authoring automation request must contain selection, transform, and save bindings.'
+Assert-True ($defaultAuthoringAutomation.bindings.Count -eq 4) 'The F5 authoring automation request must contain selection, translation, scale, and save bindings.'
 Assert-True ($defaultAuthoringAutomation.bindings[0].path.view_id -eq 'Hierarchy') 'The F5 authoring automation request must select the renderable template cube through Hierarchy.'
 Assert-True ($defaultAuthoringAutomation.bindings[1].path.control_id -eq 'TransformPositionXCommit') 'The F5 authoring automation request must commit the X transform through Inspector.'
-Assert-True ($defaultAuthoringAutomation.bindings[2].payload.MenuAction.action_id -eq 'workbench.project.save') 'The F5 authoring automation request must persist through the normal project save action.'
+Assert-True ($defaultAuthoringAutomation.bindings[2].path.control_id -eq 'TransformScaleXCommit') 'The F5 authoring automation request must commit the X scale through Inspector.'
+Assert-True ($defaultAuthoringAutomation.bindings[3].payload.MenuAction.action_id -eq 'workbench.project.save') 'The F5 authoring automation request must persist through the normal project save action.'
 $defaultReopenAutomationPath = Join-Path $repoRoot 'tools\mvp\mvp-reopen-automation.json'
 Assert-True (Test-Path -LiteralPath $defaultReopenAutomationPath -PathType Leaf) 'The source-bound F5 reopen automation request is missing.'
 $defaultReopenAutomation = Get-Content -LiteralPath $defaultReopenAutomationPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -622,6 +653,7 @@ try {
   "bindings": [
     { "path": { "view_id": "Hierarchy", "control_id": "SelectCube", "event_kind": "Click" }, "payload": { "SelectionCommand": { "SelectSceneNode": { "node_id": 3 } } } },
     { "path": { "view_id": "Inspector", "control_id": "TransformPositionXCommit", "event_kind": "Submit" }, "payload": { "InspectorFieldBatch": { "subject_path": "entity://selected", "changes": [{ "field_id": "transform.translation.x", "value": { "Float": 42.0 } }] } } },
+    { "path": { "view_id": "Inspector", "control_id": "TransformScaleXCommit", "event_kind": "Submit" }, "payload": { "InspectorFieldBatch": { "subject_path": "entity://selected", "changes": [{ "field_id": "transform.scale.x", "value": { "Float": 1.25 } }] } } },
     { "path": { "view_id": "WorkbenchMenuBar", "control_id": "SaveProject", "event_kind": "Click" }, "payload": { "MenuAction": { "action_id": "workbench.project.save" } } }
   ]
 }
@@ -644,9 +676,10 @@ try {
         -AllowUnsafeStagingRoot)
     Assert-True ($null -ne $authoringLaunched.authoring_automation) 'MVP staging launch fixture did not return the structured authoring automation report.'
     Assert-True ($authoringLaunched.baseline_automation.snapshot.inspector_translation[0] -eq '0') 'MVP staging did not capture the canonical Cube state before authoring.'
-    Assert-True ($authoringLaunched.authoring_automation.records.Count -eq 3) 'MVP staging launch fixture lost the normal authoring binding sequence.'
+    Assert-True ($authoringLaunched.authoring_automation.records.Count -eq 4) 'MVP staging launch fixture lost the normal authoring binding sequence.'
     Assert-True ($authoringLaunched.authoring_automation.records[1].transaction_id -eq 1) 'MVP staging launch fixture did not preserve the inspector transaction.'
-    Assert-True ($authoringLaunched.authoring_automation.records[2].save_generation -eq 2) 'MVP staging launch fixture did not preserve the project save generation.'
+    Assert-True ($authoringLaunched.authoring_automation.records[2].transaction_id -eq 2) 'MVP staging launch fixture did not preserve the scale transaction.'
+    Assert-True ($authoringLaunched.authoring_automation.records[3].save_generation -eq 2) 'MVP staging launch fixture did not preserve the project save generation.'
     Assert-True ($authoringLaunched.authoring_automation.snapshot.selected_node_name -eq 'Cube') 'MVP staging launch fixture did not preserve the retained-host authoring snapshot.'
     Assert-True ($authoringLaunched.authoring_automation.project_identity -eq 'fixture-project') 'MVP staging launch fixture lost the authoring project identity.'
     Assert-True ($authoringLaunched.authoring_automation.scene_uri -eq 'res://scenes/main.scene.toml') 'MVP staging launch fixture lost the authoring scene URI.'
@@ -668,6 +701,7 @@ try {
     Assert-True ($reopenedEditorRun.editor_window_capture.non_background_pixels -ge 100) 'MVP staging launch fixture accepted an insufficiently visible reopened editor window PNG.'
     Assert-True ($reopenedEditorRun.editor_product_diagnostics.selected_node_name -eq 'Cube') 'MVP staging launch fixture did not tie the reopened editor capture to Cube.'
     Assert-True ($reopenedEditorRun.editor_product_diagnostics.inspector_translation_x -eq '42') 'MVP staging launch fixture did not tie the reopened editor capture to persisted Inspector X.'
+    Assert-True ($reopenedEditorRun.editor_product_diagnostics.inspector_scale_x -eq '1.25') 'MVP staging launch fixture did not tie the reopened editor capture to persisted Inspector scale X.'
     Assert-True ($authoringLaunched.product_runs[0].stdout.sha256 -match '^[0-9A-F]{64}$') 'MVP staging launch fixture did not hash product stdout evidence.'
     Assert-True ($authoringLaunched.product_runs[0].diagnostic_logs[0].sha256 -match '^[0-9A-F]{64}$') 'MVP staging launch fixture did not hash diagnostic log evidence.'
     $authoringStartupSummary = Get-Content -Raw -Encoding UTF8 (Join-Path $authoringLaunched.staging_root 'startup-summary.json') | ConvertFrom-Json
@@ -981,6 +1015,7 @@ try {
     Assert-True ($createdStartupSummary.project_creation.editor_window_capture.non_background_pixels -ge 100) 'Created project startup evidence accepted an insufficiently visible editor window PNG before authoring.'
     Assert-True ($createdStartupSummary.project_creation.editor_product_diagnostics.selected_node_name -eq 'Cube') 'Created project startup evidence did not tie the editor window PNG to Cube.'
     Assert-True ($createdStartupSummary.project_creation.editor_product_diagnostics.inspector_translation_x -eq '0') 'Created project startup evidence did not tie the editor window PNG to the initial Inspector X.'
+    Assert-True ($createdStartupSummary.project_creation.editor_product_diagnostics.inspector_scale_x -eq '1.00') 'Created project startup evidence did not tie the editor window PNG to the initial Inspector scale X.'
     Assert-True ($createdStartupSummary.project_creation.stdout.sha256 -match '^[0-9A-F]{64}$') 'Created project startup evidence did not hash the staged editor creation stdout.'
     Assert-True ($createdStartupSummary.project_creation.diagnostic_logs.Count -gt 0) 'Created project startup evidence did not retain the staged editor creation diagnostics.'
     Assert-True ($createdStartupSummary.project_creation.project_open.project_root -eq 'project/ZirconMvpFixture') 'Created project startup evidence did not preserve the canonical project-open root.'
@@ -1407,6 +1442,21 @@ try {
             Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
         }
     }
+
+    $originalEditorRuntimeLibrary = $fixture.EditorRuntimeLibrary
+    $fixture.EditorRuntimeLibrary = $fixture.RuntimeLibrary
+    $sameLibraryRejected = $false
+    try {
+        Invoke-MvpStager -Fixture $fixture -RunId 'fixture-shared-profile-library' | Out-Null
+    }
+    catch {
+        $sameLibraryRejected = $_.Exception.Message -match 'distinct physical profile artifacts'
+    }
+    finally {
+        $fixture.EditorRuntimeLibrary = $originalEditorRuntimeLibrary
+    }
+    Assert-True $sameLibraryRejected 'Staging accepted one physical runtime DLL for both product profiles.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-shared-profile-library'))) 'Shared profile-library rejection left a partial product directory.'
 
     Remove-Item -LiteralPath $fixture.RuntimeLibrary -Force
     $failed = $false

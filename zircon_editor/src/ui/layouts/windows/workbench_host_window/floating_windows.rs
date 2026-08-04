@@ -1,5 +1,7 @@
 use super::frame_rect;
-use super::pane_projection::{blank_pane, find_tab_snapshot, pane_from_tab};
+use super::pane_projection::{
+    blank_pane, find_tab_snapshot, pane_from_tab, pane_from_tab_with_template_v2_data,
+};
 use super::*;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;

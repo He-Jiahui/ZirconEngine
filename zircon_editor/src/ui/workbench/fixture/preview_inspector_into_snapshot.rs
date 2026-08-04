@@ -9,6 +9,7 @@ impl PreviewInspector {
             name: self.name,
             parent: self.parent,
             translation: self.translation,
+            scale: self.scale,
             plugin_components: Vec::new(),
         }
     }

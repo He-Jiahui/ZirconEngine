@@ -20,9 +20,7 @@ pub(super) fn assert_structure_guard_plugin_importer_is_child_backed() {
             STRUCTURE_GUARD_PLUGIN_IMPORTER_TOP_LEVEL_CHILDREN_CHILD,
             STRUCTURE_GUARD_PLUGIN_IMPORTER_STRUCTURE_ASSERTIONS_CHILD,
             STRUCTURE_GUARD_PLUGIN_IMPORTER_SOURCE_INVENTORY_CHILD,
-            STRUCTURE_GUARD_PLUGIN_IMPORTER_STATUS_DOCS_CHILD,
             STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_OWNERSHIP_CHILD,
-            STRUCTURE_GUARD_PLUGIN_IMPORTER_STATUS_MIRRORS_CHILD,
             STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_SPLIT_STATUS,
             STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_SPLIT_GUARD,
         ],
@@ -48,6 +46,4 @@ pub(super) fn assert_structure_guard_plugin_importer_is_child_backed() {
             "structure guard plugin-importer child source blob should contain child guard {child_guard}"
         );
     }
-
-    status_mirrors::assert_structure_guard_plugin_importer_status_mirrors_are_current();
 }

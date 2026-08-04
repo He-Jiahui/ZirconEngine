@@ -251,8 +251,8 @@ mod tests {
     use zircon_runtime_interface::resource::ResourceId;
 
     use crate::core::framework::render::{
-        GeometrySourceId, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
-        ShaderQualityTier, ShaderVariantKey,
+        GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+        SHADING_MODEL_ID_STANDARD_PBR,
     };
 
     use super::{ShaderPipelineDiagnosticStage, ShaderVariantMissReport};
@@ -351,11 +351,9 @@ mod tests {
             report.pipeline_diagnostics()[0].stage,
             ShaderPipelineDiagnosticStage::SourceAssembly
         );
-        assert!(
-            report.pipeline_diagnostics()[0]
-                .variant_key
-                .contains("res://materials/diagnostic.zshader")
-        );
+        assert!(report.pipeline_diagnostics()[0]
+            .variant_key
+            .contains("res://materials/diagnostic.zshader"));
     }
 
     #[test]

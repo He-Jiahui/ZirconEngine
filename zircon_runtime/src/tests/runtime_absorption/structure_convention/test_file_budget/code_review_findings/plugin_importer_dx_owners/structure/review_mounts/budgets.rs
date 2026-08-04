@@ -32,10 +32,6 @@ pub(super) fn assert_plugin_importer_dx_review_mounts_children_line_budgets_are_
             PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD,
             sources.budgets_child.as_str(),
         ),
-        (
-            PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_MIRRORS_CHILD,
-            sources.status_mirrors_child.as_str(),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(

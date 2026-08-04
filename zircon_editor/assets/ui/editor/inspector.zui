@@ -23,8 +23,8 @@ layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed"
 [nodes.header_panel]
 component = "Overlay"
 control_id = "InspectorHeaderPanel"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, font_weight = 600, overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.header_name_gap]
 component = "Space"
@@ -33,8 +33,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.
 [nodes.name_row]
 component = "Overlay"
 control_id = "InspectorNameRow"
-props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.name_parent_gap]
 component = "Space"
@@ -43,8 +43,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.
 [nodes.parent_row]
 component = "Overlay"
 control_id = "InspectorParentRow"
-props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.parent_position_gap]
 component = "Space"
@@ -53,8 +53,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.
 [nodes.position_row]
 component = "Overlay"
 control_id = "InspectorPositionRow"
-props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.position_separator_gap]
 component = "Space"
@@ -72,8 +72,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.
 [nodes.actions_row]
 component = "Overlay"
 control_id = "InspectorActionsRow"
-props = { surface_variant = "inset", radius = 3.0, border_width = 1.0, text_tone = "muted", overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", text_tone = "muted", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.empty_state_message]
 component = "Label"
@@ -84,7 +84,7 @@ layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position
 [nodes.bottom_fill]
 component = "Overlay"
 control_id = "InspectorEmptyState"
-props = { surface_variant = "frame_only", radius = 4.0, border_width = 1.0 }
+props = { surface_variant = "frame_only", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "empty_state_message" }]
 

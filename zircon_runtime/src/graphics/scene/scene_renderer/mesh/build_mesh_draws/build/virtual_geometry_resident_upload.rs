@@ -6,9 +6,9 @@ use crate::core::framework::render::{
     RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex,
 };
 use crate::graphics::scene::gpu_scene::{
+    GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX, GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
     GpuScene, GpuSceneVirtualGeometryUploadReport, GpuVirtualGeometryClusterWord,
-    GpuVirtualGeometryPage, GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX,
-    GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
+    GpuVirtualGeometryPage,
 };
 
 pub(super) fn upload_virtual_geometry_resident_payloads(

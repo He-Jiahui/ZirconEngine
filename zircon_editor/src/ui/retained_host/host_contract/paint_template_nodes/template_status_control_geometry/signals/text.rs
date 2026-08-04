@@ -34,7 +34,7 @@ fn resolved_status_signal_text_gap(node: &TemplatePaneNodeData) -> f32 {
     if node.layout_content_offset_x > 0.0 {
         node.layout_content_offset_x
     } else if node.component_variant.as_str() == WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT {
-        status_signal_metrics().gap_s
+        status_signal_metrics().text_inset
     } else {
         status_signal_metrics().signal_text_gap
     }

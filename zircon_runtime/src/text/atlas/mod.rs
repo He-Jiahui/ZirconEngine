@@ -18,6 +18,7 @@ mod upload;
 pub(crate) use bitmap_run::{
     glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_prepared_upload_plan,
     glyph_atlas_bitmap_retry_frame_input, glyph_atlas_bitmap_retry_frame_input_with_backpressure,
+    glyph_atlas_bitmap_retry_frame_input_with_backpressure_and_new_source_budget_predicate,
     glyph_atlas_bitmap_retry_frame_outcome, glyph_atlas_bitmap_retry_plan,
     glyph_atlas_bitmap_retry_plan_with_backpressure, glyph_atlas_bitmap_run_plan,
     glyph_atlas_bitmap_run_plan_with_atlas, glyph_atlas_bitmap_run_plan_with_atlas_and_padding,

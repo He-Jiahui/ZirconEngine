@@ -169,3 +169,27 @@ fn runtime_table_projection_preserves_typed_identity_and_source_index() {
     assert_eq!(second.source_index, 1);
     assert_eq!(second.identity_text.as_str(), "73");
 }
+
+#[test]
+fn runtime_table_projection_uses_identity_as_the_default_label() {
+    let mut row = toml::map::Map::new();
+    row.insert("surface_entity".to_string(), Value::Integer(91));
+    let table = host_template_node(projected_node(
+        "Table",
+        [
+            (
+                "row_identity_field",
+                Value::String("surface_entity".to_string()),
+            ),
+            ("rows", Value::Array(vec![Value::Table(row)])),
+        ],
+    ))
+    .expect("Table should derive a label from its row identity");
+
+    let row = table
+        .collection_rows
+        .row_data(0)
+        .expect("table row should be projected");
+    assert_eq!(row.identity_text.as_str(), "91");
+    assert_eq!(row.label.as_str(), "91");
+}

@@ -40,9 +40,6 @@ fn runtime_15_hub_message_raw_text_policy_uses_current_names() {
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     let legacy_hits = hub_source_files(&repo_root.join("zircon_hub/src"))
         .into_iter()
@@ -119,9 +116,6 @@ fn runtime_15_hub_message_raw_text_policy_uses_current_names() {
             "hard-cutover migration smells doc",
             hard_cutover_doc.as_str(),
         ),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

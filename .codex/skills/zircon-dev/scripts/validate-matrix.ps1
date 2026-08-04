@@ -11,6 +11,9 @@ param(
     [switch]$SkipTest,
     [switch]$LibTests,
     [string]$TestTarget,
+    [string]$Bin,
+    [string]$ArtifactOutputDirectory,
+    [string[]]$PublishArtifact,
     [string]$TestFilter,
     [switch]$IgnoredTests,
     [switch]$RunExportPlatformContract,
@@ -24,6 +27,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$windowsPathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
+Import-Module (Join-Path $windowsPathResolverRepoRoot "tools\WindowsPathResolver.psm1") -Force -ErrorAction Stop
 
 $script:LowDiskCleanupThresholdBytes = 50GB
 $script:ExportContractPlatforms = @(
@@ -47,13 +52,13 @@ $script:ProfileFeatureContractCases = @(
         Label = "zircon_app target-client-platform"
         Package = "zircon_app"
         Features = "target-client,platform-winit,input-gamepad,gamepad-gilrs"
-        Bin = $null
+        Bin = "zircon_runtime"
     },
     [pscustomobject]@{
         Label = "zircon_app target-editor-host"
         Package = "zircon_app"
         Features = "target-editor-host"
-        Bin = $null
+        Bin = "zircon_editor"
     },
     [pscustomobject]@{
         Label = "zircon_app target-client shader-pbr-viewer"
@@ -84,19 +89,19 @@ $script:ProfileFeatureContractCases = @(
 function Find-RepoRoot {
     param([string]$StartPath)
 
-    $current = Resolve-Path $StartPath
+    $current = (Resolve-ZirconWindowsPath -Path $StartPath).DisplayExistingPath
     while ($true) {
-        if ((Test-Path (Join-Path $current.Path "Cargo.toml")) -and
-            (Test-Path (Join-Path $current.Path ".codex\skills\zircon-dev"))) {
-            return $current.Path
+        if ((Test-Path (Join-ZirconWindowsPath -Path $current -ChildPath "Cargo.toml")) -and
+            (Test-Path (Join-ZirconWindowsPath -Path $current -ChildPath ".codex\skills\zircon-dev"))) {
+            return $current
         }
 
-        $parent = Split-Path $current.Path -Parent
-        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current.Path) {
+        $parent = Split-Path $current -Parent
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current) {
             throw "Could not locate repository root from $StartPath"
         }
 
-        $current = Resolve-Path $parent
+        $current = (Resolve-ZirconWindowsPath -Path $parent).DisplayExistingPath
     }
 }
 
@@ -109,7 +114,7 @@ function Resolve-OwnerId {
 
     $user = [Environment]::UserName
     $machine = [Environment]::MachineName
-    $repoId = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/').ToLowerInvariant()
+    $repoId = (Resolve-ZirconWindowsPath -Path $RepoRoot).DisplayExistingPath.TrimEnd('\', '/').ToLowerInvariant()
     return "manual:{0}@{1}:{2}" -f $user, $machine, $repoId
 }
 
@@ -127,11 +132,7 @@ function Resolve-AbsoluteTargetDir {
         [string]$CliTargetDir
     )
 
-    if ([System.IO.Path]::IsPathRooted($CliTargetDir)) {
-        return [System.IO.Path]::GetFullPath($CliTargetDir)
-    }
-
-    return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $CliTargetDir))
+    return (Resolve-ZirconWindowsPath -Path $CliTargetDir -BasePath $RepoRoot).DisplayPath
 }
 
 function Resolve-WorkspaceManifest {
@@ -149,21 +150,23 @@ function Resolve-WorkspaceManifest {
         throw "-ManifestPath must be repository-relative."
     }
 
-    $resolvedRoot = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/')
-    $candidate = [System.IO.Path]::GetFullPath((Join-Path $resolvedRoot $relativePath))
+    $rootResolution = Resolve-ZirconWindowsPath -Path $RepoRoot
+    $candidateResolution = Resolve-ZirconWindowsPath -Path $relativePath -BasePath $RepoRoot
+    $resolvedRoot = $rootResolution.OperationalExistingPath.TrimEnd('\', '/')
+    $candidate = $candidateResolution.OperationalPath
     if (-not $candidate.StartsWith($resolvedRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
         throw "-ManifestPath must remain inside the repository root."
     }
-    if ([System.IO.Path]::GetFileName($candidate) -ine "Cargo.toml") {
+    if ([System.IO.Path]::GetFileName($candidateResolution.DisplayPath) -ine "Cargo.toml") {
         throw "-ManifestPath must name a Cargo.toml file."
     }
-    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath $candidateResolution.DisplayPath -PathType Leaf)) {
         throw "-ManifestPath does not exist: $relativePath"
     }
 
     return [pscustomobject]@{
         RelativePath = $candidate.Substring($resolvedRoot.Length).TrimStart('\', '/').Replace('\', '/')
-        Directory    = Split-Path -Parent $candidate
+        Directory    = Split-Path -Parent $candidateResolution.DisplayPath
     }
 }
 
@@ -257,16 +260,17 @@ function ConvertFrom-StrictCoordinatorJson {
     }
 
     try {
-        $document = [System.Text.Json.JsonDocument]::Parse($rawResponse)
-        try {
-            if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) {
-                throw "the JSON root must be an object"
-            }
+        # Windows PowerShell 5.1 does not provide System.Text.Json. ConvertFrom-Json still
+        # rejects trailing documents, but it enumerates array roots and turns [] into null.
+        # Guard the root token before parsing so that behavior cannot hide a non-object root.
+        if (-not $rawResponse.StartsWith("{")) {
+            throw "the JSON root must be an object"
         }
-        finally {
-            $document.Dispose()
+        $response = $rawResponse | ConvertFrom-Json -ErrorAction Stop
+        if ($null -eq $response -or $response -is [array] -or $response -is [string] -or $response -is [ValueType]) {
+            throw "the JSON root must be an object"
         }
-        return ($rawResponse | ConvertFrom-Json)
+        return $response
     }
     catch {
         $summary = Get-CoordinatorResponseSummary -RawResponse $rawResponse
@@ -431,17 +435,35 @@ function Complete-CoordinatorCargoTarget {
         [switch]$Started
     )
 
+    $finishFailure = $null
     if ($Started) {
+        try {
+            Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+                "cargo", "finish", $ResolvedTarget.JobId,
+                "--exit-code", [string]$ExitCode,
+                "--session-id", $ResolvedTarget.OwnerId
+            ) | Out-Null
+        }
+        catch {
+            $finishFailure = $_
+        }
+    }
+
+    try {
         Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
-            "cargo", "finish", $ResolvedTarget.JobId,
-            "--exit-code", [string]$ExitCode,
+            "cargo", "release", $ResolvedTarget.JobId,
             "--session-id", $ResolvedTarget.OwnerId
         ) | Out-Null
     }
-    Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
-        "cargo", "release", $ResolvedTarget.JobId,
-        "--session-id", $ResolvedTarget.OwnerId
-    ) | Out-Null
+    catch {
+        if ($null -eq $finishFailure) {
+            throw
+        }
+    }
+
+    if ($null -ne $finishFailure) {
+        throw $finishFailure
+    }
 }
 
 function Format-ByteCount {
@@ -568,6 +590,11 @@ function Get-CargoArgs {
         $args.Add($Package) | Out-Null
     }
 
+    if (-not [string]::IsNullOrWhiteSpace($Bin)) {
+        $args.Add("--bin") | Out-Null
+        $args.Add($Bin) | Out-Null
+    }
+
     if ($NoDefaultFeatures) {
         $args.Add("--no-default-features") | Out-Null
     }
@@ -607,6 +634,72 @@ function Get-CargoArgs {
     }
 
     return $args.ToArray()
+}
+
+function Assert-ArtifactOutputDirectory {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    $resolution = Resolve-ZirconWindowsPath -Path $Path
+    $resolvedPath = $resolution.OperationalPath
+    $displayPath = $resolution.DisplayPath
+    $driveRoot = [System.IO.Path]::GetPathRoot($displayPath)
+    if ($driveRoot -notmatch "^[A-Za-z]:\\$") {
+        throw "-ArtifactOutputDirectory must resolve to a local drive: $displayPath"
+    }
+    if ($driveRoot -in @("D:\", "E:\", "F:\")) {
+        throw "-ArtifactOutputDirectory must be outside coordinator-governed D/E/F roots: $displayPath"
+    }
+
+    return $resolvedPath
+}
+
+function Publish-BuildArtifacts {
+    param(
+        [Parameter(Mandatory)]
+        [string]$TargetDirectory,
+        [Parameter(Mandatory)]
+        [string]$ArtifactOutputDirectory,
+        [Parameter(Mandatory)]
+        [string[]]$ArtifactName
+    )
+
+    $resolvedTargetDirectory = (Resolve-ZirconWindowsPath -Path $TargetDirectory).OperationalPath
+    $resolvedArtifactOutputDirectory = Assert-ArtifactOutputDirectory -Path $ArtifactOutputDirectory
+    $debugDirectory = Join-ZirconWindowsPath -Path $resolvedTargetDirectory -ChildPath "debug"
+    [System.IO.Directory]::CreateDirectory($resolvedArtifactOutputDirectory) | Out-Null
+
+    foreach ($name in $ArtifactName) {
+        if ([string]::IsNullOrWhiteSpace($name) -or
+            $name -ne [System.IO.Path]::GetFileName($name)) {
+            throw "Published artifact names must be plain file names: '$name'."
+        }
+
+        $sourcePath = Join-ZirconWindowsPath -Path $debugDirectory -ChildPath $name
+        $destinationPath = Join-ZirconWindowsPath -Path $resolvedArtifactOutputDirectory -ChildPath $name
+        if (-not [System.IO.File]::Exists($sourcePath)) {
+            throw "Declared build artifact was not produced: $sourcePath"
+        }
+        if ([System.IO.File]::Exists($destinationPath)) {
+            throw "Refusing to overwrite published build artifact: $destinationPath"
+        }
+
+        [System.IO.File]::Copy($sourcePath, $destinationPath, $false)
+        $sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+        $destinationHash = (Get-FileHash -LiteralPath $destinationPath -Algorithm SHA256).Hash
+        if ($sourceHash -ne $destinationHash) {
+            throw "Published build artifact hash does not match source: $name"
+        }
+
+        [pscustomobject]@{
+            Name   = $name
+            Path   = $destinationPath
+            Sha256 = $destinationHash
+            Bytes  = [System.IO.FileInfo]::new($destinationPath).Length
+        }
+    }
 }
 
 function Get-ExportPlatformContractArgs {
@@ -773,6 +866,30 @@ function Invoke-ValidateMatrixMain {
     if ($LibTests -and $SkipTest) {
         throw "-LibTests cannot be combined with -SkipTest."
     }
+    if (-not [string]::IsNullOrWhiteSpace($Bin) -and [string]::IsNullOrWhiteSpace($Package)) {
+        throw "-Bin requires -Package."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Bin) -and $LibTests) {
+        throw "-Bin cannot be combined with -LibTests."
+    }
+    $requestedPublishedArtifacts = @($PublishArtifact | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($requestedPublishedArtifacts.Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($ArtifactOutputDirectory)) {
+        throw "-ArtifactOutputDirectory requires -PublishArtifact."
+    }
+    if ($requestedPublishedArtifacts.Count -gt 0 -and [string]::IsNullOrWhiteSpace($ArtifactOutputDirectory)) {
+        throw "-PublishArtifact requires -ArtifactOutputDirectory."
+    }
+    if ($requestedPublishedArtifacts.Count -gt 0 -and $SkipBuild) {
+        throw "-PublishArtifact requires Cargo build; remove -SkipBuild."
+    }
+    foreach ($artifactName in $requestedPublishedArtifacts) {
+        if ($artifactName -ne [System.IO.Path]::GetFileName($artifactName)) {
+            throw "-PublishArtifact values must be plain file names: '$artifactName'."
+        }
+    }
+    if ($requestedPublishedArtifacts.Count -gt 0) {
+        $ArtifactOutputDirectory = Assert-ArtifactOutputDirectory -Path $ArtifactOutputDirectory
+    }
     if (-not [string]::IsNullOrWhiteSpace($TestTarget) -and [string]::IsNullOrWhiteSpace($Package)) {
         throw "-TestTarget requires -Package."
     }
@@ -781,6 +898,9 @@ function Invoke-ValidateMatrixMain {
     }
     if (-not [string]::IsNullOrWhiteSpace($TestTarget) -and $SkipTest) {
         throw "-TestTarget cannot be combined with -SkipTest."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Bin) -and -not [string]::IsNullOrWhiteSpace($TestTarget)) {
+        throw "-Bin cannot be combined with -TestTarget."
     }
     if (-not $LibTests -and [string]::IsNullOrWhiteSpace($TestTarget) -and -not [string]::IsNullOrWhiteSpace($TestFilter)) {
         throw "-TestFilter requires -LibTests or -TestTarget."
@@ -793,7 +913,7 @@ function Invoke-ValidateMatrixMain {
     }
 
     $resolvedRepoRoot = if ($RepoRoot) {
-        [System.IO.Path]::GetFullPath((Resolve-Path $RepoRoot).Path)
+        (Resolve-ZirconWindowsPath -Path $RepoRoot).DisplayExistingPath
     } else {
         Find-RepoRoot $PSScriptRoot
     }
@@ -864,6 +984,17 @@ function Invoke-ValidateMatrixMain {
                     -Subcommand "build" `
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
                     -WorkspaceManifest $resolvedWorkspace.RelativePath)
+            }
+
+            if (($Results | Select-Object -Last 1).ExitCode -eq 0 -and $requestedPublishedArtifacts.Count -gt 0) {
+                Invoke-Step "Publish build artifacts" {
+                    Publish-BuildArtifacts `
+                        -TargetDirectory $resolvedTarget.TargetDir `
+                        -ArtifactOutputDirectory $ArtifactOutputDirectory `
+                        -ArtifactName $requestedPublishedArtifacts | ForEach-Object {
+                        Write-Host ("Published {0} ({1}, SHA256 {2})" -f $_.Name, (Format-ByteCount -Bytes $_.Bytes), $_.Sha256)
+                    }
+                }
             }
         }
 

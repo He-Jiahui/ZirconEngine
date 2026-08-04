@@ -60,16 +60,12 @@ fn collapsed_icon_button_omits_the_glyph() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.image_pixels.is_none())
-    );
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.image_pixels.is_none()));
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -99,15 +95,13 @@ fn narrow_icon_button_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
-fn offset_icon_button_outside_its_clip_does_not_emit_paint_commands() {
+fn offset_icon_button_overlapping_its_clip_keeps_paint_commands() {
     let rect = FrameRect {
         x: 8.0,
         y: 6.0,
@@ -131,6 +125,43 @@ fn offset_icon_button_outside_its_clip_does_not_emit_paint_commands() {
         &node,
         &rect,
         &rect,
+        4,
+        1.0,
+    ));
+
+    assert!(!commands.is_empty());
+    assert!(commands
+        .iter()
+        .all(|command| command.clip_frame.as_ref() == Some(&rect)));
+}
+
+#[test]
+fn icon_button_outside_its_clip_does_not_emit_paint_commands() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 30.0,
+        height: 30.0,
+    };
+    let clip = FrameRect {
+        x: 48.0,
+        ..rect.clone()
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_icon_button_commands(
+        &mut commands,
+        &positioned_icon_node(
+            "WorkbenchToolbarMenu",
+            "zircon_editor_shell/toolbar/menu.svg",
+            false,
+            rect.x,
+            rect.y,
+            rect.width,
+            rect.height,
+        ),
+        &rect,
+        &clip,
         4,
         1.0,
     ));

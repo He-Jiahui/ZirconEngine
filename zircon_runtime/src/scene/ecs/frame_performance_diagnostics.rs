@@ -1,5 +1,5 @@
-use crate::core::CoreHandle;
 use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
+use crate::core::CoreHandle;
 
 use super::{ChangeDetectionScanStats, NativeSystemScheduleDiagnostics, QueryStateCacheStats};
 

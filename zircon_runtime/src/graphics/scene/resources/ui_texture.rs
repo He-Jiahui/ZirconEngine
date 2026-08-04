@@ -73,16 +73,21 @@ pub(in crate::graphics::scene::resources) fn ui_texture_id_for_upload(
 }
 
 impl ResourceStreamer {
-    pub(crate) fn ui_texture(&self, requested: ResourceId) -> Arc<GpuTextureResource> {
-        let Ok(asset_manager) = self.asset_manager() else {
-            return self.texture(None);
-        };
-        let texture_id = resolve_ui_texture_id(asset_manager.as_ref(), requested);
-        let texture = self.texture(Some(texture_id));
+    pub(crate) fn resolve_ui_texture_id(&self, requested: ResourceId) -> Option<ResourceId> {
+        self.asset_manager()
+            .ok()
+            .map(|asset_manager| resolve_ui_texture_id(asset_manager.as_ref(), requested))
+    }
+
+    pub(crate) fn ui_texture_ref(
+        &self,
+        resolved_texture_id: Option<ResourceId>,
+    ) -> &Arc<GpuTextureResource> {
+        let texture = self.texture_ref(resolved_texture_id);
         if is_ui_texture_descriptor(&texture.descriptor) {
             texture
         } else {
-            self.texture(None)
+            self.texture_ref(None)
         }
     }
 }

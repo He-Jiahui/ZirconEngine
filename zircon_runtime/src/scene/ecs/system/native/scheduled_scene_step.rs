@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use crate::scene::SceneRuntimeHookRegistration;
 use crate::scene::ecs::{SceneSystemDescriptor, SystemStage};
+use crate::scene::SceneRuntimeHookRegistration;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ScheduledSceneStep {

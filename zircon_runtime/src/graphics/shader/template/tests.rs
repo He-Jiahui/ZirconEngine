@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use crate::core::framework::render::{
     builtin_geometry_source_descriptor, GBufferChannelMask, GeometrySourceDescriptor,
     RenderMaterialAlphaMode, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
@@ -99,7 +101,46 @@ fn forward_material_template_applies_integrated_volumetric_lighting() {
 }
 
 #[test]
-fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
+fn render_bindless_material_template_requires_a_capacity_and_emits_the_fixed_array_abi() {
+    let missing_capacity = assemble_material_shader_template(
+        material_template_request(static_mesh_descriptor(), ShaderPassType::Forward)
+            .with_features(ShaderFeatureBits::new(ShaderFeatureBits::BINDLESS_MATERIAL)),
+    );
+    assert_eq!(
+        missing_capacity,
+        Err(ShaderTemplateAssemblyError::MissingBindlessMaterialSlotCapacity)
+    );
+
+    let disabled = assemble_material_shader_template(material_template_request(
+        static_mesh_descriptor(),
+        ShaderPassType::Forward,
+    ))
+    .expect("non-bindless material template");
+    let enabled = assemble_material_shader_template(
+        material_template_request(static_mesh_descriptor(), ShaderPassType::Forward)
+            .with_bindless_material_bindings(
+                NonZeroU32::new(64).expect("bindless test capacity is non-zero"),
+            ),
+    )
+    .expect("bindless material template");
+
+    assert!(!disabled.wgsl_source.contains("enable wgpu_binding_array;"));
+    assert!(!has_include_token(
+        &disabled.include_tokens,
+        "zr_bindless_material.wgsl"
+    ));
+    assert!(enabled.wgsl_source.contains("enable wgpu_binding_array;"));
+    assert!(enabled
+        .wgsl_source
+        .contains("const ZR_FEATURE_BINDLESS_MATERIAL: bool = true;"));
+    assert!(enabled
+        .wgsl_source
+        .contains("const ZR_BINDLESS_MATERIAL_SLOT_CAPACITY: u32 = 64u;"));
+    assert_include_token!(enabled, "zr_bindless_material.wgsl");
+}
+
+#[test]
+fn standard_pbr_direct_lighting_reuses_per_pixel_material_inputs() {
     let light_loop = STANDARD_PBR_FORWARD_SHADER
         .split("fn zr_standard_pbr_gpu_light_lighting(")
         .nth(1)
@@ -112,8 +153,8 @@ fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
         "direct_f0 = mix(",
         "direct_metallic,",
         "direct_diffuse_brdf =",
-        "direct_clearcoat_normal = clearcoat_normal;",
-        "zr_pbr_clearcoat_base_energy_scale_normalized(",
+        "direct_clearcoat_normal: vec3<f32>,",
+        "direct_base_energy: vec3<f32>,",
         "world_normal,",
         "world_view,",
         "direct_f0,",
@@ -129,7 +170,7 @@ fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
     let direct_material_setup = light_loop
         .split("let direct_metallic = clamp(surface.metallic, 0.0, 1.0);")
         .nth(1)
-        .and_then(|source| source.split("if (ZR_FEATURE_PBR_CLEARCOAT").next())
+        .and_then(|source| source.split("let tile_base =").next())
         .expect("light-grid setup must derive direct PBR material inputs once");
     for expected in ["direct_metallic,", "(1.0 - direct_metallic)"] {
         assert!(
@@ -141,18 +182,9 @@ fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
         !direct_material_setup.contains("surface.metallic"),
         "direct PBR setup must not reuse unbounded surface metallic after normalization"
     );
-    let clearcoat_setup_guard = light_loop
-        .find("if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {")
-        .expect("light-grid setup must skip clearcoat preparation when it cannot contribute");
-    let clearcoat_normal = light_loop
-        .find("direct_clearcoat_normal = clearcoat_normal;")
-        .expect("light-grid setup must consume the prepared clearcoat normal when required");
-    let clearcoat_base_energy = light_loop
-        .find("direct_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(")
-        .expect("light-grid setup must prepare clearcoat base energy when required");
     assert!(
-        clearcoat_setup_guard < clearcoat_normal && clearcoat_normal < clearcoat_base_energy,
-        "clearcoat preparation must reuse validated inputs before attenuating the base layer"
+        !light_loop.contains("zr_pbr_clearcoat_base_energy_scale_normalized("),
+        "the light-grid must reuse clearcoat energy prepared by forward shading"
     );
 
     let per_light = STANDARD_PBR_FORWARD_SHADER
@@ -253,7 +285,7 @@ fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
     for (feature_guard, helper) in [
         (
             "if (ZR_FEATURE_PBR_CLEARCOAT && surface.clearcoat > 0.0) {",
-            "zr_pbr_clearcoat_base_energy_scale(surface, view_dir_ws);",
+            "zr_pbr_clearcoat_base_energy_scale_normalized(",
         ),
         (
             "if (ZR_FEATURE_PBR_TRANSMISSION && surface.specular_transmission > 0.0) {",
@@ -271,6 +303,26 @@ fn standard_pbr_direct_lighting_normalizes_surface_normal_once_per_pixel() {
             "forward shading must skip `{helper}` when its feature cannot contribute"
         );
     }
+    assert_eq!(
+        forward_shading
+            .matches("zr_pbr_clearcoat_base_energy_scale_normalized(")
+            .count(),
+        1,
+        "forward shading must calculate clearcoat base energy only once per pixel"
+    );
+    let clearcoat_energy = forward_shading
+        .find("clearcoat_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(")
+        .expect("forward shading must prepare shared clearcoat base energy");
+    let direct_lights = forward_shading
+        .find("let direct_lights = zr_standard_pbr_gpu_light_lighting(")
+        .expect("forward shading must retain direct lighting");
+    let environment_lights = forward_shading
+        .find("let environment_lights = zr_environment_pbr_indirect_normalized(")
+        .expect("forward shading must retain environment lighting");
+    assert!(
+        clearcoat_energy < direct_lights && direct_lights < environment_lights,
+        "direct and environment lighting must share the prepared clearcoat base energy"
+    );
 }
 
 #[test]
@@ -316,31 +368,37 @@ fn standard_pbr_clearcoat_hot_path_reuses_normalized_inputs() {
         .nth(1)
         .and_then(|source| source.split("fn shade_forward(").next())
         .expect("standard PBR should retain the GPU light-grid owner");
-    let direct_energy = light_loop
-        .split("direct_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(")
-        .nth(1)
-        .and_then(|source| source.split(");").next())
-        .expect("direct-light clearcoat setup must retain its normalized base-energy call");
-    let surface = direct_energy
-        .find("surface,")
-        .expect("normalized base energy must receive the surface");
-    let clearcoat_normal = direct_energy
-        .find("clearcoat_normal,")
-        .expect("normalized base energy must receive the prepared clearcoat normal");
-    let world_view = direct_energy
-        .find("world_view,")
-        .expect("normalized base energy must receive the prepared world view");
     assert!(
-        surface < clearcoat_normal && clearcoat_normal < world_view,
-        "direct-light clearcoat setup must not renormalize its prepared normal or view"
+        !light_loop.contains("zr_pbr_clearcoat_base_energy_scale_normalized("),
+        "the GPU light-grid must reuse clearcoat energy from forward shading"
     );
 
     let forward_shading = STANDARD_PBR_FORWARD_SHADER
         .split("fn shade_forward(")
         .nth(1)
         .expect("standard PBR must retain forward shading");
+    let shared_energy = forward_shading
+        .split("clearcoat_base_energy = zr_pbr_clearcoat_base_energy_scale_normalized(")
+        .nth(1)
+        .and_then(|source| source.split(");").next())
+        .expect("forward shading must retain its normalized shared base-energy call");
+    let surface = shared_energy
+        .find("surface,")
+        .expect("normalized base energy must receive the surface");
+    let clearcoat_normal = shared_energy
+        .find("clearcoat_normal,")
+        .expect("normalized base energy must receive the prepared clearcoat normal");
+    let world_view = shared_energy
+        .find("view_dir_ws,")
+        .expect("normalized base energy must receive the prepared world view");
+    assert!(
+        surface < clearcoat_normal && clearcoat_normal < world_view,
+        "shared clearcoat energy must not renormalize its prepared normal or view"
+    );
+
     for expected in [
-        "let clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);",
+        "clearcoat_normal = zr_normalize_or_zero(surface.clearcoat_normal_ws);",
+        "direct_clearcoat_normal = clearcoat_normal;",
         "zr_pbr_clearcoat_base_energy_scale_normalized(",
         "zr_pbr_advanced_environment_normalized(",
     ] {
@@ -382,6 +440,8 @@ macro_rules! assert_missing_include_token {
 
 #[path = "tests/environment.rs"]
 mod environment;
+#[path = "tests/environment_only_pbr.rs"]
+mod environment_only_pbr;
 #[path = "tests/standard_material_surface_template.rs"]
 mod standard_material_surface_template;
 #[path = "tests/standard_pbr_specialization.rs"]
@@ -1055,6 +1115,7 @@ fn standard_material_descriptor() -> StandardMaterialDescriptor {
         material_queue: 0,
         depth_bias: 0.0,
         taa_reactive_mask_strength: 0.0,
+        separate_translucency: false,
         advanced_features: StandardPbrMaterialFeatures::default(),
         subsurface_profile_index: 0,
         fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,

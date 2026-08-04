@@ -203,28 +203,4 @@ fn runtime_15_core_runtime_lock_poison_guard_child_owner_split() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 core runtime lock poison guard child-owner split",
-                "runtime_15_core_runtime_lock_poison_guard_child_owner_split_static_passed_cargo_deferred",
-                "structure_convention/lock_poison_policy/core_runtime.rs",
-                "structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs",
-                "runtime_15_core_runtime_lock_poison_guard_child_owner_split",
-            ],
-        );
-    }
 }

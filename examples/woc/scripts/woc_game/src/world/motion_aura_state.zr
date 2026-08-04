@@ -107,8 +107,8 @@ pub hasIceFloes(
 }
 
 // Source movement uses the smallest active slow multiplied by the largest
-// speed buff or travel-form multiplier. The WOS65 row stores the speed-buff
-// value while Frostbolt's current ranks reconstruct their shared slow value.
+// speed buff or travel-form multiplier. Older WOS slow rows did not retain a
+// value, so their zero sentinel falls back to the caller's historical slow.
 pub movementMultiplier(
     slowMultiplier: float,
     formSpeedMultiplier: float,
@@ -161,9 +161,10 @@ pub movementMultiplierWithStealth(
     var speed = formSpeedMultiplier;
     var index = start;
     while (index < end) {
-        if (contract.isMotionSlowKindCode(<uint>kindCodes[index]) &&
-            slowMultiplier < slow) {
-            slow = slowMultiplier;
+        if (contract.isMotionSlowKindCode(<uint>kindCodes[index])) {
+            var rowSlow = <float>values[index];
+            if (!(rowSlow > 0.0) || rowSlow > 1.0) { rowSlow = slowMultiplier; }
+            if (rowSlow < slow) { slow = rowSlow; }
         }
         if (contract.isMotionSpeedBuffKindCode(<uint>kindCodes[index]) &&
             <float>values[index] > speed) {

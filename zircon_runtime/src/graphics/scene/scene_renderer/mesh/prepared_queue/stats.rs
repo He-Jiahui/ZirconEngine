@@ -88,6 +88,10 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) cache_invalidated_transform_count: usize,
     pub(crate) cache_invalidated_geometry_count: usize,
     pub(crate) cache_invalidated_material_count: usize,
+    pub(crate) indirect_count_draw_call_count: usize,
+    pub(crate) fixed_multi_draw_call_count: usize,
+    pub(crate) per_draw_indirect_draw_call_count: usize,
+    pub(crate) direct_draw_call_count: usize,
     pub(crate) state_change_count: usize,
     pub(crate) bind_skip_count: usize,
 }

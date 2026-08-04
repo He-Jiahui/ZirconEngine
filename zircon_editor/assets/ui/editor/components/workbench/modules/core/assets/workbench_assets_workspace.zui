@@ -24,19 +24,21 @@ component = "HorizontalGroup"
 control_id = "WorkbenchModuleAssetsWorkspace"
 classes = ["workbench-module-body"]
 props = { visibility = "collapsed" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 1.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "assets_rail_gap" }, { node = "assets_left" }, { node = "assets_center" }, { node = "assets_right" }]
 
 [nodes.assets_rail_gap]
 component = "Container"
 control_id = "WorkbenchAssetsRailGap"
+props = { responsive_min_tier = "narrow" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.assets_left]
 component = "VerticalGroup"
 control_id = "WorkbenchAssetsLeftPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 270.0, preferred = 270.0, max = 290.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "narrow" }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 188.0, preferred = 220.0, max = 250.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "assets_title" }, { node = "assets_browser_tab" }, { node = "assets_import_tab" }, { node = "assets_validation_tab" }, { node = "assets_forest_row" }, { node = "assets_material_row" }]
 
 [nodes.assets_title]
@@ -51,52 +53,52 @@ component = "WorkbenchTab"
 control_id = "WorkbenchAssetsBrowserTab"
 classes = ["workbench-tab", "workbench-module-panel-tab"]
 props = { text = "Browser", checked = true, selected = true, value = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsBrowserTab", event = "Click", route = "workbench.module.assets.browser" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsBrowserTab", event = "Click", route = "workbench.module.assets.browser_tab.select" }]
 
 [nodes.assets_import_tab]
 component = "WorkbenchTab"
 control_id = "WorkbenchAssetsImportTab"
 classes = ["workbench-tab", "workbench-module-panel-tab"]
 props = { text = "Import Queue", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsImportTab", event = "Click", route = "workbench.module.assets.import" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsImportTab", event = "Click", route = "workbench.module.assets.import_tab.select" }]
 
 [nodes.assets_validation_tab]
 component = "WorkbenchTab"
 control_id = "WorkbenchAssetsValidationTab"
 classes = ["workbench-tab", "workbench-module-panel-tab"]
 props = { text = "Validation", checked = false, selected = false, value = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsValidationTab", event = "Click", route = "workbench.module.assets.validation" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsValidationTab", event = "Click", route = "workbench.module.assets.validation_tab.select" }]
 
 [nodes.assets_forest_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchAssetsForestRow"
 classes = ["workbench-list-row"]
 props = { text = "Forest", value = "forest", selected = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsForestRow", event = "Click", route = "workbench.module.assets.forest" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsForestRow", event = "Click", route = "workbench.module.assets.forest_row.select" }]
 
 [nodes.assets_material_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchAssetsMaterialRow"
 classes = ["workbench-list-row"]
 props = { text = "Materials", value = "materials", selected = false }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsMaterialRow", event = "Click", route = "workbench.module.assets.materials" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsMaterialRow", event = "Click", route = "workbench.module.assets.material_row.select" }]
 
 [nodes.assets_center]
 component = "VerticalGroup"
 control_id = "WorkbenchAssetsCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
-layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "assets_center_header" }, { node = "assets_table" }, { node = "assets_output" }]
 
 [nodes.assets_center_header]
 component = "HorizontalGroup"
 control_id = "WorkbenchAssetsCenterHeader"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 40.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 children = [{ node = "assets_center_title" }, { node = "assets_header_fill" }, { node = "assets_import_button" }]
 
 [nodes.assets_center_title]
@@ -104,7 +106,7 @@ component = "WorkbenchSectionTitle"
 control_id = "WorkbenchAssetsCenterTitle"
 classes = ["workbench-section-title"]
 props = { text = "Content/Environment/Forest" }
-layout = { width = { min = 220.0, preferred = 220.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 128.0, preferred = 180.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.assets_header_fill]
 component = "Container"
@@ -116,8 +118,8 @@ component = "WorkbenchButton"
 control_id = "WorkbenchAssetsImportButton"
 classes = ["workbench-control-button", "workbench-module-command"]
 props = { text = "Import", button_variant = "filled", button_color = "accent", selected = true, checked = true }
-layout = { width = { min = 78.0, preferred = 78.0, max = 88.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsImport", event = "Click", route = "workbench.module.assets.import_now" }]
+layout = { width = { min = 66.0, preferred = 72.0, max = 80.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsImport", event = "Click", route = "workbench.module.assets.import.invoke" }]
 
 [nodes.assets_table]
 component = "VerticalGroup"
@@ -132,38 +134,39 @@ component = "WorkbenchTableRow"
 control_id = "WorkbenchAssetsTableRow01"
 classes = ["workbench-table-row"]
 props = { text = "SM_Tree_Oak_01     Static Mesh     2.4 MB     Today", value = "asset_01", options = ["SM_Tree_Oak_01", "Static Mesh", "2.4 MB", "Today"], selected = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsTableTree", event = "Click", route = "workbench.module.assets.table.tree" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsTableTree", event = "Click", route = "workbench.module.assets.table_tree.select" }]
 
 [nodes.assets_table_row_02]
 component = "WorkbenchTableRow"
 control_id = "WorkbenchAssetsTableRow02"
 classes = ["workbench-table-row"]
 props = { text = "M_Bark_Master      Material        512 KB     10m ago", value = "asset_02", options = ["M_Bark_Master", "Material", "512 KB", "10m ago"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsTableMaterial", event = "Click", route = "workbench.module.assets.table.material" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsTableMaterial", event = "Click", route = "workbench.module.assets.table_material.select" }]
 
 [nodes.assets_table_row_03]
 component = "WorkbenchTableRow"
 control_id = "WorkbenchAssetsTableRow03"
 classes = ["workbench-table-row"]
 props = { text = "T_Leaf_N           Texture         1.2 MB     1h ago", value = "asset_03", options = ["T_Leaf_N", "Texture", "1.2 MB", "1h ago"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsTableTexture", event = "Click", route = "workbench.module.assets.table.texture" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsTableTexture", event = "Click", route = "workbench.module.assets.table_texture.select" }]
 
 [nodes.assets_output]
 component = "WorkbenchListRow"
 control_id = "WorkbenchAssetsOutputRow"
 classes = ["workbench-list-row"]
 props = { text = "Validation: 19 issues across imported content", value = "assets_output" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 36.0, stretch = "Fixed" } }
-events = [{ id = "WorkbenchModule/AssetsOutput", event = "Click", route = "workbench.module.assets.output" }]
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "WorkbenchModule/AssetsOutput", event = "Click", route = "workbench.module.assets.output.select" }]
 
 [nodes.assets_right]
 component = "VerticalGroup"
 control_id = "WorkbenchAssetsRightPanel"
 classes = ["workbench-panel", "workbench-module-side"]
-layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 320.0, preferred = 320.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "wide" }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 210.0, preferred = 260.0, max = 310.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "assets_details_title" }, { node = "assets_type_field" }, { node = "assets_path_field" }, { node = "assets_owner_field" }, { node = "assets_terrain_editor_button" }, { node = "assets_foliage_editor_button" }, { node = "assets_level_streaming_button" }, { node = "assets_level_variant_button" }, { node = "assets_prefab_editor_button" }, { node = "assets_scatter_editor_button" }, { node = "assets_volume_editor_button" }, { node = "assets_weather_editor_button" }, { node = "assets_spawn_rules_button" }, { node = "assets_world_state_button" }, { node = "assets_collision_proxy_button" }, { node = "assets_physics_collision_button" }, { node = "assets_navmesh_ai_button" }, { node = "assets_lobby_editor_button" }, { node = "assets_matchmaking_editor_button" }, { node = "assets_data_table_button" }, { node = "assets_source_control_button" }, { node = "assets_build_export_button" }, { node = "assets_automation_report_button" }, { node = "assets_project_overview_button" }, { node = "assets_plugin_manager_button" }, { node = "assets_save_data_button" }]
 
 [nodes.assets_details_title]
@@ -178,7 +181,7 @@ component = "WorkbenchField"
 control_id = "WorkbenchAssetsTypeField"
 classes = ["workbench-field", "workbench-component-field"]
 props = { value = "Static Mesh" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/AssetsTypeEdit", event = "Change", route = "workbench.module.assets.type.edit" },
   { id = "WorkbenchModule/AssetsTypeCommit", event = "Submit", route = "workbench.module.assets.type.commit" },
@@ -189,7 +192,7 @@ component = "WorkbenchField"
 control_id = "WorkbenchAssetsPathField"
 classes = ["workbench-field", "workbench-component-field"]
 props = { value = "/Game/Environment/Forest" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/AssetsPathEdit", event = "Change", route = "workbench.module.assets.path.edit" },
   { id = "WorkbenchModule/AssetsPathCommit", event = "Submit", route = "workbench.module.assets.path.commit" },
@@ -200,7 +203,7 @@ component = "WorkbenchField"
 control_id = "WorkbenchAssetsOwnerField"
 classes = ["workbench-field", "workbench-component-field"]
 props = { value = "Source: glTF importer" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchModule/AssetsOwnerEdit", event = "Change", route = "workbench.module.assets.owner.edit" },
   { id = "WorkbenchModule/AssetsOwnerCommit", event = "Submit", route = "workbench.module.assets.owner.commit" },

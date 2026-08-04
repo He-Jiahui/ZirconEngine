@@ -7,8 +7,9 @@ related_code:
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/resource/mod.rs
   - zircon_runtime/src/engine_module/engine_module.rs
-  - zircon_runtime/src/rhi/mod.rs
-  - zircon_runtime/src/rhi_wgpu/mod.rs
+  - zircon_runtime/src/rhi.rs
+  - zircon_runtime/crates/zr_rhi/src/lib.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/lib.rs
   - zircon_runtime/src/render_graph/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - Cargo.toml
@@ -41,7 +42,7 @@ reference_engines:
   `scene::World`，并由 optional navigation 注册 handler。目标拓扑已将其锁定为 layer-3
   supporting crate `zr_operation`；不得并入 `zr_kernel` 形成 layer-0 到 scene 的反向依赖，
   也不得滞留门面成为 optional crate 反向依赖 facade 的入口。
-- 旧声明顺序注释及 `graphics→scene`、`graphics→ui` 直接依赖已由 Frameworks05 硬切清零；当前最低结构缺口收敛为 `asset→text=2`、`scene→animation=2`、`rhi→rhi_wgpu=1` 三条硬反向边，见 M0 current-source 基线。禁止继续引用历史 35 处接缝作为迁移输入。
+- 旧声明顺序注释及 `graphics→scene`、`graphics→ui`、`asset→text` 直接依赖已由 Frameworks05 硬切清零；2026-08-03 又将 `rhi→rhi_wgpu=1` 硬切为物理 `zr_rhi <- zr_rhi_wgpu` 正向依赖。fresh production matrix 中这些边均为 0，当前未完成的最低结构缺口只剩 `scene→animation=2`。M0 历史快照仍用于对比，禁止继续把历史 35 处接缝或已清零边当作 current-source 输入。
 - 依赖治理已有文档（`runtime/01-tech-stack-and-dependency-governance.md`）但缺编译单元层面的强制手段。
 - 无开发期动态链接选项；重型依赖（wgpu/naga/winit/gltf/image）与纯逻辑代码同一编译单元。
 
@@ -101,7 +102,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 
 实现切片：
 - 新建 `zr_kernel`/`zr_contracts`/`zr_math`/`zr_resource`/`zr_diagnostics`，源码整目录移动（git mv），门面 `zircon_runtime` 以 `pub use` 恢复原公开路径；
-- 按 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics` 顺序硬切；`core/framework/render/environment/source_cubemap/tests/projection.rs` 当前有两处 concrete Runtime `TaskPool` 反向测试引用，必须先迁到 kernel integration owner 并以静态守卫降为 0；禁止让 contracts 以 dev-dependency 反向依赖 kernel；
+- 按 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics` 顺序硬切；`core/framework/render/environment/source_cubemap/tests/projection.rs` 的两处 concrete Runtime `TaskPool` 反向测试引用已硬切到中立 `ParallelSliceExecutor` 测试替身，并由 [`01/2026-07-30-m1-contracts-kernel-test-boundary.md`](01/2026-07-30-m1-contracts-kernel-test-boundary.md) 记录；后续物理迁移必须保持该计数为 0，禁止让 contracts 以 dev-dependency 反向依赖 kernel；
 - `core/framework` 迁入 `zr_contracts` 时按域拆 feature（ai/physics/sound/net/render/ui/... 各成 feature，默认全开，勾稽计划 03）；
 - 移动后同批修正所有 crate 内引用（`crate::core::…` → `zr_kernel::…` 等），不留旧路径别名。
 
@@ -178,6 +179,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 - M1 DAG 前置记录：[`01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md`](01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md)（resource registry error owner hard-cut 已实现，locked Cargo 验收 pending）
 - M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md`](01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md)（manager-resolving diagnostics 已移出 core，静态门通过，Cargo 与 Shader06 foreign doc pending）
 - M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-error-owner-dag-prerequisite.md`](01/2026-07-18-m1-runtime-error-owner-dag-prerequisite.md)（`CoreError/CoreResult` 已硬切到 runtime kernel owner，静态门通过，复审/Cargo pending）
+- M2 RHI/WGPU failure：[`01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md`](01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md)（2026-08-03 物理 `zr_rhi`/`zr_rhi_wgpu`、curated facade、测试 owner 与旧目录删除已实现；静态门 GREEN，managed Cargo/固定回传 pending，状态 `resolving`）
 ## Code Review 收敛 (2026-07-31)
 
 - `operation` owner 已按当前 `CoreHandle + scene::World` 依赖事实锁定为 layer-3
@@ -189,4 +191,4 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 - M4 已加入 `notify`/`winit`/`zip` prerelease 的 stable-first、exact scoped exception 与到期 RED
   规则，不以全局 allow 或关闭 advisory/bans 绕过治理。
 
-- 当前状态：M0 已在 2026-07-30 对 9,188 个 Runtime Rust 输入完成 pre/post 同指纹的原子快照：7 个根 workspace members、2,391 production refs / 76 domain edges；旧 `core→asset/graphics/scene` 与 internal→facade 生产反向边已经清零。新出现的 `foundation` 顶层域按 runtime absorption 权威确定为 layer-1 `zr_foundation`，不并入 core、不形成公开根包。2026-07-31 目标拓扑又补齐 `zr_operation` owner、text CPU/GPU backend 分层和 prerelease deny 决策；这些是物理迁移前的设计收敛，不是代码完成。物理硬切前必须重新采集同口径快照，并消除 `asset→text=2`、`scene→animation=2`、`rhi→rhi_wgpu=1`，同时把 source-cubemap projection 的两处 concrete Runtime `TaskPool` 测试迁到 kernel integration owner。M1 当前已完成 resource error、manager diagnostics、runtime error 三个 owner-DAG 静态前置且无 alias/shim；`zircon_runtime/crates/` 仍不存在，M1–M4 尚未开始物理迁移。四份冷/增量 `cargo build --timings` 仍在受管 FIFO 测试阶段 pending，故不声明 M0、M1 或计划 01 完成。
+- 当前状态：M0 已在 2026-07-30 对 9,188 个 Runtime Rust 输入完成 pre/post 同指纹的原子快照：7 个根 workspace members、2,391 production refs / 76 domain edges；旧 `core→asset/graphics/scene` 与 internal→facade 生产反向边已经清零。2026-08-03 M2 首个物理切片已创建 `zircon_runtime/crates/zr_rhi` 与 `zr_rhi_wgpu`，删除旧 `src/rhi`/`src/rhi_wgpu` 目录、迁移 12 个后端测试 owner，并将 Runtime 外部面收敛为 `src/rhi.rs` curated facade；最终独立复审复跑的静态 current-source 审计为 2,586 refs / 70 edges，已无 Runtime `rhi_wgpu` 域，且 `asset→text` 为 0。该切片仍在 managed Cargo 验证前的 `resolving` 状态，不代表 M2 accepted。source-cubemap 测试的 concrete `TaskPool` 反向构造已硬切为中立 executor；`zr_operation`、text CPU/GPU 分层、`scene→animation=2` 和其余 M1/M2 crate 仍待执行。四份 cold/incremental timings 也仍 pending，因此不声明 M0、M1、M2 或计划 01 完成。

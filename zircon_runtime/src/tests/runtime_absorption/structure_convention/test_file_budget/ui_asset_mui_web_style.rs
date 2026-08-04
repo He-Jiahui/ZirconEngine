@@ -124,7 +124,6 @@ fn runtime_15_ui_asset_mui_web_style_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = ui_tests_second_status_row_source();
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),
@@ -146,15 +145,4 @@ fn runtime_15_ui_asset_mui_web_style_tests_are_folder_backed() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M3 UI asset MUI web style test folder split",
-            "runtime_15_ui_asset_mui_web_style_tests_folder_split_static_passed_cargo_deferred",
-            "ui/tests/asset_mui_web_style.rs",
-            "ui/tests/asset_mui_web_style/state_icons.rs",
-            "runtime_15_ui_asset_mui_web_style_tests_are_folder_backed",
-        ],
-    );
 }

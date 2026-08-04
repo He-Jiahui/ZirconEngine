@@ -10,9 +10,11 @@ fn center() -> DecisionNotificationCenter {
 fn core_root_mounts_the_typed_notification_contract() {
     let core_root = include_str!("../../mod.rs");
 
-    assert!(core_root
-        .lines()
-        .any(|line| line.trim() == "pub mod notifications;"));
+    assert!(
+        core_root
+            .lines()
+            .any(|line| line.trim() == "pub mod notifications;")
+    );
 }
 
 #[test]
@@ -22,12 +24,14 @@ fn editor_context_owns_an_empty_decision_notification_center() {
 
     let context = EditorContextBuilder::new(test_job_scheduler()).build();
 
-    assert!(context
-        .notifications()
-        .decisions()
-        .unwrap()
-        .pending_snapshot()
-        .is_empty());
+    assert!(
+        context
+            .notifications()
+            .decisions()
+            .unwrap()
+            .pending_snapshot()
+            .is_empty()
+    );
 }
 
 fn configured_center(
@@ -201,7 +205,7 @@ fn oversized_payload_is_rejected() {
     let too_long_notification = format!("editor.play.{}", "a".repeat(MAX_NOTIFICATION_ID_BYTES));
     assert!(matches!(
         NotificationId::parse(too_long_notification),
-        Err(DecisionNotificationError::FieldTooLong { .. })
+        Err(crate::core::notifications::NotificationIdentityError::InvalidNotificationId(_))
     ));
     assert!(matches!(
         DecisionOptionId::parse("a".repeat(MAX_DECISION_OPTION_ID_BYTES + 1)),
@@ -209,7 +213,7 @@ fn oversized_payload_is_rejected() {
     ));
     assert!(matches!(
         NotificationSource::plugin("a".repeat(MAX_NOTIFICATION_SOURCE_ID_BYTES + 1)),
-        Err(DecisionNotificationError::FieldTooLong { .. })
+        Err(crate::core::notifications::NotificationIdentityError::SourceIdTooLong { .. })
     ));
     assert!(matches!(
         DecisionOption::new(

@@ -1,6 +1,6 @@
 use crate::core::math::{Real, Vec3};
 
-use super::{VolumeComponentApplyError, type_mismatch};
+use super::{type_mismatch, VolumeComponentApplyError};
 
 pub type VolumeParamInterpFn =
     fn(from: VolumeParamValue, to: VolumeParamValue, weight: Real) -> VolumeParamValue;
@@ -167,7 +167,11 @@ pub fn interp_discrete(
     to: VolumeParamValue,
     weight: Real,
 ) -> VolumeParamValue {
-    if weight >= 0.5 { to } else { from }
+    if weight >= 0.5 {
+        to
+    } else {
+        from
+    }
 }
 
 pub fn interp_bool(from: VolumeParamValue, to: VolumeParamValue, weight: Real) -> VolumeParamValue {

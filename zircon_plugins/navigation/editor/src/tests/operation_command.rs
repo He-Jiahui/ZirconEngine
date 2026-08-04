@@ -17,9 +17,9 @@ use zircon_runtime::core::framework::navigation::{
     NAVIGATION_RESTORE_BAKE_OPERATION,
 };
 use zircon_runtime_interface::{
-    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationProgressV1,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
-    ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeSessionHandle, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
 
 use crate::operation_command::NavigationOperationCommand;
@@ -46,8 +46,11 @@ fn factory_request_payload(operation: &str, arguments: serde_json::Value) -> ser
         .expect("navigation operation command");
     command
         .command()
-        .serialize_journal()
-        .and_then(|journal| journal.get("request").cloned())
+        .journal_payload()
+        .expect("navigation command journal payload")
+        .payload()
+        .get("request")
+        .cloned()
         .and_then(|request| request.get("payload").cloned())
         .expect("navigation runtime request payload")
 }
@@ -239,25 +242,24 @@ impl EditorRuntimeGateway for RecordingGateway {
     fn poll_operation(
         &self,
         handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
         let handle = if self.state.lock().unwrap().foreign_progress {
             ZrRuntimeOperationHandle::new(handle.raw() + 1)
         } else {
             handle
         };
-        let abi_version = if self.state.lock().unwrap().wrong_progress_abi {
-            ZIRCON_RUNTIME_ABI_VERSION_V1 + 1
-        } else {
-            ZIRCON_RUNTIME_ABI_VERSION_V1
-        };
-        Ok(ZrRuntimeOperationProgressV1::new(
-            abi_version,
+        let mut status = ZrRuntimeOperationStatusV2::new(
             handle,
             ZrRuntimeOperationPhase::Completed,
             1,
             1,
-            "complete",
-        ))
+            ZrRuntimeOperationDetailKindV2::None,
+            0,
+        );
+        if self.state.lock().unwrap().wrong_progress_abi {
+            status.abi_version = ZIRCON_RUNTIME_ABI_VERSION_V2 + 1;
+        }
+        Ok(status)
     }
 
     fn harvest_operation(

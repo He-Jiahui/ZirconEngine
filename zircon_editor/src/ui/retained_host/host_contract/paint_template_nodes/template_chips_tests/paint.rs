@@ -20,6 +20,21 @@ fn viewport_chip_paints_surface_border_text_and_chevron() {
 }
 
 #[test]
+fn ordinary_chip_paints_a_resting_border_separate_from_its_fill() {
+    let bytes = paint_template_nodes_for_test(
+        150,
+        48,
+        model_rc(vec![chip_node("WorkbenchViewportMode", "Perspective")]),
+    );
+
+    assert_ne!(
+        pixel_at(&bytes, 150, 54, 8),
+        pixel_at(&bytes, 150, 54, 24),
+        "the resting chip must remain visually distinct from its containing panel"
+    );
+}
+
+#[test]
 fn focused_chip_uses_focus_border() {
     let mut node = chip_node("WorkbenchViewportAngle", "10 deg");
     node.focused = true;

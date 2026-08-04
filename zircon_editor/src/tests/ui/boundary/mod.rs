@@ -1,4 +1,9 @@
 mod asset_editor_structure;
+mod component_showcase_tokens;
+mod console_theme_assets;
+mod project_overview_tokens;
+mod welcome_tokens;
+mod workbench_run_controls_tokens;
 mod editor_event_cutover;
 mod global_material_surface_assets;
 mod host_cutover;

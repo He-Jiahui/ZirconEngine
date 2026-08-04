@@ -191,6 +191,24 @@ fn world_despawn_uses_known_archetype_location_without_full_rebuild() {
 }
 
 #[test]
+fn world_despawn_removes_only_components_in_the_current_archetype_signature() {
+    let hierarchy = include_str!("../world/hierarchy.rs");
+    let remove_entity = hierarchy
+        .split("pub fn remove_entity(&mut self, entity: EntityId) -> bool")
+        .nth(1)
+        .and_then(|text| text.split("pub fn remove_entity_recursive").next())
+        .expect("read World::remove_entity body");
+
+    assert!(
+        remove_entity.contains("let component_ids = self.entity_archetype_component_ids(entity);")
+            && remove_entity.contains(".remove_entity_components(internal, &component_ids);")
+            && !remove_entity.contains("component_ids_for_entity(internal)")
+            && !remove_entity.contains("component_storage.remove_entity(internal)"),
+        "despawn must use the current archetype signature instead of scanning every registered component storage"
+    );
+}
+
+#[test]
 fn explicit_empty_spawn_updates_only_the_empty_archetype() {
     let mut world = World::empty();
     assert!(world.spawn_empty_at(40).unwrap());
@@ -205,6 +223,24 @@ fn explicit_empty_spawn_updates_only_the_empty_archetype() {
 }
 
 #[test]
+fn empty_entity_archetype_placement_rejects_a_preallocated_but_unowned_locator() {
+    let source = include_str!("../world/identity.rs");
+    let location_lookup = source
+        .split("fn archetype_location_for_entity")
+        .nth(1)
+        .and_then(|text| text.split("fn update_entity_archetype_row").next())
+        .expect("read entity archetype location lookup");
+    let location_lookup_compact = location_lookup.split_whitespace().collect::<String>();
+
+    assert!(
+        location_lookup_compact.contains("self.archetype_index.entities(location.archetype_id)")
+            && location_lookup_compact.contains(".and_then(|entities|entities.get(location.table_row))")
+            && location_lookup_compact.contains("(located_entity==Some(entity)).then_some"),
+        "a registry preallocation must not be treated as an existing archetype row before the index owns that entity"
+    );
+}
+
+#[test]
 fn explicit_empty_spawn_does_not_rebuild_all_archetypes() {
     let source = include_str!("../world/typed_api.rs");
     let spawn_empty = source
@@ -214,7 +250,7 @@ fn explicit_empty_spawn_does_not_rebuild_all_archetypes() {
         .expect("read World::spawn_empty_at body");
 
     assert!(
-        spawn_empty.contains("self.refresh_entity_archetype(entity);")
+        spawn_empty.contains("self.place_empty_entity_in_archetype(entity);")
             && !spawn_empty.contains("self.refresh_stable_entity_locations();"),
         "explicit empty spawn must add only the new entity to the empty archetype instead of rebuilding the world index"
     );
@@ -279,7 +315,7 @@ fn stable_entity_registration_uses_append_row_without_entity_scan() {
 }
 
 #[test]
-fn entity_archetype_refresh_uses_direct_previous_archetype_branch() {
+fn normal_component_archetype_updates_use_the_current_signature_without_storage_scans() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
@@ -288,20 +324,21 @@ fn entity_archetype_refresh_uses_direct_previous_archetype_branch() {
             .join("identity.rs"),
     )
     .unwrap();
-    let refresh = source
-        .split("pub(super) fn refresh_entity_archetype")
+    let component_update = source
+        .split("fn update_entity_archetype_component_membership")
         .nth(1)
-        .and_then(|text| text.split("pub(super) fn rebuild_archetype_index").next())
-        .expect("read entity archetype refresh body");
+        .and_then(|text| {
+            text.split("fn assign_entity_archetype_from_component_storage")
+                .next()
+        })
+        .expect("read normal component archetype update body");
 
     assert!(
-        refresh.contains("let previous = match self.entity_registry.location_for_stable(entity)")
-            && refresh.contains("let location = location.location;")
-            && refresh.contains("Some((location.archetype_id, location.table_row))")
-            && refresh.contains("None => None")
-            && refresh.contains("self.assign_entity_archetype(entity, previous)")
-            && !refresh.contains(".map(|location|"),
-        "entity archetype refresh must preserve the previous archetype row for O(1) movement"
+        component_update.contains("let Some(previous) = self.archetype_location_for_entity(entity)")
+            && component_update.contains("self.archetype_index.signature(previous.0).cloned()")
+            && component_update.contains("self.assign_entity_archetype_with_signature(")
+            && !component_update.contains("component_ids_for_entity_by_storage"),
+        "normal component membership updates must relocate from the known signature instead of scanning every component storage"
     );
 }
 
@@ -347,19 +384,13 @@ fn entity_registry_error_paths_use_direct_lookup_branches() {
         despawn.contains("let Some(internal) = self.stable_to_internal.remove(&stable_id) else")
     );
     assert!(despawn.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(
-        despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
-    );
+    assert!(despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
     assert!(set_location.contains("let Some(internal) = self.internal_for_stable(stable_id) else"));
     assert!(set_location.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(
-        set_location
-            .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
-    );
-    assert!(
-        location_for_internal
-            .contains("let Some(slot) = self.slots.get(internal.index() as usize) else")
-    );
+    assert!(set_location
+        .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
+    assert!(location_for_internal
+        .contains("let Some(slot) = self.slots.get(internal.index() as usize) else"));
     assert!(location_for_internal.contains("let Some(stable_id) = slot.stable_id else"));
     assert!(location_for_internal.contains("let Some(location) = slot.location else"));
     assert!(!source.contains(".ok_or("));
@@ -544,6 +575,51 @@ fn component_storage_supports_table_swap_remove_and_sparse_remove() {
 }
 
 #[test]
+fn sparse_component_storage_removal_keeps_the_swapped_entity_addressable() {
+    let component = ComponentId::new(8);
+    let first = InternalEntity::new(0, 1);
+    let second = InternalEntity::new(1, 1);
+    let second_added = ChangeTick::new(41);
+    let second_changed = ChangeTick::new(73);
+    let mut storage = ComponentStorage::default();
+
+    storage
+        .insert(
+            component,
+            StorageType::SparseSet,
+            first,
+            TestComponent("first"),
+        )
+        .unwrap();
+    storage
+        .insert_at_tick(
+            component,
+            StorageType::SparseSet,
+            second,
+            TestComponent("second"),
+            second_added,
+        )
+        .unwrap();
+    storage.mark_changed(component, second, second_changed);
+
+    let removed = storage
+        .remove::<TestComponent>(component, first)
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(removed.value, TestComponent("first"));
+    assert_eq!(removed.swapped_entity, None);
+    assert!(!storage.contains(component, first));
+    assert_eq!(
+        storage.get::<TestComponent>(component, second),
+        Some(&TestComponent("second"))
+    );
+    let mut expected_ticks = ComponentTicks::new(second_added);
+    expected_ticks.set_changed(second_changed);
+    assert_eq!(storage.ticks(component, second), Some(expected_ticks));
+}
+
+#[test]
 fn component_storage_rejects_storage_and_type_mismatches_without_mutating_value() {
     let component = ComponentId::new(7);
     let entity = InternalEntity::new(0, 1);
@@ -558,25 +634,21 @@ fn component_storage_rejects_storage_and_type_mismatches_without_mutating_value(
         )
         .unwrap();
 
-    assert!(
-        storage
-            .insert(
-                component,
-                StorageType::SparseSet,
-                entity,
-                TestComponent("moved")
-            )
-            .unwrap_err()
-            .to_string()
-            .contains("already registered as Table")
-    );
-    assert!(
-        storage
-            .insert(component, StorageType::Table, entity, "wrong-type")
-            .unwrap_err()
-            .to_string()
-            .contains("different Rust type")
-    );
+    assert!(storage
+        .insert(
+            component,
+            StorageType::SparseSet,
+            entity,
+            TestComponent("moved")
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("already registered as Table"));
+    assert!(storage
+        .insert(component, StorageType::Table, entity, "wrong-type")
+        .unwrap_err()
+        .to_string()
+        .contains("different Rust type"));
     assert_eq!(
         storage.get::<TestComponent>(component, entity),
         Some(&TestComponent("typed"))

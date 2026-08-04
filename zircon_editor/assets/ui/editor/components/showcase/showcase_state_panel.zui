@@ -6,7 +6,7 @@ display_name = "Showcase State Panel"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.ShowcaseStatePanel]
 root = "state_panel_root"
@@ -71,7 +71,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 6
 [nodes.state_panel_root]
 component = "VerticalBox"
 control_id = "ComponentShowcaseStatePanel"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" } }
 children = [
   { node = "state_title" },
   { node = "selected_category" },

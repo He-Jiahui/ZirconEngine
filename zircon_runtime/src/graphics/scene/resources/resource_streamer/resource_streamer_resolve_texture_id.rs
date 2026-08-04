@@ -8,6 +8,9 @@ use crate::core::resource::ResourceId;
 
 use super::ResourceStreamer;
 
+const DEFAULT_MATERIAL_TEXTURE_BINDING_REASON: &str =
+    "default material texture binding supports only texture_2d<f32>";
+
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::graphics::scene::resources) struct ResolvedTextureReference {
     pub(in crate::graphics::scene::resources) id: Option<ResourceId>,
@@ -171,6 +174,30 @@ impl ResourceStreamer {
                     reference.clone(),
                     expected_dimension,
                     actual_dimension,
+                )),
+                expected_dimension,
+                actual_dimension: Some(actual_dimension),
+            };
+        }
+
+        if !expected_dimension.is_supported_by_default_material_binding() {
+            return ResolvedTextureReference {
+                id: None,
+                validation_error: Some(RenderMaterialValidationError::TextureNotUploadReady {
+                    slot: slot.to_string(),
+                    reference: reference.clone(),
+                    reason: DEFAULT_MATERIAL_TEXTURE_BINDING_REASON.to_string(),
+                }),
+                fallback_usage: Some(RenderMaterialFallbackUsage {
+                    reason: RenderMaterialFallbackReason::Texture {
+                        slot: slot.to_string(),
+                        reference: reference.clone(),
+                    },
+                    fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
+                }),
+                slot_fallback: Some(RenderMaterialTextureSlotFallback::not_upload_ready(
+                    reference.clone(),
+                    DEFAULT_MATERIAL_TEXTURE_BINDING_REASON,
                 )),
                 expected_dimension,
                 actual_dimension: Some(actual_dimension),

@@ -5,7 +5,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::{
-    build_cookie_frame_plan, CookieGpuMetadata,
+    CookieGpuMetadata, build_cookie_frame_plan,
 };
 
 pub(crate) const GPU_LIGHT_FLAG_CASTS_SHADOW: u32 = 1 << 0;
@@ -266,8 +266,8 @@ fn shadow_params(shadow: Option<LightShadowSettings>) -> [f32; 4] {
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        CookieProjection, CookieWrapMode, LightShadowSettings, ShadowPcfQuality,
-        ShadowResolutionTier, DEFAULT_RENDER_LAYER_MASK,
+        CookieProjection, CookieWrapMode, DEFAULT_RENDER_LAYER_MASK, LightShadowSettings,
+        ShadowPcfQuality, ShadowResolutionTier,
     };
     use crate::core::resource::ResourceId;
     use std::mem::{offset_of, size_of};

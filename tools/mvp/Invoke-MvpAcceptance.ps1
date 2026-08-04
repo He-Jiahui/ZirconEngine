@@ -33,16 +33,23 @@ if ($RequireF5Evidence) {
     }
 }
 
-Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpBuildSummaryEvidence.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingSnapshot.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpProjectOpenEvidence.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpProjectSaveEvidence.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpPersistenceComparison.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpScenePersistenceEvidence.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflightEvidence.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpProcessTimingEvidence.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpBuildSummaryEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingSnapshot.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProjectOpenEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProjectSaveEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpPersistenceComparison.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpScenePersistenceEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflightEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProcessTimingEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+# Nested evidence modules import their dependencies in private scopes. Re-import the top-level
+# dependencies in a stable order so this script retains every direct publication command.
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingSnapshot.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpBuildSummaryEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpFileSha256 {
     param([Parameter(Mandatory)][string]$Path)
@@ -72,8 +79,10 @@ function Resolve-MvpStagedEvidenceFile {
     if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
         throw "$Label '$RelativePath' does not exist in the staging root."
     }
-    $resolved = (Resolve-Path -LiteralPath $candidate).Path
-    $prefix = $StagingRoot.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
+    $candidateResolution = Resolve-ZirconWindowsPath -Path $candidate
+    $stagingResolution = Resolve-ZirconWindowsPath -Path $StagingRoot
+    $resolved = $candidateResolution.OperationalPath
+    $prefix = $stagingResolution.OperationalPath.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
     if (-not $resolved.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "$Label '$RelativePath' escapes the staging root."
     }
@@ -98,7 +107,7 @@ function Assert-MvpStagedFileEvidence {
         throw "$Label hash mismatch for '$relativePath'."
     }
     $expectedSize = [Int64](Get-MvpRequiredProperty -Value $Evidence -Name 'size_bytes' -Label $Label)
-    $actualSize = (Get-Item -LiteralPath $path).Length
+    $actualSize = [IO.FileInfo]::new($path).Length
     if ($actualSize -ne $expectedSize) {
         throw "$Label size mismatch for '$relativePath'."
     }
@@ -465,7 +474,17 @@ function Get-MvpEditorProductDiagnosticsFromLog {
         throw "$Label diagnostic logs do not contain editor_product_frame_diagnostics."
     }
     $fields = [ordered]@{}
-    foreach ($name in @('project_path', 'selected_node_id', 'selected_node_name', 'inspector_translation_x', 'inspector_translation_y', 'inspector_translation_z')) {
+    foreach ($name in @(
+        'project_path',
+        'selected_node_id',
+        'selected_node_name',
+        'inspector_translation_x',
+        'inspector_translation_y',
+        'inspector_translation_z',
+        'inspector_scale_x',
+        'inspector_scale_y',
+        'inspector_scale_z'
+    )) {
         $match = [regex]::Match($diagnostic, '(?:^|\s)' + [regex]::Escape($name) + '=([^\s]+)')
         if (-not $match.Success -or $match.Groups[1].Value -match '%(?![0-9A-Fa-f]{2})') {
             throw "$Label editor diagnostic is missing or malformed '$name'."
@@ -480,14 +499,32 @@ function Get-MvpEditorProductDiagnosticsFromLog {
     if (-not [UInt64]::TryParse([string]$fields.selected_node_id, [ref]$selectedNodeId) -or $selectedNodeId -eq 0) {
         throw "$Label editor diagnostic has invalid selected_node_id '$($fields.selected_node_id)'."
     }
-    $reportedProjectRoot = [IO.Path]::GetFullPath([string]$fields.project_path)
-    $canonicalExpectedRoot = [IO.Path]::GetFullPath($ExpectedProjectRoot)
-    if (-not $reportedProjectRoot.Equals($canonicalExpectedRoot, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "$Label editor diagnostic project_path '$reportedProjectRoot' differs from staged project '$canonicalExpectedRoot'."
-    }
+    Assert-MvpResolvedProjectPath `
+        -ReportedProjectPath ([string]$fields.project_path) `
+        -ExpectedProjectRoot $ExpectedProjectRoot `
+        -Label "$Label editor diagnostic"
     $fields.project_path = $ProjectRelativeRoot.Replace('\', '/')
     $fields.selected_node_id = $selectedNodeId
     return [pscustomobject]$fields
+}
+
+function Assert-MvpResolvedProjectPath {
+    param(
+        [Parameter(Mandatory)][string]$ReportedProjectPath,
+        [Parameter(Mandatory)][string]$ExpectedProjectRoot,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    try {
+        $reported = Resolve-ZirconWindowsPath -Path $ReportedProjectPath
+        $expected = Resolve-ZirconWindowsPath -Path $ExpectedProjectRoot
+    }
+    catch {
+        throw "$Label project_path could not be resolved through the Windows path resolver: $($_.Exception.Message)"
+    }
+    if (-not $reported.OperationalPath.Equals($expected.OperationalPath, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label project_path '$($reported.DisplayPath)' differs from staged project '$($expected.DisplayPath)'."
+    }
 }
 
 function Assert-MvpDiagnosticsMatchSummary {
@@ -521,14 +558,16 @@ function Assert-MvpStagingManifestIntegrity {
         throw 'Staging manifest does not contain staged entries.'
     }
 
+    $stagingResolution = Resolve-ZirconWindowsPath -Path $StagingRoot
+    $resolvedStagingRoot = $stagingResolution.OperationalPath
     $stagingRootPrefix = if (
-        $StagingRoot.EndsWith([IO.Path]::DirectorySeparatorChar) -or
-        $StagingRoot.EndsWith([IO.Path]::AltDirectorySeparatorChar)
+        $resolvedStagingRoot.EndsWith([IO.Path]::DirectorySeparatorChar) -or
+        $resolvedStagingRoot.EndsWith([IO.Path]::AltDirectorySeparatorChar)
     ) {
-        $StagingRoot
+        $resolvedStagingRoot
     }
     else {
-        $StagingRoot + [IO.Path]::DirectorySeparatorChar
+        $resolvedStagingRoot + [IO.Path]::DirectorySeparatorChar
     }
     $logicalIds = @{}
     $targetPaths = @{}
@@ -551,7 +590,7 @@ function Assert-MvpStagingManifestIntegrity {
         if (-not (Test-Path -LiteralPath $targetPath -PathType Leaf)) {
             throw "Staging manifest entry '$logicalId' target '$relativePath' is missing."
         }
-        $resolvedTargetPath = (Resolve-Path -LiteralPath $targetPath).Path
+        $resolvedTargetPath = (Resolve-ZirconWindowsPath -Path $targetPath).OperationalPath
         if (-not $resolvedTargetPath.StartsWith($stagingRootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
             throw "Staging manifest entry '$logicalId' target '$relativePath' escapes the staging root."
         }
@@ -572,7 +611,7 @@ function Assert-MvpStagingManifestIntegrity {
             throw 'Staging manifest entry sizes exceed the supported 64-bit byte budget.'
         }
         $entryBytes = [Int64]$nextEntryBytes
-        $actualSize = (Get-Item -LiteralPath $resolvedTargetPath).Length
+        $actualSize = [IO.FileInfo]::new($resolvedTargetPath).Length
         if ($actualSize -ne $expectedSize) {
             throw "Staging manifest entry '$logicalId' size mismatch for '$relativePath'."
         }
@@ -952,11 +991,10 @@ function Assert-MvpAutomationProcessEvidence {
         if ($propertyName -eq 'project_path') {
             $capturedProjectPath = [string](Get-MvpRequiredProperty -Value $capturedReport -Name $propertyName -Label "$Label stdout")
             if ([IO.Path]::IsPathRooted($capturedProjectPath)) {
-                $expectedProjectPath = [IO.Path]::GetFullPath((Join-Path $ExpectedStagingRoot $StagedProjectRoot))
-                $resolvedCapturedProjectPath = [IO.Path]::GetFullPath($capturedProjectPath)
-                if (-not $resolvedCapturedProjectPath.Equals($expectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
-                    throw "$Label captured stdout project_path '$capturedProjectPath' differs from staged project '$expectedProjectPath'."
-                }
+                Assert-MvpResolvedProjectPath `
+                    -ReportedProjectPath $capturedProjectPath `
+                    -ExpectedProjectRoot (Join-Path $ExpectedStagingRoot $StagedProjectRoot) `
+                    -Label "$Label captured stdout"
             }
             elseif ($capturedProjectPath -ne $StagedProjectRoot) {
                 throw "$Label captured stdout project_path '$capturedProjectPath' differs from staged project root '$StagedProjectRoot'."
@@ -1122,6 +1160,20 @@ function Assert-MvpF5EditorWindowEvidence {
     }
     if (-not [double]::TryParse([string]$afterReopenDiagnostics.inspector_translation_x, [ref]$afterTranslationX) -or $afterTranslationX -ne 42.0) {
         throw 'Reopened editor diagnostics must show persisted Cube Inspector X equal to 42.'
+    }
+    foreach ($scaleExpectation in @(
+        @{ name = 'inspector_scale_x'; before = 1.0; after = 1.25 },
+        @{ name = 'inspector_scale_y'; before = 1.0; after = 1.0 },
+        @{ name = 'inspector_scale_z'; before = 1.0; after = 1.0 }
+    )) {
+        [double]$beforeScale = 0
+        [double]$afterScale = 0
+        if (-not [double]::TryParse([string]$beforeEditDiagnostics.($scaleExpectation.name), [ref]$beforeScale) -or
+            $beforeScale -ne $scaleExpectation.before -or
+            -not [double]::TryParse([string]$afterReopenDiagnostics.($scaleExpectation.name), [ref]$afterScale) -or
+            $afterScale -ne $scaleExpectation.after) {
+            throw "Editor before/after diagnostics do not preserve '$($scaleExpectation.name)' from $($scaleExpectation.before) to $($scaleExpectation.after)."
+        }
     }
     $beforePixelSha256 = [string](Get-MvpRequiredProperty -Value $beforeEditCapture -Name 'pixel_sha256' -Label 'Project creation editor window capture')
     $afterPixelSha256 = [string](Get-MvpRequiredProperty -Value $afterReopenCapture -Name 'pixel_sha256' -Label 'Reopened editor window capture')
@@ -1303,11 +1355,10 @@ function Assert-MvpAutomationProjectOpening {
 
     $reportedProjectPath = [string](Get-MvpRequiredProperty -Value $Automation -Name 'project_path' -Label $Label)
     if ([IO.Path]::IsPathRooted($reportedProjectPath)) {
-        $expectedProjectPath = [IO.Path]::GetFullPath((Join-Path $ExpectedStagingRoot $StagedProjectRoot))
-        $resolvedReportedProjectPath = [IO.Path]::GetFullPath($reportedProjectPath)
-        if (-not $resolvedReportedProjectPath.Equals($expectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "$Label project_path '$reportedProjectPath' differs from staged project '$expectedProjectPath'."
-        }
+        Assert-MvpResolvedProjectPath `
+            -ReportedProjectPath $reportedProjectPath `
+            -ExpectedProjectRoot (Join-Path $ExpectedStagingRoot $StagedProjectRoot) `
+            -Label $Label
     }
     elseif ($reportedProjectPath -ne $StagedProjectRoot) {
         throw "$Label project_path '$reportedProjectPath' differs from staged project root '$StagedProjectRoot'."
@@ -1358,12 +1409,21 @@ function Assert-MvpAutomationSnapshot {
     if ($translation.Count -ne 3 -or @($translation | Where-Object { [string]::IsNullOrWhiteSpace([string]$_) }).Count -ne 0) {
         throw "$Label snapshot has invalid inspector_translation evidence."
     }
+    $scaleProperty = $snapshot.PSObject.Properties['inspector_scale']
+    if ($null -eq $scaleProperty) {
+        throw "$Label snapshot is missing 'inspector_scale'."
+    }
+    $scale = @($scaleProperty.Value)
+    if ($scale.Count -ne 3 -or @($scale | Where-Object { [string]::IsNullOrWhiteSpace([string]$_) }).Count -ne 0) {
+        throw "$Label snapshot has invalid inspector_scale evidence."
+    }
     $null = Assert-MvpAutomationSceneSnapshot `
         -Snapshot $snapshot `
         -SceneEntryCount $sceneEntryCount `
         -SelectedNodeId $selectedNodeId `
         -SelectedNodeName $selectedNodeName `
         -InspectorTranslation $translation `
+        -InspectorScale $scale `
         -Label "$Label snapshot"
 
     return $snapshot
@@ -1403,6 +1463,12 @@ function Assert-MvpBaselineAutomation {
     [double]$translationX = 0
     if (-not [double]::TryParse([string]$snapshot.inspector_translation[0], [ref]$translationX) -or $translationX -ne 0.0) {
         throw 'Pre-authoring baseline must observe the template Cube X transform value 0.'
+    }
+    foreach ($axis in 0..2) {
+        [double]$scale = 0
+        if (-not [double]::TryParse([string]$snapshot.inspector_scale[$axis], [ref]$scale) -or $scale -ne 1.0) {
+            throw "Pre-authoring baseline must observe the template Cube scale axis $axis equal to 1."
+        }
     }
     $records = @((Get-MvpRequiredProperty -Value $Automation -Name 'records' -Label $label))
     $selection = Get-MvpAuthoringAutomationRecord `
@@ -1451,6 +1517,10 @@ function Assert-MvpAuthoringAutomation {
     if (-not [double]::TryParse([string]$authoringSnapshot.inspector_translation[0], [ref]$authoringTranslationX) -or $authoringTranslationX -ne 42.0) {
         throw 'Authoring automation snapshot must retain the requested X transform value 42.'
     }
+    [double]$authoringScaleX = 0
+    if (-not [double]::TryParse([string]$authoringSnapshot.inspector_scale[0], [ref]$authoringScaleX) -or $authoringScaleX -ne 1.25) {
+        throw 'Authoring automation snapshot must retain the requested X scale value 1.25.'
+    }
 
     $recordsProperty = $Automation.PSObject.Properties['records']
     if ($null -eq $recordsProperty) {
@@ -1469,12 +1539,16 @@ function Assert-MvpAuthoringAutomation {
         -Records $records `
         -BindingPath 'Inspector/TransformPositionXCommit:onSubmit' `
         -Label 'transform commit'
+    $scale = Get-MvpAuthoringAutomationRecord `
+        -Records $records `
+        -BindingPath 'Inspector/TransformScaleXCommit:onSubmit' `
+        -Label 'scale commit'
     $save = Get-MvpAuthoringAutomationRecord `
         -Records $records `
         -BindingPath 'WorkbenchMenuBar/SaveProject:onClick' `
         -Label 'project save'
 
-    foreach ($record in @($selection, $transform, $save)) {
+    foreach ($record in @($selection, $transform, $scale, $save)) {
         $source = [string](Get-MvpRequiredProperty -Value $record -Name 'source' -Label 'Authoring automation record')
         if ($source -ne 'Cli') {
             throw "Authoring automation record '$([string]$record.binding_path)' has source '$source' instead of 'Cli'."
@@ -1491,6 +1565,17 @@ function Assert-MvpAuthoringAutomation {
         -Label 'Authoring transform record'
     if ($transformTransaction -eq 0) {
         throw 'Authoring transform record has a zero transaction_id.'
+    }
+    $scaleOperation = [string](Get-MvpRequiredProperty -Value $scale -Name 'operation_id' -Label 'Authoring scale record')
+    if ($scaleOperation -ne 'inspector.field.apply_batch') {
+        throw "Authoring scale record operation_id '$scaleOperation' is not 'inspector.field.apply_batch'."
+    }
+    $scaleTransaction = ConvertTo-MvpUInt64 `
+        -Value (Get-MvpRequiredProperty -Value $scale -Name 'transaction_id' -Label 'Authoring scale record') `
+        -Name 'transaction_id' `
+        -Label 'Authoring scale record'
+    if ($scaleTransaction -eq 0) {
+        throw 'Authoring scale record has a zero transaction_id.'
     }
 
     $saveOperation = [string](Get-MvpRequiredProperty -Value $save -Name 'operation_id' -Label 'Authoring save record')
@@ -1518,7 +1603,7 @@ function Assert-MvpAuthoringAutomation {
         -DiagnosticText $projectSaveDiagnosticText.ToString() `
         -SaveOperationId $saveOperation `
         -SaveGeneration $saveGeneration `
-        -ExpectedProjectPath ([IO.Path]::GetFullPath((Join-Path $ExpectedStagingRoot $StagedProjectRoot)))
+        -ExpectedProjectPath (Join-Path $ExpectedStagingRoot $StagedProjectRoot)
 
     $Automation | Add-Member `
         -NotePropertyName 'project_save_lifecycle' `
@@ -1627,6 +1712,11 @@ function Assert-MvpReopenAutomation {
         $actualTranslation = @($snapshot.inspector_translation)
         if (($actualTranslation -join '|') -ne ($expectedTranslation -join '|')) {
             throw "$label snapshot inspector_translation differs from the authoring snapshot."
+        }
+        $expectedScale = @($authoringSnapshot.inspector_scale)
+        $actualScale = @($snapshot.inspector_scale)
+        if (($actualScale -join '|') -ne ($expectedScale -join '|')) {
+            throw "$label snapshot inspector_scale differs from the authoring snapshot."
         }
         $null = Assert-MvpSceneSnapshotMatch `
             -ExpectedSnapshot $authoringSnapshot `
@@ -1759,7 +1849,8 @@ function Assert-MvpF5ProjectIdentity {
 function Write-MvpAcceptanceManifest {
     param(
         [Parameter(Mandatory)][string]$Path,
-        [Parameter(Mandatory)]$Value
+        [Parameter(Mandatory)]$Value,
+        [string]$CompatibleWriteLeaseRoot
     )
 
     $temporaryPath = "$Path.partial-$([guid]::NewGuid().ToString('N'))"
@@ -1770,7 +1861,8 @@ function Write-MvpAcceptanceManifest {
         $temporaryFile = Write-MvpAcceptanceNewFileNoFollow `
             -Path $temporaryPath `
             -ContentBytes $expectedContentBytes `
-            -PassThruDetails
+            -PassThruDetails `
+            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
         $contentBytes = [byte[]]$temporaryFile.content_bytes
         $temporaryIdentity = [string]$temporaryFile.identity
         if ([string]::IsNullOrWhiteSpace($temporaryIdentity)) {
@@ -1779,7 +1871,8 @@ function Write-MvpAcceptanceManifest {
         Move-MvpAcceptanceNewFileNoFollow `
             -SourcePath $temporaryPath `
             -DestinationPath $Path `
-            -ExpectedSourceIdentity $temporaryIdentity
+            -ExpectedSourceIdentity $temporaryIdentity `
+            -CompatibleWriteLeaseRoot $CompatibleWriteLeaseRoot
     }
     finally {
         if ($null -ne $temporaryFile -and
@@ -1839,7 +1932,12 @@ function Publish-MvpAcceptanceEvidencePackage {
     $partialIdentity = $null
     $partialWriteLease = $null
     $partialSnapshotLease = $null
+    $partialPublicationProtection = $null
+    $existingEvidenceIdentity = $null
     try {
+        if (Test-Path -LiteralPath $EvidenceRoot) {
+            $existingEvidenceIdentity = Get-MvpAcceptanceNoFollowDirectoryIdentity -Path $EvidenceRoot
+        }
         if (-not [string]::IsNullOrWhiteSpace($evidenceParent)) {
             New-Item -ItemType Directory -Force -Path $evidenceParent | Out-Null
         }
@@ -1850,9 +1948,13 @@ function Publish-MvpAcceptanceEvidencePackage {
             -SourceRoot $StagingRoot `
             -DestinationRoot $partialRoot `
             -ExcludedSourcePaths $acceptanceStagingSnapshotLease.marker_paths `
+            -DestinationWriteLease $partialWriteLease `
             -PassThruProjection
         foreach ($buildSummary in @($BuildSummaries)) {
-            Copy-MvpBuildSummaryEvidence -Summary $buildSummary -EvidenceRoot $partialRoot
+            Copy-MvpBuildSummaryEvidence `
+                -Summary $buildSummary `
+                -EvidenceRoot $partialRoot `
+                -CompatibleWriteLeaseRoot $partialRoot
             Add-MvpBuildSummaryEvidenceProjection `
                 -Projection $stagingProjection.projection `
                 -EvidenceRoot $partialRoot `
@@ -1863,7 +1965,8 @@ function Publish-MvpAcceptanceEvidencePackage {
                 -EvidenceRoot $partialRoot `
                 -BaselineAutomation $Manifest['baseline_automation'] `
                 -AuthoringAutomation $Manifest['authoring_automation'] `
-                -ReopenAutomation $Manifest['reopen_automation'])
+                -ReopenAutomation $Manifest['reopen_automation'] `
+                -CompatibleWriteLeaseRoot $partialRoot)
             foreach ($artifact in $comparisonArtifacts) {
                 Add-MvpEvidenceProjectionOwnedFile `
                     -Projection $stagingProjection.projection `
@@ -1898,22 +2001,29 @@ function Publish-MvpAcceptanceEvidencePackage {
         $Manifest['evidence_files'] = $evidenceFiles
         $manifestBytes = Write-MvpAcceptanceManifest `
             -Path (Join-Path $partialRoot 'manifest.json') `
-            -Value $Manifest
+            -Value $Manifest `
+            -CompatibleWriteLeaseRoot $partialRoot
         Add-MvpEvidenceProjectionOwnedFile `
             -Projection $stagingProjection.projection `
             -EvidenceRoot $partialRoot `
             -RelativePath 'manifest.json' `
             -ContentBytes $manifestBytes
 
-        if (Test-Path -LiteralPath $EvidenceRoot) {
-            $existingEvidenceIdentity = Get-MvpAcceptanceNoFollowDirectoryIdentity -Path $EvidenceRoot
+        if (-not [string]::IsNullOrWhiteSpace($existingEvidenceIdentity)) {
+            if (-not (Test-Path -LiteralPath $EvidenceRoot)) {
+                throw "Acceptance evidence root '$EvidenceRoot' disappeared after its identity was captured."
+            }
             Remove-MvpAcceptanceEmptyDirectoryNoFollow `
                 -Path $EvidenceRoot `
                 -ExpectedIdentity $existingEvidenceIdentity
         }
+        elseif (Test-Path -LiteralPath $EvidenceRoot) {
+            throw "Acceptance evidence root '$EvidenceRoot' appeared during package publication."
+        }
         $partialSnapshotLease = Open-MvpAcceptanceStagingSnapshotLease `
             -SnapshotRoot $partialRoot `
-            -ExpectedRootIdentity $partialIdentity
+            -ExpectedRootIdentity $partialIdentity `
+            -StagingWriteLease $partialWriteLease
         Assert-MvpAcceptanceStagingProjection `
             -Root $partialRoot `
             -Projection $stagingProjection.projection `
@@ -1925,16 +2035,41 @@ function Publish-MvpAcceptanceEvidencePackage {
             -Root $partialRoot `
             -Projection $stagingProjection.projection `
             -ExcludedPaths $partialSnapshotLease.marker_paths
+        $partialPublicationProtection = Protect-MvpAcceptanceStagingDirectoryForPublication `
+            -Path $partialRoot `
+            -ExpectedIdentity $partialIdentity `
+            -CompatibleWriteLeaseRoot $partialRoot
+        Close-MvpAcceptanceStagingSnapshotLease -Lease $partialSnapshotLease
+        $partialSnapshotLease = $null
         $partialSourceHandle = Take-MvpAcceptanceStagingWriteLeaseRootHandle `
             -Lease $partialWriteLease
-        Move-MvpAcceptanceStagingDirectoryNoFollow `
-            -SourcePath $partialRoot `
-            -DestinationPath $EvidenceRoot `
-            -ExpectedSourceIdentity $partialIdentity `
-            -SourceHandle $partialSourceHandle `
-            -ExcludedSourcePaths $partialSnapshotLease.marker_paths
+        try {
+            Move-MvpAcceptanceStagingDirectoryNoFollow `
+                -SourcePath $partialRoot `
+                -DestinationPath $EvidenceRoot `
+                -ExpectedSourceIdentity $partialIdentity `
+                -SourceHandle $partialSourceHandle
+            $partialPublicationProtection.path = [IO.Path]::GetFullPath($EvidenceRoot)
+            $partialPublicationProtection.compatible_write_lease_root = $null
+            Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                -Protection $partialPublicationProtection
+            $partialPublicationProtection = $null
+        }
+        finally {
+            if ($null -ne $partialPublicationProtection -and
+                (Test-Path -LiteralPath $partialPublicationProtection.path)) {
+                Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                    -Protection $partialPublicationProtection
+                $partialPublicationProtection = $null
+            }
+        }
     }
     finally {
+        if ($null -ne $partialPublicationProtection -and
+            (Test-Path -LiteralPath $partialPublicationProtection.path)) {
+            Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                -Protection $partialPublicationProtection
+        }
         if ($null -ne $partialSnapshotLease) {
             Close-MvpAcceptanceStagingSnapshotLease -Lease $partialSnapshotLease
         }
@@ -1955,7 +2090,8 @@ $acceptanceStagingSnapshotRoot = $null
 $acceptanceStagingSnapshotIdentity = $null
 $acceptanceStagingSnapshotLease = $null
 try {
-$resolvedEvidenceRoot = [IO.Path]::GetFullPath($EvidenceRoot)
+$evidenceRootResolution = Resolve-ZirconWindowsPath -Path $EvidenceRoot
+$resolvedEvidenceRoot = $evidenceRootResolution.DisplayPath
 $stagingSnapshot = New-MvpAcceptanceStagingSnapshot -StagingRoot $StagingRoot -PassThru
 $acceptanceStagingSnapshotRoot = [string]$stagingSnapshot.snapshot_root
 $acceptanceStagingSnapshotIdentity = [string]$stagingSnapshot.snapshot_identity
@@ -1966,19 +2102,20 @@ $acceptanceStagingSnapshotLease = Open-MvpAcceptanceStagingSnapshotLease `
     -SnapshotRoot $acceptanceStagingSnapshotRoot `
     -ExpectedRootIdentity $acceptanceStagingSnapshotIdentity
 $expectedStagingRoot = [string]$stagingSnapshot.source_root
-if ($resolvedEvidenceRoot.Equals($expectedStagingRoot, [StringComparison]::OrdinalIgnoreCase)) {
+$expectedStagingResolution = Resolve-ZirconWindowsPath -Path $expectedStagingRoot
+if ($evidenceRootResolution.OperationalPath.Equals($expectedStagingResolution.OperationalPath, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'EvidenceRoot must be separate from StagingRoot.'
 }
 $stagingRootPrefix = if (
-    $expectedStagingRoot.EndsWith([IO.Path]::DirectorySeparatorChar) -or
-    $expectedStagingRoot.EndsWith([IO.Path]::AltDirectorySeparatorChar)
+    $expectedStagingResolution.OperationalPath.EndsWith([IO.Path]::DirectorySeparatorChar) -or
+    $expectedStagingResolution.OperationalPath.EndsWith([IO.Path]::AltDirectorySeparatorChar)
 ) {
-    $expectedStagingRoot
+    $expectedStagingResolution.OperationalPath
 }
 else {
-    $expectedStagingRoot + [IO.Path]::DirectorySeparatorChar
+    $expectedStagingResolution.OperationalPath + [IO.Path]::DirectorySeparatorChar
 }
-if ($resolvedEvidenceRoot.StartsWith($stagingRootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+if ($evidenceRootResolution.OperationalPath.StartsWith($stagingRootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'EvidenceRoot must be outside StagingRoot.'
 }
 if (Test-Path -LiteralPath $resolvedEvidenceRoot) {

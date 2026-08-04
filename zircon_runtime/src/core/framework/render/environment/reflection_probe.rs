@@ -254,19 +254,20 @@ pub fn reflection_probe_influence_weight(
     if !world_position.is_finite() {
         return 0.0;
     }
-    let local_position = probe.rotation.conjugate() * (world_position - probe.position);
+    let position_delta = world_position - probe.position;
     match probe.shape {
         ProbeInfluenceShape::Box {
             half_extents,
             blend_distance,
         } => {
+            let local_position = probe.rotation.conjugate() * position_delta;
             let edge_distance = (half_extents - local_position.abs()).min_element();
             boundary_weight(edge_distance, blend_distance)
         }
         ProbeInfluenceShape::Sphere {
             radius,
             blend_distance,
-        } => boundary_weight(radius - local_position.length(), blend_distance),
+        } => boundary_weight(radius - position_delta.length(), blend_distance),
     }
 }
 
@@ -421,6 +422,43 @@ mod tests {
 
         assert_eq!(blend.primary.map(|entry| entry.probe_index), Some(2));
         assert_eq!(blend.secondary.map(|entry| entry.probe_index), Some(1));
+    }
+
+    #[test]
+    fn reflection_probe_sphere_weight_rotates_only_box_influences() {
+        let source = include_str!("reflection_probe.rs");
+        let weight = source
+            .split("pub fn reflection_probe_influence_weight")
+            .nth(1)
+            .and_then(|text| {
+                text.split("pub fn reflection_probe_box_project_direction")
+                    .next()
+            })
+            .expect("read reflection probe influence helper");
+
+        let position_delta = weight
+            .find("let position_delta = world_position - probe.position;")
+            .expect("probe influence must retain the world-space center delta");
+        let box_branch = weight
+            .find("ProbeInfluenceShape::Box {")
+            .expect("probe influence must retain box weighting");
+        let box_rotation = weight
+            .find("let local_position = probe.rotation.conjugate() * position_delta;")
+            .expect("box weighting must retain local-space rotation");
+        let sphere_branch = weight
+            .find("ProbeInfluenceShape::Sphere {")
+            .expect("probe influence must retain sphere weighting");
+        let sphere_distance = weight
+            .find("boundary_weight(radius - position_delta.length(), blend_distance)")
+            .expect("sphere weighting must use its rotation-invariant center distance");
+
+        assert!(
+            position_delta < box_branch
+                && box_branch < box_rotation
+                && box_rotation < sphere_branch
+                && sphere_branch < sphere_distance,
+            "only box influences may rotate the world-space center delta"
+        );
     }
 
     fn probe(probe_id: u64, priority: i32) -> ReflectionProbeData {

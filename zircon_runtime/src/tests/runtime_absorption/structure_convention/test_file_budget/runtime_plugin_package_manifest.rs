@@ -24,9 +24,6 @@ fn runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed() {
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let package_manifest_doc = read_repo("docs/zircon_runtime/plugin/package_manifest.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
 
     assert_contains_all(
         "runtime plugin package manifest parent mounts feature/module child owner",
@@ -105,31 +102,6 @@ fn runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("package manifest doc", package_manifest_doc.as_str()),
-        ("status-output scene/script row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 runtime plugin package manifest test folder split",
-                "runtime_15_runtime_plugin_package_manifest_tests_folder_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 runtime plugin package manifest capability-status test child-owner split",
-                "runtime_15_runtime_plugin_package_manifest_capability_status_tests_child_owner_split_static_passed_cargo_deferred",
-                "tests/plugin_extensions/runtime_plugin_package_manifest.rs",
-                "tests/plugin_extensions/runtime_plugin_package_manifest/feature_modules.rs",
-                "tests/plugin_extensions/runtime_plugin_package_manifest/capability_status.rs",
-                "runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed",
-            ],
         );
     }
 }

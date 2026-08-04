@@ -1,11 +1,12 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::content::push_button_content;
-use super::geometry::{button_paint_rect, frame_is_within, has_paintable_button_extent};
+use super::geometry::{button_paint_rect, has_paintable_button_extent};
 use super::identity::{button_kind, is_workbench_button};
 use super::layers::content_order;
 use super::style::button_opacity;
 use super::surface::push_button_surface;
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_button_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -22,7 +23,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
         return true;
     }
     let rect = button_paint_rect(node, rect);
-    if !frame_is_within(&rect, clip) {
+    if intersect(&rect, clip).is_none() {
         return true;
     }
 

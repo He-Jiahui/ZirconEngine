@@ -12,12 +12,11 @@ use super::super::{
 use super::{
     axes::TableAxes,
     cell_layout::{
-        PreparedTableCellLayout, preferred_column_extent, resolved_cell_boxes,
-        resolved_cell_padding, row_extent_constraint, track_origins, track_span_extent,
-        translate_layout_and_clip,
+        preferred_column_extent, resolved_cell_boxes, resolved_cell_padding, row_extent_constraint,
+        track_origins, track_span_extent, translate_layout_and_clip, PreparedTableCellLayout,
     },
     grid::TableGrid,
-    sizing::{PreferredColumnExtent, resolve_column_extents, resolve_row_extents},
+    sizing::{resolve_column_extents, resolve_row_extents, PreferredColumnExtent},
     source_slice::{
         layout_range_with_provider, shift_layout_source_ranges, slice_parsed,
         slice_parsed_with_table_depth,

@@ -83,8 +83,6 @@ RUNTIME_08_TEST_FILES = (
     "zircon_runtime/src/scene/tests/ecs_events_messages.rs",
     "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
     "zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_08.rs",
     "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs",
     "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/inventory.rs",
 )

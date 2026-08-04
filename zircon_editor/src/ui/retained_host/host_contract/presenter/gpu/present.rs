@@ -2,8 +2,8 @@ use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresenter};
 
 use super::super::super::chrome_command_stream::{
     build_chrome_command_stream_with_residency,
-    ui_surface_draw_list_from_owned_stream_with_generation, ui_surface_draw_list_from_stream,
-    ChromeCommandStream,
+    ui_surface_draw_list_from_owned_stream_with_generation_and_residency,
+    ui_surface_draw_list_from_stream_with_residency, ChromeCommandStream,
 };
 use super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
@@ -33,9 +33,13 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         );
         let region_present = damage.is_some() || !stream.is_full_rebuild();
         let surface_size = stream.surface_size();
-        let draw_list = ui_surface_draw_list_from_owned_stream_with_generation(
+        let draw_list = ui_surface_draw_list_from_owned_stream_with_generation_and_residency(
             stream,
             invalidation.slow_path_rebuild_count,
+            |resource_key, generation| {
+                self.surface
+                    .is_image_resource_resident(resource_key, generation)
+            },
         );
         self.present_draw_list_with_damage_diagnostics(
             draw_list,
@@ -60,7 +64,11 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         diagnostic_damage: Option<&FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
-        let draw_list = ui_surface_draw_list_from_stream(stream);
+        let draw_list =
+            ui_surface_draw_list_from_stream_with_residency(stream, |resource_key, generation| {
+                self.surface
+                    .is_image_resource_resident(resource_key, generation)
+            });
         let region_present = diagnostic_damage.is_some() || !stream.is_full_rebuild();
         self.present_draw_list_with_damage_diagnostics(
             draw_list,

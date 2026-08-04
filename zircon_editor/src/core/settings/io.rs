@@ -9,11 +9,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::serialization::{
-    load_versioned, write_versioned_text, Format, LoadError, MigrateError, MigrationChain,
-    MigrationStep, SchemaId, VersionedSchema, WriteError,
+    Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
+    WriteError, load_versioned, write_versioned_text,
 };
 
-use super::{SettingValue, SettingsError, SettingsKey, SettingsRegistry, SettingsScope};
+use super::{
+    SettingValue, SettingsAuthority, SettingsError, SettingsKey, SettingsRegistry, SettingsScope,
+};
 
 /// User settings root override. This is a directory, never a settings file path.
 pub const SETTINGS_USER_ROOT_ENV: &str = "ZIRCON_EDITOR_APPEARANCE_PREFERENCES";
@@ -69,6 +71,13 @@ pub struct SettingsStore {
     paths: SettingsPaths,
 }
 
+/// A versioned settings document encoded under the authority lock and ready for
+/// the worker-owned atomic writer.
+pub(crate) struct PreparedSettingsWrite {
+    path: PathBuf,
+    source: String,
+}
+
 impl SettingsStore {
     pub fn from_roots(user_root: impl Into<PathBuf>, project_root: Option<&Path>) -> Self {
         Self {
@@ -117,22 +126,76 @@ impl SettingsStore {
         })
     }
 
+    pub(crate) fn load_authority_layer(
+        &self,
+        scope: SettingsScope,
+        authority: &SettingsAuthority,
+    ) -> Result<SettingsLoad, SettingsStoreError> {
+        let path = self.path_for(scope)?.to_path_buf();
+        let source = match fs::read_to_string(&path) {
+            Ok(source) => source,
+            Err(source) if source.kind() == io::ErrorKind::NotFound => {
+                return Ok(SettingsLoad::Missing { path });
+            }
+            Err(source) => return Err(SettingsStoreError::Read { path, source }),
+        };
+        let document =
+            decode_current_document(&source).map_err(|source| SettingsStoreError::Decode {
+                path: path.clone(),
+                source,
+            })?;
+        let changes = authority
+            .replace_persistent_layer(scope, document.values)
+            .map_err(|source| SettingsStoreError::Apply {
+                path: path.clone(),
+                source,
+            })?;
+        Ok(SettingsLoad::Loaded {
+            path,
+            schema_version: SettingsDocument::VERSION,
+            changes,
+        })
+    }
+
     pub fn save_from(
         &self,
         scope: SettingsScope,
         registry: &SettingsRegistry,
     ) -> Result<(), SettingsStoreError> {
+        Self::write_prepared(self.prepare_registry_layer(scope, registry)?)
+    }
+
+    pub(crate) fn save_authority_layer(
+        &self,
+        scope: SettingsScope,
+        authority: &SettingsAuthority,
+    ) -> Result<(), SettingsStoreError> {
+        let Some(write) = authority.prepare_persistent_layer_for_write(scope, self)? else {
+            return Ok(());
+        };
+        Self::write_prepared(write)
+    }
+
+    pub(crate) fn prepare_registry_layer(
+        &self,
+        scope: SettingsScope,
+        registry: &SettingsRegistry,
+    ) -> Result<PreparedSettingsWrite, SettingsStoreError> {
         let path = self.path_for(scope)?.to_path_buf();
-        let values = registry
-            .persistent_values(scope)
-            .map_err(|source| SettingsStoreError::Apply {
-                path: path.clone(),
-                source,
-            })?
-            .clone();
-        let document = SettingsDocument { values };
+        let values =
+            registry
+                .persistent_values(scope)
+                .map_err(|source| SettingsStoreError::Apply {
+                    path: path.clone(),
+                    source,
+                })?;
+        let document = SettingsDocumentView { values };
         let source = write_versioned_text(&document).map_err(SettingsStoreError::Encode)?;
-        write_atomically(&path, source.as_bytes())
+        Ok(PreparedSettingsWrite { path, source })
+    }
+
+    pub(crate) fn write_prepared(write: PreparedSettingsWrite) -> Result<(), SettingsStoreError> {
+        write_atomically(&write.path, write.source.as_bytes())
             .map_err(|source| SettingsStoreError::Write { path, source })
     }
 
@@ -216,12 +279,28 @@ pub(super) struct SettingsDocument {
     pub(super) values: BTreeMap<SettingsKey, SettingValue>,
 }
 
+#[derive(Serialize)]
+struct SettingsDocumentView<'a> {
+    values: &'a BTreeMap<SettingsKey, SettingValue>,
+}
+
 impl VersionedSchema for SettingsDocument {
     const SCHEMA: SchemaId = SchemaId::new("zircon.editor.settings");
     const VERSION: u32 = 1;
 
     fn migrations() -> &'static MigrationChain<Self> {
         static MIGRATIONS: MigrationChain<SettingsDocument> =
+            MigrationChain::new(&[MigrationStep::new(0, reject_legacy_settings_document)]);
+        &MIGRATIONS
+    }
+}
+
+impl<'a> VersionedSchema for SettingsDocumentView<'a> {
+    const SCHEMA: SchemaId = SettingsDocument::SCHEMA;
+    const VERSION: u32 = SettingsDocument::VERSION;
+
+    fn migrations() -> &'static MigrationChain<Self> {
+        static MIGRATIONS: MigrationChain<SettingsDocumentView<'static>> =
             MigrationChain::new(&[MigrationStep::new(0, reject_legacy_settings_document)]);
         &MIGRATIONS
     }

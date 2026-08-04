@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::core::framework::render::builtin_geometry_source_descriptors;
 use crate::graphics::pipeline::{PipelineAsyncCompiler, RuntimePipelineCache};
@@ -165,6 +165,8 @@ impl MeshPipelineCache {
             lightmaps,
             shader_modules: HashMap::new(),
             mesh_variant_pipelines: HashMap::new(),
+            background_base_pipeline_variants: HashSet::new(),
+            background_base_pipeline_failures: HashMap::new(),
             oit_mesh_variant_pipelines: HashMap::new(),
             gbuffer_mesh_pipelines: HashMap::new(),
             depth_prepass_mesh_pipelines: HashMap::new(),

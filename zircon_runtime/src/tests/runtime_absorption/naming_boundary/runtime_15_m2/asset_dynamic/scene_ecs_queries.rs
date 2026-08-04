@@ -34,9 +34,6 @@ fn runtime_15_scene_ecs_query_cached_queries_uses_owner_name() {
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let scene_ecs_doc = read_repo_text(manifest_root, "docs/zircon_runtime/scene/ecs.md");
-    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
-    let expected_status = read_runtime_15_naming_status_map(manifest_root);
-    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_cache_helpers.exists(),
@@ -71,9 +68,6 @@ fn runtime_15_scene_ecs_query_cached_queries_uses_owner_name() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("scene ECS doc", scene_ecs_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("expected status map", expected_status.as_str()),
-        ("expected date map", expected_date.as_str()),
     ] {
         assert_contains_all(
             label,

@@ -19,6 +19,7 @@ mod scene_renderer_render_with_pipeline;
 mod scene_renderer_runtime_outputs;
 mod scene_renderer_surface;
 mod scene_renderer_target;
+mod scene_renderer_texture_residency;
 mod target_extent;
 
 pub use scene_renderer::{
@@ -29,6 +30,6 @@ pub use scene_renderer_surface::SceneViewportSurface;
 
 pub(crate) use constants::{DEPTH_FORMAT, FINAL_COLOR_FORMAT, SCENE_COLOR_HDR_FORMAT};
 pub(crate) use create_depth_texture::create_depth_texture;
-pub(crate) use scene_renderer_render_with_pipeline::{
+pub(in crate::graphics) use scene_renderer_render_with_pipeline::{
     AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
 };

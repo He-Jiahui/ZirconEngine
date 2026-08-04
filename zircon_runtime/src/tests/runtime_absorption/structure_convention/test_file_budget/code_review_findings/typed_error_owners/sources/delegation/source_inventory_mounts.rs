@@ -34,7 +34,6 @@ pub(super) fn assert_typed_error_source_inventory_parent_mounts_focused_owners(
             "reads::typed_error_children_source",
             "budgets::assert_typed_error_line_budgets",
             "reads::typed_error_review_guard_count",
-            "runtime_15_typed_error_source_inventory_is_child_owner",
         ],
     );
 }

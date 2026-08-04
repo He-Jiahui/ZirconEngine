@@ -15,27 +15,6 @@ fn runtime_15_render_product_mesh_cache_morph_tests_are_child_owners() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
-    );
-    let status_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/asset_budget_maps.rs",
-        ),
-    ]
-    .join("\n");
-    let date_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/asset_budget_maps.rs",
-        ),
-    ]
-    .join("\n");
 
     assert_contains_all(
         "morph product parent mounts velocity child owners and keeps shared fixtures",
@@ -129,34 +108,4 @@ fn runtime_15_render_product_mesh_cache_morph_tests_are_child_owners() {
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
         );
     }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 render product mesh-cache morph tests child-owner split",
-                "runtime_15_render_product_mesh_cache_morph_tests_child_owner_split_static_passed_cargo_deferred",
-                "graphics/tests/render_product_mesh_cache/morph.rs",
-                "graphics/tests/render_product_mesh_cache/morph/direct_velocity.rs",
-                "runtime_15_render_product_mesh_cache_morph_tests_are_child_owners",
-            ],
-        );
-    }
-    assert_contains_all(
-        "status-output status/date maps record render product mesh-cache morph tests split",
-        &format!("{status_map}\n{date_map}"),
-        &[
-            "Runtime 15 M3 render product mesh-cache morph tests child-owner split",
-            "runtime_15_render_product_mesh_cache_morph_tests_child_owner_split_static_passed_cargo_deferred",
-            "2026-07-01",
-        ],
-    );
 }

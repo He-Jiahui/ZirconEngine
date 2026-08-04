@@ -26,7 +26,6 @@ pub(super) fn assert_typed_error_source_inventory_delegation_folder_backed_owner
             "delegation_parent::assert_typed_error_source_inventory_delegation_is_child_backed",
             "folder_backed_parent::assert_typed_error_source_inventory_delegation_folder_backed_is_child_owned",
             "route_ownership::assert_typed_error_source_inventory_delegation_folder_backed_ownership_is_child_backed",
-            "status_current::assert_typed_error_source_inventory_delegation_folder_backed_ownership_status_is_current",
             "budgets::assert_typed_error_source_inventory_delegation_folder_backed_ownership_child_budgets_are_current",
         ],
     );

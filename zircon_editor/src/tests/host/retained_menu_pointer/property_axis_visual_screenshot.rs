@@ -98,32 +98,32 @@ fn property_axis_component_visual_paints_property_rows_transform_axes_and_states
         "state panel should paint selected, focused, and disabled property/axis controls"
     );
 
-    let focused_scalar_border = pixel_at(&bytes, 810, 159);
-    let selected_scalar_border = pixel_at(&bytes, 810, 125);
+    let focused_scalar_border = pixel_at(&bytes, 810, 173);
+    let selected_scalar_border = pixel_at(&bytes, 810, 139);
     assert_ne!(
         selected_scalar_border, focused_scalar_border,
         "selected scalar value field should not borrow the focused scalar border"
     );
     assert!(
-        color_count(&bytes, 746, 125, 107, 24, selected_scalar_border) > 0,
+        color_count(&bytes, 746, 139, 107, 24, selected_scalar_border) > 0,
         "selected scalar value field should paint its own neutral border"
     );
     assert_eq!(
-        color_count(&bytes, 746, 125, 107, 24, focused_scalar_border),
+        color_count(&bytes, 746, 139, 107, 24, focused_scalar_border),
         0,
         "selected scalar value field should not borrow the focus-ring border"
     );
 
-    let selected_axis_border = pixel_at(&bytes, 754, 203);
+    let selected_axis_border = pixel_at(&bytes, 754, 205);
     let selected_axis_fill = pixel_at(&bytes, 784, 216);
-    let focused_axis_border = pixel_at(&bytes, 754, 237);
+    let focused_axis_border = pixel_at(&bytes, 754, 239);
     let focused_axis_fill = pixel_at(&bytes, 784, 250);
     assert!(
-        color_count(&bytes, 718, 202, 72, 28, selected_axis_fill) > 0,
+        color_count(&bytes, 718, 204, 72, 28, selected_axis_fill) > 0,
         "selected axis value field should use hover-state background"
     );
     assert!(
-        color_count(&bytes, 718, 202, 72, 28, selected_axis_border) > 0,
+        color_count(&bytes, 718, 204, 72, 28, selected_axis_border) > 0,
         "selected axis value field should use hover-state border"
     );
     assert_ne!(
@@ -131,24 +131,50 @@ fn property_axis_component_visual_paints_property_rows_transform_axes_and_states
         "selected axis value field should not reuse the focused axis border"
     );
     assert_eq!(
-        color_count(&bytes, 718, 202, 72, 28, focused_axis_border),
+        color_count(&bytes, 718, 204, 72, 28, focused_axis_border),
         0,
         "selected axis value field should not use the focused axis border"
     );
 
     let normal_axis_fill = pixel_at(&bytes, 456, 140);
     assert!(
-        color_count(&bytes, 718, 236, 72, 28, normal_axis_fill) > 0,
+        color_count(&bytes, 718, 238, 72, 28, normal_axis_fill) > 0,
         "focused-only axis value field should keep the normal recessed background"
     );
     assert!(
-        color_count(&bytes, 718, 236, 72, 28, focused_axis_border) > 0,
+        color_count(&bytes, 718, 238, 72, 28, focused_axis_border) > 0,
         "focused-only axis value field should express focus through the border"
     );
     assert_eq!(
         focused_axis_fill, normal_axis_fill,
         "focused-only axis value field should not switch to the selected/hover fill"
     );
+}
+
+#[test]
+fn property_axis_state_fixture_keeps_the_explanatory_copy_clear_of_controls() {
+    let nodes = property_axis_component_nodes();
+    let frame_for = |control_id: &str| {
+        nodes
+            .iter()
+            .find(|node| node.control_id == control_id)
+            .expect("property-axis fixture should contain its declared control")
+            .frame
+            .clone()
+    };
+
+    let copy = frame_for("PropertyStateCopy");
+    let selected_property = frame_for("WorkbenchComponentPropertyVirtualRowSelected");
+    let focused_property = frame_for("WorkbenchComponentPropertyVirtualRowFocused");
+    let selected_axis = frame_for("WorkbenchAxisValueFieldSelected");
+    let focused_axis = frame_for("WorkbenchAxisValueFieldFocused");
+    let disabled_axis = frame_for("WorkbenchAxisValueFieldDisabled");
+
+    assert!(copy.y + copy.height <= selected_property.y);
+    assert!(selected_property.y + selected_property.height <= focused_property.y);
+    assert!(focused_property.y + focused_property.height <= selected_axis.y);
+    assert!(selected_axis.y + selected_axis.height <= focused_axis.y);
+    assert!(focused_axis.y + focused_axis.height <= disabled_axis.y);
 }
 
 #[test]
@@ -283,9 +309,9 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
             "PropertyStateCopy",
             "Focused borders stay separate from disabled muted fields",
             654.0,
-            224.0,
+            114.0,
             210.0,
-            34.0,
+            16.0,
             10.0,
             "muted",
         ),
@@ -300,7 +326,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "Selected",
         "1.0",
         654.0,
-        122.0,
+        136.0,
         204.0,
         30.0,
         PropertyState::Selected,
@@ -310,7 +336,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "Focused",
         "3.2",
         654.0,
-        156.0,
+        170.0,
         204.0,
         30.0,
         PropertyState::Focused,
@@ -319,7 +345,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "AxisSelectedLabel",
         "Selected",
         654.0,
-        204.0,
+        206.0,
         58.0,
         16.0,
         AxisState::Normal,
@@ -328,7 +354,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "WorkbenchAxisValueFieldSelected",
         "2.50",
         718.0,
-        202.0,
+        204.0,
         72.0,
         28.0,
         AxisState::Selected,
@@ -337,7 +363,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "AxisFocusedLabel",
         "Focused",
         654.0,
-        238.0,
+        240.0,
         58.0,
         16.0,
         AxisState::Normal,
@@ -346,7 +372,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "WorkbenchAxisValueFieldFocused",
         "2.718",
         718.0,
-        236.0,
+        238.0,
         72.0,
         28.0,
         AxisState::Focused,
@@ -355,7 +381,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "AxisDisabledLabel",
         "Disabled",
         654.0,
-        272.0,
+        274.0,
         58.0,
         16.0,
         AxisState::Disabled,
@@ -364,7 +390,7 @@ fn property_axis_component_nodes() -> Vec<TemplatePaneNodeData> {
         "WorkbenchAxisValueFieldDisabled",
         "locked",
         718.0,
-        270.0,
+        272.0,
         72.0,
         28.0,
         AxisState::Disabled,

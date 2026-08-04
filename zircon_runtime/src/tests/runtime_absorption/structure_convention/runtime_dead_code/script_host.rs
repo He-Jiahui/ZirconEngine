@@ -10,15 +10,6 @@ fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
         "docs/plans/zircon_runtime/runtime/15/2026-07-17-descriptor-filter-plan-anchor-current-owner.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/asset_provider_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/asset_provider_cleanup.rs",
-    );
 
     assert!(
         !builtin_host_modules.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
@@ -73,33 +64,6 @@ fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
             ],
         );
     }
-    assert_contains_all_exact(
-        "script host status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 F12 script host value descriptor dead-code cleanup",
-            "runtime_15_script_host_value_descriptors_coremin_check_passed",
-            "script/vm/host/builtin_host_modules.rs",
-            "docs/zircon_runtime/script/vm/host/function_ledger.md",
-            "runtime_15_script_host_value_descriptors_do_not_suppress_dead_code",
-        ],
-    );
-    assert_contains_all_exact(
-        "script host status-output status map",
-        &status_map,
-        &[
-            "Runtime 15 F12 script host value descriptor dead-code cleanup",
-            "runtime_15_script_host_value_descriptors_coremin_check_passed",
-        ],
-    );
-    assert_contains_all_exact(
-        "script host status-output date map",
-        &date_map,
-        &[
-            "Runtime 15 F12 script host value descriptor dead-code cleanup",
-            "2026-06-22",
-        ],
-    );
 }
 
 #[test]

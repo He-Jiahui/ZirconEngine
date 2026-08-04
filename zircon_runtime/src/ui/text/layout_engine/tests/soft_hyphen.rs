@@ -46,12 +46,10 @@ fn rich_inline_word_wrap_projects_soft_hyphen_suffix_into_visual_line() {
 
     assert!(layout.lines.len() >= 2);
     assert_eq!(layout.lines[0].text, "pre-");
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| !line.text.contains('\u{00ad}'))
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| !line.text.contains('\u{00ad}')));
 }
 
 #[test]
@@ -70,10 +68,8 @@ fn rich_inline_vertical_word_wrap_projects_soft_hyphen_suffix_into_column() {
 
     assert!(layout.lines.len() >= 2);
     assert_eq!(layout.lines[0].text, "pre-");
-    assert!(
-        layout
-            .lines
-            .iter()
-            .all(|line| !line.text.contains('\u{00ad}'))
-    );
+    assert!(layout
+        .lines
+        .iter()
+        .all(|line| !line.text.contains('\u{00ad}')));
 }

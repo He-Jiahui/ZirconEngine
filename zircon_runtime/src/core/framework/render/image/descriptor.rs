@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageFallbackKind,
-    RenderImageUsage, RenderSamplerDescriptor,
+    RenderImageUsage, RenderSamplerDescriptor, TextureMetadata,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,6 +16,8 @@ pub struct RenderImageDescriptor {
     pub dimension: RenderImageDimension,
     pub format: String,
     pub color_space: RenderImageColorSpace,
+    #[serde(default)]
+    pub metadata: TextureMetadata,
     pub sampler: RenderSamplerDescriptor,
     pub usage: Vec<RenderImageUsage>,
     #[serde(default)]

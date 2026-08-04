@@ -447,7 +447,7 @@ fn should_fail_backup_sync(fault: AtomicWriteFault) -> bool {
 mod tests {
     use std::fs;
 
-    use super::{AtomicWriteFault, atomic_write_with_fault};
+    use super::{atomic_write_with_fault, AtomicWriteFault};
 
     #[test]
     fn atomic_write_replaces_existing_file_and_cleans_transaction_files() {

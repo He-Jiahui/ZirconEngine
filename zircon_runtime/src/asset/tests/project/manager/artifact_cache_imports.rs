@@ -114,6 +114,102 @@ fn project_manager_scans_assets_imports_artifact_cache_and_loads_artifacts() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[cfg(windows)]
+#[test]
+fn project_manager_scan_resolves_a_case_virtualized_root_before_generating_asset_uris() {
+    let root = unique_temp_project_root("project_manager_scan_case_virtualized_root");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    ProjectManifest::new(
+        "Case virtualized scan",
+        AssetUri::parse("res://materials/grid.zmaterial").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let material_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("materials/grid.zmaterial");
+    write_default_material(&material_path);
+
+    let virtualized_root = root.to_string_lossy().to_ascii_uppercase();
+    let mut manager =
+        project_manager_with_first_wave_plugin_fixtures(std::path::Path::new(&virtualized_root));
+    manager.scan_and_import().unwrap();
+
+    let expected_uri = AssetUri::parse("res://materials/grid.zmaterial").unwrap();
+    assert!(manager.registry().get_by_locator(&expected_uri).is_some());
+    assert_eq!(
+        AssetMetaDocument::load(material_path.with_file_name("grid.zmaterial.zmeta"))
+            .unwrap()
+            .url,
+        expected_uri
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_scan_rejects_an_internal_symlink_or_reparse_before_import() {
+    let root = unique_temp_project_root("project_manager_scan_internal_link");
+    let outside = unique_temp_project_root("project_manager_scan_internal_link_outside");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    ProjectManifest::new(
+        "Internal link scan",
+        AssetUri::parse("res://data/inside.json").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    fs::create_dir_all(&outside).unwrap();
+    fs::write(outside.join("escaped.json"), "{}\n").unwrap();
+    let linked = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("linked");
+    if !create_directory_link(&outside, &linked) {
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(outside);
+        return;
+    }
+
+    let error = manager.scan_and_import().unwrap_err();
+    assert!(matches!(
+        error,
+        AssetImportError::UnsafeProjectAssetLink { path } if path == linked
+    ));
+
+    let _ = fs::remove_file(linked);
+    let _ = fs::remove_dir_all(root);
+    let _ = fs::remove_dir_all(outside);
+}
+
+#[cfg(unix)]
+fn create_directory_link(target: &std::path::Path, link: &std::path::Path) -> bool {
+    std::os::unix::fs::symlink(target, link).is_ok()
+}
+
+#[cfg(windows)]
+fn create_directory_link(target: &std::path::Path, link: &std::path::Path) -> bool {
+    match std::os::windows::fs::symlink_dir(target, link) {
+        Ok(()) => true,
+        Err(error)
+            if error.kind() == std::io::ErrorKind::PermissionDenied
+                || error.raw_os_error() == Some(1314) =>
+        {
+            false
+        }
+        Err(error) => panic!("create directory reparse fixture failed: {error}"),
+    }
+}
+
 #[test]
 fn project_manager_imports_physics_and_animation_assets_into_runtime_artifact_cache() {
     let root = unique_temp_project_root("project_manager_physics_animation");

@@ -8,12 +8,11 @@ pub(in crate::scene::dynamic_scene::session) fn push_slot(
     validate_canonical_slot_id(&slot.slot_id)?;
     slot.metadata.normalize();
     slot.scene.ensure_supported()?;
-    if archive.slot(&slot.slot_id).is_some() {
+    if archive.indexed_slot(&slot.slot_id).is_some() {
         return Err(RuntimeSessionArchiveError::DuplicateSlotId {
             slot_id: slot.slot_id,
         });
     }
-    archive.slots.push(slot);
-    archive.sort_slots();
+    archive.commit_slot_upsert(slot);
     Ok(())
 }

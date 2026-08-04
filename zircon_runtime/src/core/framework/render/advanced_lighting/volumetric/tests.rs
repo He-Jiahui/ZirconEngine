@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
-    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS, RenderBloomSettings, RenderColorGradingSettings,
-    RenderExposureSettings, RenderPostProcessEffectStackSettings,
-    RenderResolvedPostProcessSettings,
+    RenderBloomSettings, RenderColorGradingSettings, RenderExposureSettings,
+    RenderPostProcessEffectStackSettings, RenderResolvedPostProcessSettings,
+    BUILTIN_POST_PROCESS_VOLUME_COMPONENTS,
 };
 use crate::core::math::Vec3;
 
@@ -37,11 +37,9 @@ fn render_volumetric_froxel_slice_depth_matches_all_quality_bounds() {
             .map(|slice| params.slice_depth(slice))
             .collect::<Vec<_>>();
 
-        assert!(
-            depths
-                .iter()
-                .all(|depth| *depth >= 0.1 && *depth <= 1_000.0)
-        );
+        assert!(depths
+            .iter()
+            .all(|depth| *depth >= 0.1 && *depth <= 1_000.0));
         assert!(depths.windows(2).all(|pair| pair[0] < pair[1]));
         assert_eq!(
             params.slice_depth(slice_count),

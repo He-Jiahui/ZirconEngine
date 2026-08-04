@@ -67,8 +67,8 @@ fn popup_row_style_selector_resolves_state_priority_for_options_and_menu_items()
     );
     assert_eq!(focused.background, Some(PALETTE.surface_pressed));
     assert_ne!(focused.background, Some(PALETTE.surface_selected));
-    assert_eq!(focused.outline, Some(PALETTE.border));
-    assert_ne!(focused.outline, Some(PALETTE.accent));
+    assert_eq!(focused.outline, Some(PALETTE.accent));
+    assert_ne!(focused.outline, Some(PALETTE.border));
     assert_eq!(focused.text, PALETTE.text);
 
     let checked = popup_menu_row_style(&checked_pressed);
@@ -78,8 +78,8 @@ fn popup_row_style_selector_resolves_state_priority_for_options_and_menu_items()
     );
     assert_eq!(checked.background, Some(PALETTE.surface_pressed));
     assert_ne!(checked.background, Some(PALETTE.surface_selected));
-    assert_eq!(checked.outline, Some(PALETTE.border));
-    assert_ne!(checked.outline, Some(PALETTE.accent));
+    assert_eq!(checked.outline, Some(PALETTE.accent));
+    assert_ne!(checked.outline, Some(PALETTE.border));
     assert_eq!(checked.adornment, PALETTE.text);
 }
 
@@ -91,8 +91,8 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
     assert_eq!(selected.state, UiPainterResolvedState::Selected);
     assert_eq!(selected.background, Some(PALETTE.surface_pressed));
     assert_ne!(selected.background, Some(PALETTE.surface_selected));
-    assert_eq!(selected.outline, Some(PALETTE.border));
-    assert_ne!(selected.outline, Some(PALETTE.accent));
+    assert_eq!(selected.outline, Some(PALETTE.accent));
+    assert_ne!(selected.outline, Some(PALETTE.border));
 
     let focused_only = popup_option_row_style(&TemplatePaneOptionData {
         focused: true,
@@ -100,7 +100,7 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
     });
     assert_eq!(focused_only.state, UiPainterResolvedState::Focused);
     assert_eq!(focused_only.background, None);
-    assert_eq!(focused_only.outline, Some(PALETTE.border));
+    assert_eq!(focused_only.outline, Some(PALETTE.accent));
     assert_eq!(focused_only.text, PALETTE.text);
 
     let focused = popup_option_row_style(&TemplatePaneOptionData {
@@ -110,7 +110,7 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
     });
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
     assert_eq!(focused.background, Some(PALETTE.surface_hover));
-    assert_eq!(focused.outline, Some(PALETTE.border));
+    assert_eq!(focused.outline, Some(PALETTE.accent));
     assert_eq!(focused.text, PALETTE.text);
 
     let disabled = popup_option_row_style(&TemplatePaneOptionData {

@@ -90,6 +90,12 @@ $buildSummaryEvidenceModule = Join-Path $PSScriptRoot '..\mvp\MvpBuildSummaryEvi
 Import-Module $buildSummaryEvidenceModule -Force
 $persistenceComparisonModule = Join-Path $PSScriptRoot '..\mvp\MvpPersistenceComparison.psm1'
 Import-Module $persistenceComparisonModule -Force
+# The composed modules reload dependencies privately. Stabilize the direct command surface used
+# by this script after all nested imports complete.
+Import-Module $stagingSnapshotModule -Force
+Import-Module $buildSummaryEvidenceModule -Force
+Import-Module $stagingProjectionModule -Force
+Import-Module $nativeFileSystemModule -Force
 
 $snapshotFixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('zircon-mvp-acceptance-snapshot-' + [guid]::NewGuid().ToString('N'))
 $snapshotSourceRoot = Join-Path $snapshotFixtureRoot 'stage'
@@ -512,6 +518,38 @@ try {
         -not (Test-Path -LiteralPath (Join-Path $buildSummaryReparseTarget 'profile-contract-summary.json'))
     ) 'F5 build summary writing followed a reparse point and wrote validated bytes outside the partial tree.'
 
+    $nestedBuildSummaryReparseRoot = Join-Path $snapshotFixtureRoot 'nested-build-summary-reparse-root'
+    $nestedBuildSummaryReparseTarget = Join-Path $snapshotFixtureRoot 'nested-build-summary-reparse-target'
+    New-Item -ItemType Directory -Force -Path $nestedBuildSummaryReparseRoot, $nestedBuildSummaryReparseTarget | Out-Null
+    New-Item -ItemType Junction `
+        -Path (Join-Path $nestedBuildSummaryReparseRoot 'build') `
+        -Target $nestedBuildSummaryReparseTarget `
+        -ErrorAction Stop | Out-Null
+    $nestedBuildSummaryReparseRejected = $false
+    try {
+        Copy-MvpBuildSummaryEvidence -Summary ([pscustomobject]@{
+            relative_path = 'summary.json'
+            content_bytes = $buildSummaryBytes
+            sha256 = $buildSummaryHash
+            size_bytes = [Int64]$buildSummaryBytes.LongLength
+            gate_artifacts = @(
+                [pscustomobject]@{
+                    relative_path = 'build/logs/workspace-build.log'
+                    content_bytes = $buildSummaryBytes
+                    sha256 = $buildSummaryHash
+                    size_bytes = [Int64]$buildSummaryBytes.LongLength
+                }
+            )
+        }) -EvidenceRoot $nestedBuildSummaryReparseRoot
+    }
+    catch {
+        $nestedBuildSummaryReparseRejected = $_.Exception.Message -match 'reparse point'
+    }
+    Assert-True $nestedBuildSummaryReparseRejected 'F5 build summary writing accepted a nested reparse-point destination directory.'
+    Assert-True (
+        -not (Test-Path -LiteralPath (Join-Path $nestedBuildSummaryReparseTarget 'logs'))
+    ) 'F5 build summary writing created a nested destination directory outside the partial tree.'
+
     $comparisonReparseRoot = Join-Path $snapshotFixtureRoot 'comparison-reparse-root'
     $comparisonReparseTarget = Join-Path $snapshotFixtureRoot 'comparison-reparse-target'
     New-Item -ItemType Directory -Force -Path $comparisonReparseRoot, $comparisonReparseTarget | Out-Null
@@ -721,14 +759,19 @@ try {
     try {
         $writeLeaseReplacementBlocked = $false
         try {
-            Remove-Item -LiteralPath $writeLeaseSourceRoot -Recurse -Force -ErrorAction Stop
+            Move-Item `
+                -LiteralPath $writeLeaseSourceRoot `
+                -Destination "$writeLeaseSourceRoot.replaced" `
+                -ErrorAction Stop
         }
         catch {
             $writeLeaseReplacementBlocked = $true
         }
         Assert-True $writeLeaseReplacementBlocked 'Acceptance staging write lease allowed its partial root to be removed before publication.'
         Assert-True (
-            (Get-MvpAcceptanceNoFollowDirectoryIdentity -Path $writeLeaseSourceRoot) -eq $writeLease.root_identity
+            (Get-MvpAcceptanceNoFollowDirectoryIdentity `
+                -Path $writeLeaseSourceRoot `
+                -CompatibleWriteLeaseRoot $writeLease.root_path) -eq $writeLease.root_identity
         ) 'Acceptance staging write lease changed its partial root identity before publication.'
 
         $writeLeaseSourceHandle = Take-MvpAcceptanceStagingWriteLeaseRootHandle `
@@ -747,6 +790,52 @@ try {
         }
     }
 
+    $publicationFreezeRoot = Join-Path $snapshotFixtureRoot 'publication-freeze-root'
+    New-Item -ItemType Directory -Force -Path $publicationFreezeRoot | Out-Null
+    [IO.File]::WriteAllText((Join-Path $publicationFreezeRoot 'staging-manifest.json'), '{}', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $publicationFreezeRoot 'startup-summary.json'), '{}', [Text.UTF8Encoding]::new($false))
+    $publicationFreezeWriteLease = $null
+    $publicationFreezeSnapshotLease = $null
+    $publicationFreezeProtection = $null
+    try {
+        $publicationFreezeWriteLease = Open-MvpAcceptanceStagingWriteLease -SnapshotRoot $publicationFreezeRoot
+        $publicationFreezeSnapshotLease = Open-MvpAcceptanceStagingSnapshotLease `
+            -SnapshotRoot $publicationFreezeRoot `
+            -ExpectedRootIdentity $publicationFreezeWriteLease.root_identity `
+            -StagingWriteLease $publicationFreezeWriteLease
+        Prepare-MvpAcceptanceStagingSnapshotLeaseForPublication `
+            -Lease $publicationFreezeSnapshotLease `
+            -StagingWriteLease $publicationFreezeWriteLease
+        $publicationFreezeProtection = Protect-MvpAcceptanceStagingDirectoryForPublication `
+            -Path $publicationFreezeRoot `
+            -ExpectedIdentity $publicationFreezeWriteLease.root_identity `
+            -CompatibleWriteLeaseRoot $publicationFreezeWriteLease.root_path
+        $lateInjectionPath = Join-Path $publicationFreezeRoot 'late-injection.txt'
+        $lateInjectionRejected = $false
+        try {
+            [IO.File]::WriteAllText($lateInjectionPath, 'must-not-publish', [Text.UTF8Encoding]::new($false))
+        }
+        catch {
+            $lateInjectionRejected = $true
+        }
+        Assert-True $lateInjectionRejected 'Acceptance publication freeze allowed a file to be inserted after final projection validation.'
+        Assert-True (-not (Test-Path -LiteralPath $lateInjectionPath)) 'Acceptance publication freeze retained a late untracked file.'
+    }
+    finally {
+        if ($null -ne $publicationFreezeProtection) {
+            Unprotect-MvpAcceptanceStagingDirectoryForPublication -Protection $publicationFreezeProtection
+        }
+        if ($null -ne $publicationFreezeSnapshotLease) {
+            Close-MvpAcceptanceStagingSnapshotLease -Lease $publicationFreezeSnapshotLease
+        }
+        if ($null -ne $publicationFreezeWriteLease) {
+            Close-MvpAcceptanceStagingWriteLease -Lease $publicationFreezeWriteLease
+        }
+        if (Test-Path -LiteralPath $publicationFreezeRoot) {
+            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publicationFreezeRoot
+        }
+    }
+
     $snapshotLeasePublicationSourceRoot = Join-Path $snapshotFixtureRoot 'snapshot-lease-publication-source'
     $snapshotLeasePublicationDestinationRoot = Join-Path $snapshotFixtureRoot 'snapshot-lease-publication-destination'
     New-Item -ItemType Directory -Force -Path $snapshotLeasePublicationSourceRoot | Out-Null
@@ -756,10 +845,12 @@ try {
     $snapshotLeasePublicationWriteLease = Open-MvpAcceptanceStagingWriteLease `
         -SnapshotRoot $snapshotLeasePublicationSourceRoot
     $snapshotLeasePublicationLease = $null
+    $snapshotLeasePublicationProtection = $null
     try {
         $snapshotLeasePublicationLease = Open-MvpAcceptanceStagingSnapshotLease `
             -SnapshotRoot $snapshotLeasePublicationSourceRoot `
-            -ExpectedRootIdentity $snapshotLeasePublicationWriteLease.root_identity
+            -ExpectedRootIdentity $snapshotLeasePublicationWriteLease.root_identity `
+            -StagingWriteLease $snapshotLeasePublicationWriteLease
         $publicationWithoutWriteLeaseRejected = $false
         try {
             $forgedPublicationWriteLease = [pscustomobject]@{
@@ -788,6 +879,10 @@ try {
         Prepare-MvpAcceptanceStagingSnapshotLeaseForPublication `
             -Lease $snapshotLeasePublicationLease `
             -StagingWriteLease $snapshotLeasePublicationWriteLease
+        $snapshotLeasePublicationProtection = Protect-MvpAcceptanceStagingDirectoryForPublication `
+            -Path $snapshotLeasePublicationSourceRoot `
+            -ExpectedIdentity $snapshotLeasePublicationWriteLease.root_identity `
+            -CompatibleWriteLeaseRoot $snapshotLeasePublicationWriteLease.root_path
         $snapshotLeasePublicationInjectionBlocked = $false
         try {
             [IO.File]::WriteAllText(
@@ -799,19 +894,35 @@ try {
             $snapshotLeasePublicationInjectionBlocked = $true
         }
         Assert-True $snapshotLeasePublicationInjectionBlocked 'Acceptance publication root lease allowed an ordinary sibling to be injected after final projection.'
+        Close-MvpAcceptanceStagingSnapshotLease -Lease $snapshotLeasePublicationLease
+        $snapshotLeasePublicationLease = $null
         $snapshotLeasePublicationSourceHandle = Take-MvpAcceptanceStagingWriteLeaseRootHandle `
             -Lease $snapshotLeasePublicationWriteLease
         Move-MvpAcceptanceStagingDirectoryNoFollow `
             -SourcePath $snapshotLeasePublicationSourceRoot `
             -DestinationPath $snapshotLeasePublicationDestinationRoot `
             -ExpectedSourceIdentity $snapshotLeasePublicationWriteLease.root_identity `
-            -SourceHandle $snapshotLeasePublicationSourceHandle `
-            -ExcludedSourcePaths $snapshotLeasePublicationLease.marker_paths
+            -SourceHandle $snapshotLeasePublicationSourceHandle
         Assert-True (
             Test-Path -LiteralPath (Join-Path $snapshotLeasePublicationDestinationRoot 'evidence.txt') -PathType Leaf
         ) 'Acceptance publication did not transfer a snapshot-leased partial root through its write lease.'
+        $snapshotLeasePublicationProtection.path = $snapshotLeasePublicationDestinationRoot
+        Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+            -Protection $snapshotLeasePublicationProtection
+        $snapshotLeasePublicationProtection = $null
     }
     finally {
+        if ($null -ne $snapshotLeasePublicationProtection) {
+            if (Test-Path -LiteralPath $snapshotLeasePublicationSourceRoot) {
+                Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                    -Protection $snapshotLeasePublicationProtection
+            }
+            elseif (Test-Path -LiteralPath $snapshotLeasePublicationDestinationRoot) {
+                $snapshotLeasePublicationProtection.path = $snapshotLeasePublicationDestinationRoot
+                Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                    -Protection $snapshotLeasePublicationProtection
+            }
+        }
         Close-MvpAcceptanceStagingSnapshotLease -Lease $snapshotLeasePublicationLease
         Close-MvpAcceptanceStagingWriteLease -Lease $snapshotLeasePublicationWriteLease
         if (Test-Path -LiteralPath $snapshotLeasePublicationDestinationRoot) {

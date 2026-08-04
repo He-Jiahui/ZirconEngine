@@ -69,8 +69,9 @@ fn blend_space_and_avatar_mask_asset_drawers_are_owned_by_animation_editor() {
             "plugins://animation/editor/avatar_mask_bone_tree.zui",
         ),
     ] {
-        assert!(registry.component_drawers().iter().any(|drawer| {
-            drawer.component_type() == component_type && drawer.ui_document() == ui_document
+        assert!(registry.inspector_customizations().iter().any(|customization| {
+            customization.target_type() == component_type
+                && customization.surface().ui_document() == ui_document
         }));
     }
 }

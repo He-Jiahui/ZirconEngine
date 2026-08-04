@@ -16,16 +16,16 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeCommandStreamStats 
 
 impl ChromeCommandStream {
     pub(in crate::ui::retained_host::host_contract) fn stats(&self) -> ChromeCommandStreamStats {
-        let mut uploaded_image_keys = self
+        let mut uploaded_image_versions = self
             .image_resources()
-            .keys()
-            .map(String::as_str)
+            .iter()
+            .map(|(resource_key, generation, _)| (resource_key, generation))
             .collect::<HashSet<_>>();
         let mut stats = ChromeCommandStreamStats {
             command_count: self.commands().len(),
             ..ChromeCommandStreamStats::default()
         };
-        for resource in self.image_resources().values() {
+        for (_, _, resource) in self.image_resources().iter() {
             stats.image_upload_bytes = stats
                 .image_upload_bytes
                 .saturating_add(resource.upload_bytes);
@@ -44,7 +44,8 @@ impl ChromeCommandStream {
                 ChromeCommandKind::Image { payload } => {
                     stats.image_command_count += 1;
                     if payload.rgba.is_some()
-                        && uploaded_image_keys.insert(payload.resource_key.as_str())
+                        && uploaded_image_versions
+                            .insert((payload.resource_key.as_str(), payload.resource_generation))
                     {
                         stats.image_upload_bytes = stats
                             .image_upload_bytes

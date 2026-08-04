@@ -9,8 +9,8 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiVertex {
 }
 
 impl ScreenSpaceUiVertex {
-    pub(in crate::graphics::scene::scene_renderer::ui) fn layout()
-    -> wgpu::VertexBufferLayout<'static> {
+    pub(in crate::graphics::scene::scene_renderer::ui) fn layout(
+    ) -> wgpu::VertexBufferLayout<'static> {
         const ATTRIBUTES: [wgpu::VertexAttribute; 2] =
             wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4];
 
@@ -131,6 +131,19 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn frame_to_scissor(
         width,
         height,
     })
+}
+
+pub(in crate::graphics::scene::scene_renderer::ui) fn clipped_scissor(
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    viewport: UiFrame,
+    fallback: ScreenSpaceUiScissor,
+) -> Option<ScreenSpaceUiScissor> {
+    let visible_frame = viewport.intersection(frame)?;
+    match clip_frame {
+        Some(clip) => visible_frame.intersection(clip).and_then(frame_to_scissor),
+        None => Some(fallback),
+    }
 }
 
 fn pixel_to_ndc_x(x: f32, width: f32) -> f32 {

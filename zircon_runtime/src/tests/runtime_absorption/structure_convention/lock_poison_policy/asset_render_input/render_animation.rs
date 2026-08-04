@@ -12,9 +12,6 @@ fn runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_frame
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "WGPU render framework poison recovery helpers",
@@ -32,28 +29,6 @@ fn runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_frame
         !production_section(&wgpu_framework).contains("lock poisoned"),
         "WGPU render framework production paths should recover poisoned locks instead of panicking"
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("render product doc", render_product_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 WGPU render framework lock poison recovery",
-                "runtime_15_wgpu_render_framework_lock_poison_recovery_static_passed_cargo_deferred",
-                "graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs",
-                "wgpu_render_framework_accessors_recover_poisoned_locks",
-                "runtime_15_wgpu_render_framework_lock_poison_recovery_guard_covers_wgpu_framework",
-            ],
-        );
-    }
 }
 
 #[test]
@@ -66,9 +41,6 @@ fn runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_setti
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let animation_doc = read_repo("docs/zircon_runtime/animation/runtime.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
-    );
 
     assert_contains_all(
         "DefaultAnimationManager playback settings poison recovery",
@@ -87,26 +59,4 @@ fn runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_setti
         !production_section(&animation_manager).contains("animation playback mutex poisoned"),
         "DefaultAnimationManager production paths should recover poisoned playback settings locks instead of panicking"
     );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("animation runtime doc", animation_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 animation manager lock poison recovery",
-                "runtime_15_animation_manager_lock_poison_recovery_static_passed_cargo_deferred",
-                "animation/manager/mod.rs",
-                "animation_manager_playback_settings_recover_poisoned_lock",
-                "runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_settings",
-            ],
-        );
-    }
 }

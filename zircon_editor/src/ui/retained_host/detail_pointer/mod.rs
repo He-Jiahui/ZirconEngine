@@ -21,7 +21,7 @@ mod scroll_surface_pointer_state;
 mod sync;
 mod viewport_frame;
 
-pub(crate) use super::console_output::console_content_extent;
+pub(in crate::ui::retained_host) use super::console_output::console_content_extent;
 pub(crate) use asset_details_scroll_layout::asset_details_scroll_layout;
 pub(crate) use console_scroll_layout::console_scroll_layout;
 pub(crate) use inspector_scroll_layout::inspector_scroll_layout;

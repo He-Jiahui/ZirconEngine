@@ -135,6 +135,7 @@ impl RuntimePlugin for NavigationRuntimePlugin {
         )?;
         registry.register_resource(owner, NavRepathBudget::default)?;
         registry.register_resource(owner, NavigationDebugCapture::default)?;
+        let navigation_main_system_set = registry.intern_system_set(NAVIGATION_MAIN_SYSTEM_SET)?;
         registry
             .register_runtime_scene_system(
                 owner,
@@ -162,7 +163,7 @@ impl RuntimePlugin for NavigationRuntimePlugin {
                         })
                 },
             )
-            .in_set(NAVIGATION_MAIN_SYSTEM_SET)
+            .in_set(navigation_main_system_set)
             .after(zircon_runtime::scene::ecs::SystemRef::System(
                 "ai.behavior_tick".to_string(),
             ))

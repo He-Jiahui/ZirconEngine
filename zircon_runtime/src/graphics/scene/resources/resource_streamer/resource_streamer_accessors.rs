@@ -1,3 +1,5 @@
+use core::ops::Range;
+
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::MeshAsset;
 #[cfg(test)]
@@ -359,12 +361,22 @@ impl ResourceStreamer {
     }
 
     pub(crate) fn texture(&self, id: Option<ResourceId>) -> Arc<GpuTextureResource> {
+        Arc::clone(self.texture_ref(id))
+    }
+
+    pub(crate) fn texture_ref(&self, id: Option<ResourceId>) -> &Arc<GpuTextureResource> {
         id.and_then(|texture_id| {
             self.textures
                 .get(&texture_id)
-                .map(|prepared| prepared.resource.clone())
+                .map(|prepared| &prepared.resource)
         })
-        .unwrap_or_else(|| self.fallback_texture.clone())
+        .unwrap_or(&self.fallback_texture)
+    }
+
+    pub(crate) fn texture_resident_mip_range(&self, id: ResourceId) -> Option<Range<u8>> {
+        self.textures
+            .get(&id)
+            .map(|prepared| prepared.resident_mip_range.clone())
     }
 
     pub(crate) fn normal_texture(&self, id: Option<ResourceId>) -> Arc<GpuTextureResource> {
@@ -543,7 +555,7 @@ impl ResourceStreamer {
         let Some(shader) = self.shaders.get(shader_id) else {
             return;
         };
-        for dependency_id in shader_dependency_ids(asset_manager.as_ref(), *shader_id) {
+        for dependency_id in shader_dependency_ids(asset_manager, *shader_id) {
             if let Some(binding) = self.project_shader_module_source_binding(dependency_id) {
                 modules.push(binding);
             }

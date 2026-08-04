@@ -1,7 +1,9 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::visual_assets::{raster_size_from_frame, template_image_pixels};
-use crate::ui::retained_host::host_contract::paint_geometry::inward_pixel_aligned_rect;
+use crate::ui::retained_host::host_contract::paint_geometry::{
+    intersect, inward_pixel_aligned_rect,
+};
 
 pub(super) fn push_thumbnail_preview_image_command(
     commands: &mut Vec<HostPaintCommand>,
@@ -15,6 +17,9 @@ pub(super) fn push_thumbnail_preview_image_command(
         return false;
     }
     let preview_rect = thumbnail_preview_image_rect(node, rect);
+    if intersect(&preview_rect, clip).is_none() {
+        return true;
+    }
     let Some((target_width, target_height)) =
         raster_size_from_frame(preview_rect.width, preview_rect.height)
     else {
@@ -131,16 +136,14 @@ mod tests {
         };
 
         assert!(fitted_thumbnail_preview_image_rect(&surface, 0, 100).is_none());
-        assert!(
-            fitted_thumbnail_preview_image_rect(
-                &FrameRect {
-                    width: 0.0,
-                    ..surface
-                },
-                100,
-                100,
-            )
-            .is_none()
-        );
+        assert!(fitted_thumbnail_preview_image_rect(
+            &FrameRect {
+                width: 0.0,
+                ..surface
+            },
+            100,
+            100,
+        )
+        .is_none());
     }
 }

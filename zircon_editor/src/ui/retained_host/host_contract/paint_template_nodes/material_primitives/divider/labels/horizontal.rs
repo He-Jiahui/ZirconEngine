@@ -1,4 +1,5 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::geometry::horizontal_label_text_frame;
 use super::super::style::divider_text_color;
@@ -23,9 +24,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ho
     else {
         return;
     };
+    let Some(text_clip) = intersect(&frame, clip) else {
+        return;
+    };
     commands.push(HostPaintCommand::text(
         frame,
-        Some(clip.clone()),
+        Some(text_clip),
         order,
         label.to_string(),
         divider_text_color(node),

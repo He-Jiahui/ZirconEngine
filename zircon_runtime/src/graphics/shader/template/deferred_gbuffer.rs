@@ -138,6 +138,7 @@ pub(crate) fn assemble_deferred_gbuffer_shader_template(
             &request.geometry_source,
             request.features,
             &request.material_option_defines,
+            None,
         ),
         0,
     );

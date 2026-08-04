@@ -6,7 +6,7 @@ display_name = "Workbench Property Editor Row"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchPropertyEditorRow]
 root = "root"
@@ -18,7 +18,7 @@ component = "PropertyRow"
 control_id = "WorkbenchPropertyEditorRowRoot"
 classes = ["workbench-property-editor-row"]
 props = { text = "Property" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.compact", max = "$editor.control.height.default", stretch = "Fixed" } }
 children = [{ node = "name_column" }, { node = "value_slot" }]
 
 [nodes.name_column]

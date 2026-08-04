@@ -85,7 +85,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.
 [nodes.header_panel]
 component = "VerticalBox"
 control_id = "AnimationEditorHeaderPanel"
-props = { surface_variant = "panel", radius = 4.0, border_width = 1.0 }
+props = { surface_variant = "panel", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width" }
 layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" } }
 children = [{ node = "header_top_space" }, { node = "header_mode_row_shell" }, { node = "header_mode_path_gap" }, { node = "header_path_row_shell" }, { node = "header_path_status_gap" }, { node = "header_status_row_shell" }, { node = "header_bottom_space" }]
 

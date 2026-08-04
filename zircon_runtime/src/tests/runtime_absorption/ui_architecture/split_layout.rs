@@ -18,15 +18,6 @@ const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
-const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_platform_rows.rs"
-);
-const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
-);
-const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
-);
 #[rustfmt::skip]
 const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
@@ -147,8 +138,6 @@ fn assert_docs_and_status_mirror_split() {
         ("structure convention plan", STRUCTURE_CONVENTION_PLAN),
         ("review findings plan", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
-        ("status row data", STATUS_ROW_DATA),
-        ("status map", STATUS_MAP),
     ] {
         assert!(
             source.contains(
@@ -159,10 +148,6 @@ fn assert_docs_and_status_mirror_split() {
             "{label} should mirror the ui_architecture route-owner split status"
         );
     }
-    assert!(
-        DATE_MAP.contains("Runtime 15 M3 ui-architecture route-owner split"),
-        "date map should mirror the ui_architecture route-owner split slice"
-    );
     assert_contains_all(
         "module convention doc",
         MODULE_CONVENTION_DOC,

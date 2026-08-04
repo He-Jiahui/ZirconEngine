@@ -1,6 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
+use super::super::super::template_icon_button_glyph_shapes::push_close_icon;
 use super::super::geometry::{frame_is_within, has_paintable_field_extent};
 use super::super::metrics::workbench_field_metrics;
 
@@ -66,6 +67,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
             ));
         }
     }
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_search_field_clear_glyph(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+    opacity: f32,
+    color: [u8; 4],
+) {
+    let Some(action) = super::search_field_clear_action_rect(node, rect) else {
+        return;
+    };
+    push_close_icon(commands, &action, clip, order, color, opacity);
 }
 
 fn search_icon_rect(rect: &FrameRect) -> Option<FrameRect> {

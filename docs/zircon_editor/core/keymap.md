@@ -5,6 +5,8 @@ related_code:
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/keymap_overrides.rs
+  - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/module.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
@@ -12,6 +14,7 @@ plan_sources:
 tests:
   - zircon_editor/src/core/commands/keymap/tests.rs
   - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/tests/editor_event/runtime/keymap_settings.rs
 doc_type: module-detail
 ---
 
@@ -33,6 +36,11 @@ User, then default precedence before `editor_keymap_overrides()` returns the eff
 envelope at the configured User or Project path and rejects unwrapped or migrated legacy payloads
 atomically. The retired `zircon.editor.keymap-user-layer` document, its v0 fixture, and
 `commands/keymap/persistence.rs` are not compatibility inputs.
+
+`EDITOR_KEYMAP_NAME` resolves to `EditorKeymapService`, a dynamic projection over the same
+`SettingsAuthority`. The service refreshes only when the immutable override payload changes, so a
+previously resolved manager service and retained-host keyboard dispatch observe later overrides
+without retaining a startup keymap as a second authority.
 
 ## Override Semantics
 

@@ -80,8 +80,6 @@ const EXPECTED_RUNTIME_08_TEST_FILES: &[&str] = &[
     "src/scene/tests/ecs_events_messages.rs",
     "src/scene/tests/ecs_change_detection.rs",
     "src/scene/tests/component_structure/runtime_08_owner_tree.rs",
-    "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
-    "src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_08.rs",
     "src/tests/runtime_absorption/ecs_kernel_data.rs",
     "src/tests/runtime_absorption/ecs_kernel_data/inventory.rs",
 ];

@@ -1,9 +1,15 @@
+mod bundle_transaction;
+mod component_mutation_effects;
+mod dynamic_component_presence;
 pub(super) mod fixed_components;
+
+pub(super) use bundle_transaction::BundleInsertionTransaction;
+use dynamic_component_presence::DynamicComponentPresence;
 
 use crate::scene::ecs::{
     Bundle, Component, ComponentId, ComponentRemoveResult, LifecycleEventKind, Resource, ResourceId,
 };
-use crate::scene::{EntityId, NodeKind};
+use crate::scene::{components::Mobility, EntityId, NodeKind};
 
 use super::{SceneError, SceneResult, World};
 
@@ -12,8 +18,10 @@ impl World {
     where
         B: Bundle,
     {
-        let entity = self.spawn_node(NodeKind::Mesh);
-        self.insert_bundle(entity, bundle)?;
+        let entity = self.next_id;
+        let mut transaction = self.begin_bundle_spawn(entity, NodeKind::Mesh)?;
+        bundle.stage_into(&mut transaction)?;
+        transaction.finish()?;
         Ok(entity)
     }
 
@@ -33,7 +41,7 @@ impl World {
         self.entities.push(entity);
         self.kinds.insert(entity, NodeKind::Empty);
         self.record_node_kind_added(NodeKind::Empty);
-        self.refresh_entity_archetype(entity);
+        self.place_empty_entity_in_archetype(entity);
         self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
@@ -46,10 +54,9 @@ impl World {
     where
         B: Bundle,
     {
-        if !self.spawn_empty_at(entity)? {
-            return Err(SceneError::DuplicateEntity { entity });
-        }
-        self.insert_bundle(entity, bundle)?;
+        let mut transaction = self.begin_bundle_spawn(entity, NodeKind::Empty)?;
+        bundle.stage_into(&mut transaction)?;
+        transaction.finish()?;
         Ok(entity)
     }
 
@@ -58,6 +65,33 @@ impl World {
         B: Bundle,
     {
         bundle.insert_into(self, entity)
+    }
+
+    pub(crate) fn begin_bundle_insertion(
+        &mut self,
+        entity: EntityId,
+    ) -> SceneResult<BundleInsertionTransaction<'_>> {
+        if !self.contains_entity(entity) {
+            return Err(SceneError::missing_entity("insert component on", entity));
+        }
+        let internal_entity = self
+            .internal_entity(entity)
+            .ok_or_else(|| SceneError::missing_entity("insert component on", entity))?;
+        Ok(BundleInsertionTransaction::new(
+            self,
+            entity,
+            internal_entity,
+        ))
+    }
+
+    fn begin_bundle_spawn(
+        &mut self,
+        entity: EntityId,
+        kind: NodeKind,
+    ) -> SceneResult<BundleInsertionTransaction<'_>> {
+        let record = self.default_node_record(entity, kind);
+        self.validate_owned_node_records(std::slice::from_ref(&record))?;
+        BundleInsertionTransaction::new_spawn(self, record)
     }
 
     pub fn component_id<T>(&mut self) -> ComponentId
@@ -164,7 +198,7 @@ impl World {
             current_hierarchy_parent,
         );
         if !was_present {
-            self.refresh_entity_archetype(entity);
+            self.add_component_to_entity_archetype(entity, component_id, T::STORAGE_TYPE);
             self.bump_query_cache_revision();
         }
         if was_present {
@@ -174,6 +208,74 @@ impl World {
         }
         self.trigger_component_lifecycle(LifecycleEventKind::Insert, entity, component_id);
         Ok(old)
+    }
+
+    fn insert_preflighted_bundle_component<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+        component_id: ComponentId,
+    ) -> SceneResult<bool>
+    where
+        T: Component,
+    {
+        if self.component_id::<T>() != component_id {
+            return Err(SceneError::Message(
+                "bundle component registry changed after preflight".to_string(),
+            ));
+        }
+        let internal = self
+            .internal_entity(entity)
+            .ok_or_else(|| SceneError::missing_entity("insert component on", entity))?;
+        self.component_storage
+            .validate_insert::<T>(component_id, T::STORAGE_TYPE)?;
+        let was_present = self.contains_component_id(entity, component_id);
+        let current_hierarchy_parent = Self::hierarchy_parent_from_component(&component);
+        self.insert_prevalidated_fixed_component(entity, &component);
+        let tick = self.mutation_change_tick();
+        let old = self.component_storage.insert_at_tick(
+            component_id,
+            T::STORAGE_TYPE,
+            internal,
+            component,
+            tick,
+        )?;
+
+        self.mark_preflighted_bundle_component_mutation::<T>(entity);
+        self.mark_scene_binding_component_replacement::<T>(
+            entity,
+            old.as_ref(),
+            current_hierarchy_parent,
+        );
+        if was_present {
+            self.trigger_component_lifecycle(LifecycleEventKind::Replace, entity, component_id);
+        } else {
+            self.trigger_component_lifecycle(LifecycleEventKind::Add, entity, component_id);
+        }
+        self.trigger_component_lifecycle(LifecycleEventKind::Insert, entity, component_id);
+        Ok(!was_present)
+    }
+
+    fn validate_bundle_mobility_state(
+        &self,
+        entity: EntityId,
+        parent: Option<EntityId>,
+        mobility: Mobility,
+    ) -> SceneResult<()> {
+        match mobility {
+            Mobility::Dynamic => self.validate_mobility_change(entity, mobility),
+            Mobility::Static => {
+                if let Some(parent) = parent {
+                    if self.mobility(parent) == Some(Mobility::Dynamic) {
+                        return Err(SceneError::StaticMobilityUnderDynamicParent {
+                            entity,
+                            parent,
+                        });
+                    }
+                }
+                Ok(())
+            }
+        }
     }
 
     pub fn get<T>(&self, entity: EntityId) -> Option<&T>
@@ -256,7 +358,13 @@ impl World {
                 self.mark_scene_binding_component_removal::<T>(entity, removed);
             }
             if removed.is_some() || removed_from_storage {
-                self.refresh_entity_archetype(entity);
+                if let Some(component_id) = component_id {
+                    self.remove_component_from_entity_archetype(
+                        entity,
+                        component_id,
+                        T::STORAGE_TYPE,
+                    );
+                }
                 self.bump_query_cache_revision();
             }
             return Ok(removed);
@@ -276,7 +384,7 @@ impl World {
             self.record_removed_component::<T>(entity);
             self.mark_component_mutation::<T>(entity);
             self.mark_scene_binding_component_removal::<T>(entity, removed);
-            self.refresh_entity_archetype(entity);
+            self.remove_component_from_entity_archetype(entity, component_id, T::STORAGE_TYPE);
             self.bump_query_cache_revision();
         }
         Ok(removed)
@@ -443,7 +551,11 @@ impl World {
             tick,
         )?;
         if old.is_none() {
-            self.refresh_entity_archetype(entity);
+            self.add_component_to_entity_archetype(
+                entity,
+                component_id,
+                crate::scene::ecs::StorageType::SparseSet,
+            );
             self.bump_query_cache_revision();
         }
         Ok(())
@@ -467,7 +579,11 @@ impl World {
             .component_storage
             .remove::<DynamicComponentPresence>(component_id, internal)?;
         if removed.is_some() {
-            self.refresh_entity_archetype(entity);
+            self.remove_component_from_entity_archetype(
+                entity,
+                component_id,
+                crate::scene::ecs::StorageType::SparseSet,
+            );
             self.bump_query_cache_revision();
         }
         Ok(())
@@ -479,6 +595,29 @@ impl World {
         &mut self,
         entity: EntityId,
         component: T,
+    ) where
+        T: Component,
+    {
+        self.insert_rebuilt_fixed_component_presence_with_archetype_update(entity, component, true);
+    }
+
+    pub(in crate::scene::world) fn insert_rebuilt_fixed_component_presence_without_archetype<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+    ) where
+        T: Component,
+    {
+        self.insert_rebuilt_fixed_component_presence_with_archetype_update(
+            entity, component, false,
+        );
+    }
+
+    fn insert_rebuilt_fixed_component_presence_with_archetype_update<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+        update_archetype: bool,
     ) where
         T: Component,
     {
@@ -496,8 +635,10 @@ impl World {
 
         self.mark_component_derived_state_dirty::<T>();
         if !was_present {
-            self.refresh_entity_archetype(entity);
-            self.bump_query_cache_revision();
+            if update_archetype {
+                self.add_component_to_entity_archetype(entity, component_id, T::STORAGE_TYPE);
+                self.bump_query_cache_revision();
+            }
             self.trigger_component_lifecycle(LifecycleEventKind::Add, entity, component_id);
         } else {
             self.trigger_component_lifecycle(LifecycleEventKind::Replace, entity, component_id);
@@ -507,6 +648,29 @@ impl World {
 
     pub(super) fn rebuild_typed_component_presence(&mut self) {
         self.component_registry = Default::default();
+        self.rebuild_component_storage_projection();
+    }
+
+    pub(super) fn replace_derived_component<T>(&mut self, entity: EntityId, component: T)
+    where
+        T: Component,
+    {
+        let component_id = self.component_id::<T>();
+        let internal = self
+            .internal_entity(entity)
+            .expect("derived component replacement requires a registered entity");
+        let was_present = self.contains_component_id(entity, component_id);
+        let tick = self.mutation_change_tick();
+        self.component_storage
+            .insert_at_tick(component_id, T::STORAGE_TYPE, internal, component, tick)
+            .expect("derived component replacement must preserve the registered storage type");
+        if !was_present {
+            self.add_component_to_entity_archetype(entity, component_id, T::STORAGE_TYPE);
+            self.bump_query_cache_revision();
+        }
+    }
+
+    pub(super) fn rebuild_component_storage_projection(&mut self) {
         self.component_storage = Default::default();
         self.archetype_index = Default::default();
         let mut dynamic_component_type_ids = Vec::new();
@@ -557,6 +721,22 @@ impl World {
         self.mark_component_derived_state_dirty::<T>();
     }
 
+    fn mark_preflighted_bundle_component_mutation<T>(&mut self, entity: EntityId)
+    where
+        T: Component,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        if self.is_hierarchy_component_type(type_id) || self.is_active_component_type(type_id) {
+            self.mark_inspection_subtree_fields_dirty(entity);
+        } else {
+            self.inspection_artifact_cache.mark_fields_dirty(entity);
+        }
+        if self.is_inspection_hierarchy_component_type(type_id) {
+            self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
+        }
+        self.mark_component_derived_state_dirty::<T>();
+    }
+
     pub(super) fn mark_inspection_subtree_fields_dirty(&self, root: EntityId) {
         for entity in self.subtree_entity_ids(root) {
             self.inspection_artifact_cache.mark_fields_dirty(entity);
@@ -575,106 +755,4 @@ impl World {
             || type_id == std::any::TypeId::of::<crate::scene::components::RectLight>()
             || type_id == std::any::TypeId::of::<crate::scene::components::SpotLight>()
     }
-
-    fn mark_scene_binding_component_replacement<T>(
-        &mut self,
-        entity: EntityId,
-        previous: Option<&T>,
-        current_hierarchy_parent: Option<Option<EntityId>>,
-    ) where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
-            self.advance_scene_binding_generation_for_name(entity);
-        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
-            let previous_parent = previous
-                .and_then(Self::hierarchy_parent_from_component)
-                .unwrap_or(None);
-            self.advance_scene_binding_generations_for_reparent(
-                entity,
-                previous_parent,
-                current_hierarchy_parent.unwrap_or(None),
-            );
-        }
-    }
-
-    fn mark_scene_binding_component_removal<T>(&mut self, entity: EntityId, previous: &T)
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
-            self.advance_scene_binding_generation_for_name(entity);
-        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
-            self.advance_scene_binding_generations_for_reparent(
-                entity,
-                Self::hierarchy_parent_from_component(previous).unwrap_or(None),
-                None,
-            );
-        }
-    }
-
-    fn mark_scene_binding_component_get_mut<T>(&mut self, entity: EntityId)
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
-            self.advance_scene_binding_generation_for_name(entity);
-        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
-            // The raw mutable reference does not reveal its eventual parent. Structured
-            // reparenting stays incremental; this escape hatch must remain correct.
-            self.invalidate_all_scene_binding_generations();
-        }
-    }
-
-    fn hierarchy_parent_from_component<T>(component: &T) -> Option<Option<EntityId>>
-    where
-        T: Component,
-    {
-        if std::any::TypeId::of::<T>()
-            != std::any::TypeId::of::<crate::scene::components::Hierarchy>()
-        {
-            return None;
-        }
-        let hierarchy = (component as &dyn std::any::Any)
-            .downcast_ref::<crate::scene::components::Hierarchy>()?;
-        Some(hierarchy.parent)
-    }
-
-    fn mark_component_derived_state_dirty<T>(&mut self)
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if self.is_hierarchy_component_type(type_id) {
-            self.mark_hierarchy_dirty();
-        } else if self.is_transform_component_type(type_id) {
-            self.mark_transform_dirty();
-        } else if self.is_active_component_type(type_id) {
-            self.mark_active_state_dirty();
-        } else {
-            self.mark_node_cache_dirty();
-        }
-    }
-
-    fn is_hierarchy_component_type(&self, type_id: std::any::TypeId) -> bool {
-        type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>()
-    }
-
-    fn is_transform_component_type(&self, type_id: std::any::TypeId) -> bool {
-        type_id == std::any::TypeId::of::<crate::scene::components::LocalTransform>()
-    }
-
-    fn is_active_component_type(&self, type_id: std::any::TypeId) -> bool {
-        type_id == std::any::TypeId::of::<crate::scene::components::ActiveSelf>()
-    }
-}
-
-#[derive(Debug)]
-struct DynamicComponentPresence;
-
-impl Component for DynamicComponentPresence {
-    const STORAGE_TYPE: crate::scene::ecs::StorageType = crate::scene::ecs::StorageType::SparseSet;
 }

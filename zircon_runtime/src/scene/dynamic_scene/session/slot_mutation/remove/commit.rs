@@ -4,9 +4,8 @@ pub(in crate::scene::dynamic_scene::session) fn remove_slot(
     archive: &mut RuntimeSessionArchive,
     slot_id: &str,
 ) -> Option<RuntimeSessionSlot> {
-    let index = archive
-        .slots
-        .iter()
-        .position(|slot| slot.slot_id == slot_id)?;
-    Some(archive.slots.remove(index))
+    let index = archive.indexed_slot_index(slot_id)?;
+    let removed = archive.slots.remove(index);
+    archive.rebuild_slot_indexes();
+    Some(removed)
 }

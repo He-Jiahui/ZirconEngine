@@ -8,6 +8,33 @@ pub nythraxisSpiritMendingCastId(required: bool): string {
     return "nythraxis_spirit_mending";
 }
 
+// WOS114 persists this bounded vocabulary, never an arbitrary pseudo-cast
+// string. Zero stays the absent sentinel shared by the world-state columns.
+pub noScriptedCastCode(): uint { return <uint>0; }
+
+pub nythraxisSpiritMendingCastCode(required: bool): uint {
+    if (!required) {
+        throw "woc scripted interruptible channel code is required";
+    }
+    return <uint>1;
+}
+
+pub scriptedCastCode(castId: string, required: bool): uint {
+    if (!required) {
+        throw "woc scripted cast code lookup is required";
+    }
+    return castId == nythraxisSpiritMendingCastId(true) ?
+        nythraxisSpiritMendingCastCode(true) : noScriptedCastCode();
+}
+
+pub scriptedCastId(code: uint, required: bool): string {
+    if (!required) {
+        throw "woc scripted cast identity lookup is required";
+    }
+    return code == nythraxisSpiritMendingCastCode(true) ?
+        nythraxisSpiritMendingCastId(true) : "";
+}
+
 // Empty is the scalar equivalent of the source map's missing entry. Consumers
 // must only use a non-empty return after normal ability resolution failed.
 pub scriptedInterruptibleChannelSchool(castId: string, required: bool): string {
@@ -24,12 +51,32 @@ pub isScriptedInterruptibleChannel(castId: string, required: bool): bool {
     return scriptedInterruptibleChannelSchool(castId, required) != "";
 }
 
+pub scriptedInterruptibleChannelSchoolForCode(code: uint, required: bool): string {
+    if (!required) {
+        throw "woc scripted interruptible channel code lookup is required";
+    }
+    return scriptedInterruptibleChannelSchool(scriptedCastId(code, true), true);
+}
+
+pub isScriptedInterruptibleChannelCode(code: uint, required: bool): bool {
+    return scriptedInterruptibleChannelSchoolForCode(code, required) != "";
+}
+
 pub contractTest(): int {
     if (nythraxisSpiritMendingCastId(true) != "nythraxis_spirit_mending" ||
+        noScriptedCastCode() != <uint>0 ||
+        nythraxisSpiritMendingCastCode(true) != <uint>1 ||
+        scriptedCastCode("nythraxis_spirit_mending", true) != <uint>1 ||
+        scriptedCastCode("ordinary_scripted_cast", true) != <uint>0 ||
+        scriptedCastId(<uint>1, true) != "nythraxis_spirit_mending" ||
+        scriptedCastId(<uint>2, true) != "" ||
         scriptedInterruptibleChannelSchool("nythraxis_spirit_mending", true) != "shadow" ||
         scriptedInterruptibleChannelSchool("ordinary_scripted_cast", true) != "" ||
         !isScriptedInterruptibleChannel("nythraxis_spirit_mending", true) ||
-        isScriptedInterruptibleChannel("ordinary_scripted_cast", true)) {
+        isScriptedInterruptibleChannel("ordinary_scripted_cast", true) ||
+        scriptedInterruptibleChannelSchoolForCode(<uint>1, true) != "shadow" ||
+        !isScriptedInterruptibleChannelCode(<uint>1, true) ||
+        isScriptedInterruptibleChannelCode(<uint>2, true)) {
         return -1;
     }
     return 1;

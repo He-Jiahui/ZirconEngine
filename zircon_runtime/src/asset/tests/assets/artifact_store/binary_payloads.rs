@@ -1,4 +1,7 @@
 use super::*;
+use crate::core::framework::render::{
+    RenderImageColorSpace, TextureMipFilter, TextureMipPolicy, TextureUsageHint,
+};
 
 #[test]
 fn artifact_store_bincode_roundtrips_asset_reference() {
@@ -123,6 +126,49 @@ fn artifact_store_roundtrips_texture_assets_with_binary_payloads() {
 
     assert_binary_artifact_payload(&paths, &artifact_uri);
     assert_eq!(loaded, ImportedAsset::Texture(texture));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn artifact_store_rejects_runtime_mip_assets_with_unsupported_storage_format() {
+    let root = unique_temp_project_root("artifact_store_runtime_mip_format_validation");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+
+    let mut texture = TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/stale_runtime_mips.exr").unwrap(),
+        2,
+        2,
+        vec![0; 16],
+    );
+    let mut descriptor = texture.texture_descriptor();
+    descriptor.format = "rgba16float".to_string();
+    descriptor.color_space = RenderImageColorSpace::Linear;
+    descriptor.metadata.color_space = RenderImageColorSpace::Linear;
+    descriptor.metadata.usage_hint = TextureUsageHint::Hdr;
+    descriptor.metadata.mip_policy = TextureMipPolicy::GenerateRuntime;
+    descriptor.metadata.mip_filter = TextureMipFilter::Box;
+    descriptor.mip_count = 2;
+    texture = texture.with_descriptor(descriptor);
+
+    let metadata = ResourceRecord::new(
+        AssetId::new(),
+        AssetKind::Texture,
+        AssetUri::parse("res://textures/stale_runtime_mips.exr").unwrap(),
+    );
+    let store = ArtifactStore::default();
+    let error = store
+        .write(&paths, &metadata, &ImportedAsset::Texture(texture))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        AssetImportError::Parse(message)
+            if message.contains("runtime mip generation supports only rgba8unorm storage")
+    ));
 
     let _ = fs::remove_dir_all(root);
 }

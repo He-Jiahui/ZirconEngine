@@ -10,7 +10,6 @@ INPUT_STACK_GUARD_FILES = (
     "zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs",
     "zircon_runtime/src/tests/runtime_absorption/input_stack/gamepad_bridge.rs",
     "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs",
-    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_12.rs",
 )
 INPUT_RUNTIME_MODULES = (
     "zircon_runtime/src/input/mod.rs",

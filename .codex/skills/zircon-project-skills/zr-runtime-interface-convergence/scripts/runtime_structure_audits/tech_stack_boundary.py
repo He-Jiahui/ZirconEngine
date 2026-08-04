@@ -321,12 +321,6 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     physics_contract_step = (
         root / "zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs"
     )
-    cargo_gate_guard = (
-        root / "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs"
-    )
-    recent_static_guard = (
-        root / "zircon_runtime/src/tests/runtime_absorption/plan_status/recent_static_guards.rs"
-    )
     review = root / "docs/engine-architecture/runtime-architecture-review-m0.md"
 
     workspace_source = _read_text(workspace_manifest) if workspace_manifest.exists() else ""
@@ -371,12 +365,6 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     )
     physics_contract_step_source = (
         _read_text(physics_contract_step) if physics_contract_step.exists() else ""
-    )
-    cargo_gate_guard_source = (
-        _read_text(cargo_gate_guard) if cargo_gate_guard.exists() else ""
-    )
-    recent_static_guard_source = (
-        _read_text(recent_static_guard) if recent_static_guard.exists() else ""
     )
     review_source = _read_text(review) if review.exists() else ""
 
@@ -458,8 +446,6 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         (
             tech_stack_guard_source,
             tech_stack_mirror_guard_source,
-            cargo_gate_guard_source,
-            recent_static_guard_source,
             review_source,
             runtime_01_plan_source,
             runtime_index_source,
@@ -478,8 +464,6 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         (
             runtime_01_plan_source,
             runtime_index_source,
-            cargo_gate_guard_source,
-            recent_static_guard_source,
             review_source,
         ),
         CARGO_GATE_ANCHORS,

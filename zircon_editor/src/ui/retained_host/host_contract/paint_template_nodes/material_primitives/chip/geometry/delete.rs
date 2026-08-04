@@ -9,7 +9,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_de
     let edge = chip_delete_icon_edge(node, rect);
     let width = chip_bounded_extent(rect.width);
     let height = chip_bounded_extent(rect.height);
-    let preferred_right_margin = if chip_is_small(node) { 4.0 } else { 5.0 };
+    let preferred_right_margin: f32 = if chip_is_small(node) { 4.0 } else { 5.0 };
     let right_margin = preferred_right_margin.min((width - edge).max(0.0));
     FrameRect {
         x: rect.x + width - right_margin - edge,

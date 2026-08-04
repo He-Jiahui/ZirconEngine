@@ -9,6 +9,7 @@ use crate::core::diagnostics::DiagnosticStore;
 
 use super::{
     JobHandle, JobSchedulerDiagnosticsState, JobSchedulerReport, TaskPool, TaskPoolDescriptor,
+    TaskPools,
 };
 
 #[derive(Clone)]
@@ -37,6 +38,11 @@ impl JobScheduler {
             pool,
             diagnostics: Arc::default(),
         }
+    }
+
+    /// Returns a scheduler backed by the process-wide I/O pool.
+    pub fn process_io() -> Self {
+        Self::from_pool(TaskPools::process_default().io().clone())
     }
 
     /// Enables bounded lifecycle diagnostics before work is submitted to this scheduler.
@@ -259,8 +265,16 @@ mod tests {
 
     use super::{
         run_detached_task, JobHandle, JobScheduler, JobSchedulerDiagnosticsState,
-        PendingScheduledJob, TaskPool, TaskPoolDescriptor,
+        PendingScheduledJob, TaskPool, TaskPoolDescriptor, TaskPools,
     };
+
+    #[test]
+    fn process_io_uses_the_shared_runtime_io_pool() {
+        assert_eq!(
+            JobScheduler::process_io().parallelism(),
+            TaskPools::process_default().io().parallelism()
+        );
+    }
 
     #[test]
     fn detached_spawn_counts_panicked_tasks_as_completed() {

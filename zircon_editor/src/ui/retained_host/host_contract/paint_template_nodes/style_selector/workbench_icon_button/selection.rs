@@ -6,7 +6,7 @@ mod glyph;
 mod radius;
 
 use super::super::resolved_state_for_node;
-use super::super::workbench_command::{WorkbenchCommandVisualRole, workbench_command_visual_role};
+use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
 use super::model::{WorkbenchIconButtonContext, WorkbenchIconButtonStyle};
 use super::palette::workbench_icon_button_palette;
 use super::state::{icon_button_node_is_hot, icon_button_node_is_selected};
@@ -52,14 +52,13 @@ fn primary_import_icon_button_style(
     mut style: WorkbenchIconButtonStyle,
 ) -> WorkbenchIconButtonStyle {
     let palette = workbench_icon_button_palette();
+    let focus_only = matches!(style.state, UiPainterResolvedState::Focused)
+        && !icon_button_node_is_selected(node)
+        && !icon_button_node_is_hot(node);
     let surface = match style.state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => return style,
         UiPainterResolvedState::Normal => palette.accent,
-        UiPainterResolvedState::Focused
-            if !icon_button_node_is_selected(node) && !icon_button_node_is_hot(node) =>
-        {
-            palette.accent
-        }
+        UiPainterResolvedState::Focused if focus_only => palette.accent,
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Selected
@@ -70,7 +69,11 @@ fn primary_import_icon_button_style(
         | UiPainterResolvedState::Hovered => palette.focus_ring,
     };
     style.background = Some(surface);
-    style.border = Some(surface);
+    style.border = Some(if focus_only {
+        palette.focus_ring
+    } else {
+        surface
+    });
     style.border_width = current_host_metrics().border_width;
     style.glyph = palette.shell_background;
     style

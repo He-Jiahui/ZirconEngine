@@ -163,14 +163,14 @@ fn accessibility_set_value_applies_text_input_constraints_before_mutation() {
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert!(has_note(&result, "accessibility_text_value_sanitized"));
-    assert_eq!(result.binding_reports.len(), 8);
+    assert_eq!(result.binding_reports.len(), 9);
     assert_eq!(
         result
             .binding_reports
             .iter()
             .map(|report| report.applied_count)
             .sum::<u64>(),
-        16
+        18
     );
     assert!(result
         .binding_reports
@@ -227,14 +227,14 @@ fn accessibility_set_value_clears_active_composition_metadata() {
     let result = dispatch_set_value(&mut surface, "Hello");
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
-    assert_eq!(result.binding_reports.len(), 8);
+    assert_eq!(result.binding_reports.len(), 9);
     assert_eq!(
         result
             .binding_reports
             .iter()
             .map(|report| report.applied_count)
             .sum::<u64>(),
-        16
+        18
     );
     assert!(has_note(
         &result,
@@ -305,14 +305,14 @@ fn accessibility_replace_selected_text_updates_selected_range_only() {
         result.diagnostics.handled_phase.as_deref(),
         Some("accessibility.replace_selected_text")
     );
-    assert_eq!(result.binding_reports.len(), 8);
+    assert_eq!(result.binding_reports.len(), 9);
     assert_eq!(
         result
             .binding_reports
             .iter()
             .map(|report| report.applied_count)
             .sum::<u64>(),
-        16
+        18
     );
     assert!(has_note(
         &result,
@@ -401,7 +401,7 @@ fn accessibility_set_text_selection_updates_read_only_text_input_selection() {
     let mut surface = root_surface();
     insert_text_input(
         &mut surface,
-        "text = 'abcdef'\nread_only = true\ncaret_offset = 0\nselection_anchor = 0\nselection_focus = 0\ncomposition_start = 1\ncomposition_end = 3\ncomposition_text = 'bc'\ncomposition_restore_text = 'bc'",
+        "text = 'abcdef'\nread_only = true\ncaret_offset = 0\ncaret_affinity = 'upstream'\nselection_anchor = 0\nselection_focus = 0\ncomposition_start = 1\ncomposition_end = 3\ncomposition_text = 'bc'\ncomposition_restore_text = 'bc'",
     );
     surface.rebuild();
 
@@ -420,14 +420,14 @@ fn accessibility_set_text_selection_updates_read_only_text_input_selection() {
         Some("accessibility.set_text_selection")
     );
     assert!(result.component_events.is_empty());
-    assert_eq!(result.binding_reports.len(), 7);
+    assert_eq!(result.binding_reports.len(), 8);
     assert_eq!(
         result
             .binding_reports
             .iter()
             .map(|report| report.applied_count)
             .sum::<u64>(),
-        14
+        16
     );
     assert!(has_note(
         &result,
@@ -447,6 +447,10 @@ fn accessibility_set_text_selection_updates_read_only_text_input_selection() {
         .unwrap();
     assert_eq!(metadata.attributes["text"].as_str(), Some("abcdef"));
     assert_eq!(metadata.attributes["caret_offset"].as_integer(), Some(4));
+    assert_eq!(
+        metadata.attributes["caret_affinity"].as_str(),
+        Some("downstream")
+    );
     assert_eq!(
         metadata.attributes["selection_anchor"].as_integer(),
         Some(1)

@@ -14,9 +14,6 @@ fn runtime_15_asset_project_example_vampire_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let vampire_doc = read_repo("docs/assets-and-rendering/runtime-physics-animation-assets.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
-    );
 
     assert_contains_all(
         "asset project example vampire parent test module mounts",
@@ -88,29 +85,6 @@ fn runtime_15_asset_project_example_vampire_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("vampire runtime asset doc", vampire_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 asset project example vampire test folder split",
-                "runtime_15_asset_project_example_vampire_tests_folder_split_static_passed_cargo_deferred",
-                "asset/tests/project/example_vampire.rs",
-                "asset/tests/project/example_vampire/manifest_scene_imports.rs",
-                "asset/tests/project/example_vampire/third_person_render_extract.rs",
-                "runtime_15_asset_project_example_vampire_tests_are_folder_backed",
-            ],
         );
     }
 }

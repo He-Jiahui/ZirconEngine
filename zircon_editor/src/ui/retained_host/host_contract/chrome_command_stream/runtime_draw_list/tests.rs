@@ -4,7 +4,7 @@ use crate::ui::retained_host::host_contract::chrome_command_stream::{
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_text::{
-    HostTextFontFace, font_request_for_face,
+    font_request_for_face, HostTextFontFace,
 };
 use zircon_runtime::rhi::{
     UiSurfaceCommandKind, UiSurfaceImageUvRect, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
@@ -257,12 +257,192 @@ fn owned_runtime_draw_list_moves_image_pixels_into_the_draw_list_resource_table(
     assert!(payload.rgba.is_none());
     assert_eq!(
         draw_list
-            .image_resource("image://move-me")
+            .image_resource("image://move-me", 0)
             .expect("draw list owns the image pixels")
             .rgba
             .as_ptr(),
         rgba_ptr
     );
+}
+
+#[test]
+fn borrowed_runtime_draw_list_skips_resident_image_resource_pixels() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    stream.push_image(
+        1,
+        FrameRect::default(),
+        None,
+        ChromeImagePayload {
+            resource_key: "image://resident".to_string(),
+            resource_generation: 7,
+            width: 2,
+            height: 2,
+            upload_bytes: 16,
+            rgba: Some(vec![9; 16]),
+            atlas_uv: None,
+        },
+    );
+    stream.compact_image_resources();
+
+    let draw_list = ui_surface_draw_list_from_stream_with_residency(&stream, |key, generation| {
+        key == "image://resident" && generation == 7
+    });
+
+    assert!(draw_list.image_resource("image://resident", 7).is_none());
+    assert!(matches!(
+        &draw_list.commands[0].kind,
+        UiSurfaceCommandKind::Image { payload } if payload.rgba.is_none()
+    ));
+}
+
+#[test]
+fn borrowed_runtime_draw_list_keeps_shared_image_pixels_out_of_commands() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    for z_index in [1, 2] {
+        stream.push_image(
+            z_index,
+            FrameRect::default(),
+            None,
+            ChromeImagePayload {
+                resource_key: "image://shared".to_string(),
+                resource_generation: 3,
+                width: 2,
+                height: 2,
+                upload_bytes: 16,
+                rgba: Some(vec![3; 16]),
+                atlas_uv: None,
+            },
+        );
+    }
+    stream.compact_image_resources();
+
+    let draw_list = ui_surface_draw_list_from_stream(&stream);
+
+    assert!(draw_list.commands.iter().all(|command| matches!(
+        &command.kind,
+        UiSurfaceCommandKind::Image { payload } if payload.rgba.is_none()
+    )));
+    assert_eq!(
+        draw_list
+            .image_resource("image://shared", 3)
+            .expect("shared image source must be copied once into the resource table")
+            .rgba,
+        vec![3; 16]
+    );
+}
+
+#[test]
+fn owned_runtime_draw_list_preserves_distinct_generations_of_one_resource_key() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    for (z_index, generation) in [(1, 4), (2, 5)] {
+        stream.push_image(
+            z_index,
+            FrameRect::default(),
+            None,
+            ChromeImagePayload {
+                resource_key: "atlas://editor/icons".to_string(),
+                resource_generation: generation,
+                width: 2,
+                height: 2,
+                upload_bytes: 16,
+                rgba: Some(vec![generation as u8; 16]),
+                atlas_uv: None,
+            },
+        );
+    }
+
+    let draw_list = ui_surface_draw_list_from_owned_stream(stream);
+
+    assert!(draw_list.commands.iter().all(|command| matches!(
+        &command.kind,
+        UiSurfaceCommandKind::Image { payload } if payload.rgba.is_none()
+    )));
+    assert_eq!(
+        draw_list
+            .image_resource("atlas://editor/icons", 4)
+            .expect("older image generation")
+            .rgba,
+        vec![4; 16]
+    );
+    assert_eq!(
+        draw_list
+            .image_resource("atlas://editor/icons", 5)
+            .expect("newer image generation")
+            .rgba,
+        vec![5; 16]
+    );
+}
+
+#[test]
+fn borrowed_runtime_draw_list_falls_back_to_inline_pixels_without_resource_entry() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    stream.push_image(
+        1,
+        FrameRect::default(),
+        None,
+        ChromeImagePayload {
+            resource_key: "image://inline-fallback".to_string(),
+            resource_generation: 4,
+            width: 2,
+            height: 2,
+            upload_bytes: 16,
+            rgba: Some(vec![4; 16]),
+            atlas_uv: None,
+        },
+    );
+
+    let draw_list = ui_surface_draw_list_from_stream(&stream);
+
+    assert!(matches!(
+        &draw_list.commands[0].kind,
+        UiSurfaceCommandKind::Image { payload } if payload.rgba.is_none()
+    ));
+    assert_eq!(
+        draw_list
+            .image_resource("image://inline-fallback", 4)
+            .expect("uncompacted stream must retain its inline source once")
+            .rgba,
+        vec![4; 16]
+    );
+}
+
+#[test]
+fn resident_atlas_stays_out_of_owned_draw_list_resources() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    stream.push_image(
+        1,
+        FrameRect::default(),
+        None,
+        ChromeImagePayload {
+            resource_key: "atlas://editor/icons".to_string(),
+            resource_generation: 8,
+            width: 2,
+            height: 2,
+            upload_bytes: 16,
+            rgba: Some(vec![8; 16]),
+            atlas_uv: Some(ChromeImageUvRect {
+                min: [0.0, 0.0],
+                max: [0.5, 0.5],
+            }),
+        },
+    );
+    stream.compact_image_resources_with_residency(|resource_key, generation| {
+        resource_key == "atlas://editor/icons" && generation == 8
+    });
+
+    let draw_list = ui_surface_draw_list_from_owned_stream_with_generation_and_residency(
+        stream,
+        19,
+        |resource_key, generation| resource_key == "atlas://editor/icons" && generation == 8,
+    );
+
+    assert!(draw_list
+        .image_resource("atlas://editor/icons", 8)
+        .is_none());
+    assert!(matches!(
+        &draw_list.commands[0].kind,
+        UiSurfaceCommandKind::Image { payload } if payload.rgba.is_none()
+    ));
 }
 
 #[test]
@@ -297,10 +477,8 @@ fn versioned_owned_runtime_draw_list_interns_repeated_chrome_styles() {
     let draw_list = ui_surface_draw_list_from_owned_stream_with_generation(stream, 18);
 
     assert_eq!(draw_list.style_count(), 1);
-    assert!(
-        draw_list
-            .commands
-            .iter()
-            .all(|command| matches!(command.kind, UiSurfaceCommandKind::Styled { .. }))
-    );
+    assert!(draw_list
+        .commands
+        .iter()
+        .all(|command| matches!(command.kind, UiSurfaceCommandKind::Styled { .. })));
 }

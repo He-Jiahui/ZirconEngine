@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
 use super::super::command::{ChromeCommand, ChromeCommandKind};
 use super::geometry::clamp_surface_size;
-use super::image_resources::{compact_image_resources_with_residency, ChromeImageResource};
+use super::image_resources::{
+    compact_image_resources_with_residency, ChromeImageResource, ChromeImageResources,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract) struct ChromeCommandStream {
@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeCommandStream {
     damage: Option<FrameRect>,
     full_rebuild: bool,
     pub(super) commands: Vec<ChromeCommand>,
-    image_resources: HashMap<String, ChromeImageResource>,
+    image_resources: ChromeImageResources,
 }
 
 impl ChromeCommandStream {
@@ -24,7 +24,7 @@ impl ChromeCommandStream {
             damage: None,
             full_rebuild: true,
             commands: Vec::new(),
-            image_resources: HashMap::new(),
+            image_resources: ChromeImageResources::default(),
         }
     }
 
@@ -37,7 +37,7 @@ impl ChromeCommandStream {
             damage: Some(damage),
             full_rebuild: false,
             commands: Vec::new(),
-            image_resources: HashMap::new(),
+            image_resources: ChromeImageResources::default(),
         }
     }
 
@@ -60,13 +60,14 @@ impl ChromeCommandStream {
     pub(in crate::ui::retained_host::host_contract) fn image_resource(
         &self,
         resource_key: &str,
+        generation: u64,
     ) -> Option<&ChromeImageResource> {
-        self.image_resources.get(resource_key)
+        self.image_resources.get(resource_key, generation)
     }
 
     pub(in crate::ui::retained_host::host_contract) fn image_resources(
         &self,
-    ) -> &HashMap<String, ChromeImageResource> {
+    ) -> &ChromeImageResources {
         &self.image_resources
     }
 
@@ -76,9 +77,8 @@ impl ChromeCommandStream {
         &mut self,
         mut is_resident: impl FnMut(&str, u64) -> bool,
     ) {
-        self.image_resources.retain(|resource_key, resource| {
-            !is_resident(resource_key.as_str(), resource.generation)
-        });
+        self.image_resources
+            .retain(|resource_key, generation, _| !is_resident(resource_key, generation));
     }
 
     pub(in crate::ui::retained_host::host_contract) fn compact_image_resources(&mut self) {
@@ -97,30 +97,22 @@ impl ChromeCommandStream {
                 || (payload.atlas_uv.is_some()
                     && self
                         .image_resources
-                        .get(&payload.resource_key)
-                        .map_or(true, |resource| {
-                            resource.generation < payload.resource_generation
-                        }))
+                        .get(payload.resource_key.as_str(), payload.resource_generation)
+                        .is_none())
         });
         if !has_uncompacted_resource {
             return;
         }
-        for (resource_key, resource) in
-            compact_image_resources_with_residency(&mut self.commands, &mut is_resident)
-        {
-            let replace = self
-                .image_resources
-                .get(&resource_key)
-                .map_or(true, |existing| existing.generation < resource.generation);
-            if replace {
-                self.image_resources.insert(resource_key, resource);
-            }
-        }
+        self.image_resources
+            .extend(compact_image_resources_with_residency(
+                &mut self.commands,
+                &mut is_resident,
+            ));
     }
 
     pub(in crate::ui::retained_host::host_contract) fn into_parts(
         self,
-    ) -> (Vec<ChromeCommand>, HashMap<String, ChromeImageResource>) {
+    ) -> (Vec<ChromeCommand>, ChromeImageResources) {
         (self.commands, self.image_resources)
     }
 
@@ -164,7 +156,7 @@ mod tests {
 
         stream.compact_image_resources();
         let pixels_ptr = stream
-            .image_resource("image://stable")
+            .image_resource("image://stable", 9)
             .expect("first compaction stores the resource")
             .rgba
             .as_ptr();
@@ -173,7 +165,7 @@ mod tests {
 
         assert_eq!(
             stream
-                .image_resource("image://stable")
+                .image_resource("image://stable", 9)
                 .expect("second compaction preserves the resource")
                 .rgba
                 .as_ptr(),
@@ -209,13 +201,14 @@ mod tests {
             resource_key == "atlas://editor/icons" && generation == 7
         });
 
-        assert!(!stream
+        assert!(stream
             .image_resources()
-            .contains_key("atlas://editor/icons"));
+            .get("atlas://editor/icons", 7)
+            .is_none());
         assert_eq!(
             stream
                 .image_resources()
-                .get("atlas://editor/changed")
+                .get("atlas://editor/changed", 8)
                 .map(|resource| resource.rgba.as_slice()),
             Some(&[8; 16][..])
         );

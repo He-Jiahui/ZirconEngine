@@ -90,7 +90,7 @@ fn write_editor_frame_png(
     {
         return Err(remove_editor_staging_after_failure(&staging_path, error));
     }
-    if let Err(error) = fs::rename(&staging_path, path) {
+    if let Err(error) = commit_editor_capture_staging_file(&staging_path, path) {
         return Err(remove_editor_staging_after_failure(
             &staging_path,
             editor_capture_error(format!(
@@ -101,6 +101,65 @@ fn write_editor_frame_png(
         ));
     }
     Ok(())
+}
+
+fn commit_editor_capture_staging_file(
+    staging_path: &Path,
+    final_path: &Path,
+) -> std::io::Result<()> {
+    #[cfg(windows)]
+    if final_path.exists() {
+        return replace_existing_editor_capture_file(staging_path, final_path);
+    }
+
+    fs::rename(staging_path, final_path)
+}
+
+#[cfg(windows)]
+fn replace_existing_editor_capture_file(
+    staging_path: &Path,
+    final_path: &Path,
+) -> std::io::Result<()> {
+    use std::ffi::c_void;
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "Kernel32")]
+    unsafe extern "system" {
+        fn ReplaceFileW(
+            replaced_file_name: *const u16,
+            replacement_file_name: *const u16,
+            backup_file_name: *const u16,
+            replace_flags: u32,
+            exclude: *mut c_void,
+            reserved: *mut c_void,
+        ) -> i32;
+    }
+
+    let final_path = final_path
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let staging_path = staging_path
+        .as_os_str()
+        .encode_wide()
+        .chain(Some(0))
+        .collect::<Vec<_>>();
+    let replaced = unsafe {
+        ReplaceFileW(
+            final_path.as_ptr(),
+            staging_path.as_ptr(),
+            std::ptr::null(),
+            0,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    if replaced == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
 }
 
 fn reserve_editor_capture_staging_file(path: &Path) -> Result<(PathBuf, fs::File), PlatformError> {

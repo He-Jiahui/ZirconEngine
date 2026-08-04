@@ -16,6 +16,8 @@ pub(super) struct ViewportRecordState {
     viewport_generation: u64,
     temporal_frame_index: u64,
     quality_profile: Option<String>,
+    quality_profile_texture_mip_bias: u8,
+    quality_profile_texture_max_anisotropy: u8,
     shader_quality: ShaderQualityTier,
     quality_profile_taa_quality: Option<TaaQualityPreset>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
@@ -39,6 +41,8 @@ impl ViewportRecordState {
         viewport_generation: u64,
         temporal_frame_index: u64,
         quality_profile: Option<String>,
+        quality_profile_texture_mip_bias: u8,
+        quality_profile_texture_max_anisotropy: u8,
         shader_quality: ShaderQualityTier,
         quality_profile_taa_quality: Option<TaaQualityPreset>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
@@ -59,6 +63,8 @@ impl ViewportRecordState {
             viewport_generation,
             temporal_frame_index,
             quality_profile,
+            quality_profile_texture_mip_bias,
+            quality_profile_texture_max_anisotropy,
             shader_quality,
             quality_profile_taa_quality,
             previous_visibility,
@@ -141,6 +147,14 @@ impl ViewportRecordState {
 
     pub(super) fn take_quality_profile(&mut self) -> Option<String> {
         self.quality_profile.take()
+    }
+
+    pub(super) fn quality_profile_texture_mip_bias(&self) -> u8 {
+        self.quality_profile_texture_mip_bias
+    }
+
+    pub(super) fn quality_profile_texture_max_anisotropy(&self) -> u8 {
+        self.quality_profile_texture_max_anisotropy
     }
 
     pub(super) fn shader_quality(&self) -> ShaderQualityTier {

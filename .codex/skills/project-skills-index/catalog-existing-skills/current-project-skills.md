@@ -1,6 +1,6 @@
 # Current Project Skills
 
-Updated: 2026-07-31
+Updated: 2026-08-03
 
 ## Shallow Tree
 
@@ -73,8 +73,8 @@ Updated: 2026-07-31
   Layout: Structured repository skill with a short root `SKILL.md`, focused child folders for `workflow/` and `validation/`, a dedicated `reporting.md`, plus reusable `references/`, `scripts/`, and `agents/` metadata.
 
 - `zircon-engineering`
-  Summary: Use when planning, implementing, or reviewing ZirconEngine work that needs the repository-standard delivery cadence, validation scope, and specialist-skill routing.
-  Layout: Compact default engineering entrypoint with capability tiers, a milestone-batched delivery loop, conditional specialist routing, and a static contract validator.
+  Summary: Use when planning, implementing, or reviewing ZirconEngine work that needs the repository-standard MVP-baseline priority gate, delivery cadence, validation scope, and specialist-skill routing.
+  Layout: Compact default engineering entrypoint with an MVP baseline gate, capability tiers, a milestone-batched delivery loop, conditional specialist routing, and a static contract validator.
 
 - `zircon-project-skills`
   Summary: Route repository-local `zirconEngine` skills through a parent category index instead of scanning the whole project-specific skill collection.

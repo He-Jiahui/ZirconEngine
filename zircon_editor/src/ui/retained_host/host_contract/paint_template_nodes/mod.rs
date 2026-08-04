@@ -81,7 +81,7 @@ mod template_viewport_scene_surfaces;
 mod template_weight_heatmap;
 mod visual_assets;
 
-pub(in crate::ui::retained_host) use sprite_atlas::copy_editor_sprite_atlas_rgba;
+pub(crate) use sprite_atlas::{copy_editor_sprite_atlas_rgba, invalidate_editor_sprite_atlas_cache};
 pub(in crate::ui::retained_host) use visual_assets::clear_visual_asset_pixels_cache;
 pub(super) use template_node_pipeline::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,

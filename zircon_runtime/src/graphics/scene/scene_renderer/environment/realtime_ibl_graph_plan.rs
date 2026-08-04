@@ -370,11 +370,7 @@ const fn slot_resource_prefix(slot: IblRealtimeBufferSlot) -> &'static str {
 
 const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
     let shifted = base_size >> mip_level;
-    if shifted == 0 {
-        1
-    } else {
-        shifted
-    }
+    if shifted == 0 { 1 } else { shifted }
 }
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {

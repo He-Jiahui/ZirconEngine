@@ -100,6 +100,10 @@ fn submit_selected_runtime_frame(
     apply_submission_output_target_to_runtime_frame(frame, &context);
     apply_submission_visibility_to_runtime_frame(frame, &context);
     let mut state = framework.lock_state();
+    let mip_streaming_residency_budget = state.memory_budget.persistent_texture_bytes();
+    state
+        .renderer
+        .set_mip_streaming_residency_budget(mip_streaming_residency_budget);
     let active_capture =
         owns_shared_viewport_products && begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = {
@@ -501,6 +505,8 @@ mod tests {
                 capability_requirements: Vec::new(),
                 history_bindings: Vec::new(),
                 environment_ibl_bake_request: None,
+                half_resolution_transparency_depth_sigma:
+                    crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
                 graph,
             },
         )

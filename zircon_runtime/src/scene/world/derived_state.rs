@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::math::{Mat4, Transform, transform_to_mat4};
+use crate::core::math::{transform_to_mat4, Mat4, Transform};
 
 use super::World;
-use crate::scene::EntityId;
 use crate::scene::components::{ActiveInHierarchy, NodeKind, NodeRecord, SceneNode, WorldMatrix};
 use crate::scene::ecs::{InternalSceneSystem, SystemStage};
+use crate::scene::EntityId;
 
 pub(super) const NODE_KIND_ORDINAL_COUNT: usize = 9;
 
@@ -118,7 +118,7 @@ impl World {
 
     pub(super) fn project_active_in_hierarchy_for_read(&self, entity: EntityId) -> Option<bool> {
         if !self.derived_state_dirty.active_pending() {
-            let Some(active) = self.active_in_hierarchy.get(&entity) else {
+            let Some(active) = self.get::<ActiveInHierarchy>(entity) else {
                 return None;
             };
 
@@ -204,7 +204,7 @@ impl World {
 
     pub(super) fn project_world_transform(&self, entity: EntityId) -> Option<Transform> {
         if !self.derived_state_dirty.hierarchy_or_transform_pending() {
-            let Some(world) = self.world_matrices.get(&entity) else {
+            let Some(world) = self.get::<WorldMatrix>(entity) else {
                 return None;
             };
 
@@ -335,7 +335,6 @@ impl World {
     }
 
     fn rebuild_active_in_hierarchy(&mut self) {
-        self.active_in_hierarchy.clear();
         let traversal = self.hierarchy_traversal_index();
         for root in traversal.roots() {
             self.propagate_active_state(*root, true, &traversal);
@@ -343,7 +342,6 @@ impl World {
     }
 
     fn rebuild_world_matrices(&mut self) {
-        self.world_matrices.clear();
         let traversal = self.hierarchy_traversal_index();
         for root in traversal.roots() {
             self.propagate_world_matrix(*root, Mat4::IDENTITY, &traversal);
@@ -357,8 +355,7 @@ impl World {
         traversal: &HierarchyTraversalIndex,
     ) {
         let active = parent_active && self.active_self_value(entity);
-        self.active_in_hierarchy
-            .insert(entity, ActiveInHierarchy(active));
+        self.replace_derived_component(entity, ActiveInHierarchy(active));
         for child in traversal.children_of(entity) {
             self.propagate_active_state(*child, active, traversal);
         }
@@ -377,7 +374,7 @@ impl World {
         } else {
             local_matrix
         };
-        self.world_matrices.insert(entity, WorldMatrix(world));
+        self.replace_derived_component(entity, WorldMatrix(world));
         for child in traversal.children_of(entity) {
             self.propagate_world_matrix(*child, world, traversal);
         }

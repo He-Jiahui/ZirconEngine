@@ -105,10 +105,10 @@ impl SceneViewportController {
         scene: &Scene,
         preview: ViewportTransformPreview,
     ) {
-        if preview.node_id == scene.active_camera()
-            && let Some(camera) = self.state.camera.as_mut()
-        {
-            camera.transform = preview.transform;
+        if preview.node_id == scene.active_camera() {
+            if let Some(camera) = self.state.camera.as_mut() {
+                camera.transform = preview.transform;
+            }
         }
     }
 }

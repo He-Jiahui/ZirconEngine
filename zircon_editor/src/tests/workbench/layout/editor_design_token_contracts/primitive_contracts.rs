@@ -494,6 +494,109 @@ fn compact_text_primitives_use_xsmall_vertical_padding() {
 }
 
 #[test]
+fn label_uses_shared_dense_control_height_cap() {
+    let asset = workbench_asset!("primitives/data/workbench_label.zui");
+
+    assert!(
+        asset.contains("max = \"$editor.control.height.dense\""),
+        "label must cap its compact row height through the shared dense control token"
+    );
+    assert!(
+        !asset.contains("max = 28.0"),
+        "label must not retain the fixed dense control-height value"
+    );
+}
+
+#[test]
+fn feedback_primitives_use_shared_spacing_and_control_height_tokens() {
+    let tooltip = workbench_asset!("primitives/feedback/workbench_tooltip.zui");
+    let drag_overlay = workbench_asset!("primitives/feedback/workbench_drag_overlay.zui");
+
+    assert!(
+        tooltip.contains("arrow_size = \"$editor.density.gap.medium\"")
+            && !tooltip.contains("arrow_size = 8.0"),
+        "tooltip arrow size must follow the shared medium spacing token"
+    );
+    assert!(
+        drag_overlay.contains("drop_target_height = \"$editor.control.height.compact\"")
+            && !drag_overlay.contains("drop_target_height = 30.0"),
+        "drag-overlay target height must follow the compact control height token"
+    );
+}
+
+#[test]
+fn property_editor_row_composite_inherits_shared_density_and_height_tokens() {
+    let asset = workbench_asset!("composites/inputs/workbench_property_editor_row.zui");
+
+    assert!(
+        asset.contains("styles = [\"res://ui/editor/theme/editor_tokens.zui\"]"),
+        "property-editor row must import the shared editor token registry"
+    );
+    assert!(
+        asset.contains(
+            "container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.small\" }"
+        ) && asset.contains("min = \"$editor.control.height.dense\"")
+            && asset.contains("preferred = \"$editor.control.height.compact\"")
+            && asset.contains("max = \"$editor.control.height.default\""),
+        "property-editor row must use shared spacing and three-tier control heights"
+    );
+    for fixed_metric in ["gap = 4.0", "min = 28.0", "preferred = 30.0", "max = 32.0"] {
+        assert!(
+            !asset.contains(fixed_metric),
+            "property-editor row must not retain fixed metric `{fixed_metric}`"
+        );
+    }
+}
+
+#[test]
+fn floating_composites_inherit_shared_spacing_and_control_height_tokens() {
+    let command_palette = workbench_asset!("floating/workbench_command_palette.zui");
+    let preferences = workbench_asset!("floating/workbench_preferences.zui");
+
+    assert!(
+        command_palette.contains(
+            "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.small\" }"
+        ) && command_palette.contains(
+            "min = \"$editor.control.height.default\", preferred = \"$editor.control.height.default\", max = \"$editor.control.height.default\""
+        ) && command_palette.contains(
+            "min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\""
+        ),
+        "command palette must inherit shared spacing, search, and result-row metrics"
+    );
+    assert!(
+        !command_palette.contains("container = { kind = \"VerticalBox\", gap = 4.0 }")
+            && !command_palette.contains("min = 32.0, preferred = 32.0, max = 32.0")
+            && !command_palette.contains("min = 28.0, preferred = 28.0, max = 28.0"),
+        "command palette must not retain fixed shared density metrics"
+    );
+
+    for required in [
+        "container = { kind = \"HorizontalBox\", gap = \"$editor.density.gap.medium\" }",
+        "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.xsmall\" }",
+        "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.medium\" }",
+        "min = \"$editor.control.height.dense\", preferred = \"$editor.control.height.dense\", max = \"$editor.control.height.dense\"",
+        "min = \"$editor.control.height.default\", preferred = \"$editor.control.height.default\", max = \"$editor.control.height.default\"",
+    ] {
+        assert!(
+            preferences.contains(required),
+            "preferences must inherit shared floating-window metric `{required}`"
+        );
+    }
+    for fixed_metric in [
+        "container = { kind = \"HorizontalBox\", gap = 8.0 }",
+        "container = { kind = \"VerticalBox\", gap = 2.0 }",
+        "container = { kind = \"VerticalBox\", gap = 8.0 }",
+        "min = 28.0, preferred = 28.0, max = 28.0",
+        "min = 32.0, preferred = 32.0, max = 32.0",
+    ] {
+        assert!(
+            !preferences.contains(fixed_metric),
+            "preferences must not retain fixed floating-window metric `{fixed_metric}`"
+        );
+    }
+}
+
+#[test]
 fn chip_slider_and_status_primitives_share_editor_tokens() {
     assert_tokenized_assets(&[
         (
@@ -712,4 +815,36 @@ fn menu_and_collection_composites_share_editor_tokens() {
             ],
         ),
     ]);
+}
+
+#[test]
+fn popup_menu_anchor_tracks_the_compact_control_height_token() {
+    let asset = workbench_asset!("primitives/feedback/workbench_popup_menu.zui");
+
+    assert!(
+        asset.contains("popup_anchor_y = \"$editor.control.height.compact\""),
+        "popup-menu anchor must follow the compact control height token"
+    );
+    assert!(
+        !asset.contains("popup_anchor_y = 30.0"),
+        "popup-menu anchor must not retain the old fixed compact-height value"
+    );
+}
+
+#[test]
+fn dropdown_popup_anchor_tracks_shared_control_height_tokens() {
+    let asset = workbench_asset!("primitives/feedback/workbench_dropdown_popup.zui");
+
+    assert!(
+        asset.contains("popup_anchor_x = \"$editor.density.gap.large\"")
+            && asset.contains("popup_anchor_y = \"$editor.control.height.default\"")
+            && asset.contains("popup_anchor_height = \"$editor.control.height.compact\""),
+        "dropdown-popup anchor must follow the shared spacing and control height tokens"
+    );
+    assert!(
+        !asset.contains("popup_anchor_x = 12.0")
+            && !asset.contains("popup_anchor_y = 32.0")
+            && !asset.contains("popup_anchor_height = 30.0"),
+        "dropdown-popup anchor must not retain old fixed spacing or control-height values"
+    );
 }

@@ -135,8 +135,6 @@ mod shader_prewarm_wgpu_module_validation;
 mod shader_prewarm_wgpu_pipeline_validation;
 mod shader_prewarm_wgpu_report_contract;
 mod shader_prewarm_wgpu_validation_report_summary;
-mod status_output_expected_slices;
-mod status_output_row_data;
 mod taa_reactive_shader_pass_identity;
 mod ui_accessibility;
 mod ui_accessibility_widget_actions;
@@ -182,20 +180,6 @@ fn read_runtime_src(relative: &str) -> String {
     )
 }
 
-fn ui_tests_first_status_row_source() -> String {
-    read_runtime_src_with_children(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first",
-    )
-}
-
-fn ui_tests_second_status_row_source() -> String {
-    read_runtime_src_with_children(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second.rs",
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second",
-    )
-}
-
 fn read_runtime_src_with_children(parent: &str, child_dir: &str) -> String {
     let mut source = read_runtime_src(parent);
     let child_dir = runtime_src_path(child_dir);
@@ -221,13 +205,6 @@ fn read_runtime_src_with_children(parent: &str, child_dir: &str) -> String {
         }));
     }
     normalize_line_endings(source)
-}
-
-fn read_runtime_src_route_tree(parent: &str) -> String {
-    let child_dir = parent
-        .strip_suffix(".rs")
-        .unwrap_or_else(|| panic!("runtime route source should end in .rs: {parent}"));
-    read_runtime_src_with_children(parent, child_dir)
 }
 
 fn read_repo(relative: &str) -> String {

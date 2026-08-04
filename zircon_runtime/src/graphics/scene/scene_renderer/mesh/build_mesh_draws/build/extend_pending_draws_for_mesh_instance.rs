@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, DisplayMode, RenderMaterialPropertyUniformPayload,
-    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
+    DisplayMode, RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -16,7 +16,7 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    default_pipeline_key, GpuMeshResource, ResourceStreamer,
+    GpuMeshResource, ResourceStreamer, default_pipeline_key,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
@@ -25,15 +25,16 @@ use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    SkinnedMeshPreparedPrimitive,
+    SkinnedMeshPreparedPrimitive, prepare_skinned_mesh_asset_primitive,
+    prepare_skinned_model_primitive,
 };
 
 mod material_inputs;
 
 use self::material_inputs::{
-    material_disabled_passes, material_taa_reactive_mask_strength, material_texture_set,
-    material_tinted, renderer_common_for_material,
+    material_disabled_passes, material_half_resolution_transparency,
+    material_taa_reactive_mask_strength, material_texture_set, material_tinted,
+    renderer_common_for_material,
 };
 
 struct DynamicMeshPrimitive {
@@ -257,6 +258,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 transform_revision: mesh_instance.transform_revision,
                 mobility: mesh_instance.mobility,
                 static_state,
+                material_id: mesh_instance.material.id(),
                 material_textures: material_texture_set(streamer, material),
                 material_uniform: streamer.material_uniform(&mesh_instance.material.id()),
                 material_uniform_override_payload: material_uniform_override_payload.clone(),
@@ -273,6 +275,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 common: Arc::clone(&common),
                 disabled_passes: material_disabled_passes(material),
                 taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
+                half_resolution_transparency: material_half_resolution_transparency(material),
                 model_matrix,
                 draw_tint,
                 skinned: false,
@@ -344,11 +347,7 @@ fn resource_revision_signature(resource_id: ResourceId, revision: u64) -> u64 {
 
 fn nonzero_hash(hasher: DefaultHasher) -> u64 {
     let signature = hasher.finish();
-    if signature == 0 {
-        1
-    } else {
-        signature
-    }
+    if signature == 0 { 1 } else { signature }
 }
 
 fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {
@@ -365,7 +364,8 @@ fn dynamic_direct_mesh_primitive(
     mesh_id: &ResourceId,
     prepared_mesh: Arc<GpuMeshResource>,
 ) -> Option<DynamicMeshPrimitive> {
-    let previous_morph_weights = gpu_scene.previous_morph_weights(mesh_instance.stable_instance_key);
+    let previous_morph_weights =
+        gpu_scene.previous_morph_weights(mesh_instance.stable_instance_key);
     let source_morph_weights = direct_mesh_source_morph_weights(streamer, mesh_id, mesh_instance);
     if let Some((prepared, skinned_palette_signature)) =
         skinned_direct_mesh_primitive(streamer, frame, mesh_instance, mesh_id)
@@ -576,6 +576,7 @@ fn push_dynamic_mesh_draws(
     mesh_lod: Option<RenderMeshLodSelection>,
 ) {
     let material = streamer.material(&material_id.id());
+    let material_resource_id = material_id.id();
     let material_textures = material_texture_set(streamer, material);
     let material_uniform = streamer.material_uniform(&material_id.id());
     let standard_material_uniform = streamer.standard_material_uniform(&material_id.id());
@@ -602,6 +603,7 @@ fn push_dynamic_mesh_draws(
             transform_revision,
             mobility,
             static_state,
+            material_id: material_resource_id,
             material_textures: material_textures.clone(),
             material_uniform: material_uniform.clone(),
             material_uniform_override_payload: material_uniform_override_payload.clone(),
@@ -614,6 +616,7 @@ fn push_dynamic_mesh_draws(
             common: Arc::clone(common),
             disabled_passes: material_disabled_passes(material),
             taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
+            half_resolution_transparency: material_half_resolution_transparency(material),
             model_matrix,
             draw_tint,
             skinned,
@@ -656,6 +659,7 @@ fn push_prepared_mesh_draws(
     mesh_lod: Option<RenderMeshLodSelection>,
 ) {
     let material = streamer.material(&material_id.id());
+    let material_resource_id = material_id.id();
     let material_textures = material_texture_set(streamer, material);
     let material_uniform = streamer.material_uniform(&material_id.id());
     let standard_material_uniform = streamer.standard_material_uniform(&material_id.id());
@@ -675,6 +679,7 @@ fn push_prepared_mesh_draws(
             transform_revision,
             mobility,
             static_state,
+            material_id: material_resource_id,
             material_textures: material_textures.clone(),
             material_uniform: material_uniform.clone(),
             material_uniform_override_payload: material_uniform_override_payload.clone(),
@@ -687,6 +692,7 @@ fn push_prepared_mesh_draws(
             common: Arc::clone(common),
             disabled_passes: material_disabled_passes(material),
             taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
+            half_resolution_transparency: material_half_resolution_transparency(material),
             model_matrix,
             draw_tint,
             skinned: false,

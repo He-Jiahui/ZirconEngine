@@ -1,8 +1,10 @@
+use std::time::Duration;
+
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventRecord, LayoutCommand, MenuAction,
 };
-use crate::ui::retained_host::workbench_notifications::{
-    workbench_notifications_for_record, WorkbenchNotification,
+use crate::core::notifications::{
+    NotificationId, NotificationSource, ToastNotification, ToastSeverity,
 };
 use crate::ui::retained_host::HostInvalidationMask;
 
@@ -23,7 +25,7 @@ pub(crate) struct UiHostEventEffects {
     pub open_command_palette_requested: bool,
     pub open_scene_picker_requested: bool,
     pub create_scene_picker_requested: bool,
-    pub workbench_notifications: Vec<WorkbenchNotification>,
+    pub toast_notifications: Vec<ToastNotification>,
 }
 
 impl UiHostEventEffects {
@@ -78,9 +80,9 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
         target.request_paint_only();
     }
 
-    let notifications = workbench_notifications_for_record(record);
+    let notifications = toast_notifications_for_record(record);
     if !notifications.is_empty() {
-        target.workbench_notifications.extend(notifications);
+        target.toast_notifications.extend(notifications);
         target.request_presentation();
     }
 
@@ -154,6 +156,78 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
     }
 }
 
+const DEFAULT_TOAST_LIFETIME: Duration = Duration::from_millis(3_500);
+const IMPORT_TOAST_LIFETIME: Duration = Duration::from_secs(4);
+const ERROR_TOAST_LIFETIME: Duration = Duration::from_secs(7);
+const RETAINED_HOST_NOTIFICATION_SOURCE: &str = "editor.retained_host";
+
+fn toast_notifications_for_record(record: &EditorEventRecord) -> Vec<ToastNotification> {
+    if let Some(error) = record
+        .result
+        .error
+        .as_deref()
+        .map(str::trim)
+        .filter(|error| !error.is_empty())
+    {
+        return toast_for_record(
+            record,
+            "command-failed",
+            ToastSeverity::Error,
+            "editor.notification.command_failed.title",
+            ToastNotification::bounded_message(error, "The editor command could not complete."),
+            ERROR_TOAST_LIFETIME,
+        )
+        .into_iter()
+        .collect();
+    }
+
+    record
+        .effects
+        .iter()
+        .filter_map(|effect| match effect {
+            EditorEventEffect::ProjectOpenRequested => toast_for_record(
+                record,
+                "project-open",
+                ToastSeverity::Success,
+                "editor.notification.project_opened.title",
+                "editor.notification.project_opened.message",
+                DEFAULT_TOAST_LIFETIME,
+            ),
+            EditorEventEffect::ProjectSaveRequested => toast_for_record(
+                record,
+                "project-save",
+                ToastSeverity::Success,
+                "editor.notification.project_saved.title",
+                "editor.notification.project_saved.message",
+                DEFAULT_TOAST_LIFETIME,
+            ),
+            EditorEventEffect::ImportModelRequested => toast_for_record(
+                record,
+                "import-model",
+                ToastSeverity::Info,
+                "editor.notification.import_model.title",
+                "editor.notification.import_model.message",
+                IMPORT_TOAST_LIFETIME,
+            ),
+            _ => None,
+        })
+        .collect()
+}
+
+fn toast_for_record(
+    record: &EditorEventRecord,
+    suffix: &str,
+    severity: ToastSeverity,
+    title_key: &str,
+    message_key: &str,
+    lifetime: Duration,
+) -> Option<ToastNotification> {
+    let id =
+        NotificationId::parse(format!("editor.event.{}.{}", record.sequence.0, suffix)).ok()?;
+    let source = NotificationSource::builtin(RETAINED_HOST_NOTIFICATION_SOURCE).ok()?;
+    ToastNotification::new(id, source, severity, title_key, message_key, lifetime).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::core::editor_event::{
@@ -161,7 +235,7 @@ mod tests {
         EditorEventSequence, EditorEventSource, EditorEventUndoPolicy, MenuAction,
     };
 
-    use super::{apply_record_effects, UiHostEventEffects};
+    use super::{UiHostEventEffects, apply_record_effects};
 
     #[test]
     fn project_close_effect_requests_retained_close_and_empty_asset_sync() {

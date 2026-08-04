@@ -4,12 +4,13 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use super::schema::{
-    FoldedTransactionJournal, JOURNAL_VERSION, JournalDocument, JournalPhase, JournalState,
-    TransactionJournal,
+    FoldedTransactionJournal, JournalDocument, JournalPhase, JournalState, TransactionJournal,
+    JOURNAL_VERSION,
 };
 use super::toml_evidence::TomlEvidenceReader;
 use super::{transaction_error, valid_transaction_id};
 use crate::asset::migration::{AssetMigrationError, AssetMigrationTransactionPhase};
+use crate::asset::project::ProjectPaths;
 use crate::asset::safe_project_path::is_link_or_reparse;
 
 const EVIDENCE_READ_BUFFER_BYTES: usize = 64 * 1024;
@@ -78,7 +79,7 @@ fn load_pending_transactions(
     let canonical_roots = roots
         .iter()
         .map(|root| {
-            root.canonicalize()
+            ProjectPaths::resolve_existing_path(root)
                 .map_err(|source| recovery_error(root.to_path_buf(), source))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -701,9 +702,9 @@ fn validate_retired_pair(
 
 fn path_identity(path: &Path) -> Option<String> {
     let identity = if path.exists() {
-        path.canonicalize().ok()?
+        ProjectPaths::resolve_existing_path(path).ok()?
     } else {
-        let parent = path.parent()?.canonicalize().ok()?;
+        let parent = ProjectPaths::resolve_existing_path(path.parent()?).ok()?;
         parent.join(path.file_name()?)
     };
     #[cfg(windows)]
@@ -720,10 +721,9 @@ fn path_is_within_roots(path: &Path, roots: &[PathBuf]) -> bool {
         return false;
     };
     let resolved = if path.exists() {
-        path.canonicalize().ok()
+        ProjectPaths::resolve_existing_path(path).ok()
     } else {
-        parent
-            .canonicalize()
+        ProjectPaths::resolve_existing_path(parent)
             .ok()
             .map(|parent| parent.join(path.file_name().unwrap_or_default()))
     };

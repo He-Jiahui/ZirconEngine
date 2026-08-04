@@ -68,6 +68,7 @@ pub(crate) struct PbrMirrorScene {
     preview: PreviewEnvironmentExtract,
     ibl_load_report: PbrMirrorSceneIblLoadReport,
     base_prewarm_report: PbrMirrorSceneBasePrewarmReport,
+    startup_timing: PbrMirrorSceneStartupTiming,
     frame_timing_report_requested: bool,
     last_frame_timing: PbrMirrorSceneFrameTimingReport,
     // Keep the cache root alive until runtime teardown releases its file watchers.
@@ -137,6 +138,7 @@ impl PbrMirrorSceneIblLoadReport {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct PbrMirrorSceneBasePrewarmReport {
+    pipeline_ready: bool,
     cache_hit: bool,
     shader_source_resolution: std::time::Duration,
     pipeline_creation: std::time::Duration,
@@ -144,6 +146,10 @@ pub(crate) struct PbrMirrorSceneBasePrewarmReport {
 }
 
 impl PbrMirrorSceneBasePrewarmReport {
+    pub(crate) const fn pipeline_ready(self) -> bool {
+        self.pipeline_ready
+    }
+
     pub(crate) const fn cache_hit(self) -> bool {
         self.cache_hit
     }
@@ -158,6 +164,74 @@ impl PbrMirrorSceneBasePrewarmReport {
 
     pub(crate) const fn elapsed(self) -> std::time::Duration {
         self.elapsed
+    }
+}
+
+/// Startup timings retained with the scene so captured images carry the same
+/// attribution as the viewer's startup log.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct PbrMirrorSceneStartupTiming {
+    hdri_decode: std::time::Duration,
+    project_assets: std::time::Duration,
+    runtime_bootstrap: std::time::Duration,
+    project_open: std::time::Duration,
+    world_load: std::time::Duration,
+    renderer_initialization: std::time::Duration,
+    renderer_backend_initialization: std::time::Duration,
+    renderer_deferred_initialization: std::time::Duration,
+    renderer_deferred_standard_pipeline: std::time::Duration,
+    resource_streamer_initialization: std::time::Duration,
+    ibl_restore: std::time::Duration,
+    total: std::time::Duration,
+}
+
+impl PbrMirrorSceneStartupTiming {
+    pub(crate) const fn hdri_decode(self) -> std::time::Duration {
+        self.hdri_decode
+    }
+
+    pub(crate) const fn project_assets(self) -> std::time::Duration {
+        self.project_assets
+    }
+
+    pub(crate) const fn runtime_bootstrap(self) -> std::time::Duration {
+        self.runtime_bootstrap
+    }
+
+    pub(crate) const fn project_open(self) -> std::time::Duration {
+        self.project_open
+    }
+
+    pub(crate) const fn world_load(self) -> std::time::Duration {
+        self.world_load
+    }
+
+    pub(crate) const fn renderer_initialization(self) -> std::time::Duration {
+        self.renderer_initialization
+    }
+
+    pub(crate) const fn renderer_backend_initialization(self) -> std::time::Duration {
+        self.renderer_backend_initialization
+    }
+
+    pub(crate) const fn renderer_deferred_initialization(self) -> std::time::Duration {
+        self.renderer_deferred_initialization
+    }
+
+    pub(crate) const fn renderer_deferred_standard_pipeline(self) -> std::time::Duration {
+        self.renderer_deferred_standard_pipeline
+    }
+
+    pub(crate) const fn resource_streamer_initialization(self) -> std::time::Duration {
+        self.resource_streamer_initialization
+    }
+
+    pub(crate) const fn ibl_restore(self) -> std::time::Duration {
+        self.ibl_restore
+    }
+
+    pub(crate) const fn total(self) -> std::time::Duration {
+        self.total
     }
 }
 
@@ -267,7 +341,8 @@ impl PbrMirrorScene {
         let (renderer, renderer_startup_report) =
             SceneRenderer::new_with_startup_options_and_report(
                 asset_access,
-                SceneRendererStartupOptions::environment_only_pbr_preview(),
+                SceneRendererStartupOptions::environment_only_pbr_preview()
+                    .with_async_pipeline_compile(),
             )?;
         let renderer_init_elapsed = renderer_init_started.elapsed();
 
@@ -303,6 +378,7 @@ impl PbrMirrorScene {
         let base_prewarm_report = renderer_startup_report
             .environment_only_pbr_base_prewarm()
             .map(|report| PbrMirrorSceneBasePrewarmReport {
+                pipeline_ready: report.pipeline_ready(),
                 cache_hit: report.cache_hit(),
                 shader_source_resolution: report.shader_source_resolution(),
                 pipeline_creation: report.pipeline_creation(),
@@ -314,6 +390,21 @@ impl PbrMirrorScene {
                     "environment-only PBR viewer did not retain its Base prewarm report",
                 )
             })?;
+        let startup_timing = PbrMirrorSceneStartupTiming {
+            hdri_decode: hdri_decode_elapsed,
+            project_assets: project_assets_elapsed,
+            runtime_bootstrap: runtime_bootstrap_elapsed,
+            project_open: project_open_elapsed,
+            world_load: world_load_elapsed,
+            renderer_initialization: renderer_init_elapsed,
+            renderer_backend_initialization: renderer_startup_report.backend_initialization(),
+            renderer_deferred_initialization: core_startup.deferred(),
+            renderer_deferred_standard_pipeline: core_startup.deferred_lighting_standard_pipeline(),
+            resource_streamer_initialization: renderer_startup_report
+                .resource_streamer_initialization(),
+            ibl_restore: ibl_restore_elapsed,
+            total: scene_load_started.elapsed(),
+        };
         let scene = Self {
             _project_root: project_root,
             world: Some(world),
@@ -323,12 +414,13 @@ impl PbrMirrorScene {
             preview,
             ibl_load_report,
             base_prewarm_report,
+            startup_timing,
             frame_timing_report_requested: false,
             last_frame_timing: PbrMirrorSceneFrameTimingReport::default(),
             _asset_runtime: Some(asset_runtime),
         };
         println!(
-            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={environment_only_pbr_base_prewarm:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
+            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}; mesh_generation_samples={}; serialized_source_bytes={}; asset_filesystem_writes={}; project_manifest_writes={}; startup_filesystem_writes={}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?} (project_open_count={}; imported_assets={}; ready_assets={}), world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={base_prewarm_report:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
             project_asset_generation.mesh_generation_samples(),
             project_asset_generation.serialized_source_bytes(),
             project_asset_generation.filesystem_writes(),
@@ -355,8 +447,7 @@ impl PbrMirrorScene {
             core_startup.scene_effects_post_process(),
             core_startup.overlay_and_ui(),
             renderer_startup_report.resource_streamer_initialization(),
-            base_prewarm_report,
-            scene_load_started.elapsed(),
+            startup_timing.total(),
             project_assets_cache = if project_assets_reused {
                 "reused"
             } else {
@@ -478,6 +569,31 @@ impl PbrMirrorScene {
 
     pub(crate) const fn base_prewarm_report(&self) -> PbrMirrorSceneBasePrewarmReport {
         self.base_prewarm_report
+    }
+
+    pub(crate) const fn startup_timing(&self) -> PbrMirrorSceneStartupTiming {
+        self.startup_timing
+    }
+
+    /// Drains completed Base-PSO work without blocking and reports whether a
+    /// one-shot screenshot or graphics capture can contain the PBR mesh.
+    pub(crate) fn environment_only_base_pipeline_ready(&mut self) -> Result<bool, Box<dyn Error>> {
+        Ok(self
+            .renderer
+            .as_mut()
+            .ok_or("PBR mirror scene renderer has already shut down")?
+            .environment_only_pbr_base_pipeline_ready()?)
+    }
+
+    /// Retries nonblocking Base-PSO admission after the bounded worker frees capacity.
+    pub(crate) fn retry_environment_only_base_pipeline_admission(
+        &mut self,
+    ) -> Result<(), Box<dyn Error>> {
+        self.renderer
+            .as_mut()
+            .ok_or("PBR mirror scene renderer has already shut down")?
+            .retry_environment_only_pbr_base_pipeline_admission()?;
+        Ok(())
     }
 
     pub(crate) fn request_next_frame_timing_report(&mut self) {
@@ -674,6 +790,15 @@ mod tests {
             !source.contains("PreviewEnvironmentExtract::from_environment(&snapshot.environment"),
             "the frame loop must not rederive preview settings from immutable HDRI state"
         );
+    }
+
+    #[test]
+    fn viewer_exposes_nonblocking_base_pipeline_admission_retry() {
+        assert_source_order(&[
+            "pub(crate) fn environment_only_base_pipeline_ready(",
+            "pub(crate) fn retry_environment_only_base_pipeline_admission(",
+            ".retry_environment_only_pbr_base_pipeline_admission()?;",
+        ]);
     }
 
     #[test]

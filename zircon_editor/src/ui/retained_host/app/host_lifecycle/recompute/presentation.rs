@@ -24,7 +24,7 @@ impl RetainedEditorHost {
             chrome.scene_entries = scene_entries;
             chrome
         });
-        let chrome = filtered_chrome.as_deref().unwrap_or(chrome);
+        let chrome = filtered_chrome.as_ref().unwrap_or(chrome);
         let _ = self.workbench_window_bridge.sync_from_chrome(chrome);
         let has_component_showcase_runtime =
             self.prepare_component_showcase_runtime_for_presentation(model);

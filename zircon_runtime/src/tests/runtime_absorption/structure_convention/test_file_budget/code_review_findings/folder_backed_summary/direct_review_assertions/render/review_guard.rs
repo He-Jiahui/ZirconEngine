@@ -47,7 +47,6 @@ fn runtime_15_code_review_findings_render_direct_assertions_guard_is_folder_back
             RENDER_DIRECT_ASSERTIONS_FOLDER_BACKED_SLICE,
             RENDER_DIRECT_ASSERTIONS_FOLDER_BACKED_STATUS,
             RENDER_DIRECT_ASSERTIONS_FOLDER_BACKED_GUARD,
-            RENDER_DIRECT_ASSERTIONS_STATUS_GUARD,
             RENDER_DIRECT_ASSERTIONS_BUDGET_GUARD,
         ],
     );

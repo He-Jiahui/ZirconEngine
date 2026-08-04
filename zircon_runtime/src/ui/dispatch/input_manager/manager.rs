@@ -502,6 +502,7 @@ fn focus_input_method_lifecycle_result(
             kind: UiImeInputEventKind::Cancel,
             text: String::new(),
             cursor_range: None,
+            preedit_clauses: Vec::new(),
             delete_surrounding: None,
         }),
         UiDispatchReply::handled().in_phase(UiDispatchPhase::DefaultAction),

@@ -220,7 +220,12 @@ pub fn mutate_tree_property(
                 "visibility expects one of visible, hidden, collapsed, hit_test_invisible, or self_hit_test_invisible",
             ),
         },
-        "enabled" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.enabled, input_dirty()),
+        "enabled" => mutate_node_state_bool(
+            &request,
+            node,
+            |node| &mut node.state_flags.enabled,
+            input_dirty(),
+        ),
         "visible" => mutate_node_state_bool_and_optional_attribute(
             &request,
             node,
@@ -228,10 +233,30 @@ pub fn mutate_tree_property(
             "visible",
             visibility_dirty(node.visibility),
         ),
-        "clickable" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.clickable, input_dirty()),
-        "hoverable" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.hoverable, input_dirty()),
-        "focusable" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.focusable, input_dirty()),
-        "pressed" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.pressed, render_dirty()),
+        "clickable" => mutate_node_state_bool(
+            &request,
+            node,
+            |node| &mut node.state_flags.clickable,
+            input_dirty(),
+        ),
+        "hoverable" => mutate_node_state_bool(
+            &request,
+            node,
+            |node| &mut node.state_flags.hoverable,
+            input_dirty(),
+        ),
+        "focusable" => mutate_node_state_bool(
+            &request,
+            node,
+            |node| &mut node.state_flags.focusable,
+            input_dirty(),
+        ),
+        "pressed" => mutate_node_state_bool(
+            &request,
+            node,
+            |node| &mut node.state_flags.pressed,
+            render_dirty(),
+        ),
         "checked" => mutate_node_state_bool_and_optional_attribute(
             &request,
             node,
@@ -268,8 +293,11 @@ pub fn mutate_tree_property(
                 UiPropertyMutationReport::unchanged(&request, previous)
             } else {
                 metadata.attributes.insert(property.to_string(), next);
-                let dirty =
-                    metadata_attribute_dirty(metadata.component.as_str(), property, request.value.kind());
+                let dirty = metadata_attribute_dirty(
+                    metadata.component.as_str(),
+                    property,
+                    request.value.kind(),
+                );
                 mark_dirty(node, dirty);
                 UiPropertyMutationReport::accepted(&request, previous, dirty)
             }
@@ -472,6 +500,9 @@ fn normalize_token(value: &str) -> String {
 }
 
 fn mark_dirty(node: &mut zircon_runtime_interface::ui::tree::UiTreeNode, dirty: UiDirtyFlags) {
+    if dirty.text && !node.dirty.text {
+        node.layout_cache.advance_text_layout_revision();
+    }
     node.dirty.layout |= dirty.layout;
     node.dirty.hit_test |= dirty.hit_test;
     node.dirty.render |= dirty.render;

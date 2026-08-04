@@ -56,6 +56,8 @@ fn tooltip_state_style_projects_state_roles_from_host_palette() {
         state::tooltip_state_style_from_palette(UiPainterResolvedState::Pressed, tooltip_palette);
     let hovered =
         state::tooltip_state_style_from_palette(UiPainterResolvedState::Hovered, tooltip_palette);
+    let focused =
+        state::tooltip_state_style_from_palette(UiPainterResolvedState::Focused, tooltip_palette);
 
     assert_eq!(loading.surface, [40, 41, 42, 255]);
     assert_eq!(loading.border, [50, 51, 52, 255]);
@@ -70,6 +72,8 @@ fn tooltip_state_style_projects_state_roles_from_host_palette() {
     assert_eq!(pressed.title, [30, 31, 32, 255]);
     assert_eq!(hovered.border, [20, 21, 22, 255]);
     assert_eq!(hovered.icon, [80, 81, 82, 255]);
+    assert_eq!(focused.surface, [10, 11, 12, 255]);
+    assert_eq!(focused.border, [70, 71, 72, 255]);
 }
 
 #[test]
@@ -101,15 +105,15 @@ fn tooltip_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn focused_tooltip_keeps_neutral_bubble_border() {
+fn focused_tooltip_keeps_normal_surface_with_focus_border() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
 
     let style = select_workbench_tooltip_style(&node);
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
-    assert_eq!(style.border, PALETTE.border);
-    assert_ne!(style.border, PALETTE.focus_ring);
+    assert_eq!(style.surface, PALETTE.popup);
+    assert_eq!(style.border, PALETTE.focus_ring);
 }
 
 #[test]

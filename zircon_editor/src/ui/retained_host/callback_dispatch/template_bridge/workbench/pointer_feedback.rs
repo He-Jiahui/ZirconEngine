@@ -35,6 +35,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         for node_id in &route.entered {
             touched_hover_candidate |= self.set_pointer_hover_feedback(*node_id, true)?;
         }
+        touched_hover_candidate |= self.refresh_workbench_icon_tooltip(route)?;
 
         self.refresh_dirty_pointer_feedback(touched_hover_candidate)
     }
@@ -44,7 +45,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         route: &UiPointerRoute,
         pressed_before_route: Option<UiNodeId>,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        let mut touched_press_candidate = false;
+        let mut touched_press_candidate =
+            self.dismiss_workbench_icon_tooltip_on_primary_press(route)?;
         match route.activation_phase {
             UiPointerActivationPhase::PrimaryPress => {
                 if let Some(previous) =
@@ -71,25 +73,23 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         route: &UiPointerRoute,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        let Some(update) = pointer_range_update(&self.template_surface.surface, route) else {
-            return Ok(false);
-        };
-
-        if route.activation_phase == UiPointerActivationPhase::PrimaryPress {
-            self.template_surface
-                .surface
-                .capture_pointer(update.node_id)?;
+        let is_initial_range_press =
+            route.activation_phase == UiPointerActivationPhase::PrimaryPress;
+        if let Some(update) = pointer_range_update(&self.template_surface.surface, route) {
+            let _ =
+                self.template_surface
+                    .surface
+                    .mutate_property(UiPropertyMutationRequest::new(
+                        update.node_id,
+                        update.value_property,
+                        UiValue::Float(update.value),
+                    ))?;
+            return self.refresh_dirty_pointer_feedback(true);
         }
-        let _ = self
-            .template_surface
-            .surface
-            .mutate_property(UiPropertyMutationRequest::new(
-                update.node_id,
-                update.value_property,
-                UiValue::Float(update.value),
-            ))?;
 
-        self.refresh_dirty_pointer_feedback(true)
+        let runtime_owns_range_drag = !is_initial_range_press
+            && pointer_range_target(&self.template_surface.surface, route).is_some();
+        self.refresh_dirty_pointer_feedback(runtime_owns_range_drag)
     }
 
     pub(crate) fn refresh_text_input_pointer_feedback(
@@ -183,6 +183,8 @@ struct PointerRangeUpdate {
     value: f64,
 }
 
+const RANGE_MIN_PROPERTY: &str = "range_min";
+
 const POINTER_HOVER_FEEDBACK_CLASSES: &[&str] = &[
     "workbench-icon-button",
     "workbench-rail-button",
@@ -203,19 +205,21 @@ const POINTER_HOVER_FEEDBACK_CLASSES: &[&str] = &[
 ];
 
 fn pointer_range_update(surface: &UiSurface, route: &UiPointerRoute) -> Option<PointerRangeUpdate> {
+    if route.activation_phase != UiPointerActivationPhase::PrimaryPress {
+        return None;
+    }
     let node_id = pointer_range_target(surface, route)?;
     let node = surface.tree.nodes.get(&node_id)?;
     let metadata = node.template_metadata.as_ref()?;
     let frame = surface.arranged_tree.get(node_id).map(|node| node.frame)?;
-    let value = pointer_range_value_from_point(metadata, frame, route.point)?;
+    let value_property = surface
+        .input
+        .pointer_drag_property(node_id)
+        .unwrap_or_else(|| metadata.widget.value_property.as_deref().unwrap_or("value"));
+    let value = pointer_range_value_from_point(metadata, frame, route.point, value_property)?;
     Some(PointerRangeUpdate {
         node_id,
-        value_property: metadata
-            .widget
-            .value_property
-            .as_deref()
-            .unwrap_or("value")
-            .to_string(),
+        value_property: value_property.to_string(),
         value,
     })
 }
@@ -251,6 +255,7 @@ fn pointer_range_value_from_point(
     metadata: &UiTemplateNodeMetadata,
     frame: UiFrame,
     point: UiPoint,
+    value_property: &str,
 ) -> Option<f64> {
     if frame.width <= f32::EPSILON {
         return None;
@@ -278,9 +283,34 @@ fn pointer_range_value_from_point(
     )
     .filter(|step| *step > 0.0)
     .map(|step| min + ((raw_value - min) / step).round() * step)
-    .unwrap_or(raw_value)
-    .clamp(min, max);
+    .unwrap_or(raw_value);
+    let (lower_bound, upper_bound) = pointer_range_bounds(metadata, value_property, min, max);
+    let value = value.clamp(lower_bound, upper_bound);
     Some(value)
+}
+
+fn pointer_range_bounds(
+    metadata: &UiTemplateNodeMetadata,
+    value_property: &str,
+    min: f64,
+    max: f64,
+) -> (f64, f64) {
+    if metadata.component != "RangeSlider" {
+        return (min, max);
+    }
+    if value_property == RANGE_MIN_PROPERTY {
+        let upper_bound = metadata_f64(
+            metadata,
+            metadata.widget.value_property.as_deref().unwrap_or("value"),
+        )
+        .unwrap_or(max)
+        .clamp(min, max);
+        (min, upper_bound)
+    } else if let Some(range_min) = metadata_f64(metadata, RANGE_MIN_PROPERTY) {
+        (range_min.clamp(min, max), max)
+    } else {
+        (min, max)
+    }
 }
 
 fn route_focuses_text_input_control(surface: &UiSurface, route: &UiPointerRoute) -> bool {

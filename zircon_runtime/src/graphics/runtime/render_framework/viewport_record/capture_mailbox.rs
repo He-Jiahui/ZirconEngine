@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{CapturedFrame, RenderCaptureReport};
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::core::AsyncViewportCaptureRequest;
+use crate::graphics::scene::AsyncViewportCaptureRequest;
 use crate::graphics::CompiledRenderPipeline;
-use crate::rhi_wgpu::gpu_readback_queue::GpuReadbackQueue;
+use zr_rhi_wgpu::GpuReadbackQueue;
 
 use super::viewport_record::{
     PendingViewportCapture, ReadyViewportCapture, ViewportAsyncCaptureMailbox, ViewportRecord,

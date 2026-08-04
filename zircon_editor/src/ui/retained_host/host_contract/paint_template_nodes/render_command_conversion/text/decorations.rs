@@ -23,6 +23,7 @@ pub(super) fn push_text_decorations(
         let color =
             parse_style_color(Some(decoration.color.as_str())).unwrap_or(match decoration.kind {
                 UiTextPaintDecorationKind::Selection => [77, 137, 255, 102],
+                UiTextPaintDecorationKind::CompositionHighlight => [77, 137, 255, 76],
                 UiTextPaintDecorationKind::CompositionUnderline => [77, 137, 255, 255],
                 UiTextPaintDecorationKind::Caret => [232, 238, 247, 255],
                 UiTextPaintDecorationKind::Outline => [232, 238, 247, 255],

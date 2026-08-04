@@ -6,6 +6,7 @@ mod default_exposure_buffer;
 mod default_exposure_histogram_buffer;
 mod depth_of_field_prepare_params_buffer;
 mod exposure_params_buffer;
+mod half_res_transparency_params_buffer;
 mod hybrid_gi_probe_buffer;
 mod hybrid_gi_trace_region_buffer;
 mod hzb_params_buffer;

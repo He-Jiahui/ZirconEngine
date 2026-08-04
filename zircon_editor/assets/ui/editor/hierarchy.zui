@@ -23,8 +23,8 @@ layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" },
 [nodes.header_panel]
 component = "Overlay"
 control_id = "HierarchyHeaderPanel"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, font_weight = 600, overflow = "elide" }
-layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", font_weight = "$editor.typography.strong.weight", overflow = "elide" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 
 [nodes.header_list_gap]
 component = "Space"
@@ -33,13 +33,13 @@ layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.
 [nodes.search_field]
 component = "TextField"
 control_id = "HierarchySearchQuery"
-props = { value = "", placeholder = "Search hierarchy", edit_action_id = "HierarchySearchQuery", surface_variant = "inset", border_width = 1.0, corner_radius = 4.0 }
+props = { value = "", placeholder = "Search hierarchy", edit_action_id = "HierarchySearchQuery", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.small" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.search_row]
 component = "HorizontalBox"
 control_id = "HierarchySearchRow"
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.density.row_height", preferred = "$editor.density.row_height", max = "$editor.density.row_height", stretch = "Fixed" } }
 children = [{ node = "search_field" }]
 
 [nodes.search_list_gap]
@@ -55,7 +55,7 @@ layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position
 [nodes.list_panel]
 component = "Overlay"
 control_id = "HierarchyListPanel"
-props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, overflow = "elide" }
+props = { surface_variant = "inset", radius = "$editor.control.radius.small", border_width = "$editor.control.border_width", overflow = "elide" }
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "empty_state_message" }]
 

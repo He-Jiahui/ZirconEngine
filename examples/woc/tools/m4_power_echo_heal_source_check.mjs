@@ -11,7 +11,7 @@ const dispatch = gitShow('src/sim/combat/effect_dispatch.ts');
 const heal = gitShow('src/sim/combat/heal.ts');
 const projection = readFileSync(resolve(wocRoot, 'src', 'combat', 'power_echo_heal_state.zr'), 'utf8');
 const testMain = readFileSync(resolve(wocRoot, 'src', 'combat', 'power_echo_heal_state_test_main.zr'), 'utf8');
-const testProject = JSON.parse(readFileSync(resolve(wocRoot, 'woc_m4_power_echo_heal_state_tests.zrp'), 'utf8'));
+const testProject = readFileSync(resolve(wocRoot, 'woc_m4_power_echo_heal_state_tests.zrp'), 'utf8');
 
 for (const needle of [
   'const healed = ctx.applyHeal(p, healTarget, healAmount, ability.name, ability.id);',
@@ -28,7 +28,7 @@ for (const needle of [
   'if (state.targetDead || resolvedHeal <= 0) return;', 'state.echoCanCrit = false;',
 ]) invariant(projection.includes(needle), `Power Echo heal projection omitted: ${needle}`);
 invariant(testMain.includes('%import("combat/power_echo_heal_state")') && testMain.includes('echo.contractTest()'), 'missing Power Echo heal test entry');
-invariant(testProject.name === 'woc_m4_power_echo_heal_state_tests' && testProject.source === 'src' && testProject.binary === 'bin-m4-power-echo-heal-state-tests' && testProject.entry === 'combat/power_echo_heal_state_test_main', 'Power Echo heal test project contract drifted');
+invariant(testProject.includes('backend = "zr_vm:project"') && testProject.includes('entry = "src/combat/power_echo_heal_state_test_main.zr"'), 'Power Echo heal test project must use the zr_vm plugin backend');
 
 process.stdout.write(`checked M4 Power Echo heal source projection: ${SOURCE_COMMIT.slice(0, 15)}\n`);
 

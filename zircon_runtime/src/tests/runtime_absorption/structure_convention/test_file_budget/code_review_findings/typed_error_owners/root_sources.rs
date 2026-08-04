@@ -17,18 +17,3 @@ pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget:
     }
     blob
 }
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn typed_error_structure_status_row_source(
-) -> String {
-    super::status_docs::status_doc_rows_for_structure()
-}
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn typed_error_structure_status_map_source(
-) -> String {
-    super::status_docs::status_doc_status_map_for_structure()
-}
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn typed_error_structure_date_map_source(
-) -> String {
-    super::status_docs::status_doc_date_map_for_structure()
-}

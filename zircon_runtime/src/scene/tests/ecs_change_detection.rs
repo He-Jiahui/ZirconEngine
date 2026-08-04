@@ -2,9 +2,9 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, Changed, Component, ComponentTicks,
-    ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, QueryState, RemovedComponentsParam,
-    ResMutParam, ResParam, Resource, StorageType, SystemState,
+    Mut, QueryState, RemovedComponentsParam, ResMutParam, ResParam, Resource, StorageType,
+    SystemState, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
 };
 use crate::scene::{EntityId, World};
 
@@ -186,21 +186,17 @@ fn mut_query_marks_table_components_only_after_mutable_access() {
         }),
         vec![entity]
     );
-    assert!(
-        changed
-            .run(&mut world, |query| query.iter().next())
-            .is_none()
-    );
+    assert!(changed
+        .run(&mut world, |query| query.iter().next())
+        .is_none());
 
     mutable.run(&mut world, |mut query| {
         let health = query.get_mut(entity).unwrap();
         assert_eq!(health.0, 10);
     });
-    assert!(
-        changed
-            .run(&mut world, |query| query.iter().next())
-            .is_none()
-    );
+    assert!(changed
+        .run(&mut world, |query| query.iter().next())
+        .is_none());
 
     mutable.run(&mut world, |mut query| {
         let mut health = query.get_mut(entity).unwrap();
@@ -269,6 +265,141 @@ fn res_mut_marks_resources_only_after_mutable_access() {
 }
 
 #[test]
+fn cached_mut_query_fetch_does_not_mark_changed_until_the_wrapper_is_mutated() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn((Name("CachedTracked".to_string()), Health(10)))
+        .unwrap();
+
+    type ChangedHealth = QueryState<(EntityId, &'static Health), Changed<Health>>;
+    type CachedMutableHealth = QueryState<Mut<'static, Health>>;
+    let mut changed = SystemState::<ChangedHealth>::new(&mut world).unwrap();
+    let mut cached_mutable = CachedMutableHealth::new(&mut world);
+
+    assert_eq!(
+        changed.run(&mut world, |query| {
+            query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
+        }),
+        vec![entity]
+    );
+    assert_eq!(cached_mutable.cache_rebuilds(), 1);
+
+    {
+        let health = cached_mutable.get_mut(&mut world, entity).unwrap();
+        assert_eq!(health.0, 10);
+    }
+    assert_eq!(cached_mutable.cache_rebuilds(), 1);
+    assert!(changed
+        .run(&mut world, |query| query.iter().next())
+        .is_none());
+
+    {
+        let mut health = cached_mutable.get_mut(&mut world, entity).unwrap();
+        health.0 += 1;
+    }
+    assert_eq!(
+        changed.run(&mut world, |query| {
+            query.iter().map(|(entity, _)| entity).collect::<Vec<_>>()
+        }),
+        vec![entity]
+    );
+}
+
+#[test]
+fn raw_world_mutable_access_marks_components_and_resources_eagerly() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn((Name("RawMutable".to_string()), Health(10)))
+        .unwrap();
+    world.insert_resource(ChangeTrackedResource(5));
+
+    let component_before = world.component_change_ticks::<Health>(entity).unwrap();
+    let resource_before = world
+        .resource_change_ticks::<ChangeTrackedResource>()
+        .unwrap();
+
+    assert_eq!(world.get_mut::<Health>(entity).unwrap().0, 10);
+    assert_eq!(
+        world.get_resource_mut::<ChangeTrackedResource>().unwrap().0,
+        5
+    );
+
+    assert_ne!(
+        world.component_change_ticks::<Health>(entity),
+        Some(component_before)
+    );
+    assert_ne!(
+        world.resource_change_ticks::<ChangeTrackedResource>(),
+        Some(resource_before)
+    );
+}
+
+#[test]
+fn optional_res_mut_fetch_is_not_a_change_until_it_mutates() {
+    let mut world = World::empty();
+    world.insert_resource(ChangeTrackedResource(10));
+
+    type OptionalMutable = Option<ResMutParam<ChangeTrackedResource>>;
+    let mut observed = SystemState::<ResParam<ChangeTrackedResource>>::new(&mut world).unwrap();
+    let mut mutable = SystemState::<OptionalMutable>::new(&mut world).unwrap();
+
+    assert!(observed.run(&mut world, |resource| resource.is_changed()));
+    assert!(!observed.run(&mut world, |resource| resource.is_changed()));
+
+    mutable.run(&mut world, |resource| {
+        let resource = resource.expect("inserted resource must be available to optional ResMut");
+        assert_eq!(resource.0, 10);
+    });
+    assert!(!observed.run(&mut world, |resource| resource.is_changed()));
+
+    mutable.run(&mut world, |resource| {
+        resource
+            .expect("inserted resource must be available to optional ResMut")
+            .set_changed();
+    });
+    assert!(observed.run(&mut world, |resource| resource.is_changed()));
+}
+
+#[test]
+fn mut_wrapper_records_the_current_tick_across_wraparound_only_after_write() {
+    let prior_tick = ChangeTick::new(u64::MAX - 1);
+    let this_run = ChangeTick::new(1);
+    let window = ChangeTickWindow::new(ChangeTick::new(u64::MAX - 2), this_run);
+    let mut value = 10_u32;
+    let mut ticks = ComponentTicks::new(prior_tick);
+
+    {
+        let mut mutable = Mut::new(&mut value, &mut ticks, this_run, window);
+        assert_eq!(*mutable, 10);
+        assert_eq!(mutable.last_changed(), prior_tick);
+
+        *mutable += 1;
+        assert_eq!(mutable.last_changed(), this_run);
+    }
+
+    assert_eq!(value, 11);
+    assert_eq!(ticks.changed(), this_run);
+    assert!(ticks.is_changed(window));
+}
+
+#[test]
+fn mut_wrapper_into_inner_marks_the_current_tick() {
+    let this_run = ChangeTick::new(14);
+    let window = ChangeTickWindow::new(ChangeTick::new(13), this_run);
+    let mut value = 10_u32;
+    let mut ticks = ComponentTicks::new(ChangeTick::new(7));
+
+    {
+        let mutable = Mut::new(&mut value, &mut ticks, this_run, window);
+        *mutable.into_inner() = 12;
+    }
+
+    assert_eq!(value, 12);
+    assert_eq!(ticks.changed(), this_run);
+    assert!(ticks.is_changed(window));
+}
+
+#[test]
 fn removed_components_tracks_recursive_despawn() {
     let mut world = World::empty();
     let parent = world
@@ -279,11 +410,9 @@ fn removed_components_tracks_recursive_despawn() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(
-        system
-            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-            .is_empty()
-    );
+    assert!(system
+        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+        .is_empty());
 
     world.remove_entity_recursive(parent);
 
@@ -300,11 +429,9 @@ fn component_removal_emits_removal_record_in_same_frame() {
 
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
-    assert!(
-        system
-            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-            .is_empty()
-    );
+    assert!(system
+        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+        .is_empty());
 
     assert_eq!(world.remove::<Health>(entity).unwrap(), Some(Health(5)));
 
@@ -395,10 +522,8 @@ fn resource_store_hot_paths_use_direct_branches() {
     assert!(!get_source.contains(".and_then(|stored| stored.value.downcast_ref::<T>())"));
     assert!(!get_mut_source.contains(".and_then(|stored| stored.value.downcast_mut::<T>())"));
     assert!(!ticked_get_mut_source.contains("set_changed"));
-    assert!(
-        !ticked_get_mut_source
-            .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))")
-    );
+    assert!(!ticked_get_mut_source
+        .contains("stored.value.downcast_mut::<T>().map(|value| (value, ticks))"));
     assert!(!remove_source.contains(".and_then(|stored| stored.value.downcast::<T>().ok())"));
     assert!(!remove_source.contains(".map(|boxed| *boxed)"));
     assert!(!ticks_source.contains(".map(|stored| stored.ticks)"));

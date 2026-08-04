@@ -1,6 +1,6 @@
 ---
 title: WOS193 Chronomancy direct-heal runtime
-status: in_progress
+status: implemented_static_validation_pending
 source_commit: 5ef9f7cb21cd8875b6d2c49701015dfcd78de35a
 owner: woc
 ---
@@ -93,3 +93,11 @@ conversion milestone; this plan must not invent that unrelated combat rule.
 
 `examples/woc/scripts/woc_game/woc_m4_chronomancy_direct_heal_runtime_tests.zrp`
 must run only through `zr_vm:project`. No alternate runtime is permitted.
+
+## Second Review
+
+2026-08-03: second static review confirmed rank-gated direct-heal admission,
+effective-primary result forwarding, the no-crit/no-proc Power Echo copy
+boundary, and source-scoped Temporal Echo mark persistence. The focused
+fixture declares `zr_vm:project`, and `node tools/wos193_resolved_heal_static_guard.mjs`
+passed from `examples/woc`. Dynamic ZrVM execution remains pending.

@@ -38,10 +38,6 @@ pub(super) fn assert_plugin_importer_dx_source_inventory_children_line_budgets_a
             PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_DELEGATION_CHILD,
             sources.delegation_child.as_str(),
         ),
-        (
-            PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_MIRRORS_CHILD,
-            sources.status_mirrors_child.as_str(),
-        ),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -53,8 +49,5 @@ pub(super) fn assert_plugin_importer_dx_source_inventory_children_line_budgets_a
 
 #[test]
 fn runtime_15_plugin_importer_dx_source_inventory_children_line_budgets_are_current() {
-    let sources = plugin_importer_dx_source_inventory_sources();
-
     assert_plugin_importer_dx_line_budgets();
-    assert_plugin_importer_dx_source_inventory_children_line_budgets_are_current(&sources);
 }

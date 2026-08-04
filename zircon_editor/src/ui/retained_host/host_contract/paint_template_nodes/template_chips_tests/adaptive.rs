@@ -48,6 +48,66 @@ fn collapsed_chip_content_area_does_not_emit_text() {
 }
 
 #[test]
+fn fully_clipped_chip_does_not_emit_paint_commands() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 104.0,
+        height: 28.0,
+    };
+    let clip = FrameRect {
+        x: 144.0,
+        y: 0.0,
+        width: 80.0,
+        height: 80.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_chip_commands(
+        &mut commands,
+        &chip_node("WorkbenchViewportMode", "Perspective"),
+        &rect,
+        &clip,
+        4,
+        1.0,
+    ));
+
+    assert!(commands.is_empty());
+}
+
+#[test]
+fn partially_clipped_chip_keeps_only_clipped_paint_commands() {
+    let rect = FrameRect {
+        x: 8.0,
+        y: 6.0,
+        width: 104.0,
+        height: 28.0,
+    };
+    let clip = FrameRect {
+        x: 16.0,
+        y: 8.0,
+        width: 52.0,
+        height: 20.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_chip_commands(
+        &mut commands,
+        &chip_node("WorkbenchViewportMode", "Perspective"),
+        &rect,
+        &clip,
+        4,
+        1.0,
+    ));
+
+    assert!(!commands.is_empty());
+    assert!(commands.iter().all(|command| command
+        .clip_frame
+        .as_ref()
+        .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+}
+
+#[test]
 fn narrow_chip_keeps_every_command_inside_its_frame() {
     let rect = FrameRect {
         x: 8.0,
@@ -66,11 +126,9 @@ fn narrow_chip_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -93,11 +151,9 @@ fn fractional_chip_alignment_does_not_expand_its_logical_frame() {
     ));
 
     assert!(!commands.is_empty());
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]

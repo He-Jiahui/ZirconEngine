@@ -4,6 +4,7 @@ use super::{layout_text, measure_text_size};
 
 mod alignment;
 mod bidi;
+mod frame_extent;
 mod glue;
 mod grapheme;
 mod justify;
@@ -17,6 +18,7 @@ mod sizing;
 mod soft_hyphen;
 mod tab;
 mod vertical;
+mod viewport;
 mod word_smart;
 mod wrap_space;
 mod wrapping;

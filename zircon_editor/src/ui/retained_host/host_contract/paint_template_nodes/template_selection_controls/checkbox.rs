@@ -3,7 +3,7 @@ mod tick;
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_selection_control_geometry::{
-    frame_is_within, label_rect_after_mark, leading_mark_rect,
+    frame_is_within, label_rect_after_mark, leading_mark_rect, workbench_selection_control_metrics,
 };
 use super::labels::push_selection_label;
 use super::layers::{mark_content_order, mark_label_order};
@@ -18,6 +18,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     order: i32,
     opacity: f32,
 ) {
+    let metrics = workbench_selection_control_metrics();
     let mark = leading_mark_rect(node, rect);
     if frame_is_within(&mark, rect) {
         commands.push(HostPaintCommand::quad(
@@ -26,8 +27,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
             order,
             Some(checkbox_background(node)),
             Some(checkbox_border_color(node)),
-            1.0,
-            3.0,
+            metrics.border_width,
+            metrics.checkbox_radius,
             opacity,
         ));
         if node.checked || node.selected {

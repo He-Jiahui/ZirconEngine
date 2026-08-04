@@ -59,18 +59,6 @@ pub(super) fn typed_error_native_plugin_loader_structure_source_tree(
     .join("\n")
 }
 
-pub(super) fn review_guard_status_rows_source() -> String {
-    super::super::typed_error_structure_assertion_status_row_source()
-}
-
-pub(super) fn review_guard_status_map_source() -> String {
-    super::super::typed_error_structure_assertion_status_map_source()
-}
-
-pub(super) fn review_guard_date_map_source() -> String {
-    super::super::typed_error_structure_assertion_date_map_source()
-}
-
 pub(super) fn typed_error_native_plugin_loader_child_sources() -> Vec<(&'static str, String)> {
     TYPED_ERROR_NATIVE_STRUCTURE_GUARD_CHILDREN
         .iter()

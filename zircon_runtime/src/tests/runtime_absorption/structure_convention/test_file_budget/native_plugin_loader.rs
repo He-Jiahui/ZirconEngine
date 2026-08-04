@@ -21,9 +21,6 @@ fn runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
     let asset_importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
-    );
 
     assert_contains_all(
         "native plugin loader parent mounts real fixture child owner",
@@ -81,29 +78,6 @@ fn runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("plugin bridge doc", plugin_bridge_doc.as_str()),
-        ("asset importer doc", asset_importer_doc.as_str()),
-        ("status-output scene/script row data", status_rows.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 native plugin loader real fixture test folder split",
-                "runtime_15_native_plugin_loader_real_fixture_tests_folder_split_static_passed_cargo_deferred",
-                "tests/plugin_extensions/native_plugin_loader.rs",
-                "tests/plugin_extensions/native_plugin_loader/real_fixture.rs",
-                "runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed",
-            ],
         );
     }
 }

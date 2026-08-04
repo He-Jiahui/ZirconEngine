@@ -24,10 +24,12 @@ pub enum RenderCapabilityKind {
     AsyncCopy,
     NeuralCompute,
     SparseTexture,
+    SubgroupOps,
+    PipelineStatisticsQuery,
 }
 
 impl RenderCapabilityKind {
-    pub const ALL: [Self; 17] = [
+    pub const ALL: [Self; 19] = [
         Self::VirtualGeometry,
         Self::HybridGlobalIllumination,
         Self::AccelerationStructures,
@@ -45,6 +47,8 @@ impl RenderCapabilityKind {
         Self::AsyncCopy,
         Self::NeuralCompute,
         Self::SparseTexture,
+        Self::SubgroupOps,
+        Self::PipelineStatisticsQuery,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -66,6 +70,8 @@ impl RenderCapabilityKind {
             Self::AsyncCopy => "async_copy",
             Self::NeuralCompute => "neural_compute",
             Self::SparseTexture => "sparse_texture",
+            Self::SubgroupOps => "subgroup_ops",
+            Self::PipelineStatisticsQuery => "pipeline_statistics_query",
         }
     }
 
@@ -87,7 +93,9 @@ impl RenderCapabilityKind {
             | Self::NonUniformResourceIndexing
             | Self::PartiallyBoundBindingArray
             | Self::NeuralCompute
-            | Self::SparseTexture => RenderCapabilityClass::Experimental,
+            | Self::SparseTexture
+            | Self::SubgroupOps
+            | Self::PipelineStatisticsQuery => RenderCapabilityClass::Experimental,
         }
     }
 
@@ -110,6 +118,8 @@ impl RenderCapabilityKind {
             Self::AsyncCopy => capabilities.supports_async_copy,
             Self::NeuralCompute => capabilities.supports_neural_compute,
             Self::SparseTexture => capabilities.supports_sparse_texture,
+            Self::SubgroupOps => capabilities.supports_subgroup,
+            Self::PipelineStatisticsQuery => capabilities.supports_pipeline_statistics_query,
         }
     }
 }
@@ -161,12 +171,17 @@ pub struct RenderCapabilitySummary {
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
     pub supports_gpu_timestamp: bool,
+    pub supports_subgroup: bool,
+    pub supports_pipeline_statistics_query: bool,
     pub supports_storage_buffers: bool,
     pub supports_fragment_writable_storage: bool,
     pub max_storage_buffers_per_shader_stage: u32,
     pub max_storage_buffer_binding_size: u64,
+    pub max_binding_array_elements_per_shader_stage: u32,
+    pub max_binding_array_sampler_elements_per_shader_stage: u32,
     pub supports_indirect_draw: bool,
     pub supports_multi_draw_indirect: bool,
+    pub supports_multi_draw_indirect_count: bool,
     pub supports_indirect_first_instance: bool,
     pub supports_buffer_readback: bool,
     pub acceleration_structures_supported: bool,
@@ -196,14 +211,37 @@ pub struct RenderCapabilityClassReport {
 }
 
 impl RenderCapabilitySummary {
+    pub const fn indirect_draw_submission_supported(&self) -> bool {
+        self.supports_indirect_draw && self.supports_indirect_first_instance
+    }
+
     pub const fn gpu_driven_submission_supported(&self) -> bool {
-        self.supports_indirect_draw
-            && self.supports_multi_draw_indirect
-            && self.supports_indirect_first_instance
+        self.indirect_draw_submission_supported() && self.supports_multi_draw_indirect
     }
 
     pub const fn storage_buffer_binding_capacity_supported(&self, required: u32) -> bool {
         self.max_storage_buffers_per_shader_stage >= required
+    }
+
+    pub const fn gpu_driven_indirect_count_supported(&self) -> bool {
+        self.gpu_driven_submission_supported() && self.supports_multi_draw_indirect_count
+    }
+
+    pub const fn bindless_material_supported(&self) -> bool {
+        self.supports_texture_binding_array
+            && self.supports_partially_bound_binding_array
+            && self.supports_non_uniform_resource_indexing
+            && self.bindless_material_slot_capacity() >= 2
+    }
+
+    pub const fn bindless_material_slot_capacity(&self) -> u32 {
+        if self.max_binding_array_elements_per_shader_stage
+            < self.max_binding_array_sampler_elements_per_shader_stage
+        {
+            self.max_binding_array_elements_per_shader_stage
+        } else {
+            self.max_binding_array_sampler_elements_per_shader_stage
+        }
     }
 
     pub const fn oit_supported(&self, required_storage_buffers_per_shader_stage: u32) -> bool {

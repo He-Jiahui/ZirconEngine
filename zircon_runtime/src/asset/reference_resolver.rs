@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::project::{AssetRef, RelPath};
 
-use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
+use crate::asset::project::{AssetMetaDocument, AssetSourceUnit, ProjectPaths};
 use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
 use crate::asset::safe_project_path::is_safe_regular_file;
 use crate::asset::{AssetReference, AssetUri, ReferenceResolutionError};
@@ -94,7 +94,9 @@ pub(crate) fn logical_locator_for_persisted_source(
         return Ok(None);
     }
     let expected = compound_meta_path(&root.join(meta.url.path()))?;
-    if source.canonicalize()? != expected.canonicalize()? {
+    if ProjectPaths::resolve_existing_path(source)?
+        != ProjectPaths::resolve_existing_path(&expected)?
+    {
         return Ok(None);
     }
     Ok(Some(meta.url))

@@ -167,6 +167,20 @@ impl UiTextPaintDecoration {
         }
     }
 
+    pub fn composition_highlight(
+        range: UiTextRange,
+        frame: UiFrame,
+        color: impl Into<String>,
+    ) -> Self {
+        Self {
+            kind: UiTextPaintDecorationKind::CompositionHighlight,
+            range,
+            frame,
+            color: color.into(),
+            thickness: default_text_decoration_thickness(),
+        }
+    }
+
     pub fn table_cell_background(
         range: UiTextRange,
         frame: UiFrame,
@@ -206,6 +220,7 @@ const fn default_text_decoration_thickness() -> f32 {
 pub enum UiTextPaintDecorationKind {
     Selection,
     Caret,
+    CompositionHighlight,
     CompositionUnderline,
     Outline,
     TableCellBackground,

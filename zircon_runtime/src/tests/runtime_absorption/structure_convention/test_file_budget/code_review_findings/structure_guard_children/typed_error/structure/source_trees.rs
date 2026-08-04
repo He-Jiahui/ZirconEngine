@@ -7,7 +7,6 @@ pub(super) fn typed_error_structure_assertions_child_tree() -> String {
         typed_error_convergence_mount_nested_child_tree(),
         read_runtime_src(TYPED_ERROR_STRUCTURE_DELEGATION_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER),
-        read_runtime_src(TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_NATIVE_STRUCTURE_CHILD_OWNER),
         typed_error_native_plugin_loader_nested_child_tree(),
@@ -33,7 +32,6 @@ pub(super) fn typed_error_moved_guard_absence_child_tree() -> String {
         typed_error_moved_guard_absence_parent_backflow_child_tree(),
         read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/path_anchors.rs"),
         read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/budgets.rs"),
-        read_runtime_src("tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/status_mirrors.rs"),
     ]
     .join("\n")
 }

@@ -12,9 +12,6 @@ fn runtime_15_ui_surface_default_interactions_keyboard_timers_are_child_owners()
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "default interactions parent keeps pointer/toggle action entry points and shared binding helpers",
@@ -117,16 +114,4 @@ fn runtime_15_ui_surface_default_interactions_keyboard_timers_are_child_owners()
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI surface default-interactions keyboard/timer owner split",
-            "runtime_15_ui_surface_default_interactions_keyboard_timer_owner_split_static_passed_cargo_deferred",
-            "ui/surface/surface/default_interactions.rs",
-            "ui/surface/surface/default_interactions/keyboard.rs",
-            "ui/surface/surface/default_interactions/timers.rs",
-            "runtime_15_ui_surface_default_interactions_keyboard_timers_are_child_owners",
-        ],
-    );
 }

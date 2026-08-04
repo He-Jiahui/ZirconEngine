@@ -4,7 +4,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
-use super::{non_material_rebuild, PendingMeshCommandCacheExtractionStats};
+use super::{PendingMeshCommandCacheExtractionStats, non_material_rebuild};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum PendingMeshCommandCacheResidualReason {

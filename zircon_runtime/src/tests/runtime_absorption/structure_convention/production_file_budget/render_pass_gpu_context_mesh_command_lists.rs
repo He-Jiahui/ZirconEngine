@@ -12,7 +12,9 @@ fn runtime_15_render_pass_gpu_context_mesh_command_lists_are_child_owner() {
         "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs",
     );
 
-    let plan_01 = read_repo("docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md");
+    let plan_01 = read_repo(
+        "docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo(

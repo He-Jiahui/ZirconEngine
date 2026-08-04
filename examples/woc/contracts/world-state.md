@@ -1,14 +1,93 @@
-# WOC authoritative world state (`WOS83`)
+# WOC authoritative world state (`WOS113`)
 
-`WOS83` is the current committed ZrVM-owned world-state envelope carried
+`WOS113` is the current committed ZrVM-owned world-state envelope carried
 between fixed-tick transactions. `world/state.zr` is the canonical codec and
-`main.zr` publishes `world_state: WOS83`; it writes schema 83 and accepts the
-WOS2-WOS82 migration range. Rust treats these bytes as opaque gameplay state:
+`main.zr` publishes `world_state: WOS113`; it writes schema 113 and accepts the
+WOS2-WOS113 migration range. Rust treats these bytes as opaque gameplay state:
 it checks the FNV-1a digest, enforces transaction budgets and commits or rolls
 back the whole candidate. It must not decode the envelope to reproduce gameplay
 rules.
 
-## Current WOS83 delta
+## Current WOS113 fractional-resource and Rage-aura delta
+
+WOS113 preserves the historical WOS15 signed current/max resource fields and
+appends four entity-aligned `fixed6` values after the WOS112 Feral Instinct
+tail: current resource, maximum resource, parked mana and parked mana maximum.
+The reader first initializes all four values from the signed rows, then WOS113
+overrides them losslessly. WOS112 and earlier writers reject any nonintegral
+value, so a fractional state can never be silently truncated into an older
+snapshot.
+
+The generated motion-aura vocabulary now retains source `buff_rage_gen`,
+`buff_reckless` and `battle_stance` rows through the existing source-id,
+value and remaining-time columns. Warrior Pummel sums active aura modifiers,
+then multiplies that sum by `(1 + abilityRagePct)` before applying the resource
+cap. Thus Anger Management's `10 * 1.15` result remains exactly `11.5`, and
+the next cost observes the same fractional authoritative resource.
+
+## WOS112 Feral Charge resource-regen delta
+
+WOS112 appends one fixed-point `feral_instinct_energy` remaining-duration row
+per entity after the WOS111 Tiger's Fury talent snapshot tail. The row persists
+the source Cat-form `buff_energyregen` aura without repurposing generic motion
+auras. On every 40th fixed tick, an Energy resource bar gains 20 or 40 resource
+according to whether its pre-aging row is zero or positive, capped at its live
+maximum; the row then ages by the ordinary 50ms cadence. Bear's immediate
+50-Rage branch has no durable aura row.
+
+WOS111 and older snapshots synthesize zero for every row. Historical writers
+reject a nonzero timer, preventing an active Feral Instinct aura from being
+silently downgraded.
+
+## Current WOS111 Tiger's Fury talent-snapshot delta
+
+WOS111 appends an entity-aligned resolved Tiger's Fury `buff_ap` value, one
+talent-spec code and six selected-row codes after the WOS110 absorb tail. The
+shared motion-aura row remains the authoritative aura identity, insertion order
+and remaining duration; the WOS111 fields reconstruct and validate its resolved
+value. Feral's physical `meleeDmgPct: 0.15` therefore retains the application-time
+value `46` for the source raw `40`, even after a later respec.
+
+WOS110 and older payloads normalize an active Tiger's Fury row to raw `40` with
+an empty selection. Historical writers reject a nonempty WOS111 snapshot, so a
+resolved active aura cannot be silently downgraded. Aura refresh replaces the
+snapshot, while every shared motion-aura removal path clears it.
+
+## WOS110 absorb-talent delta
+
+WOS110 retains the WOS65 source-ordered absorb queue and appends each row's
+resolved initial amount plus the six-row source talent selection that produced
+it. The queue's original amount remains the depleted current value, constrained
+to `0 < current <= initial`. Power Word Shield and Temporal Barrier resolve the
+source `healPct`, per-ability `dmgPct`, `absorbPct` and `flatDmg` endpoint at
+application; later damage consumes only the stored value, and a later respec
+does not reinterpret the live shield.
+
+WOS109 and older payloads normalize each absorb row to its generated raw initial
+amount and an empty selection. Historical writers reject any nonempty WOS110
+selection, preventing a resolved shield from being silently downgraded.
+`wos213_absorb_talent_scaling_runtime_static_guard.mjs` covers the source
+rounding order, both M4 absorb effects, retained consumption and migration
+boundary.
+
+## WOS109 historical imbue-talent delta
+
+WOS109 preserves WOS62's entity-aligned active imbue identity, rank and
+remaining-duration row, then appends each active aura's resolved bonus and
+optional Judgement minimum/maximum together with the source six-row talent
+selection that produced those values. The effect is resolved at application;
+white swings consume the retained bonus and Judgement consumes the retained
+range before its existing spell-power and crit steps. A later respec does not
+reinterpret an active aura, while a replacement imbue captures the new
+selection.
+
+WOS108 and older payloads normalize active rows to their generated raw endpoints
+with an empty selection. Historical encoders refuse a nonempty WOS109 imbue
+selection, so no resolved aura is silently downgraded. `wos212_imbue_talent_
+scaling_runtime_static_guard.mjs` owns static coverage of source rounding,
+application-time storage, current consumption points and this migration rule.
+
+## WOS83 historical delta
 
 WOS83 appends 29 source-ordered account weapon-skin ownership markers followed
 by eight nullable one-byte loadout codes in generated weapon-type order. The
@@ -610,7 +689,7 @@ included in physical mitigation before the existing Sunder reduction. It does
 not introduce generic aura lifecycle, talent/proc observers, non-Eastbrook
 target projection or another spell runtime.
 
-WOS109 closes Warlock Rain of Fire without changing the WOS65 layout. Its
+The Rain of Fire semantic slice uses the existing WOS65 layout. Its
 generated position-channel profile uses the existing persisted `castAim` columns:
 the `castAt` reducer reads finite little-endian `f64` x/z values, clamps the
 center to the generated 30-yard range, and locks it for the four-tick channel.
@@ -620,7 +699,8 @@ on-cast pulse; the aim is cleared on completion or cancellation. It does not
 introduce generic spell multipliers, talent/proc observers, collision/LOS parity,
 non-Eastbrook target projection or another spell runtime.
 
-WOS110 closes Warlock Conflagrate without changing the WOS65 layout. Its
+The Conflagrate semantic slice closes Warlock Conflagrate without changing the
+WOS65 layout. Its
 generated `consumeAura` profile persists the `54-64` Fire projectile facts in
 the existing in-flight row, including its zero cast time. A valid instant cast
 retains the hasted GCD, spends 55 resource and starts the six-second cooldown

@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 
-pub(crate) const GPU_PRIMITIVE_DATA_STRIDE: usize = 80;
+pub(crate) const GPU_PRIMITIVE_DATA_STRIDE: usize = 96;
 pub(crate) const GPU_PRIMITIVE_DATA_BOUNDS_CENTER_OFFSET: usize = 0;
 pub(crate) const GPU_PRIMITIVE_DATA_BOUNDS_RADIUS_OFFSET: usize = 12;
 pub(crate) const GPU_PRIMITIVE_DATA_TINT_OFFSET: usize = 16;
@@ -10,6 +10,7 @@ pub(crate) const GPU_PRIMITIVE_DATA_FLAGS_OFFSET: usize = 64;
 pub(crate) const GPU_PRIMITIVE_DATA_FIRST_INSTANCE_INDEX_OFFSET: usize = 68;
 pub(crate) const GPU_PRIMITIVE_DATA_INSTANCE_COUNT_OFFSET: usize = 72;
 pub(crate) const GPU_PRIMITIVE_DATA_PAYLOAD_SLOT_OFFSET: usize = 76;
+pub(crate) const GPU_PRIMITIVE_DATA_MATERIAL_PAYLOAD_SLOT_OFFSET: usize = 80;
 
 pub(crate) const GPU_INSTANCE_DATA_STRIDE: usize = 176;
 pub(crate) const GPU_INSTANCE_DATA_WORLD_FROM_LOCAL_OFFSET: usize = 0;
@@ -56,6 +57,9 @@ pub(crate) struct GpuPrimitiveData {
     pub(crate) first_instance_index: u32,
     pub(crate) instance_count: u32,
     pub(crate) payload_slot: u32,
+    pub(crate) material_payload_slot: u32,
+    // Explicitly model the storage-array stride tail so this type remains Pod.
+    pub(crate) material_payload_padding: [u32; 3],
 }
 
 impl GpuPrimitiveData {
@@ -64,6 +68,7 @@ impl GpuPrimitiveData {
             first_instance_index,
             instance_count,
             payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+            material_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
             ..Self::default()
         }
     }
@@ -279,6 +284,10 @@ mod tests {
             offset_of!(GpuPrimitiveData, payload_slot),
             GPU_PRIMITIVE_DATA_PAYLOAD_SLOT_OFFSET
         );
+        assert_eq!(
+            offset_of!(GpuPrimitiveData, material_payload_slot),
+            GPU_PRIMITIVE_DATA_MATERIAL_PAYLOAD_SLOT_OFFSET
+        );
 
         assert_eq!(size_of::<GpuInstanceData>(), GPU_INSTANCE_DATA_STRIDE);
         assert_eq!(
@@ -342,6 +351,16 @@ mod tests {
             size_of::<GpuVirtualGeometryClusterWord>(),
             GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE
         );
+    }
+
+    #[test]
+    fn render_gpu_scene_wgsl_primitive_tail_preserves_the_rust_storage_stride() {
+        let source = include_str!("../scene_renderer/mesh/shaders/zr_gpu_scene.wgsl");
+
+        assert!(source.contains("material_payload_padding_0: u32,"));
+        assert!(source.contains("material_payload_padding_1: u32,"));
+        assert!(source.contains("material_payload_padding_2: u32,"));
+        assert!(!source.contains("material_payload_padding: vec3<u32>"));
     }
 
     #[test]

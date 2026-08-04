@@ -279,6 +279,111 @@ fn render_prepare_rebuilds_missing_or_stale_plain_glyph_artifacts() {
 }
 
 #[test]
+fn render_prepare_rebuilds_writing_mode_mismatched_plain_glyph_artifact() {
+    use std::sync::Arc;
+
+    use zircon_runtime_interface::ui::{
+        event_ui::UiNodeId,
+        layout::UiFrame,
+        surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiTextWritingMode},
+    };
+
+    let style = UiResolvedStyle::default();
+    let mut layout = crate::ui::text::layout_engine::layout_text(
+        "fi",
+        &style,
+        UiFrame::new(0.0, 0.0, 80.0, 24.0),
+        None,
+    );
+    let original = crate::text::resolve_resolved_text_glyph_artifact(
+        layout
+            .rich_text_artifact
+            .as_ref()
+            .expect("plain layout artifact"),
+    )
+    .expect("plain layout must own glyph artifacts");
+    let mut stale = (*original).clone();
+    stale.writing_mode = UiTextWritingMode::VerticalRl;
+    layout.rich_text_artifact = Some(crate::text::register_resolved_text_glyph_artifact(
+        Arc::new(stale),
+    ));
+    let mut commands = vec![UiRenderCommand {
+        node_id: UiNodeId::new(92),
+        kind: UiRenderCommandKind::Text,
+        frame: UiFrame::new(0.0, 0.0, 80.0, 24.0),
+        clip_frame: None,
+        z_index: 0,
+        style,
+        text_layout: Some(layout),
+        text: Some("fi".to_string()),
+        image: None,
+        opacity: 1.0,
+    }];
+
+    super::prepare_render_command_text_artifacts(&mut commands);
+
+    let artifact = crate::text::resolve_resolved_text_glyph_artifact(
+        commands[0]
+            .text_layout
+            .as_ref()
+            .and_then(|layout| layout.rich_text_artifact.as_ref())
+            .expect("prepare must replace writing-mode-mismatched plain artifacts"),
+    )
+    .expect("prepare must retain a plain glyph artifact");
+    assert_eq!(artifact.writing_mode, UiTextWritingMode::HorizontalTb);
+}
+
+#[test]
+fn render_prepare_reuses_current_plain_glyph_artifact() {
+    use crate::ui::text::{UiTextLayoutRequest, UiTextMeasureCache};
+    use zircon_runtime_interface::ui::{
+        event_ui::UiNodeId,
+        layout::UiFrame,
+        surface::{UiRenderCommand, UiRenderCommandKind, UiResolvedStyle},
+    };
+
+    let style = UiResolvedStyle::default();
+    let frame = UiFrame::new(0.0, 0.0, 80.0, 24.0);
+    let request = UiTextLayoutRequest::new("fi", &style, frame, None);
+    let mut cache = UiTextMeasureCache::default();
+    cache.begin_frame();
+    let first_layout = cache.resolve_or_shape(&request).layout;
+    let original = crate::text::resolve_resolved_text_glyph_artifact(
+        first_layout
+            .rich_text_artifact
+            .as_ref()
+            .expect("plain layout artifact"),
+    )
+    .expect("plain layout must own glyph artifacts");
+    cache.begin_frame();
+    let layout = cache.resolve_or_shape(&request).layout;
+    let mut commands = vec![UiRenderCommand {
+        node_id: UiNodeId::new(93),
+        kind: UiRenderCommandKind::Text,
+        frame,
+        clip_frame: None,
+        z_index: 0,
+        style,
+        text_layout: Some(layout),
+        text: Some("fi".to_string()),
+        image: None,
+        opacity: 1.0,
+    }];
+
+    super::prepare_render_command_text_artifacts(&mut commands);
+
+    let prepared = crate::text::resolve_resolved_text_glyph_artifact(
+        commands[0]
+            .text_layout
+            .as_ref()
+            .and_then(|layout| layout.rich_text_artifact.as_ref())
+            .expect("prepare must retain a current plain glyph artifact"),
+    )
+    .expect("prepared command must resolve its current artifact");
+    assert!(std::sync::Arc::ptr_eq(&original, &prepared));
+}
+
+#[test]
 fn text_rich_link_hit_uses_upstream_affinity_at_run_end() {
     use zircon_runtime_interface::ui::{
         layout::{UiFrame, UiPoint},

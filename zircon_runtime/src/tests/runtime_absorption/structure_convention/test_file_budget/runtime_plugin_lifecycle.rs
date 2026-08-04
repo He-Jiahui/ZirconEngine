@@ -28,15 +28,6 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests/runtime_catalog_rows.rs",
-        ),
-    ]
-    .join("\n");
 
     assert_contains_all(
         "runtime plugin lifecycle parent mounts lifecycle fixture child owner",
@@ -104,30 +95,6 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
         assert!(
             line_count < 800,
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        (
-            "status-output plugin extension row data",
-            status_rows.as_str(),
-        ),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 runtime plugin lifecycle fixture child-owner split",
-                "runtime_15_runtime_plugin_lifecycle_fixture_child_owner_split_static_passed_cargo_deferred",
-                "tests/plugin_extensions/runtime_plugin_lifecycle.rs",
-                "tests/plugin_extensions/runtime_plugin_lifecycle/lifecycle_fixtures.rs",
-                "runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed",
-            ],
         );
     }
 }

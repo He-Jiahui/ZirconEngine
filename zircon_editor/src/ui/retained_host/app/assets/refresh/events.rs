@@ -1,5 +1,6 @@
 use super::super::super::*;
 use std::time::{Duration, Instant};
+use zircon_runtime::resource::ResourceEvent;
 
 mod runtime;
 mod startup;

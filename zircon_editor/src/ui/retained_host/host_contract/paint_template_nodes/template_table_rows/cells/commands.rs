@@ -3,9 +3,9 @@ use super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::actions::table_action_column_width;
-use super::super::style::table_cell_color;
+use super::super::style::table_row_style;
 use super::allocation::{TableColumnAlignment, table_column_alignment};
-use super::geometry::table_cell_rect;
+use super::geometry::table_cell_rects;
 use super::metrics::{TABLE_COLUMN_COUNT, WorkbenchTableCellMetrics, table_cell_metrics};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -22,8 +22,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     if !has_paintable_table_cell_area(rect, metrics) {
         return;
     }
+    let cell_rects = table_cell_rects(node, rect);
+    let row_style = table_row_style(node);
     for (index, cell) in cells.iter().take(TABLE_COLUMN_COUNT).enumerate() {
-        let cell_rect = table_cell_rect(node, rect, index);
+        let cell_rect = cell_rects[index].clone();
         if cell_rect.width <= 0.0 || cell_rect.height <= 0.0 {
             continue;
         }
@@ -32,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             clip,
             order,
             cell,
-            table_cell_color(node, index),
+            row_style.text_for_cell(index),
             metrics,
             opacity,
         ) else {
@@ -143,6 +145,36 @@ mod tests {
                 1.0,
             )
             .is_none()
+        );
+    }
+
+    #[test]
+    fn table_row_computes_column_layout_once_before_painting_cells() {
+        let source = include_str!("commands.rs");
+        let repeated_cell_layout = ["table_cell_rect", "(node, rect, index)"].concat();
+
+        assert!(
+            source.contains("let cell_rects = table_cell_rects(node, rect);"),
+            "table rows should calculate all column frames before iterating their cells"
+        );
+        assert!(
+            !source.contains(&repeated_cell_layout),
+            "per-cell painting must not repeat the row column allocation"
+        );
+    }
+
+    #[test]
+    fn table_row_selects_its_text_style_once_before_painting_cells() {
+        let source = include_str!("commands.rs");
+        let repeated_style_selection = ["table_cell_color", "(node, index)"].concat();
+
+        assert!(
+            source.contains("let row_style = table_row_style(node);"),
+            "table rows should select their semantic text style before iterating cells"
+        );
+        assert!(
+            !source.contains(&repeated_style_selection),
+            "per-cell painting must not repeat row style selection"
         );
     }
 

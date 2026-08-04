@@ -50,13 +50,15 @@ mod tests {
                     "plugin.virtual_geometry",
                     Vec::new(),
                     Vec::new(),
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::DepthPrepass,
-                        "plugin-virtual-geometry-runtime-flag",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("plugin.virtual-geometry.runtime-flag")
-                    .with_side_effects()],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::DepthPrepass,
+                            "plugin-virtual-geometry-runtime-flag",
+                            QueueLane::Graphics,
+                        )
+                        .with_executor_id("plugin.virtual-geometry.runtime-flag")
+                        .with_side_effects(),
+                    ],
                 )
                 .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
             ));
@@ -70,13 +72,15 @@ mod tests {
                     vec![FrameHistoryBinding::read_write(
                         FrameHistorySlot::GlobalIllumination,
                     )],
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::Lighting,
-                        "plugin-hybrid-gi-runtime-flag",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("plugin.hybrid-gi.runtime-flag")
-                    .with_side_effects()],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::Lighting,
+                            "plugin-hybrid-gi-runtime-flag",
+                            QueueLane::Graphics,
+                        )
+                        .with_executor_id("plugin.hybrid-gi.runtime-flag")
+                        .with_side_effects(),
+                    ],
                 )
                 .with_capability_requirement(
                     RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
@@ -116,13 +120,15 @@ mod tests {
                 "fallback-virtual-geometry-without-capability",
                 Vec::new(),
                 Vec::new(),
-                vec![RenderFeaturePassDescriptor::new(
-                    RenderPassStage::DepthPrepass,
-                    "fallback-virtual-geometry-without-capability",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("fallback.virtual-geometry.without-capability")
-                .with_side_effects()],
+                vec![
+                    RenderFeaturePassDescriptor::new(
+                        RenderPassStage::DepthPrepass,
+                        "fallback-virtual-geometry-without-capability",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("fallback.virtual-geometry.without-capability")
+                    .with_side_effects(),
+                ],
             )));
         pipeline
             .renderer
@@ -131,13 +137,15 @@ mod tests {
                 "fallback-hybrid-gi-without-capability",
                 Vec::new(),
                 Vec::new(),
-                vec![RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Lighting,
-                    "fallback-hybrid-gi-without-capability",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("fallback.hybrid-gi.without-capability")
-                .with_side_effects()],
+                vec![
+                    RenderFeaturePassDescriptor::new(
+                        RenderPassStage::Lighting,
+                        "fallback-hybrid-gi-without-capability",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("fallback.hybrid-gi.without-capability")
+                    .with_side_effects(),
+                ],
             )));
 
         let compiled = pipeline
@@ -178,15 +186,17 @@ mod tests {
                 "particle",
                 vec!["particles".to_string()],
                 Vec::new(),
-                vec![RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Transparent3d,
-                    "particle-render",
-                    QueueLane::Graphics,
-                )
-                .with_executor_id("particle.transparent")
-                .read_texture("scene-depth")
-                .read_texture("scene-color")
-                .write_texture("scene-color")],
+                vec![
+                    RenderFeaturePassDescriptor::new(
+                        RenderPassStage::Transparent3d,
+                        "particle-render",
+                        QueueLane::Graphics,
+                    )
+                    .with_executor_id("particle.transparent")
+                    .read_texture("scene-depth")
+                    .read_texture("scene-color")
+                    .write_texture("scene-color"),
+                ],
             )])
             .compile(&test_extract())
             .unwrap();
@@ -222,13 +232,17 @@ mod tests {
             .unwrap();
         let flags = runtime_features_from_pipeline(&compiled);
 
-        assert!(compiled
-            .enabled_features()
-            .iter()
-            .any(|feature| feature.is_builtin(BuiltinRenderFeature::ReflectionProbes)));
-        assert!(compiled
-            .required_extract_sections
-            .contains(&"reflection_probes".to_string()));
+        assert!(
+            compiled
+                .enabled_features()
+                .iter()
+                .any(|feature| feature.is_builtin(BuiltinRenderFeature::ReflectionProbes))
+        );
+        assert!(
+            compiled
+                .required_extract_sections
+                .contains(&"reflection_probes".to_string())
+        );
         assert!(
             !flags.reflection_probes_enabled,
             "descriptor-only built-in reflection probes should not enable executable runtime state"
@@ -257,20 +271,22 @@ mod tests {
                     vec![FrameHistoryBinding::read_write(
                         FrameHistorySlot::AmbientOcclusion,
                     )],
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::AmbientOcclusion,
-                        "plugin-ssao-runtime-flag",
-                        QueueLane::AsyncCompute,
-                    )
-                    .with_executor_id("plugin.ssao.runtime-flag")
-                    .with_compute_workload(RenderGraphComputeWorkload::viewport(
-                        "ssao-evaluate",
-                        [8, 8, 1],
-                    ))
-                    .read_texture("scene-depth")
-                    .write_storage_external_texture(
-                        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
-                    )],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::AmbientOcclusion,
+                            "plugin-ssao-runtime-flag",
+                            QueueLane::AsyncCompute,
+                        )
+                        .with_executor_id("plugin.ssao.runtime-flag")
+                        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+                            "ssao-evaluate",
+                            [8, 8, 1],
+                        ))
+                        .read_texture("scene-depth")
+                        .write_storage_external_texture(
+                            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+                        ),
+                    ],
                 ),
                 RenderFeatureDescriptor::new(
                     "contact_shadow",
@@ -280,14 +296,16 @@ mod tests {
                         "visibility".to_string(),
                     ],
                     Vec::new(),
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::PostProcess,
-                        "plugin-contact-shadow-runtime-flag",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("plugin.contact-shadow.runtime-flag")
-                    .read_texture("scene-color")
-                    .write_texture("scene-color")],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::PostProcess,
+                            "plugin-contact-shadow-runtime-flag",
+                            QueueLane::Graphics,
+                        )
+                        .with_executor_id("plugin.contact-shadow.runtime-flag")
+                        .read_texture("scene-color")
+                        .write_texture("scene-color"),
+                    ],
                 ),
                 RenderFeatureDescriptor::new(
                     "reflection_probes",
@@ -297,27 +315,31 @@ mod tests {
                         "post_process".to_string(),
                     ],
                     Vec::new(),
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::PostProcess,
-                        "plugin-reflection-probes-runtime-flag",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("plugin.reflection-probes.runtime-flag")
-                    .read_texture("scene-color")
-                    .write_texture("scene-color")],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::PostProcess,
+                            "plugin-reflection-probes-runtime-flag",
+                            QueueLane::Graphics,
+                        )
+                        .with_executor_id("plugin.reflection-probes.runtime-flag")
+                        .read_texture("scene-color")
+                        .write_texture("scene-color"),
+                    ],
                 ),
                 RenderFeatureDescriptor::new(
                     "baked_lighting",
                     vec!["lighting".to_string(), "post_process".to_string()],
                     Vec::new(),
-                    vec![RenderFeaturePassDescriptor::new(
-                        RenderPassStage::PostProcess,
-                        "plugin-baked-lighting-runtime-flag",
-                        QueueLane::Graphics,
-                    )
-                    .with_executor_id("plugin.baked-lighting.runtime-flag")
-                    .read_texture("scene-color")
-                    .write_texture("scene-color")],
+                    vec![
+                        RenderFeaturePassDescriptor::new(
+                            RenderPassStage::PostProcess,
+                            "plugin-baked-lighting-runtime-flag",
+                            QueueLane::Graphics,
+                        )
+                        .with_executor_id("plugin.baked-lighting.runtime-flag")
+                        .read_texture("scene-color")
+                        .write_texture("scene-color"),
+                    ],
                 ),
             ])
             .compile(&test_extract())

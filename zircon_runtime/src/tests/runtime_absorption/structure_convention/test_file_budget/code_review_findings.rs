@@ -10,8 +10,6 @@ mod p0_child_owners;
 mod p0_native_fixture_leaf_owners;
 #[path = "code_review_findings/plugin_importer_dx_child_owners.rs"]
 mod plugin_importer_dx_child_owners;
-#[path = "code_review_findings/status_docs.rs"]
-mod status_docs;
 #[path = "code_review_findings/structure_guard_children.rs"]
 mod structure_guard_children;
 #[path = "code_review_findings/typed_error_child_owners.rs"]

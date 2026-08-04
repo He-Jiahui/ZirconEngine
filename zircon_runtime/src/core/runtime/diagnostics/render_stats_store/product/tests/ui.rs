@@ -14,6 +14,7 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         last_ui_text_visible_raster_glyph_count: 11,
         last_ui_text_raster_source_image_count: 10,
         last_ui_text_missing_raster_image_count: 2,
+        last_ui_text_visible_missing_raster_image_count: 1,
         last_ui_text_visible_raster_placeholder_count: 3,
         last_ui_text_raster_worker_pending_count: 3,
         last_ui_text_raster_worker_failed_count: 1,
@@ -42,6 +43,12 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         &store,
         "render.ui.text.raster.missing_image_count",
         2.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.visible_missing_image_count",
+        1.0,
         "count",
     );
     assert_series(

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
 use crate::text::raster::SwashRasterRequest;
-use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::FontSystem;
+use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, Weight, fontdb};
 use swash::FontRef;
 
 #[test]

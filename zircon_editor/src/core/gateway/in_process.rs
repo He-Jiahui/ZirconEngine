@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::sync::Arc;
 
+use zircon_runtime::core::framework::render::{HighlightRenderAttributes, HighlightSet};
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{LevelSystem, World};
 use zircon_runtime_interface::{
@@ -8,7 +9,7 @@ use zircon_runtime_interface::{
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
 };
 
-use super::{EditorRuntimeGateway, GatewayError, RuntimeCapabilities};
+use super::{EditorRuntimeGateway, EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities};
 
 thread_local! {
     static BORROWED_WORLD_CALLBACK_ACTIVE: Cell<bool> = const { Cell::new(false) };
@@ -81,6 +82,30 @@ impl EditorRuntimeGateway for InProcessGateway {
         Ok(())
     }
 
+    fn submit_highlight_set(
+        &self,
+        set: EditorRuntimeHighlightSet,
+    ) -> Result<(), GatewayError> {
+        if !set.is_valid() {
+            return Err(GatewayError::Protocol {
+                message: "invalid runtime highlight set".to_owned(),
+            });
+        }
+
+        self.level.submit_highlight_set(
+            set.viewport().raw(),
+            set.generation(),
+            HighlightSet::new(
+                set.entities().iter().copied(),
+                HighlightRenderAttributes {
+                    outline_enabled: set.outline_enabled(),
+                    tint_rgba: set.tint_rgba(),
+                },
+            ),
+        );
+        Ok(())
+    }
+
     fn submit_operation(
         &self,
         _request: ZrRuntimeOperationSubmitRequestV1,
@@ -106,5 +131,43 @@ impl EditorRuntimeGateway for InProcessGateway {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.harvest",
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::InProcessGateway;
+    use crate::core::gateway::{EditorRuntimeGateway, EditorRuntimeHighlightSet};
+    use zircon_runtime::scene::{DefaultLevelManager, World};
+    use zircon_runtime_interface::ZrRuntimeViewportHandle;
+
+    #[test]
+    fn in_process_submission_updates_only_its_viewport_latest_value() {
+        let level = DefaultLevelManager::default().create_level(World::empty(), Default::default());
+        let gateway = InProcessGateway::for_authoring_level(level.clone());
+
+        gateway
+            .submit_highlight_set(EditorRuntimeHighlightSet::new(
+                ZrRuntimeViewportHandle::new(2),
+                5,
+                [8, 2, 8],
+                true,
+                [0.2, 0.5, 0.8, 1.0],
+            ))
+            .unwrap();
+        gateway
+            .submit_highlight_set(EditorRuntimeHighlightSet::new(
+                ZrRuntimeViewportHandle::new(2),
+                4,
+                [99],
+                true,
+                [0.2, 0.5, 0.8, 1.0],
+            ))
+            .unwrap();
+
+        let retained = level.viewport_highlight_set(2).unwrap();
+        assert_eq!(retained.generation(), 5);
+        assert_eq!(retained.set().entities(), &[2, 8]);
+        assert!(level.viewport_highlight_set(3).is_none());
     }
 }

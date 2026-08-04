@@ -51,19 +51,56 @@ where
         return Vec::new();
     }
 
-    let shaped = provider.shape_horizontal_line_with_kerning(
-        text,
-        style,
-        TextDirection::Auto,
-        TextRange {
-            start: 0,
-            end: text.len(),
-        },
-        true,
-    );
     let mut chunks = Vec::new();
-    let mut chunk_start = 0;
+    for hard_line in crate::text::hard_lines(text) {
+        let source_range = hard_line.source_range();
+        let Some(paragraph_text) = text.get(source_range.clone()) else {
+            continue;
+        };
+        let shaped = provider.shape_horizontal_line_with_kerning(
+            paragraph_text,
+            style,
+            TextDirection::Auto,
+            TextRange {
+                start: source_range.start,
+                end: source_range.end,
+            },
+            true,
+        );
+        let paragraph_chunk_start = chunks.len();
+        append_shaped_line_break_chunks(text, &shaped, source_range, &mut chunks);
+        if hard_line.is_run_cap_break() {
+            if chunks.len() == paragraph_chunk_start {
+                let source_range = hard_line.content;
+                chunks.push(LineBreakChunk::new(
+                    &text[source_range.clone()],
+                    TextRange {
+                        start: source_range.start,
+                        end: source_range.end,
+                    },
+                    TextRange {
+                        start: source_range.start,
+                        end: source_range.end,
+                    },
+                    None,
+                ));
+            }
+            if let Some(chunk) = chunks.last_mut() {
+                chunk.mandatory_break = true;
+            }
+        }
+    }
 
+    apply_kinsoku_start_rules(text, chunks)
+}
+
+fn append_shaped_line_break_chunks<'a>(
+    text: &'a str,
+    shaped: &crate::text::ShapedGlyphRun,
+    source_range: std::ops::Range<usize>,
+    chunks: &mut Vec<LineBreakChunk<'a>>,
+) {
+    let mut chunk_start = source_range.start;
     for line in &shaped.lines {
         for glyph in &line.glyphs {
             if !glyph.cluster_flags.cluster_start
@@ -72,19 +109,12 @@ where
                 continue;
             }
 
-            let Some(chunk_end) = glyph
-                .source_range
-                .end
-                .checked_sub(shaped.source_range.start)
-                .map(|end| end.min(text.len()))
-            else {
-                continue;
-            };
+            let chunk_end = glyph.source_range.end.min(source_range.end);
             if chunk_end <= chunk_start || !text.is_char_boundary(chunk_end) {
                 continue;
             }
 
-            soft_hyphen::push_chunks(text, chunk_start, chunk_end, &mut chunks);
+            soft_hyphen::push_chunks(text, chunk_start, chunk_end, chunks);
             if glyph.cluster_flags.mandatory_break {
                 if let Some(chunk) = chunks.last_mut() {
                     chunk.mandatory_break = true;
@@ -94,11 +124,9 @@ where
         }
     }
 
-    if chunk_start < text.len() {
-        soft_hyphen::push_chunks(text, chunk_start, text.len(), &mut chunks);
+    if chunk_start < source_range.end {
+        soft_hyphen::push_chunks(text, chunk_start, source_range.end, chunks);
     }
-
-    apply_kinsoku_start_rules(text, chunks)
 }
 
 #[cfg(test)]

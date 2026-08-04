@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORK
     WORKBENCH_TABLE_ROW_BG;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TABLE_SELECTED_BG: [u8;
-    4] = PALETTE.surface_selected;
+    4] = PALETTE.surface_pressed;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TABLE_HOVER_BG: [u8; 4] =
     PALETTE.surface_hover;
@@ -32,7 +32,6 @@ pub(super) struct WorkbenchTableRowPalette {
     pub header_bg: [u8; 4],
     pub tail_bg: [u8; 4],
     pub selected_bg: [u8; 4],
-    pub selected_hover_bg: [u8; 4],
     pub hover_bg: [u8; 4],
     pub separator: [u8; 4],
     pub action_muted: [u8; 4],
@@ -57,8 +56,7 @@ pub(super) fn workbench_table_row_palette_from_host(
         row_bg: palette.surface_inset,
         header_bg: palette.surface_inset,
         tail_bg: palette.surface_inset,
-        selected_bg: palette.surface_selected,
-        selected_hover_bg: palette.accent_soft,
+        selected_bg: palette.surface_pressed,
         hover_bg: palette.surface_hover,
         separator: palette.separator_soft,
         action_muted: palette.text_disabled,

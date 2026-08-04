@@ -770,6 +770,10 @@ class CoordinatorApplication:
         *,
         request_id: str,
     ) -> dict[str, Any]:
+        if name == "session.register":
+            return self._execute_session_registration_request(
+                arguments, request_id=request_id
+            )
         if name != "cargo.run_reserved":
             return self.command_requests.execute(
                 request_id,
@@ -811,6 +815,82 @@ class CoordinatorApplication:
             arguments,
             admit,
         )
+
+    def _execute_session_registration_request(
+        self, arguments: dict[str, Any], *, request_id: str
+    ) -> dict[str, Any]:
+        def admit(connection: sqlite3.Connection):
+            if self.read_only:
+                raise CoordinatorError(
+                    "not_on_main",
+                    f"Coordinator mutations require main; current branch is {self.branch}",
+                )
+            self.supervision.require_mutation_allowed_in_connection(
+                connection, self._mutation_operation("session.register", arguments)
+            )
+            return (
+                self._session_registration_response(
+                    arguments, connection=connection
+                ),
+                None,
+            )
+
+        return self.command_requests.execute_accepted_transactionally(
+            request_id, "session.register", arguments, admit
+        )
+
+    def _session_registration_open_failures(
+        self, arguments: dict[str, Any], *, connection: sqlite3.Connection | None = None
+    ) -> list[Any]:
+        session_id = str(arguments["session_id"])
+        requested_plan = arguments.get("plan_path")
+        try:
+            existing = (
+                self.sessions.get_in_connection(connection, session_id)
+                if connection is not None
+                else self.sessions.get(session_id)
+            )
+        except CoordinatorError as error:
+            if error.code != "session_not_found":
+                raise
+            existing = None
+        effective_plan = requested_plan or (existing.plan_path if existing else None)
+        if not effective_plan:
+            return []
+        self.failures.import_repository(connection=connection)
+        return self.failures.open_for_plan(str(effective_plan), connection=connection)
+
+    def _session_registration_response(
+        self,
+        arguments: dict[str, Any],
+        *,
+        open_failures: list[Any] | None = None,
+        connection: sqlite3.Connection | None = None,
+    ) -> dict[str, Any]:
+        if open_failures is None:
+            open_failures = self._session_registration_open_failures(
+                arguments, connection=connection
+            )
+        failure_reason = (
+            f"{len(open_failures)} open failure handoff(s) require priority"
+            if open_failures
+            else None
+        )
+        session = self.sessions.register(
+            session_id=str(arguments["session_id"]),
+            display_name=arguments.get("display_name"),
+            plan_path=arguments.get("plan_path"),
+            write_scope=arguments.get("write_scope") or [],
+            session_role=arguments.get("session_role"),
+            parent_session_id=arguments.get("parent_session_id"),
+            requested_status=(SessionStatus.RESOLVING_FAILURE if open_failures else None),
+            status_reason=failure_reason,
+            connection=connection,
+        )
+        return {
+            "session": session.to_dict(),
+            "open_failures": [asdict(item) for item in open_failures],
+        }
 
     @staticmethod
     def _reserved_start_arguments(
@@ -1006,39 +1086,7 @@ class CoordinatorApplication:
         if name == "supervision.force_stop_ack":
             return self.lifecycle.acknowledge_force_stop(str(arguments["actionId"]))
         if name == "session.register":
-            session_id = str(arguments["session_id"])
-            requested_plan = arguments.get("plan_path")
-            try:
-                existing = self.sessions.get(session_id)
-            except CoordinatorError as error:
-                if error.code != "session_not_found":
-                    raise
-                existing = None
-            effective_plan = requested_plan or (existing.plan_path if existing else None)
-            if effective_plan:
-                self.failures.import_repository()
-                open_failures = self.failures.open_for_plan(str(effective_plan))
-            else:
-                open_failures = []
-            failure_reason = (
-                f"{len(open_failures)} open failure handoff(s) require priority"
-                if open_failures
-                else None
-            )
-            session = self.sessions.register(
-                session_id=session_id,
-                display_name=arguments.get("display_name"),
-                plan_path=requested_plan,
-                write_scope=arguments.get("write_scope") or [],
-                session_role=arguments.get("session_role"),
-                parent_session_id=arguments.get("parent_session_id"),
-                requested_status=(SessionStatus.RESOLVING_FAILURE if open_failures else None),
-                status_reason=failure_reason,
-            )
-            return {
-                "session": session.to_dict(),
-                "open_failures": [asdict(item) for item in open_failures],
-            }
+            return self._session_registration_response(arguments)
         if name == "session.list":
             sessions = self.sessions.list(include_archived=bool(arguments.get("include_archived")))
             return {"sessions": [session.to_dict() for session in sessions]}
@@ -1303,12 +1351,15 @@ class CoordinatorApplication:
             return {"candidate": asdict(candidate)}
         if name == "validation.record_result":
             status = str(arguments["status"])
-            evidence = arguments.get("evidence") or {}
+            evidence = arguments.get("evidence")
+            if evidence is None:
+                evidence = {}
             if not isinstance(evidence, dict):
                 raise CoordinatorError(
                     "validation_ticket_evidence_invalid",
                     "Validation result evidence must be a JSON object",
                 )
+            evidence = self.validation_tickets._mapping("evidence", evidence)
             ticket = self.validation_tickets.get(str(arguments["ticket_id"]))
             failure_result: dict[str, object] | None = None
             if status == "failed":
@@ -1318,6 +1369,7 @@ class CoordinatorApplication:
                         "validation_ticket_failure_context_missing",
                         "A failed validation result requires failure context for a forward repair",
                     )
+                failure = self.validation_tickets._mapping("failure", failure)
                 session = self.sessions.get(ticket.session_id)
                 if not session.plan_path:
                     raise CoordinatorError(
@@ -2116,6 +2168,7 @@ class CoordinatorApplication:
         unmanaged_artifacts_deleted: list[str] = []
         compacted_manifest_batches: list[str] = []
         try:
+            self.command_requests.retry_deferred_failures()
             self.command_requests.prune()
             legacy_report = self.legacy.report()
             legacy_active_sessions = {
@@ -2602,6 +2655,21 @@ class RunningCoordinator:
             return
 
     @staticmethod
+    def _run_scheduled_maintenance(application: CoordinatorApplication) -> None:
+        """Retry durable command terminalization even while ordinary maintenance is held."""
+        if application.read_only:
+            application.command_requests.retry_deferred_failures()
+            return
+        application._maintenance_tick(
+            {
+                "apply_cleanup": True,
+                "apply_retention": True,
+                "apply_legacy_archive": True,
+                "apply_lifecycle": True,
+            }
+        )
+
+    @staticmethod
     def _maintenance_loop(
         application: CoordinatorApplication,
         watch_interval_seconds: float,
@@ -2759,16 +2827,9 @@ class RunningCoordinator:
                         )
             if stop_event.is_set():
                 break
-            if not application.read_only and time.monotonic() >= next_maintenance:
+            if time.monotonic() >= next_maintenance:
                 try:
-                    application._maintenance_tick(
-                        {
-                            "apply_cleanup": True,
-                            "apply_retention": True,
-                            "apply_legacy_archive": True,
-                            "apply_lifecycle": True,
-                        }
-                    )
+                    RunningCoordinator._run_scheduled_maintenance(application)
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
                     if stop_event.is_set():
                         break

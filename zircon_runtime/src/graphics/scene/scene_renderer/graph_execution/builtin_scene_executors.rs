@@ -1,5 +1,10 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::scene::scene_renderer::transparency::{
+    HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID,
+    HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID, HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID,
+    HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID,
+};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::RenderPassExecutionContext;
@@ -97,11 +102,46 @@ fn sprite_stage_for_executor(executor_id: &str) -> Result<RenderPassStage, Strin
 pub(super) fn particle_billboard_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
+    let (color_resource, depth_resource) =
+        if context.executor_id.as_str() == HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID {
+            (
+                PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+                PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+            )
+        } else {
+            (
+                PostProcessGraphResourceNames::SCENE_COLOR,
+                PostProcessGraphResourceNames::SCENE_DEPTH,
+            )
+        };
     let gpu = context.require_gpu()?;
-    gpu.record_particle_billboards_to_resources(
-        PostProcessGraphResourceNames::SCENE_COLOR,
-        PostProcessGraphResourceNames::SCENE_DEPTH,
+    gpu.record_particle_billboards_to_resources(color_resource, depth_resource)
+}
+
+pub(super) fn half_resolution_transparency_depth_downsample_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let color_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let depth_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let gpu = context.require_gpu()?;
+    gpu.record_half_resolution_transparency_depth_downsample(
+        color_attachment_ops,
+        depth_attachment_ops,
     )
+}
+
+pub(super) fn half_resolution_transparency_composite_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    let attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_COLOR)
+        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+    let gpu = context.require_gpu()?;
+    gpu.record_half_resolution_transparency_composite(attachment_ops)
 }
 
 pub(super) fn depth_prepass_executor(
@@ -121,20 +161,42 @@ pub(super) fn depth_prepass_executor(
 
 pub(super) fn mesh_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     let stage = mesh_stage_for_executor(context.executor_id.as_str())?;
+    let (color_resource, depth_resource) =
+        if context.executor_id.as_str() == HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID {
+            (
+                PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
+                PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_DEPTH,
+            )
+        } else {
+            (
+                PostProcessGraphResourceNames::SCENE_COLOR,
+                PostProcessGraphResourceNames::SCENE_DEPTH,
+            )
+        };
     let attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_COLOR)
+        .attachment_ops_for_write(color_resource)
         .unwrap_or_else(RenderGraphAttachmentOps::load_store);
     let depth_attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .attachment_ops_for_write(depth_resource)
         .unwrap_or_else(RenderGraphAttachmentOps::load_store);
+    let is_half_resolution = context.executor_id.as_str() == HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID;
     let gpu = context.require_gpu()?;
-    gpu.record_mesh_stage_to_resources(
-        PostProcessGraphResourceNames::SCENE_COLOR,
-        PostProcessGraphResourceNames::SCENE_DEPTH,
-        stage,
-        attachment_ops,
-        depth_attachment_ops,
-    )
+    if is_half_resolution {
+        gpu.record_half_resolution_transparent_mesh_to_resources(
+            color_resource,
+            depth_resource,
+            attachment_ops,
+            depth_attachment_ops,
+        )
+    } else {
+        gpu.record_mesh_stage_to_resources(
+            color_resource,
+            depth_resource,
+            stage,
+            attachment_ops,
+            depth_attachment_ops,
+        )
+    }
 }
 
 fn mesh_stage_for_executor(executor_id: &str) -> Result<RenderPassStage, String> {
@@ -142,6 +204,7 @@ fn mesh_stage_for_executor(executor_id: &str) -> Result<RenderPassStage, String>
         "mesh.opaque" => Ok(RenderPassStage::Opaque3d),
         "mesh.alpha-mask" => Ok(RenderPassStage::AlphaMask3d),
         "mesh.transparent" => Ok(RenderPassStage::Transparent3d),
+        HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID => Ok(RenderPassStage::Transparent3d),
         other => Err(format!("executor `{other}` is not a mesh graph executor")),
     }
 }

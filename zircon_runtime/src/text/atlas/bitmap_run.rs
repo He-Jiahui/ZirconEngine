@@ -3,7 +3,9 @@ use std::collections::{BTreeMap, HashSet};
 use crate::core::math::UVec2;
 
 use super::render_plan::{GlyphAtlasDrawGlyph, GlyphAtlasScreenRect};
-use super::{GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasSet, GlyphAtlasShelfAllocator};
+use super::{
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasShelfAllocator,
+};
 
 mod allocation;
 mod failure;
@@ -243,9 +245,12 @@ where
 
         plan.atlas.mark_page_used(allocation.page_key, frame_index);
         if requires_upload {
-            let retained_regions = retained_slot_rects_by_page
+            let retained_regions: Option<&[GlyphAtlasRect]> = retained_slot_rects_by_page
                 .as_ref()
-                .map(|pages| pages.get(&allocation.page_key).map_or(&[], Vec::as_slice));
+                .map(|pages| match pages.get(&allocation.page_key) {
+                    Some(regions) => regions.as_slice(),
+                    None => &[],
+                });
             let has_replayable_shadow = plan.atlas.has_bitmap_page_shadow(allocation.page_key);
             let can_zero_initialize_shadow = uses_persistent_slots
                 && !has_replayable_shadow

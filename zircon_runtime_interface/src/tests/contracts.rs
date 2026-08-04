@@ -72,7 +72,7 @@ use crate::{
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrPluginApiV1, ZrPluginEventCallbackRequestV1,
-    ZrPluginEventCallbackResultV1, ZrRuntimeApiV3, ZrRuntimeCursorGrabModeV1,
+    ZrPluginEventCallbackResultV1, ZrRuntimeApiV4, ZrRuntimeCursorGrabModeV1,
     ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
     ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
     ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
@@ -82,7 +82,7 @@ use crate::{
     ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
     ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1, ZrStatus,
     ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
-    ZIRCON_RUNTIME_API_VERSION_V3, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZIRCON_RUNTIME_API_VERSION_V4, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
     ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
     ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
@@ -692,16 +692,17 @@ fn status_preserves_raw_codes_and_diagnostics() {
 
 #[test]
 fn runtime_api_table_records_size_and_version() {
-    let api = ZrRuntimeApiV3::empty();
+    let api = ZrRuntimeApiV4::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V3);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV3>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV3>(), 152);
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V4);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV4>());
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV4>(), 160);
     assert!(api.create_session.is_none());
     assert!(api.capture_frame.is_none());
     assert!(api.bind_viewport_surface.is_none());
     assert!(api.unbind_viewport_surface.is_none());
     assert!(api.present_viewport.is_none());
+    assert!(api.submit_highlight_set.is_none());
     assert!(api.profile_control.is_none());
     assert!(api.tick_frame.is_none());
     assert!(api.drain_host_requests.is_none());
@@ -712,38 +713,43 @@ fn runtime_api_table_records_size_and_version() {
     assert!(api.poll_operation.is_none());
     assert!(api.harvest_operation.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, bind_viewport_surface),
-        core::mem::offset_of!(ZrRuntimeApiV3, capture_accessibility_tree)
+        core::mem::offset_of!(ZrRuntimeApiV4, bind_viewport_surface),
+        core::mem::offset_of!(ZrRuntimeApiV4, capture_accessibility_tree)
             + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, profile_control),
-        core::mem::offset_of!(ZrRuntimeApiV3, present_viewport)
+        core::mem::offset_of!(ZrRuntimeApiV4, submit_highlight_set),
+        core::mem::offset_of!(ZrRuntimeApiV4, present_viewport)
             + core::mem::size_of::<Option<crate::ZrRuntimePresentViewportFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, tick_frame),
-        core::mem::offset_of!(ZrRuntimeApiV3, profile_control)
+        core::mem::offset_of!(ZrRuntimeApiV4, profile_control),
+        core::mem::offset_of!(ZrRuntimeApiV4, submit_highlight_set)
+            + core::mem::size_of_val(&api.submit_highlight_set)
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV4, tick_frame),
+        core::mem::offset_of!(ZrRuntimeApiV4, profile_control)
             + core::mem::size_of::<Option<crate::ZrRuntimeProfileControlFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, drain_host_requests),
-        core::mem::offset_of!(ZrRuntimeApiV3, tick_frame)
+        core::mem::offset_of!(ZrRuntimeApiV4, drain_host_requests),
+        core::mem::offset_of!(ZrRuntimeApiV4, tick_frame)
             + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, subscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV3, drain_host_requests)
+        core::mem::offset_of!(ZrRuntimeApiV4, subscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV4, drain_host_requests)
             + core::mem::size_of::<Option<crate::ZrRuntimeDrainHostRequestsFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, unsubscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV3, subscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV4, unsubscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV4, subscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeSubscribePluginEventFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV3, drain_plugin_events),
-        core::mem::offset_of!(ZrRuntimeApiV3, unsubscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV4, drain_plugin_events),
+        core::mem::offset_of!(ZrRuntimeApiV4, unsubscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnsubscribePluginEventFnV1>>()
     );
 }
@@ -1677,6 +1683,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         }),
         composition: Some(crate::ui::surface::UiTextComposition {
             range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+            preedit_clauses: Vec::new(),
             text: "hello".to_string(),
             restore_text: None,
         }),
@@ -2010,6 +2017,7 @@ fn ui_input_event_contract_constructs_every_event_family() {
             kind: UiImeInputEventKind::Preedit,
             text: "preedit".to_string(),
             cursor_range: Some(UiTextByteRange::new(0, 7)),
+            preedit_clauses: Vec::new(),
             delete_surrounding: None,
         }),
         UiInputEvent::Navigation(UiNavigationInputEvent {
@@ -2483,6 +2491,7 @@ fn ui_input_payloads_round_trip_through_serde() {
         kind: UiImeInputEventKind::Commit,
         text: "ime commit".to_string(),
         cursor_range: None,
+        preedit_clauses: Vec::new(),
         delete_surrounding: None,
     });
     let drag_drop = UiInputEvent::DragDrop(UiDragDropInputEvent {
@@ -2588,6 +2597,22 @@ fn ui_input_method_surrounding_text_validates_byte_positions() {
     assert!(matches!(
         UiInputMethodSurroundingText::new("你好", 3, 1),
         Err(UiInputMethodSurroundingTextError::AnchorBadPosition)
+    ));
+}
+
+#[test]
+fn ui_input_method_surrounding_text_rebases_and_validates_composition_range() {
+    let text = UiInputMethodSurroundingText::new("a你b", 4, 1)
+        .unwrap()
+        .with_composition_range(UiTextByteRange::new(1, 4))
+        .unwrap();
+
+    assert_eq!(text.composition_range, Some(UiTextByteRange::new(1, 4)));
+    assert!(matches!(
+        UiInputMethodSurroundingText::new("a你b", 4, 1)
+            .unwrap()
+            .with_composition_range(UiTextByteRange::new(2, 4)),
+        Err(UiInputMethodSurroundingTextError::CompositionBadPosition)
     ));
 }
 

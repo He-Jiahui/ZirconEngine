@@ -27,6 +27,8 @@ impl RetainedEditorHost {
             self.set_status_line(error.to_string());
         }
         self.sync_pending_play_decisions();
+        self.sync_activity_toasts();
+        self.sync_settings_projections();
 
         {
             let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::AssetRefresh);
@@ -127,8 +129,20 @@ mod tests {
         let decision_sync = production
             .find("self.sync_pending_play_decisions();")
             .expect("retained tick should project pending play decisions");
+        let toast_sync = production
+            .find("self.sync_activity_toasts();")
+            .expect("retained tick should project activity toasts from the notification authority");
+        let settings_sync = production
+            .find("self.sync_settings_projections();")
+            .expect("retained tick should synchronize authority-owned settings projections");
+        let recompute = production
+            .find("self.recompute_if_dirty();")
+            .expect("retained tick should recompute invalidated presentation");
         assert!(lifecycle_pump < backend_poll);
         assert!(backend_poll < template_sync);
         assert!(template_sync < decision_sync);
+        assert!(decision_sync < toast_sync);
+        assert!(toast_sync < settings_sync);
+        assert!(settings_sync < recompute);
     }
 }

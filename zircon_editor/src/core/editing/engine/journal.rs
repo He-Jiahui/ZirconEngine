@@ -102,7 +102,8 @@ impl TransactionJournal {
 
     /// Decodes only a journal contract that this engine version can consume.
     pub fn decode(bytes: &[u8]) -> Result<Self, TransactionJournalReadError> {
-        let journal = serde_json::from_slice(bytes).map_err(TransactionJournalReadError::Decode)?;
+        let journal: Self =
+            serde_json::from_slice(bytes).map_err(TransactionJournalReadError::Decode)?;
         journal
             .validate_schema()
             .map_err(TransactionJournalReadError::Schema)?;

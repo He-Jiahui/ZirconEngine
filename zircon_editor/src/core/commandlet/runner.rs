@@ -3,11 +3,12 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use zircon_runtime::asset::migration::{
-    migrate_project_assets, AssetMigrationIssueKind, AssetMigrationMode, AssetMigrationOptions,
-    AssetMigrationReport,
+    AssetMigrationIssueKind, AssetMigrationMode, AssetMigrationOptions, AssetMigrationReport,
+    migrate_project_assets,
 };
 
 use crate::core::commands::{CommandEvalCtx, EditorCommandAction, EditorCommandRegistry};
+use crate::core::plugin::sdk::EditorOperationPath;
 use crate::core::plugin::{EditorPluginCatalogProjection, EditorPluginManager};
 
 const ASSET_MIGRATION_CAPABILITY: &str = "asset.migration";

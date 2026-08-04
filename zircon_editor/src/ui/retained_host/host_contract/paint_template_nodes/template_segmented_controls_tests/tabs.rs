@@ -1,9 +1,11 @@
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::super::template_segmented_control_geometry::tab_paint_rect;
 use super::super::identity::is_workbench_tab;
+use super::super::push_segmented_control_commands;
 use super::super::style::tab_background;
 use super::support::{changed_pixel_count, frame_rect, pixel_at, tab_node};
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::data::FrameRect;
 
 #[test]
 fn selected_tab_paints_accent_underline_without_filling_right_edge() {
@@ -56,4 +58,55 @@ fn workbench_tab_uses_declared_idle_background() {
     let bytes = paint_template_nodes_for_test(180, 52, model_rc(vec![node]));
 
     assert_eq!(pixel_at(&bytes, 180, 8, 12), [28, 34, 38, 255]);
+}
+
+#[test]
+fn fully_clipped_workbench_tab_does_not_emit_paint_commands() {
+    let node = tab_node();
+    let rect = frame_rect(&node.frame);
+    let clip = FrameRect {
+        x: 160.0,
+        y: 0.0,
+        width: 80.0,
+        height: 80.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_segmented_control_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &clip,
+        4,
+        1.0,
+    ));
+
+    assert!(commands.is_empty());
+}
+
+#[test]
+fn partially_clipped_workbench_tab_keeps_runtime_text_commands() {
+    let node = tab_node();
+    let rect = frame_rect(&node.frame);
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 24.0,
+        height: 80.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_segmented_control_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &clip,
+        4,
+        1.0,
+    ));
+
+    assert!(commands.iter().any(|command| command.text.is_some()));
+    assert!(commands
+        .iter()
+        .all(|command| command.clip_frame.as_ref() == Some(&clip)));
 }

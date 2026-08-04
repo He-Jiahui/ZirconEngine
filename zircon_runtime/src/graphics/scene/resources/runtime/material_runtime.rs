@@ -115,6 +115,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) material_queue: i32,
     pub(crate) depth_bias: f32,
     pub(crate) taa_reactive_mask_strength: f32,
+    pub(crate) separate_translucency: bool,
     pub(crate) subsurface_profile_index: u32,
     pub(crate) advanced_features: StandardPbrMaterialFeatures,
     pub(crate) base_color_texture: Option<ResourceId>,

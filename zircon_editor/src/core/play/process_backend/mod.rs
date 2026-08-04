@@ -111,9 +111,9 @@ impl PlayBackend for ProcessPlayBackend {
                 diagnostics: child.drain_output(),
             });
         };
-        let child = active
-            .take()
-            .expect("active runtime preview should remain present until terminal poll");
+        let child = active.take().ok_or_else(|| {
+            "runtime preview process disappeared before terminal completion".to_string()
+        })?;
         drop(active);
         let outcome = child.finish(status);
         Ok(PlayBackendPoll::Exited {
@@ -154,5 +154,23 @@ mod performance_source_guards {
             .expect("poll should finish child");
 
         assert!(release < finish);
+    }
+
+    #[test]
+    fn production_poll_path_recovers_instead_of_panicking_on_a_missing_child() {
+        let source = include_str!("mod.rs");
+        let start = source
+            .find("impl PlayBackend for ProcessPlayBackend")
+            .expect("process backend implementation should remain available");
+        let end = source
+            .find("impl Drop for ProcessPlayBackend")
+            .expect("process backend drop implementation should remain available");
+        let production = &source[start..end];
+
+        assert!(
+            production.contains("runtime preview process disappeared before terminal completion")
+        );
+        assert!(!production
+            .contains("active runtime preview should remain present until terminal poll"));
     }
 }

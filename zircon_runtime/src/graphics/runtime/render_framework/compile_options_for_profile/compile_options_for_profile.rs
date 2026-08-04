@@ -141,6 +141,31 @@ mod tests {
         assert!(unsupported.disabled_plugin_features.contains("oit"));
     }
 
+    #[test]
+    fn compile_options_keep_half_resolution_transparency_profile_opt_in() {
+        let enabled_profile = RenderQualityProfile::new("bandwidth-limited")
+            .with_half_resolution_transparency(true)
+            .with_half_resolution_transparency_depth_sigma(144);
+        let enabled = compile_options_for_profile(
+            Some(&enabled_profile),
+            &RenderCapabilitySummary::default(),
+            &AdvancedProviderAvailability::new(),
+        );
+        let default = compile_options_for_profile(
+            None,
+            &RenderCapabilitySummary::default(),
+            &AdvancedProviderAvailability::new(),
+        );
+
+        assert!(enabled.enable_half_resolution_transparency);
+        assert_eq!(enabled.half_resolution_transparency_depth_sigma, 144);
+        assert!(!default.enable_half_resolution_transparency);
+        assert_eq!(
+            default.half_resolution_transparency_depth_sigma,
+            crate::core::framework::render::DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA
+        );
+    }
+
     fn advanced_capabilities() -> RenderCapabilitySummary {
         RenderCapabilitySummary {
             virtual_geometry_supported: true,

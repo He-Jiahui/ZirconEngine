@@ -159,7 +159,11 @@ impl AntiAliasFallbackReport {
 }
 
 const fn normalize_graph_sample_count(sample_count: u32) -> u32 {
-    if sample_count > 1 { sample_count } else { 1 }
+    if sample_count > 1 {
+        sample_count
+    } else {
+        1
+    }
 }
 
 const fn terminal_slot_normalized(

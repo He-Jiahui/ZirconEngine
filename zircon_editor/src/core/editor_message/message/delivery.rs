@@ -10,7 +10,7 @@ use crate::core::tools::ToolLifecycleEvent;
 
 use super::{EditorMessage, EditorMessageProtocol};
 use crate::core::editor_message::retention::{
-    editor_message_retention, EditorMessageCoalescingKey, EditorMessageRetention,
+    EditorMessageCoalescingKey, EditorMessageRetention, editor_message_retention,
 };
 
 #[derive(Clone, Debug)]

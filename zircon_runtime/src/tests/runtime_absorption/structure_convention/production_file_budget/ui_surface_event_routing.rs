@@ -13,9 +13,6 @@ fn runtime_15_ui_surface_event_routing_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "UI surface parent keeps surface state, frame snapshots, and property mutation entry points",
@@ -110,16 +107,4 @@ fn runtime_15_ui_surface_event_routing_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 UI surface event-routing owner split",
-            "runtime_15_ui_surface_event_routing_owner_split_static_passed_cargo_deferred",
-            "ui/surface/surface.rs",
-            "ui/surface/surface/event_routing.rs",
-            "ui/surface/surface/pointer_component_events.rs",
-            "runtime_15_ui_surface_event_routing_is_child_owner",
-        ],
-    );
 }

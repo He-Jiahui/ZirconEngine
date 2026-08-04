@@ -14,15 +14,21 @@ fn inspector_batch_commit_groups_name_parent_and_transform() {
     state.update_translation_field(0, "4.0".to_string());
     state.update_translation_field(1, "5.0".to_string());
     state.update_translation_field(2, "6.0".to_string());
+    state.update_scale_field(0, "2.0".to_string());
+    state.update_scale_field(1, "3.0".to_string());
+    state.update_scale_field(2, "4.0".to_string());
 
-    assert!(state
-        .apply_intent(EditorIntent::ApplyInspectorChanges)
-        .unwrap());
+    assert!(
+        state
+            .apply_intent(EditorIntent::ApplyInspectorChanges)
+            .unwrap()
+    );
     state.world.with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         assert_eq!(node.name, "Batch Cube");
         assert_eq!(node.parent, Some(camera));
         assert_eq!(node.transform.translation, Vec3::new(4.0, 5.0, 6.0));
+        assert_eq!(node.transform.scale, Vec3::new(2.0, 3.0, 4.0));
     });
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
@@ -31,6 +37,7 @@ fn inspector_batch_commit_groups_name_parent_and_transform() {
         assert_ne!(node.name, "Batch Cube");
         assert_eq!(node.parent, None);
         assert_ne!(node.transform.translation, Vec3::new(4.0, 5.0, 6.0));
+        assert_eq!(node.transform.scale, Vec3::ONE);
     });
 }
 
@@ -75,7 +82,8 @@ fn selected_inspector_snapshot_projects_runtime_artifact_fields() {
         scene
             .update_transform(
                 cube,
-                Transform::from_translation(Vec3::new(12.5, -3.0, 7.25)),
+                Transform::from_translation(Vec3::new(12.5, -3.0, 7.25))
+                    .with_scale(Vec3::new(1.25, 2.5, 0.75)),
             )
             .unwrap();
     });
@@ -93,4 +101,5 @@ fn selected_inspector_snapshot_projects_runtime_artifact_fields() {
     assert_eq!(inspector.name, "Artifact Cube");
     assert_eq!(inspector.parent, camera.to_string());
     assert_eq!(inspector.translation, ["12.50", "-3.00", "7.25"]);
+    assert_eq!(inspector.scale, ["1.25", "2.50", "0.75"]);
 }

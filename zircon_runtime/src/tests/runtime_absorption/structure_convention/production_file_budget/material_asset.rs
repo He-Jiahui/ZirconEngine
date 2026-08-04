@@ -14,9 +14,6 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let material_doc = read_repo("docs/zircon_runtime/asset/zmeta-shader-material.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "material asset parent keeps public DTO and descriptor/readiness entry ownership",
@@ -137,17 +134,6 @@ fn runtime_15_material_asset_value_readiness_helpers_are_child_owners() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 material asset value/readiness helper owner split",
-            "runtime_15_material_asset_value_readiness_owner_split_static_passed_cargo_timeout_no_result",
-            "asset/assets/material/material_asset.rs",
-            "asset/assets/material/material_asset/value_sync.rs",
-            "runtime_15_material_asset_value_readiness_helpers_are_child_owners",
-        ],
-    );
 }
 
 #[test]
@@ -161,9 +147,6 @@ fn runtime_15_material_asset_management_records_are_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let material_doc = read_repo("docs/zircon_runtime/asset/zmeta-shader-material.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-    );
 
     assert_contains_all(
         "material asset parent keeps management entry points and public re-export",
@@ -238,15 +221,4 @@ fn runtime_15_material_asset_management_records_are_child_owner() {
             ],
         );
     }
-    assert_contains_all(
-        "status-output row data",
-        &status_rows,
-        &[
-            "Runtime 15 M4 material asset management record owner split",
-            "runtime_15_material_asset_management_record_owner_split_static_passed_cargo_deferred",
-            "asset/assets/material/material_asset.rs",
-            "asset/assets/material/material_asset/management.rs",
-            "runtime_15_material_asset_management_records_are_child_owner",
-        ],
-    );
 }

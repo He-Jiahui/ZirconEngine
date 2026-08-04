@@ -3,7 +3,7 @@ pub(super) fn visible_collection_items<T>(
     visible_start: i32,
     visible_count: i32,
     overscan: i32,
-) -> Vec<String> {
+) -> Vec<T> {
     if visible_count <= 0 {
         return Vec::new();
     }

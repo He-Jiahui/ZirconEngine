@@ -9,7 +9,7 @@ use crate::core::framework::render::{
     GraphicsDebuggerStatus, PreviewEnvironmentExtract, RenderCameraClear, RenderCameraTarget,
     RenderCameraTargetKind, RenderCaptureSource, RenderFrameExtract, RenderFramework,
     RenderFrameworkError, RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage,
-    RenderNativeSurfaceTarget, RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
+    RenderPipelineHandle, RenderQualityProfile, RenderSamplerDescriptor,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderSubmissionConfig,
     RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
     RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
@@ -17,6 +17,7 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::{ViewportRenderFrame, WgpuRenderFramework};
+use crate::rhi::RenderNativeSurfaceTarget;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 const CAMERA_TEXTURE_TARGET_ASSET_CAPABILITY: &str = "camera texture render target asset";

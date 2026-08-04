@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use crate::text::{layout::measured_grapheme_widths, text_style};
+use crate::text::{
+    layout::measured_grapheme_widths, resolve_resolved_text_glyph_artifact,
+    resolved_text_glyph_artifact_caret_at_advance, text_style,
+};
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
@@ -44,19 +47,34 @@ pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint
     };
     let line = &layout.lines[line_index];
     let style = style_for_layout(layout, line);
+    let artifact_caret = resolved_glyph_artifact(layout).and_then(|artifact| {
+        resolved_text_glyph_artifact_caret_at_advance(
+            artifact.as_ref(),
+            line_index,
+            line,
+            if vertical_rl {
+                point.y - line.frame.y
+            } else {
+                point.x - line.frame.x
+            },
+        )
+    });
     let (grapheme_index, boundary_bias) = if vertical_rl {
         visual_grapheme_boundary_for_y(line, point.y, &style)
     } else {
         visual_grapheme_boundary_for_x(line, point.x, &style)
     };
-    let source_map = UiTextLineSourceMap::new(line);
-    let fallback_source_offset = if grapheme_index == 0 {
-        line.source_range.start
-    } else {
-        line.source_range.end
-    };
-    let resolved_caret =
-        source_map.caret_for_visual_boundary(grapheme_index, boundary_bias, fallback_source_offset);
+    let resolved_caret = artifact_caret.unwrap_or_else(|| {
+        // A valid shaped artifact already resolves the source caret. Keep the
+        // allocation-backed source map on the stale-or-missing artifact path.
+        let source_map = UiTextLineSourceMap::new(line);
+        let fallback_source_offset = if grapheme_index == 0 {
+            line.source_range.start
+        } else {
+            line.source_range.end
+        };
+        source_map.caret_for_visual_boundary(grapheme_index, boundary_bias, fallback_source_offset)
+    });
     let affinity =
         if (vertical_rl && point.y <= line.frame.y) || (!vertical_rl && point.x <= line.frame.x) {
             UiTextCaretAffinity::Upstream
@@ -223,6 +241,16 @@ fn style_for_layout(layout: &UiResolvedTextLayout, line: &UiResolvedTextLine) ->
         text_writing_mode: layout.writing_mode,
         ..UiResolvedStyle::default()
     }
+}
+
+fn resolved_glyph_artifact(
+    layout: &UiResolvedTextLayout,
+) -> Option<std::sync::Arc<crate::text::ResolvedTextGlyphArtifact>> {
+    layout
+        .rich_text_artifact
+        .as_ref()
+        .and_then(resolve_resolved_text_glyph_artifact)
+        .filter(|artifact| artifact.writing_mode == layout.writing_mode)
 }
 
 fn is_vertical_rl(layout: &UiResolvedTextLayout) -> bool {

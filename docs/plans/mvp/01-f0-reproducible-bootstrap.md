@@ -80,7 +80,7 @@ F0 必须覆盖以下产品输入：
 
 ### 测试阶段：F0 Profile Build Gate
 
-- [ ] 通过 validator 运行完整 `-RunProfileFeatureContract`，覆盖现有五个 profile case。
+- [ ] 通过 validator 运行完整 `-RunProfileFeatureContract`，覆盖现有七个 profile case。
 - [ ] 由 coordinator validation action 构建 `zircon_app --bin zircon_runtime` 的固定 runtime feature 配置。
 - [ ] 由 coordinator validation action 构建 `zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked`。
 - [ ] 构建输出必须来自同一 Windows validation copy；不得使用历史 target artifact。
@@ -88,7 +88,7 @@ F0 必须覆盖以下产品输入：
 
 ### 退出证据
 
-- [ ] 五项 profile contract 通过。
+- [ ] 七项 profile contract 通过。
 - [ ] runtime/editor product binaries 均在 current source 上成功构建。
 - [ ] validation manifest 记录 feature、toolchain、target、source fingerprint 和产物位置。
 

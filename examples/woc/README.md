@@ -34,10 +34,14 @@ Runtime clocks are fixed by contract:
 - one batch ZrVM transaction per simulation tick;
 - complete rollback on a VM, budget, decode or command-validation failure.
 
-The ZrVM package and native protocol both target the versioned `WOS83` envelope
-documented in `contracts/world-state.md`. Its `stateSchema()` and writer select
-WOS83, while the decoder retains WOS2-WOS82 compatibility. WOS83 appends 29
-source-ordered account weapon-skin ownership markers and eight generated-type
+The ZrVM package targets the versioned `WOS113` envelope documented in
+`contracts/world-state.md`; its `stateSchema()` and writer select WOS113 while
+the decoder retains WOS2-WOS113 compatibility. WOS113 keeps the historical WOS15
+signed resource rows and appends the authoritative fractional-resource tail.
+`examples/woc/native/crates/woc_protocol` still declares WOS83, so native protocol
+identity/migration reconciliation remains an explicit forward-repair owner and is
+not evidence that the authoritative ZrVM state should be downgraded. WOS83 appends
+29 source-ordered account weapon-skin ownership markers and eight generated-type
 loadout codes. Typed `change_weapon_skin` applies only known owned skins matching
 the displayed mainhand, detaches canonical type entries, refreshes all live
 players and preserves Hunter's crossbow-before-bow rule without a dead or RNG

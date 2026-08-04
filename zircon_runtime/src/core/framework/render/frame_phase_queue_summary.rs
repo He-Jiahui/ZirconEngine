@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    RENDER_PHASES_BY_QUEUE_ORDER, RenderPhase, RenderPhaseQueueOrderingKey, RenderPhaseQueueSummary,
+    RenderPhase, RenderPhaseQueueOrderingKey, RenderPhaseQueueSummary, RENDER_PHASES_BY_QUEUE_ORDER,
 };
 
 /// Read-only reporting view that keeps mesh and sprite queue summaries side by side.

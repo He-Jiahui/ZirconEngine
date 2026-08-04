@@ -12,7 +12,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionCullReport, HzbOcclusionIndirectArgsReadbackSummary,
 };
-use crate::rhi_wgpu::gpu_readback_queue::{GpuReadbackQueue, ReadbackError};
+use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
 
 use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
 

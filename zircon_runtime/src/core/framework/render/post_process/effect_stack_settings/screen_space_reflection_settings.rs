@@ -57,7 +57,7 @@ impl RenderScreenSpaceReflectionSettings {
 #[cfg(test)]
 mod tests {
     use super::{
-        MAX_SSR_ROUGHNESS_MIP_BIAS, MIN_SSR_ROUGHNESS_MIP_BIAS, RenderScreenSpaceReflectionSettings,
+        RenderScreenSpaceReflectionSettings, MAX_SSR_ROUGHNESS_MIP_BIAS, MIN_SSR_ROUGHNESS_MIP_BIAS,
     };
 
     #[test]

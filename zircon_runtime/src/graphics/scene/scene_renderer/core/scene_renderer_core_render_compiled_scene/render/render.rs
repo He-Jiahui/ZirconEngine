@@ -1,10 +1,12 @@
-use crate::core::framework::render::{
-    select_irradiance_volume_for_view, AntiAliasMode, PostProcessGraphResourceNames,
-    RenderCapabilitySummary, RenderPluginRendererOutputs, SkyboxMode,
-};
 use crate::core::TaskPool;
-use crate::graphics::backend::{GpuPassTimer, OffscreenTarget};
-use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
+use crate::core::framework::render::{
+    AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
+    RenderPluginRendererOutputs, SkyboxMode, select_irradiance_volume_for_view,
+};
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::backend::{GpuPassTimer, GpuPipelineStatisticsTimer, OffscreenTarget};
+use crate::graphics::debug_markers::{RENDERDOC_MARKER_FRAME_EXTRACT, insert_marker};
+use crate::graphics::scene::HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_render_with_pipeline::AsyncViewportCaptureRequest;
 use crate::graphics::scene::scene_renderer::graph_execution::{
@@ -13,21 +15,20 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::{
-    build_mesh_pass_command_buffers_cached, build_mesh_pass_command_buffers_cached_parallel,
     MeshDrawReplayStatsAccumulator, MeshPassIndirectDrawExecutions,
+    build_mesh_pass_command_buffers_cached, build_mesh_pass_command_buffers_cached_parallel,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::scene_renderer_core::{
-    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
+    SceneRendererAdvancedPluginReadbacks, SceneRendererCore, merge_plugin_renderer_outputs,
 };
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
 use super::bind_compiled_scene_graph_resources::{
-    bind_compiled_scene_graph_resources, CompiledSceneGraphResourceBindingFlags,
+    CompiledSceneGraphResourceBindingFlags, bind_compiled_scene_graph_resources,
 };
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::execute_compiled_scene_graph_stages::CompiledSceneGraphStageContext;
@@ -54,6 +55,7 @@ impl SceneRendererCore {
         history_available: bool,
         frame_generation: u64,
         mut gpu_pass_timer: Option<&mut GpuPassTimer>,
+        mut gpu_pipeline_statistics_timer: Option<&mut GpuPipelineStatisticsTimer>,
         compute_task_pool: Option<&TaskPool>,
         parallel_record_min_passes_per_bucket: Option<usize>,
         hzb_indirect_args_readback_enabled: bool,
@@ -107,11 +109,21 @@ impl SceneRendererCore {
         self.mesh_pipelines
             .irradiance_volume
             .prepare(queue, selected_irradiance_volume);
-        let shadow_frame_plan =
-            crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
+        let static_caster_revision = streamer
+            .with_ready_resource_revisions(|resource_revision| {
+                crate::graphics::scene::scene_renderer::shadow::
+                    static_shadow_caster_revision_from_meshes_with_resource_revisions(
+                        &frame.extract.geometry.meshes,
+                        |resource| resource_revision(resource),
+                    )
+            })
+            .flatten();
+        let shadow_frame_plan = crate::graphics::scene::scene_renderer::shadow::
+            build_shadow_frame_plan_with_static_caster_revision(
                 &mut self.shadow_atlas_allocator,
                 frame,
                 self.shadow_atlas_resources.config(),
+                static_caster_revision,
             );
         let _shadow_atlas_upload_report = self
             .shadow_atlas_resources
@@ -188,6 +200,13 @@ impl SceneRendererCore {
         self.cached_mesh_draw_commands
             .retain_generation(generation_ids.mesh_commands);
         self.mesh_command_generation = self.mesh_command_generation.wrapping_add(1);
+        let half_resolution_mesh_pass_available = pipeline.graph().passes().iter().any(|pass| {
+            pass.executor_id.as_deref() == Some(HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID)
+        });
+        if !half_resolution_mesh_pass_available {
+            // Preserve material-marked transparent meshes on profile, MSAA, and plugin fallbacks.
+            mesh_pass_command_buffers.merge_half_resolution_transparent_into_transparent();
+        }
         let mesh_pass_command_stats =
             mesh_pass_command_buffers.stats_with_indirect_batches(capabilities);
         let mut mesh_pass_indirect_draws =
@@ -274,6 +293,9 @@ impl SceneRendererCore {
                     .advanced_lighting
                     .transmission_draw_step_count(),
                 transparent_commands: mesh_pass_command_buffers.transparent().commands(),
+                half_resolution_transparent_commands: mesh_pass_command_buffers
+                    .half_resolution_transparent()
+                    .commands(),
                 velocity_commands: mesh_pass_command_buffers.velocity().commands(),
                 taa_reactive_mask_commands: mesh_pass_command_buffers
                     .taa_reactive_mask()
@@ -284,6 +306,8 @@ impl SceneRendererCore {
                 alpha_mask_indirect: mesh_pass_indirect_draws.alpha_mask(),
                 advanced_pbr_opaque_indirect: mesh_pass_indirect_draws.advanced_pbr_opaque(),
                 transparent_indirect: mesh_pass_indirect_draws.transparent(),
+                half_resolution_transparent_indirect: mesh_pass_indirect_draws
+                    .half_resolution_transparent(),
                 velocity_indirect: mesh_pass_indirect_draws.velocity(),
                 taa_reactive_mask_indirect: mesh_pass_indirect_draws.taa_reactive_mask(),
             };
@@ -385,12 +409,16 @@ impl SceneRendererCore {
             if let Some(timer) = gpu_pass_timer.as_deref_mut() {
                 timer.begin_frame(generation_ids.timer_frame());
             }
+            if let Some(timer) = gpu_pipeline_statistics_timer.as_deref_mut() {
+                timer.begin_frame(generation_ids.timer_frame());
+            }
         }
         let mut graph_execution = RenderGraphStageExecution::new(
             &mut graph_resources,
             &mut graph_execution_record,
             &mut graph_plugin_outputs,
             gpu_pass_timer.as_deref_mut(),
+            gpu_pipeline_statistics_timer.as_deref_mut(),
         );
         let mut command_encoders = FrameCommandEncoderSet::from_serial_encoder(encoder);
         let parallel_recording = compute_task_pool.zip(parallel_record_min_passes_per_bucket);
@@ -447,6 +475,12 @@ impl SceneRendererCore {
                     &mut self.readback_queue,
                 );
             }
+            if let Some(timer) = gpu_pipeline_statistics_timer.as_deref_mut() {
+                timer.resolve_and_request(
+                    command_encoders.serial_encoder(device),
+                    &mut self.readback_queue,
+                );
+            }
             if hzb_readback_requested {
                 if let Some(culler) = self.hzb_occlusion_culler.as_ref() {
                     if let Err(error) = culler.request_frame_readbacks(
@@ -484,7 +518,7 @@ impl SceneRendererCore {
                     )
                     .is_ok()
                 {
-                    admission.store(std::sync::atomic::Ordering::Release);
+                    admission.store(true, std::sync::atomic::Ordering::Release);
                 }
             }
             if let Err(error) = self.readback_queue.encode_copies(
@@ -575,9 +609,11 @@ mod resource_mode_tests {
         let error = ensure_compiled_scene_graph_resources(false, true)
             .expect_err("expected output-transfer-only rejection");
         assert!(matches!(error, GraphicsError::Asset(_)));
-        assert!(error
-            .to_string()
-            .contains("cannot execute a compiled scene graph"));
+        assert!(
+            error
+                .to_string()
+                .contains("cannot execute a compiled scene graph")
+        );
         let error = ensure_compiled_scene_graph_resources(true, false)
             .expect_err("expected missing scene-clear rejection");
         assert!(matches!(error, GraphicsError::Asset(_)));
@@ -615,7 +651,7 @@ impl RenderGenerationIds {
 mod performance_tests {
     use std::cell::Cell;
 
-    use super::{collect_irradiance_sample_positions, RenderGenerationIds};
+    use super::{RenderGenerationIds, collect_irradiance_sample_positions};
 
     #[test]
     fn gpu_timer_frame_generation_stays_independent_from_mesh_command_cache_generation() {

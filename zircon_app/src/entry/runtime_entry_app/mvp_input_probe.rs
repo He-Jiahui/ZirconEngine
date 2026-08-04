@@ -2,25 +2,26 @@ use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::{
     ProfileControlCommand, ProfileControlRequest, ProfileControlResponse,
-    RuntimeInputDiagnosticsSnapshot, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1,
+    RuntimeInputDiagnosticsSnapshot, ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
+    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
 };
 
 use super::RuntimeEntryApp;
 
 const MVP_INPUT_PROBE_ENV: &str = "ZIRCON_RUNTIME_MVP_INPUT_PROBE";
+const MVP_INPUT_PROBE_SINGLE_EVENT_COUNT: u64 = 1;
+const MVP_INPUT_PROBE_VIEWPORT_RESIZE_EVENT_COUNT: u64 = 2;
 const MVP_INPUT_PROBE_W_KEY_CODE: u32 = b'W' as u32;
 
 impl RuntimeEntryApp {
     pub(in crate::entry::runtime_entry_app) fn submit_mvp_input_probe_if_requested(
         &mut self,
         event_loop: &dyn ActiveEventLoop,
-    ) {
+    ) -> bool {
         if self.mvp_input_probe_submitted || !mvp_input_probe_enabled() {
-            return;
+            return true;
         }
         self.mvp_input_probe_submitted = true;
         if let Err(error) = mvp_input_probe_viewport_supported(self.viewport_size) {
@@ -31,7 +32,7 @@ impl RuntimeEntryApp {
                 "restore the staged window to a positive viewport before accepting the runtime input probe",
             );
             event_loop.exit();
-            return;
+            return false;
         }
         let before = match self.mvp_input_probe_input_snapshot() {
             Ok(snapshot) => snapshot,
@@ -43,23 +44,13 @@ impl RuntimeEntryApp {
                     "verify the runtime exposes viewport and input diagnostics before accepting the staged host probe",
                 );
                 event_loop.exit();
-                return;
+                return false;
             }
         };
 
-        for (index, event) in mvp_input_probe_events(self.viewport, self.viewport_size)
-            .into_iter()
-            .enumerate()
-        {
-            if let Err(error) = self.session.handle_event(event) {
-                self.report_fatal_failure(
-                    "runtime_input_probe",
-                    format!("event_index={index}"),
-                    format!("submit staging input probe event failed: {error}"),
-                    "verify the runtime accepts viewport, pointer, mouse, and keyboard probe events before retrying zircon_runtime",
-                );
-                event_loop.exit();
-                return;
+        for event in mvp_input_probe_events(self.viewport, self.viewport_size) {
+            if !self.dispatch_runtime_event(event_loop, event) {
+                return false;
             }
         }
         if let Err(error) = self.verify_mvp_input_probe_consumed(&before) {
@@ -70,12 +61,13 @@ impl RuntimeEntryApp {
                 "verify the runtime applies the viewport resize and consumes every host input probe event before retrying zircon_runtime",
             );
             event_loop.exit();
-            return;
+            return false;
         }
         write_log(
             "runtime_input_probe",
             "runtime_mvp_input_probe_submitted viewport_resize=2 pointer_move=1 mouse_press=1 mouse_release=1 keyboard_press=1 keyboard_release=1",
         );
+        true
     }
 
     fn verify_mvp_input_probe_consumed(
@@ -208,36 +200,44 @@ fn mvp_input_probe_counts_advanced(
             "viewport_resize_count",
             before.viewport_resize_count,
             after.viewport_resize_count,
+            MVP_INPUT_PROBE_VIEWPORT_RESIZE_EVENT_COUNT,
         ),
         (
             "pointer_move_count",
             before.pointer_move_count,
             after.pointer_move_count,
+            MVP_INPUT_PROBE_SINGLE_EVENT_COUNT,
         ),
         (
             "mouse_button_press_count",
             before.mouse_button_press_count,
             after.mouse_button_press_count,
+            MVP_INPUT_PROBE_SINGLE_EVENT_COUNT,
         ),
         (
             "mouse_button_release_count",
             before.mouse_button_release_count,
             after.mouse_button_release_count,
+            MVP_INPUT_PROBE_SINGLE_EVENT_COUNT,
         ),
         (
             "keyboard_press_count",
             before.keyboard_press_count,
             after.keyboard_press_count,
+            MVP_INPUT_PROBE_SINGLE_EVENT_COUNT,
         ),
         (
             "keyboard_release_count",
             before.keyboard_release_count,
             after.keyboard_release_count,
+            MVP_INPUT_PROBE_SINGLE_EVENT_COUNT,
         ),
     ]
     .into_iter()
-    .filter(|(_, before, after)| after <= before)
-    .map(|(name, before, after)| format!("{name} before={before} after={after}"))
+    .filter(|(_, before, after, required_delta)| after.saturating_sub(*before) < *required_delta)
+    .map(|(name, before, after, required_delta)| {
+        format!("{name} before={before} after={after} required_delta={required_delta}")
+    })
     .collect::<Vec<_>>();
     if missing.is_empty() {
         Ok(())
@@ -271,17 +271,17 @@ fn mvp_input_probe_response_received(
 mod tests {
     use zircon_runtime_interface::{
         ProfileControlResponse, RuntimeDiagnosticsSnapshot, RuntimeInputDiagnosticsSnapshot,
-        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-        ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
-        ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
-        ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
-        ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+        ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+        ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+        ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
+        ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
     };
 
     use super::{
-        MVP_INPUT_PROBE_W_KEY_CODE, mvp_input_probe_counts_advanced, mvp_input_probe_enabled_value,
-        mvp_input_probe_events, mvp_input_probe_resize_size, mvp_input_probe_response_received,
-        mvp_input_probe_viewport_supported,
+        mvp_input_probe_counts_advanced, mvp_input_probe_enabled_value, mvp_input_probe_events,
+        mvp_input_probe_resize_size, mvp_input_probe_response_received,
+        mvp_input_probe_viewport_supported, MVP_INPUT_PROBE_W_KEY_CODE,
     };
 
     #[test]
@@ -291,6 +291,16 @@ mod tests {
         assert!(mvp_input_probe_enabled_value(Some("1")));
         assert!(mvp_input_probe_enabled_value(Some("true")));
         assert!(mvp_input_probe_enabled_value(Some("YES")));
+    }
+
+    #[test]
+    fn input_probe_uses_the_runtime_entry_event_dispatch_boundary() {
+        let source = include_str!("mvp_input_probe.rs");
+        let entry_dispatch = ["self.", "dispatch_runtime_event(event_loop, event)"].concat();
+        let direct_session_dispatch = ["self.session", ".handle_event(event)"].concat();
+
+        assert!(source.contains(&entry_dispatch));
+        assert!(!source.contains(&direct_session_dispatch));
     }
 
     #[test]
@@ -382,8 +392,22 @@ mod tests {
         assert!(error.contains("keyboard_press_count before=7 after=7"));
         assert!(error.contains("keyboard_release_count before=7 after=7"));
 
-        let after = RuntimeInputDiagnosticsSnapshot {
+        let missing_restore = RuntimeInputDiagnosticsSnapshot {
             viewport_resize_count: 8,
+            pointer_move_count: 8,
+            mouse_button_press_count: 8,
+            mouse_button_release_count: 8,
+            keyboard_press_count: 8,
+            keyboard_release_count: 8,
+        };
+
+        let error = mvp_input_probe_counts_advanced(&before, &missing_restore)
+            .expect_err("the restore viewport event must advance the resize counter");
+
+        assert!(error.contains("viewport_resize_count before=7 after=8 required_delta=2"));
+
+        let after = RuntimeInputDiagnosticsSnapshot {
+            viewport_resize_count: 9,
             pointer_move_count: 8,
             mouse_button_press_count: 8,
             mouse_button_release_count: 8,

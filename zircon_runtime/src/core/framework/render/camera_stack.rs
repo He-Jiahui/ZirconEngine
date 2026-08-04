@@ -2,8 +2,8 @@ use crate::core::framework::scene::EntityId;
 use crate::core::math::{UVec2, Vec4};
 
 use super::{
-    RenderCameraTarget, RenderCameraTargetOrderKey, RenderLayerSet, ViewportCameraSnapshot,
-    aspect_ratio_from_viewport_size,
+    aspect_ratio_from_viewport_size, RenderCameraTarget, RenderCameraTargetOrderKey,
+    RenderLayerSet, ViewportCameraSnapshot,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

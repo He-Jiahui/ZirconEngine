@@ -1,7 +1,8 @@
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::super::data::FrameRect;
-use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::super::paint_text::HostTextLayoutPolicy;
+use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::kind::HostPaintCommandKind;
 
@@ -26,6 +27,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Hos
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) line_height: f32,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) text_style:
         UiTextRunPaintStyle,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) text_layout_policy:
+        HostTextLayoutPolicy,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) image_key: Option<String>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) image_pixels:
         Option<HostPaintImagePixels>,

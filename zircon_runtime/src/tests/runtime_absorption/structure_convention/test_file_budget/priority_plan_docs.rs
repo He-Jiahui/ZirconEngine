@@ -1,12 +1,10 @@
 use super::*;
 
 mod code_paths;
-mod frontmatter_status;
 mod frontmatter_uniqueness;
 mod guard_tests;
 mod header_sections;
 mod plan_sources;
-mod status_sources;
 mod test_paths;
 
 pub(super) use status_sources::*;
@@ -25,7 +23,6 @@ pub(super) const PRIORITY_PLAN_DOCS: &[(&str, &str)] = &[
 pub(super) const PRIORITY_PLAN_DOC_GUARDS: &[&str] = &[
     "runtime_15_priority_plan_docs_code_paths_stay_current",
     "runtime_15_priority_plan_docs_test_paths_stay_current",
-    "runtime_15_priority_plan_docs_frontmatter_status_stays_current",
     "runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries",
     "runtime_15_priority_plan_docs_required_header_sections_stay_complete",
     "runtime_15_priority_plan_docs_plan_sources_stay_cross_linked",

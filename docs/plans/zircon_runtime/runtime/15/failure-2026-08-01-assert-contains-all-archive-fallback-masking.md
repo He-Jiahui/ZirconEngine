@@ -11,10 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/support.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/backend_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate/full_audit.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/status_anchor_cleanup/f12_current_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/status_anchor_cleanup/gate_wording.rs
+  - tools/tests/test_runtime_receipt_hard_cut.py
 tests:
   - assert_contains_all rejects anchors absent from the supplied source
   - Runtime15 historical guards name and read one explicit canonical owner
@@ -67,3 +64,7 @@ VM guard 的受管精确验证 wrapper job `c12a661fdc1245f6b314750802b51c50` �
 第四批 Sol/High 审阅清除了另一类同根 false green：`backend_owners.rs` 与 `provider_boilerplate/full_audit.rs` 不再把 `runtime_15_plan.clone()` 重命名成虚构的 `render_index` 后作为第二份证据；`f12_current_state.rs` 与 `gate_wording.rs` 不再把同一 code-structure archive clone 成 `runtime_index` / `structure_convention`，而是分别读取真实的 `2026-07-09-runtime-index-output-records.md` 与 `2026-07-09-engine-code-structure-output-records.md`。Runtime15 structure guards 的文档 owner clone-alias 扫描现为 0，四文件 rustfmt 与 scoped diff-check 通过；本批未执行 Runtime15 Cargo 目标，不能把静态归因写成 GREEN。
 
 同批发现 canonical `2026-07-09-code-structure-and-module-conventions-output-records.md` 仍记录 OffscreenTarget 保留 `9` 个 texture owner，而当前源码常量与精确测试均为 `10`（`final_color`、`global_illumination`、`scene_color`、`bloom`、`gbuffer_albedo`、`gbuffer_emissive`、`gbuffer_material`、`normal`、`ambient_occlusion`、`depth`）。历史 archive 不在本 failure 中重写；Runtime15 owner 必须在 current owner/fixed return 中明确解释或修正该 9/10 漂移后，才可关闭本记录。
+
+## 2026-08-03 hard-cut 进展
+
+源码实现已删除 label 驱动的隐式 fallback 与仅供其使用的 status owner helpers；`assert_contains_all` 现在只检查调用方显式传入的 source。更高优先级 receipt hard cut 同时删除了纯历史状态镜像守卫，而生产结构守卫继续保留。当前本地 hard-cut/Runtime03 Python 回归 5/5 通过，独立二次审查为 Critical/Important/Minor = `0/0/0`；managed Runtime lib-test/plan-output 证据仍待回执，因此本 failure 保持 `resolving`，不提前改为 fixed。

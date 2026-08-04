@@ -94,16 +94,17 @@ fn distribution_ggx(no_h: f32, roughness: f32) -> f32 {
     return alpha2 / max(PI * denominator * denominator, 0.000001);
 }
 
-fn source_footprint_lod() -> f32 {
-    let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));
-    let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);
+fn source_footprint_lod(source_face_size: f32, source_max_mip: f32) -> f32 {
     let destination_face_size = f32(max(params.mip_face_size, 1u));
     return clamp(log2(source_face_size / destination_face_size), 0.0, source_max_mip);
 }
 
-fn source_lod_for_pdf(pdf: f32, sample_count: u32) -> f32 {
-    let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));
-    let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);
+fn source_lod_for_pdf(
+    pdf: f32,
+    sample_count: u32,
+    source_face_size: f32,
+    source_max_mip: f32,
+) -> f32 {
     let texel_solid_angle = 4.0 * PI / (6.0 * source_face_size * source_face_size)
         * FIS_SOLID_ANGLE_TEXEL_SCALE;
     let sample_solid_angle = 1.0 / (f32(max(sample_count, 1u)) * pdf);
@@ -111,12 +112,18 @@ fn source_lod_for_pdf(pdf: f32, sample_count: u32) -> f32 {
     return clamp(lod, 0.0, source_max_mip);
 }
 
-fn source_lod_for_ggx_sample(no_h: f32, roughness: f32, sample_count: u32) -> f32 {
+fn source_lod_for_ggx_sample(
+    no_h: f32,
+    roughness: f32,
+    sample_count: u32,
+    source_face_size: f32,
+    source_max_mip: f32,
+) -> f32 {
     if (roughness <= 0.0001) {
         return 0.0;
     }
     let pdf = max(distribution_ggx(no_h, roughness) * 0.25, 0.000001);
-    return source_lod_for_pdf(pdf, sample_count);
+    return source_lod_for_pdf(pdf, sample_count, source_face_size, source_max_mip);
 }
 
 fn cosine_sample_hemisphere(xi: vec2<f32>) -> vec3<f32> {
@@ -129,13 +136,18 @@ fn cosine_sample_hemisphere(xi: vec2<f32>) -> vec3<f32> {
     );
 }
 
-fn cosine_prefilter_direction(normal: vec3<f32>, sample_count: u32) -> vec3<f32> {
+fn cosine_prefilter_direction(
+    normal: vec3<f32>,
+    sample_count: u32,
+    source_face_size: f32,
+    source_max_mip: f32,
+) -> vec3<f32> {
     var color = vec3<f32>(0.0, 0.0, 0.0);
     for (var i = 0u; i < sample_count; i = i + 1u) {
         let xi = hammersley(i, sample_count);
         let local_direction = cosine_sample_hemisphere(xi);
         let pdf = max(local_direction.z / PI, 0.000001);
-        let lod = source_lod_for_pdf(pdf, sample_count);
+        let lod = source_lod_for_pdf(pdf, sample_count, source_face_size, source_max_mip);
         let light_dir = tangent_to_world(local_direction, normal);
         color = color + textureSampleLevel(source_cubemap, source_sampler, light_dir, lod).rgb;
     }
@@ -143,11 +155,20 @@ fn cosine_prefilter_direction(normal: vec3<f32>, sample_count: u32) -> vec3<f32>
     return color / f32(max(sample_count, 1u));
 }
 
-fn final_pmrem_face_average(sample_count: u32) -> vec3<f32> {
+fn final_pmrem_face_average(
+    sample_count: u32,
+    source_face_size: f32,
+    source_max_mip: f32,
+) -> vec3<f32> {
     var color = vec3<f32>(0.0, 0.0, 0.0);
     for (var face = 0u; face < 6u; face = face + 1u) {
         let face_axis = cube_face_direction(face, vec2<f32>(0.0, 0.0));
-        color = color + cosine_prefilter_direction(face_axis, sample_count);
+        color = color + cosine_prefilter_direction(
+            face_axis,
+            sample_count,
+            source_face_size,
+            source_max_mip,
+        );
     }
 
     return color / 6.0;
@@ -161,13 +182,15 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
+    let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));
+    let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);
     let normal = texel_direction(face, global_id.xy, mip_size);
     if (params.mip_level == 0u || params.roughness <= 0.0001) {
         let source = textureSampleLevel(
             source_cubemap,
             source_sampler,
             normal,
-            source_footprint_lod(),
+            source_footprint_lod(source_face_size, source_max_mip),
         ).rgb;
         textureStore(pmrem_output, vec2<i32>(global_id.xy), i32(face), vec4<f32>(source, 1.0));
         return;
@@ -175,7 +198,11 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let sample_count = max(params.sample_count, 1u);
     if (params.mip_level + 1u >= params.mip_count && mip_size == 1u) {
-        let filtered = final_pmrem_face_average(sample_count);
+        let filtered = final_pmrem_face_average(
+            sample_count,
+            source_face_size,
+            source_max_mip,
+        );
         textureStore(pmrem_output, vec2<i32>(global_id.xy), i32(face), vec4<f32>(filtered, 1.0));
         return;
     }
@@ -183,7 +210,12 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var color = vec3<f32>(0.0, 0.0, 0.0);
     var weight_sum = 0.0;
     if (params.roughness >= FULL_ROUGHNESS_COSINE_THRESHOLD) {
-        let filtered = cosine_prefilter_direction(normal, sample_count);
+        let filtered = cosine_prefilter_direction(
+            normal,
+            sample_count,
+            source_face_size,
+            source_max_mip,
+        );
         textureStore(pmrem_output, vec2<i32>(global_id.xy), i32(face), vec4<f32>(filtered, 1.0));
         return;
     }
@@ -195,7 +227,13 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let no_l = max(dot(normal, light_dir), 0.0);
         if (no_l > 0.0) {
             let no_h = max(dot(normal, half_vector), 0.0);
-            let lod = source_lod_for_ggx_sample(no_h, params.roughness, sample_count);
+            let lod = source_lod_for_ggx_sample(
+                no_h,
+                params.roughness,
+                sample_count,
+                source_face_size,
+                source_max_mip,
+            );
             color = color + textureSampleLevel(source_cubemap, source_sampler, light_dir, lod).rgb * no_l;
             weight_sum = weight_sum + no_l;
         }

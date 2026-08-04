@@ -5,7 +5,8 @@ use super::super::template_status_control_geometry::{
     frame_is_within, status_control_offset_rect, status_icon_button_glyph_rect,
     status_icon_button_radius, workbench_status_metrics,
 };
-use super::super::template_status_glyphs::{StatusIconKind, push_status_icon_glyph};
+use super::super::template_status_glyphs::{push_status_icon_glyph, StatusIconKind};
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_icon_button(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,7 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
 ) {
     let parent_rect = rect;
     let control_rect = status_control_offset_rect(node, parent_rect);
-    if !frame_is_within(parent_rect, &control_rect) {
+    if !frame_is_within(parent_rect, &control_rect) || intersect(&control_rect, clip).is_none() {
         return;
     }
     let style = select_workbench_status_icon_button_style(node);
@@ -32,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
         opacity,
     );
     let glyph = status_icon_button_glyph_rect(&control_rect);
-    if !frame_is_within(&control_rect, &glyph) {
+    if !frame_is_within(&control_rect, &glyph) || intersect(&glyph, clip).is_none() {
         return;
     }
     push_status_icon_glyph(

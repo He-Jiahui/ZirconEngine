@@ -1,4 +1,5 @@
 use super::super::super::super::super::data::FrameRect;
+use super::super::super::super::super::paint_geometry::intersect;
 use super::super::super::super::render_commands::HostPaintCommand;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_left_line(
@@ -51,13 +52,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ve
     color: [u8; 4],
     opacity: f32,
 ) {
+    let line = FrameRect {
+        x: x.round(),
+        y: y.round(),
+        width: 1.0,
+        height,
+    };
+    if intersect(&line, clip).is_none() {
+        return;
+    }
     commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: x.round(),
-            y: y.round(),
-            width: 1.0,
-            height,
-        },
+        line,
         Some(clip.clone()),
         order,
         Some(color),

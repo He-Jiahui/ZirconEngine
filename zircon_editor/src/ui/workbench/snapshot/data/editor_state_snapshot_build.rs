@@ -49,6 +49,7 @@ impl EditorState {
                     name: self.name_field.clone(),
                     parent: self.parent_field.clone(),
                     translation: self.transform_fields.clone(),
+                    scale: self.scale_fields.clone(),
                     plugin_components: inspector_plugin_components(
                         scene,
                         id,

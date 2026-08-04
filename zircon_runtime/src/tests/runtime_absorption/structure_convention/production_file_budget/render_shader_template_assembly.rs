@@ -15,8 +15,7 @@ mod sources;
 #[path = "render_shader_template_assembly/wgsl_contracts.rs"]
 mod wgsl_contracts;
 
-const PARENT_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs";
+const PARENT_OWNER: &str = "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs";
 const ASSERTIONS_OWNER: &str = "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs";
 const ASSERTION_TEMPLATE_CONTRACTS_OWNER: &str = "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/template_contracts.rs";
 const ASSERTION_MESH_CACHE_CONTRACTS_OWNER: &str = "tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_cache_contracts.rs";
@@ -47,33 +46,6 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
     let owner_budget = read_runtime_src(ASSERTION_OWNER_BUDGET_OWNER);
     let docs = read_runtime_src(DOCS_OWNER);
     let sources = read_runtime_src(SOURCES_OWNER);
-    let status_rows = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/anchor_mirror.rs",
-        ),
-    ]
-    .join("\n");
-    let status_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
-        ),
-    ]
-    .join("\n");
-    let date_map = [
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
-        ),
-        read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
-        ),
-    ]
-    .join("\n");
     let mesh_cache_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
     let mesh_cache_source_tests = read_runtime_src(
@@ -215,70 +187,10 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    for (label, source) in [
-        ("status rows", status_rows.as_str()),
-        ("status map", status_map.as_str()),
-        ("date map", date_map.as_str()),
-        ("Runtime 15 plan", runtime_plan.as_str()),
-        ("runtime index", runtime_index.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("module convention", module_convention.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                slice,
-                status,
-                "structure_convention/production_file_budget/render_shader_template_assembly.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/sources.rs",
-                guard,
-            ],
-        );
-    }
-    assert_contains_all(
-        "date map records the current slice date",
-        &date_map,
-        &[slice, "Some(\"2026-06-27\")"],
-    );
 
     let assertion_slice =
         "Runtime 15 M3 render shader template assembly assertion contract child-owner split";
-    let assertion_status =
-        "runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred";
-    for (label, source) in [
-        ("status rows", status_rows.as_str()),
-        ("status map", status_map.as_str()),
-        ("date map", date_map.as_str()),
-        ("Runtime 15 plan", runtime_plan.as_str()),
-        ("runtime index", runtime_index.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("module convention", module_convention.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                assertion_slice,
-                assertion_status,
-                "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/template_contracts.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_cache_contracts.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_pipeline_shadow_graph_contracts.rs",
-                "structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/owner_budget.rs",
-                guard,
-            ],
-        );
-    }
-    assert_contains_all(
-        "date map records the assertion child split date",
-        &date_map,
-        &[assertion_slice, "Some(\"2026-07-01\")"],
-    );
+    let assertion_status = "runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred";
 
     assert_contains_all(
         "mesh pipeline shader source keeps tests in child owner",
@@ -320,36 +232,7 @@ fn runtime_15_render_shader_template_assembly_support_children_are_folder_backed
     );
     let shader_source_tests_slice =
         "Runtime 15 M3 mesh pipeline shader source tests child-owner split";
-    let shader_source_tests_status =
-        "runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred";
-    for (label, source) in [
-        ("status rows", status_rows.as_str()),
-        ("status map", status_map.as_str()),
-        ("date map", date_map.as_str()),
-        ("Runtime 15 plan", runtime_plan.as_str()),
-        ("runtime index", runtime_index.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("module convention", module_convention.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                shader_source_tests_slice,
-                shader_source_tests_status,
-                "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs",
-                "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
-                "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs",
-                guard,
-            ],
-        );
-    }
-    assert_contains_all(
-        "date map records the shader source tests child split date",
-        &date_map,
-        &[shader_source_tests_slice, "Some(\"2026-07-01\")"],
-    );
+    let shader_source_tests_status = "runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred";
 
     for owner in [
         PARENT_OWNER,

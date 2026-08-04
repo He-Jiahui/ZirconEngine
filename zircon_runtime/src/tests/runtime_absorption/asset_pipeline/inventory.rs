@@ -47,8 +47,6 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_FILES: &[&str] = &[
     "src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs",
     "src/tests/runtime_absorption/asset_pipeline.rs",
     "src/tests/runtime_absorption/asset_pipeline/mirror_docs.rs",
-    "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
-    "src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_04.rs",
 ];
 
 pub(super) const EXPECTED_RUNTIME_04_GUARD_ANCHORS: &[&str] = &[
@@ -78,7 +76,6 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_ANCHORS: &[&str] = &[
     "artifact_store_rejects_a_corrupt_requested_chunk_without_residing_it",
     "artifact_store_unpublished_prepared_generation_keeps_last_good_manifest",
     "asset_worker_pool_matches_runtime_04_and_11_decisions",
-    "runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation",
     "runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts",
 ];
 

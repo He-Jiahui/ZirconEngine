@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/ui/text/adapter.rs
+  - zircon_runtime/src/graphics/text_transport/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime_interface/src/ui/surface
 tests:
@@ -27,7 +27,7 @@ resolved_at: 2026-07-15
 - 来源执行者：`shader06-m3-current-source-attestation-validation-20260715`
 - 来源执行切片：M3 current-source source-import staging gate。
 - 修复责任计划：`docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md`
-- 交接原因：`zircon_runtime/src/ui/text/adapter.rs` 是 UI DTO 到 neutral Text DTO 的共享转换边界；Shader06 只消费该当前源码合同，不能实现上层特例。
+- 交接原因：`zircon_runtime/src/graphics/text_transport/mod.rs` 是 UI DTO 到 neutral Text DTO 的共享转换边界；Shader06 只消费该当前源码合同，不能实现上层特例。
 
 ## 失败现象与复现证据
 
@@ -38,7 +38,7 @@ TextDirection、TextFrame、TextWritingMode、TextAlign 与 TextWrap 的 16 个 
 
 ## 最低共享层根因
 
-现有转换驻留在 `cfg(ui)` 的 `zircon_runtime/src/ui/text/adapter.rs`，但 graphics-only
+发现该失败时，现有转换仍驻留在 `cfg(ui)` 的 UI adapter 中，但 graphics-only
 plugin 启用 `graphics` 而不启用 `ui`；因此 graphics consumer 在构建时根本看不到该边界。
 当前源码的非 UI-gated `zircon_runtime/src/graphics/text_transport/mod.rs` 已承载
 TextDirection、UiFrame/TextFrame、TextWritingMode、TextAlign 与 TextWrap 的双向映射，

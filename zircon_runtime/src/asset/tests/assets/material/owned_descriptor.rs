@@ -43,6 +43,8 @@ custom_gain = 2.0
         material.shader_property_override("custom_gain"),
         Some(&toml::Value::Float(2.0))
     );
+    let encoded = material.to_toml_string().unwrap();
+    assert!(!encoded.contains("separate_translucency"));
 }
 
 #[test]
@@ -108,6 +110,47 @@ custom_gain = 2.0
         .insert("receive_shadows".to_string(), toml::Value::Boolean(true));
     let encoded = no_receive_material.to_toml_string().unwrap();
     assert!(!encoded.contains("receive_shadows"));
+}
+
+#[test]
+fn material_owned_separate_translucency_marks_only_the_material_descriptor() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "Half Resolution Glass"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+alpha_mode = "blend"
+separate_translucency = true
+custom_gain = 2.0
+"#,
+    )
+    .unwrap();
+
+    let descriptor = material.standard_material_descriptor();
+
+    assert!(material.separate_translucency());
+    assert!(descriptor.separate_translucency);
+    assert!(
+        material
+            .shader_property_override("separate_translucency")
+            .is_none()
+    );
+    assert!(
+        material
+            .shader_property_overrides()
+            .all(|(name, _)| name != "separate_translucency")
+    );
+    assert_eq!(
+        material.shader_property_override("custom_gain"),
+        Some(&toml::Value::Float(2.0))
+    );
+    let encoded = material.to_toml_string().unwrap();
+    assert!(encoded.contains("separate_translucency = true"));
 }
 
 #[test]

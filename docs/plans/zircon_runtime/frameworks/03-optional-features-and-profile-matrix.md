@@ -52,10 +52,11 @@ reference_engines:
   ai/net/physics/sound contracts 独立门控；`target-server` 不再隐式启用 client/editor 重域。
   十二域 additive runner 与既有离线证据已覆盖逐域单开，current-main 默认 lib suite 仍 RED/pending，
   因此只声明 `code-complete / validation-pending`，不把 M1 标为 accepted。
-- M2 的语言中立 feature preset 半边已经单源：`runtime-feature-presets.toml` 生成
-  `RUNTIME_PROFILE_FEATURE_PRESETS`，开发工具、Python guard 与 CI matrix 读取同一 TOML。
-  但运行期模块/插件选择仍手写在 `RuntimeProfileDescriptor::for_id/defaults.rs`，并未由该 TOML 生成；
-  “profile = feature preset + module selection”尚有两个事实源，M2 不能只因六 profile feature matrix 落地而完成。
+- M2 已将 `runtime-feature-presets.toml` 升级为 schema v2：同一输入生成 feature preset 与
+  runtime module/plugin assembly 两个 Rust 投影，开发工具、Python guard 与 CI matrix 同样读取该
+  TOML。手写 `runtime_profile/defaults.rs` 已物理删除；模块注册表的 Rust variant/cfg 门和六 profile
+  查找均由生成期严格验证，公开 descriptor API 不变且未保留 alias、shim 或 fallback。
+  实现与独立二次审查修复已完成，current-main 受管 Cargo 验收仍 pending，故 M2 尚未 accepted。
 - 当前 canonical feature 命名已经硬切为 kebab-case role prefixes：域开关裸名、contracts 用
   `*-contracts`、backend 用 `backend-*`、first-party provider collection 用
   `first-party-*-runtime-plugin`/`first-party-*-editor-plugin`。旧 `plugin-ui`、`jolt`、
@@ -63,8 +64,8 @@ reference_engines:
   可复制的用户示例同样属于 hard-cut consumer：`examples/vampire/README.md` 与 Vampire content
   implementation plan 已迁到 `backend-zr-vm`，旧 `first-party-zr-vm-real-backend` 不作为示例、
   alias 或兼容 feature 保留。
-- CI workflow 与六 profile/十二域 matrix source 已落地；剩余是 current-main 实际全绿证据、
-  profile 两半单源化，以及计划 01 拆 crate 后的成员 feature 转发收口。
+- CI workflow、六 profile/十二域 matrix source 与 profile 两个生成投影均已落地；剩余是
+  current-main 实际全绿证据，以及计划 01 拆 crate 后的成员 feature 转发收口。
 
 ## 3. 设计决策
 
@@ -96,6 +97,21 @@ bundle 文档词汇。全部 kebab-case。禁止恢复 `zr-vm-real-backend`；�
 `RuntimeProfileDescriptor::for_id` 所需的 Rust 数据；删除 `runtime_profile/defaults.rs` 的手写六分支，
 不保留第二份表或兼容读取。`zircon_app` 的 target-* feature、开发工具与 CI 命令从该 TOML 勾稽；
 表变更必须同步 `docs/runtime-plugins/profile-selection.md`（M10 同步门既有规则）。
+
+该 hard cut 使用 schema v2，并把编译预设与运行期装配作为同一文档的两个生成投影，而不是同一个
+Rust 模块的混合职责：build script 只解析/校验一次 TOML，分别生成公开
+`RUNTIME_PROFILE_FEATURE_PRESETS` 与私有 runtime assembly preset。assembly 行必须显式声明
+`descriptor_name`、`target_mode`、`minimum_maturity`、`builtin_modules`、带 `required` 位的有序
+`default_plugins`、有序 `optional_plugins`、`required_capabilities` 和
+`allow_externalized_required_plugins`；不得依赖 descriptor builder 的默认值补齐表外事实。
+
+内建模块使用独立 registry 行声明 `id`、Rust variant 与可选 `required_feature`。生成 Graphics/Script
+引用时必须保留当前 `#[cfg(feature = "graphics")]` / `#[cfg(feature = "script")]` 语义，保证
+no-default/server 组合不引用被 cfg 删除的 enum variant。生成器在写文件前 fail-fast 校验：schema
+版本、六 profile 精确顺序与唯一性、profile/variant/descriptor name、target/maturity 枚举、module
+registry 引用、module/plugin/capability 去重、default/optional plugin 不交叉、显式 required/allow
+字段、非空 canonical capability，以及 plugin key 语法。生成阶段保持 TOML 声明顺序，不排序改写
+运行时展示或 project manifest 顺序。
 
 `target-server` 中的直接 `dep:naga` 是有意的：常驻 asset shader importer 需要解析/验证并转写
 GLSL/SPIR-V/WGSL，即使 graphics/text 均关闭也仍使用 naga。profile generator 与 guard 必须把它
@@ -137,18 +153,26 @@ current-main 默认 feature Runtime 全量 lib suite 仍 RED/pending，M1 未 ac
 
 ### M2 profile 预设单源与 CI 矩阵
 
-状态（2026-07-31）：feature preset TOML、Rust 生成常量、开发工具及 CI source matrix 已
-code-complete；runtime module/plugin selection 仍由手写 `RuntimeProfileDescriptor::for_id` 持有，
-current-main CI 全绿证据也 pending，所以 M2 未完成。
+状态（2026-08-04）：schema v2 TOML 已统一生成 feature preset 与 runtime assembly；手写
+`runtime_profile/defaults.rs` 已硬删除，模块 cfg 门与 `RuntimeProfileId` 穷举查找均由生成器校验。
+实现与首轮独立审查问题修复已完成；current-main 受管 Cargo 验收 pending，所以 M2 尚未 accepted。
 
 实现切片：
-- 扩展现有 profile TOML，使其同时生成 feature preset 与 runtime module/plugin selection；
-  删除手写 `runtime_profile/defaults.rs` 六分支，断言生成结果与 Runtime/App Cargo features、
-  target mode、maturity、capabilities、default/optional plugin/module identities 一致；
+- 扩展现有 profile TOML 到 schema v2，使其同时生成 feature preset 与 runtime module/plugin
+  selection；生成物按编译预设/装配预设分离，删除手写 `runtime_profile/defaults.rs` 六分支并将
+  wiring 直接切到 `assembly_presets`，不保留 alias、shim 或 fallback；
+- 断言生成结果与 Runtime/App Cargo features、descriptor name、target mode、maturity、capabilities、
+  default plugin required 位、optional plugin、cfg-aware module identities 和
+  `allow_externalized_required_plugins` 一致；保留 `RuntimeProfileDescriptor::for_id` /
+  `builtin_profiles` 的公开签名和稳定顺序，不增加消费者兼容层；
 - `.github/workflows/ci.yml` 增加守卫组合矩阵 job（§3.3 清单，check-only，控制时长）；
 - `tools/dev-fast-build.ps1` 的 profile 映射改为读同一张表的导出（或至少加断言测试防漂移）。
 
 测试阶段：
+- Python/source guard 覆盖 schema v2 全字段、生成器 fail-fast 负例、旧 `defaults.rs`/`mod defaults`
+  物理消失以及原 feature/matrix 工具输出不变；Rust focused contract 覆盖六 profile 黄金 parity、
+  `for_id`/`builtin_profiles` 等价、default plugin required/target 投影，并覆盖 no-default、
+  graphics-only、script-only、graphics+script 的模块裁剪；
 - 本地全矩阵脚本一轮绿 + CI dry-run（push 到分支验证 workflow）；
 - 验收证据：CI 出现矩阵 job 且全绿；预设表断言测试入库。
 - 文档更新：profile-selection.md M10 同步门条目补"feature 预设"行。
@@ -196,7 +220,9 @@ Rust source scan 确认旧 builder、`.feature_preset()` 与名称推断为零�
 ## Code Review 收敛 (2026-07-31)
 
 - 已把 animation/navigation/script/`diagnostic-log` 与四个 contract gates 从“缺失”改为
-  code-complete，并把真实剩余项收敛为 current-main acceptance、profile 两半单源和拆 crate 后转发。
+  code-complete；2026-07-31 当时的剩余项是 current-main acceptance、profile 两半单源和拆 crate
+  后转发。2026-08-04 profile 两个投影已完成 schema v2 单源化，当前仅保留受管 acceptance 与
+  计划 01 拆分后的 feature 转发收口。
 - feature spelling 已统一为 `diagnostic-log`。经 current manifest/owner 文档核验，未采纳对
   `backend-zr-vm` 与 `first-party-zr-vm-language-runtime-plugin` 的二次更名建议：前者符合
   `backend-*` role，后者是 provider collection identity；二者均是旧 `zr-vm-real-backend`
@@ -215,7 +241,8 @@ Rust source scan 确认旧 builder、`.feature_preset()` 与名称推断为零�
 - 已查明 server 直接 naga 的生产消费者是常驻 asset shader importer，而非 text/graphics；
   该边已写入 profile generator 约束，防止 M2 把它误判为重复依赖。
 - 已识别比原建议更深的 M2 缺口：现有 TOML 只生成 feature presets，运行期 module/plugin
-  selection 仍手写。目标 hard-cut 已改为扩展同一 TOML 并删除 defaults.rs 平行六分支。
+  selection 当时仍手写。目标 hard-cut 已改为扩展同一 TOML 并删除 defaults.rs 平行六分支；
+  2026-08-04 该 hard-cut 已实现并通过独立二次审查，受管 Cargo 验收 pending。
 
 ## 6. 状态与产出记录
 
@@ -228,4 +255,4 @@ Rust source scan 确认旧 builder、`.feature_preset()` 与名称推断为零�
 - fixed 已修复：[target-server-libtest-feature-gating](../../zircon_editor/editor/11/fixed-2026-07-11-target-server-libtest-feature-gating.md)
 - fixed 已修复：[runtime-module-structure-cfg-fence](../../zircon_editor/editor/10/fixed-2026-07-11-runtime-module-structure-cfg-fence.md)
 - fixed 已修复：[planar-filter-test-surface-export](03/fixed-2026-07-13-planar-filter-test-surface-export.md)
-- 当前状态：M1 进行中；feature 命名、`target-server` 域裁剪、AI/Net/Sound/Physics contract 独立门控与 ZRPack asset owner 硬迁移已完成。Sound channel topology 已硬迁到常驻 `core::framework::audio`；Physics 持久化 material/joint/skeleton schema 已硬迁到常驻 `core::framework::scene::physics`，可选 simulation/query/world-sync/manager 合同保留在 `physics-contracts`，LevelSystem 与 diagnostics 通过声明期 enabled/disabled adapter 隔离。两条迁移均无旧路径兼容重导出。Client/Editor 预设包含四个 contract 域，Server 不隐式包含，直接 plugin 消费者显式请求各自契约。Frameworks Python 合同门当前 76/76；其中四个 optional manager guard 已硬切为无 trait root re-export 的 `ManagerServiceHandle`/`define_manager_handle_access!`，六 profile TOML 也已逐项同步当前 Runtime/App Cargo members（含 Editor navigation plugin 与 Server `dep:naga`）。Runtime `physics` 聚焦 35/35，Physics plugin owner 的 feature-on 46/46、feature-off 43/43 已通过；nightly `core-min + physics-contracts` 单开通过（12m39s，52 条既有 warning），nightly `target-server` 排除组合通过（15m14s，53 条既有 warning）。M1 逐域 runner 固定 12 域、`core-min + 单域`、locked/no-default/lib check 与失败汇总；2026-07-11 fresh locked/offline 独立目标矩阵已 12/12 全绿。首轮 11/12 精确暴露 `graphics` 反向依赖 `ui`；修复后 Graphics rich-text layout 改为消费 `graphics::text` owner，UI-only frame conversion 在声明处受 `ui` gate 控制，公共 render-mode resolution 下沉 `zircon_runtime_interface`，不增加兼容重导出。M1 App 当前完整 harness 与包级 Runtime absorption 门均已 GREEN；默认 feature Runtime 全量 lib suite 仍为 RED/pending。2026-07-17 fresh G7 复核确认用户优先的 `engine-code-structure-convention.md` 与 `engine-code-review-findings-2026-06.md` 当前旧 owner 违规均为 0；父计划此前记录的 58 个 Text 引用属于已收敛历史快照。M4 已完成；M5 已把 `ExportProfile` Rust 构造、Runtime/App/Editor 消费者和 export build plan 硬切为显式 `RuntimeProfileId`，旧 builder 与 name/target fallback 均为零，受管 Cargo 验收 pending。M2 的六 profile TOML **feature preset 半边**、生成 Rust 常量、开发工具/本地 runner、六 profile CI 源码矩阵与十二域 CI 源码矩阵已落地；Python 契约 7/7、server production check、Rust 断言 2/2、Editor CLI 目标测试 14/14、Windows nightly locked/offline 六 profile 本地全矩阵 6/6，以及带真实 ZR VM MSVC 原生后端的 Runtime `--all-features` 均已通过。运行期 module/plugin selection 仍在 `runtime_profile/defaults.rs` 手写，current-main CI 实际全绿证据也 pending；因此不声明 M1、M2、M5 或计划 03 完成。
+- 当前状态：M1 进行中；feature 命名、`target-server` 域裁剪、AI/Net/Sound/Physics contract 独立门控与 ZRPack asset owner 硬迁移已完成。Sound channel topology 已硬迁到常驻 `core::framework::audio`；Physics 持久化 material/joint/skeleton schema 已硬迁到常驻 `core::framework::scene::physics`，可选 simulation/query/world-sync/manager 合同保留在 `physics-contracts`，LevelSystem 与 diagnostics 通过声明期 enabled/disabled adapter 隔离。两条迁移均无旧路径兼容重导出。Client/Editor 预设包含四个 contract 域，Server 不隐式包含，直接 plugin 消费者显式请求各自契约。Frameworks Python 合同门当前 76/76；其中四个 optional manager guard 已硬切为无 trait root re-export 的 `ManagerServiceHandle`/`define_manager_handle_access!`，六 profile TOML 也已逐项同步当前 Runtime/App Cargo members（含 Editor navigation plugin 与 Server `dep:naga`）。Runtime `physics` 聚焦 35/35，Physics plugin owner 的 feature-on 46/46、feature-off 43/43 已通过；nightly `core-min + physics-contracts` 单开通过（12m39s，52 条既有 warning），nightly `target-server` 排除组合通过（15m14s，53 条既有 warning）。M1 逐域 runner 固定 12 域、`core-min + 单域`、locked/no-default/lib check 与失败汇总；2026-07-11 fresh locked/offline 独立目标矩阵已 12/12 全绿。首轮 11/12 精确暴露 `graphics` 反向依赖 `ui`；修复后 Graphics rich-text layout 改为消费 `graphics::text` owner，UI-only frame conversion 在声明处受 `ui` gate 控制，公共 render-mode resolution 下沉 `zircon_runtime_interface`，不增加兼容重导出。M1 App 当前完整 harness 与包级 Runtime absorption 门均已 GREEN；默认 feature Runtime 全量 lib suite 仍为 RED/pending。2026-07-17 fresh G7 复核确认用户优先的 `engine-code-structure-convention.md` 与 `engine-code-review-findings-2026-06.md` 当前旧 owner 违规均为 0；父计划此前记录的 58 个 Text 引用属于已收敛历史快照。M4 已完成；M5 已把 `ExportProfile` Rust 构造、Runtime/App/Editor 消费者和 export build plan 硬切为显式 `RuntimeProfileId`，旧 builder 与 name/target fallback 均为零，受管 Cargo 验收 pending。M2 已把六 profile feature preset 与 runtime module/plugin assembly 收敛到 schema v2 TOML，生成器对 12 个 module identity/cfg gate 和六个 `RuntimeProfileId` 分支做严格检查，手写 `runtime_profile/defaults.rs` 已硬删除且无兼容层；实现与首轮独立审查问题修复完成，受管 current-main Cargo 验收 pending。此前 Python 契约、server production check、Rust 断言、Editor CLI 目标测试、Windows nightly locked/offline 六 profile 矩阵及 Runtime `--all-features` 证据保留；因此仍不声明 M1、M2、M5 或计划 03 accepted。

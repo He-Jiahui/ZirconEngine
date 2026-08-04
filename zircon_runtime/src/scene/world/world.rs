@@ -2,18 +2,16 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeSet, HashMap};
 
 use super::{
-    ComponentTypeRegistry, compiled_binding::SceneBindingGenerations,
-    derived_state::NODE_KIND_ORDINAL_COUNT, dirty_state::DerivedStateDirty,
-    generation::WorldGeneration,
+    compiled_binding::SceneBindingGenerations, derived_state::NODE_KIND_ORDINAL_COUNT,
+    dirty_state::DerivedStateDirty, generation::WorldGeneration, ComponentTypeRegistry,
 };
-use crate::scene::EntityId;
 use crate::scene::components::{
-    ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
-    AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    ActiveSelf, AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
+    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
     Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
     NodeKind, PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
-    RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent, WorldMatrix,
+    RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent,
 };
 use crate::scene::ecs::{
     ArchetypeIndex, ChangeTick, CommandQueue, ComponentLifecycleEvent, ComponentRegistry,
@@ -24,6 +22,7 @@ use crate::scene::ecs::{
 use crate::scene::event_mirror::RuntimeEventMirrorRegistry;
 use crate::scene::inspection::WorldInspectionArtifactCache;
 use crate::scene::reflect::TypeRegistry;
+use crate::scene::EntityId;
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct QueryCacheRevision(u64);
 
@@ -43,7 +42,7 @@ impl PartialEq for QueryCacheRevision {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct World {
     pub(super) entities: Vec<EntityId>,
     #[serde(default)]
@@ -53,8 +52,6 @@ pub struct World {
     pub(super) names: HashMap<EntityId, Name>,
     pub(super) hierarchy: HashMap<EntityId, Hierarchy>,
     pub(super) local_transforms: HashMap<EntityId, LocalTransform>,
-    #[serde(skip, default)]
-    pub(super) world_matrices: HashMap<EntityId, WorldMatrix>,
     pub(super) cameras: HashMap<EntityId, CameraComponent>,
     pub(super) mesh_renderers: HashMap<EntityId, MeshRenderer>,
     #[serde(default)]
@@ -93,8 +90,6 @@ pub struct World {
         HashMap<EntityId, AnimationStateMachinePlayerComponent>,
     #[serde(default, rename = "active")]
     pub(super) active_self: HashMap<EntityId, ActiveSelf>,
-    #[serde(skip, default)]
-    pub(super) active_in_hierarchy: HashMap<EntityId, ActiveInHierarchy>,
     #[serde(default)]
     pub(super) render_layer_masks: HashMap<EntityId, RenderLayerMask>,
     #[serde(default)]
@@ -167,6 +162,80 @@ pub struct World {
     pub(super) derived_state_dirty: DerivedStateDirty,
 }
 
+impl Clone for World {
+    fn clone(&self) -> Self {
+        let mut cloned = Self {
+            entities: self.entities.clone(),
+            kinds: self.kinds.clone(),
+            node_kind_ordinals: self.node_kind_ordinals,
+            names: self.names.clone(),
+            hierarchy: self.hierarchy.clone(),
+            local_transforms: self.local_transforms.clone(),
+            cameras: self.cameras.clone(),
+            mesh_renderers: self.mesh_renderers.clone(),
+            sprite_2d: self.sprite_2d.clone(),
+            mesh_2d: self.mesh_2d.clone(),
+            ambient_lights: self.ambient_lights.clone(),
+            directional_lights: self.directional_lights.clone(),
+            point_lights: self.point_lights.clone(),
+            rect_lights: self.rect_lights.clone(),
+            spot_lights: self.spot_lights.clone(),
+            post_process_settings: self.post_process_settings.clone(),
+            post_process_volumes: self.post_process_volumes.clone(),
+            rigid_bodies: self.rigid_bodies.clone(),
+            colliders: self.colliders.clone(),
+            joints: self.joints.clone(),
+            animation_skeletons: self.animation_skeletons.clone(),
+            animation_players: self.animation_players.clone(),
+            animation_sequence_players: self.animation_sequence_players.clone(),
+            animation_graph_players: self.animation_graph_players.clone(),
+            animation_state_machine_players: self.animation_state_machine_players.clone(),
+            active_self: self.active_self.clone(),
+            render_layer_masks: self.render_layer_masks.clone(),
+            mobility: self.mobility.clone(),
+            dynamic_components: self.dynamic_components.clone(),
+            dynamic_component_generations: self.dynamic_component_generations.clone(),
+            component_types: self.component_types.clone(),
+            type_registry: self.type_registry.clone(),
+            vm_catalog_type_paths: self.vm_catalog_type_paths.clone(),
+            vm_dynamic_type_paths: self.vm_dynamic_type_paths.clone(),
+            next_id: self.next_id,
+            active_camera: self.active_camera,
+            schedule: self.schedule.clone(),
+            archetype_index: Default::default(),
+            entity_registry: Default::default(),
+            component_registry: self.component_registry.clone(),
+            component_storage: Default::default(),
+            removed_component_events: self.removed_component_events.clone(),
+            resource_registry: self.resource_registry.clone(),
+            resources: self.resources.clone(),
+            events: self.events.clone(),
+            event_mirrors: self.event_mirrors.clone(),
+            messages: self.messages.clone(),
+            observers: self.observers.clone(),
+            staged_lifecycle_events: Vec::new(),
+            record_staged_lifecycle_events: true,
+            command_queue: self.command_queue.clone(),
+            deferred_command_errors: self.deferred_command_errors.clone(),
+            ecs_frame_performance_diagnostics: self.ecs_frame_performance_diagnostics.clone(),
+            query_cache_revision: self.query_cache_revision,
+            world_generation: self.world_generation.clone(),
+            scene_binding_generations: self.scene_binding_generations.clone(),
+            change_tick: self.change_tick,
+            last_change_tick: self.last_change_tick,
+            active_change_tick: self.active_change_tick,
+            node_cache: self.node_cache.clone(),
+            inspection_artifact_cache: self.inspection_artifact_cache.clone(),
+            derived_state_dirty: Default::default(),
+        };
+        cloned.rebuild_entity_registry();
+        cloned.rebuild_component_storage_projection();
+        cloned.record_staged_lifecycle_events = self.record_staged_lifecycle_events;
+        cloned.staged_lifecycle_events = self.staged_lifecycle_events.clone();
+        cloned
+    }
+}
+
 #[derive(Deserialize)]
 struct WorldPersistentState {
     entities: Vec<EntityId>,
@@ -231,7 +300,6 @@ impl<'de> Deserialize<'de> for World {
             names: state.names,
             hierarchy: state.hierarchy,
             local_transforms: state.local_transforms,
-            world_matrices: HashMap::new(),
             cameras: state.cameras,
             mesh_renderers: state.mesh_renderers,
             sprite_2d: state.sprite_2d,
@@ -252,7 +320,6 @@ impl<'de> Deserialize<'de> for World {
             animation_graph_players: state.animation_graph_players,
             animation_state_machine_players: state.animation_state_machine_players,
             active_self: state.active_self,
-            active_in_hierarchy: HashMap::new(),
             render_layer_masks: state.render_layer_masks,
             mobility: state.mobility,
             dynamic_components: state.dynamic_components,

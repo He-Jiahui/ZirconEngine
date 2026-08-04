@@ -1,9 +1,9 @@
-use std::any::{TypeId, type_name};
+use std::any::{type_name, TypeId};
 use std::collections::HashMap;
 use std::fmt;
 
-use super::Resource;
 use super::id::ResourceId;
+use super::Resource;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResourceDescriptor {

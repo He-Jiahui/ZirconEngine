@@ -100,6 +100,11 @@ impl PreparedMeshQueueStats {
     }
 
     pub(crate) fn with_mesh_draw_replay_stats(mut self, replay_stats: MeshDrawReplayStats) -> Self {
+        self.indirect_count_draw_call_count = replay_stats.indirect_count_draw_call_count as usize;
+        self.fixed_multi_draw_call_count = replay_stats.fixed_multi_draw_call_count as usize;
+        self.per_draw_indirect_draw_call_count =
+            replay_stats.per_draw_indirect_draw_call_count as usize;
+        self.direct_draw_call_count = replay_stats.direct_draw_call_count as usize;
         self.state_change_count = replay_stats.state_change_count as usize;
         self.bind_skip_count = replay_stats.bind_skip_count as usize;
         self

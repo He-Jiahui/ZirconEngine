@@ -2,7 +2,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::{node_background, node_radius, push_quad};
-use super::geometry::{picker_field_frame, picker_field_icon_frame};
+use super::geometry::{picker_field_frame, picker_field_icon_frame, picker_root_frame};
 use super::metrics::{PICKER_FIELD_RADIUS, PICKER_ROOT_BORDER_WIDTH};
 
 type PickerFieldColors = [[u8; 4]; 3];
@@ -15,11 +15,12 @@ pub(super) fn push_picker_field(
     order: i32,
     opacity: f32,
 ) -> FrameRect {
+    let root = picker_root_frame(rect);
     let [root_surface, field_surface, icon_surface] =
         picker_field_colors_from_host(node, current_host_palette());
     push_quad(
         commands,
-        rect.clone(),
+        root.clone(),
         clip,
         order,
         root_surface,
@@ -28,7 +29,7 @@ pub(super) fn push_picker_field(
         opacity,
     );
 
-    let field = picker_field_frame(rect);
+    let field = picker_field_frame(&root);
     push_quad(
         commands,
         field.clone(),

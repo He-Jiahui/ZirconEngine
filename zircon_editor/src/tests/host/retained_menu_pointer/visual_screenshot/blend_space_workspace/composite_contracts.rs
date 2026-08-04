@@ -10,6 +10,7 @@ fn workbench_validation_log_uses_semantic_compact_filter_controls() {
 
     for required in [
         "workbench_button.zui#WorkbenchButton",
+        "styles = [\"res://ui/editor/theme/editor_tokens.zui\"]",
         "container = { kind = \"VerticalBox\", gap = \"$editor.density.gap.xsmall\" }",
         "editor_pages/console_profiler/logs/filter-logs.svg",
         "editor_pages/console_profiler/logs/log-error.svg",
@@ -223,13 +224,21 @@ fn blend_space_bottom_diagnostics_compose_shared_relative_components() {
         "component = \"WorkbenchSampleWeights\"",
         "component = \"WorkbenchValidationLog\"",
         "control_id = \"WorkbenchExtensionBlendSpaceBottomCompositeRow\"",
-        "responsive_min_tier = \"wide\"",
     ] {
         assert!(
             workspace.contains(required),
             "Blend Space must compose shared bottom diagnostics: {required}"
         );
     }
+    assert!(
+        workspace.contains(
+            "[nodes.blend_space_bottom_composite_row]\n\
+             component = \"HorizontalGroup\"\n\
+             control_id = \"WorkbenchExtensionBlendSpaceBottomCompositeRow\"\n\
+             props = { responsive_min_tier = \"regular\" }"
+        ),
+        "Bottom diagnostics must remain available at the regular layout tier"
+    );
     for source in [&sample_weights, &validation_log] {
         assert!(
             source.matches("stretch = \"Stretch\"").count() >= 8,
@@ -251,6 +260,64 @@ fn blend_space_bottom_diagnostics_compose_shared_relative_components() {
 }
 
 #[test]
+fn blend_space_composites_use_shared_density_gap_tokens() {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let workspace = std::fs::read_to_string(manifest.join(
+        "assets/ui/editor/components/workbench/modules/extensions/animation/\
+             workbench_extension_blend_space_workspace.zui",
+    ))
+    .expect("Blend Space workspace asset should be readable");
+    let details = std::fs::read_to_string(manifest.join(
+        "assets/ui/editor/components/workbench/composites/animation/\
+             workbench_blend_space_details.zui",
+    ))
+    .expect("shared Blend Space details composite should be readable");
+    let sample_weights = std::fs::read_to_string(manifest.join(
+        "assets/ui/editor/components/workbench/composites/animation/\
+             workbench_sample_weights.zui",
+    ))
+    .expect("shared sample weights composite should be readable");
+
+    for required in [
+        "gap = \"$editor.density.gap.xsmall\"",
+        "gap = \"$editor.density.gap.small\"",
+    ] {
+        assert!(
+            workspace.contains(required),
+            "workspace must use the shared density gap token: {required}"
+        );
+    }
+    assert!(
+        details.contains("gap = \"$editor.density.gap.xsmall\""),
+        "details rows must use the shared compact gap token"
+    );
+    for (label, source) in [("details", &details), ("sample weights", &sample_weights)] {
+        assert!(
+            source.contains("styles = [\"res://ui/editor/theme/editor_tokens.zui\"]"),
+            "{label} must explicitly import the tokens used by its layout"
+        );
+    }
+    for required in [
+        "gap = \"$editor.density.gap.xsmall\"",
+        "gap = \"$editor.density.gap.small\"",
+        "gap = \"$editor.density.gap.medium\"",
+    ] {
+        assert!(
+            sample_weights.contains(required),
+            "sample weights must use the shared density gap token: {required}"
+        );
+    }
+    for source in [&workspace, &details, &sample_weights] {
+        for literal_gap in ["gap = 2.0", "gap = 4.0", "gap = 6.0"] {
+            assert!(
+                !source.contains(literal_gap),
+                "Blend Space composites must not restore a literal density gap: {literal_gap}"
+            );
+        }
+    }
+}
+
+#[test]
 fn blend_space_timeline_uses_shared_unreal_density_transport_controls() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let workspace = std::fs::read_to_string(manifest.join(
@@ -266,6 +333,7 @@ fn blend_space_timeline_uses_shared_unreal_density_transport_controls() {
 
     for required in [
         "[components.WorkbenchTransportControls]",
+        "styles = [\"res://ui/editor/theme/editor_tokens.zui\"]",
         "component = \"WorkbenchIconButton\"",
         "control_id = \"WorkbenchTransportRecord\"",
         "control_id = \"WorkbenchTransportPlay\"",
@@ -274,10 +342,10 @@ fn blend_space_timeline_uses_shared_unreal_density_transport_controls() {
         "control_id = \"WorkbenchTransportNext\"",
         "control_id = \"WorkbenchTransportLoop\"",
         "layout_icon_size = 20.0",
-        "layout_padding_left = 2.0",
-        "layout_padding_right = 2.0",
-        "layout_padding_top = 2.0",
-        "layout_padding_bottom = 2.0",
+        "layout_padding_left = \"$editor.density.gap.xsmall\"",
+        "layout_padding_right = \"$editor.density.gap.xsmall\"",
+        "layout_padding_top = \"$editor.density.gap.xsmall\"",
+        "layout_padding_bottom = \"$editor.density.gap.xsmall\"",
         "WorkbenchExtension/AnimationTransportRecord",
         "workbench.extension.animation_transport.record.toggle",
         "WorkbenchExtension/AnimationTransportPlay",

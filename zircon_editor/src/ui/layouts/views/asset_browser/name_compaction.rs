@@ -18,6 +18,9 @@ pub(super) fn compact_file_like_display_name(
     compaction: RuntimeFileNameCompaction,
 ) -> String {
     let name = display_name.trim();
+    if !compaction.max_width.is_finite() || compaction.max_width <= 0.0 {
+        return String::new();
+    }
     if name.is_empty() || fits_runtime_width(name, compaction) {
         return name.to_string();
     }
@@ -164,10 +167,6 @@ fn candidate_without_suffix(chars: &[char], prefix_count: usize, tail_count: usi
 }
 
 fn fits_runtime_width(text: &str, compaction: RuntimeFileNameCompaction) -> bool {
-    if !compaction.max_width.is_finite() || compaction.max_width <= 0.0 {
-        return true;
-    }
-
     measure_runtime_text_width(text, compaction.font_size) <= compaction.max_width + MEASURE_EPSILON
 }
 
@@ -238,5 +237,26 @@ mod tests {
         let implementation = source.split("#[cfg(test)]").next().expect("implementation");
         assert!(!implementation.contains("for prefix_count in"));
         assert!(implementation.contains("largest_fitting_candidate"));
+    }
+
+    #[test]
+    fn runtime_file_name_compaction_clears_text_without_a_drawable_width() {
+        let mut compaction = RuntimeFileNameCompaction {
+            max_width: 0.0,
+            font_size: 10.0,
+            min_prefix_chars: 4,
+            min_tail_stem_chars: 3,
+            preferred_tail_stem_chars: 6,
+        };
+
+        assert_eq!(
+            compact_file_like_display_name("workbench_page_chrome.zui", "zui", compaction),
+            ""
+        );
+        compaction.max_width = f32::NAN;
+        assert_eq!(
+            compact_file_like_display_name("workbench_page_chrome.zui", "zui", compaction),
+            ""
+        );
     }
 }

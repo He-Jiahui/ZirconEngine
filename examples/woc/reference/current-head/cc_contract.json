@@ -1,13 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
   "generated_by": "examples/woc/tools/cc_contract_codegen.mjs",
   "source_blobs": {
     "src/sim/combat/cc.ts": "d95a9d3627a30afe404d0d45ae8da517c13f20842f128cbd2fe7b68e8ceffa29",
     "src/sim/content/classes.ts": "429e9b14eb9635127916d8c1bc3afd525a31ba3bcfca6df280a3382a7d2d8889",
+    "src/sim/content/talent_abilities_v2_a.ts": "972a1b7922fdc065f83f9d502c5ced8cd34d719cc967d856078aae9abdeab8af",
     "src/sim/player_motion.ts": "4079efe3b86687f5334576f9c6c0fba5f1904619cb0682ee23db956b87fe17d8",
     "src/sim/entity.ts": "e5906007bc4a34cd019bcfb980520e34dc646ed7bc71a3b7f6ec69e8cdc7da11",
     "src/sim/combat/effect_dispatch.ts": "11cb14a98dab9ba414567a194104e35473fb6feb72bd1586e39ad54e0f31550e",
+    "src/sim/combat/empower_next.ts": "a3c142deb6d3a28451171db6c6eff400f4c7b4f64cb46f7a5b0b21e999b15bd3",
+    "src/sim/combat/auras.ts": "7a886eea9a471c248d94af0efcab7d0e1150c8d15925ce1c69e6f27449d0e7a1",
     "src/sim/sim.ts": "fa0965112495b10ac2d793e672927de569666f9b3c938282eedc08b303cd6b03",
     "src/sim/types.ts": "303321fb109f7bcce51a6871597be5b7b05f54ed1c6b86185387390cc47ccd90"
   },
@@ -39,8 +42,20 @@
     "buff_dodge": 10,
     "faerie_fire": 11,
     "buff_ap": 12,
-    "lockout": 13
+    "lockout": 13,
+    "buff_rage_gen": 14,
+    "buff_reckless": 15,
+    "battle_stance": 16,
+    "next_attack_crit": 17,
+    "buff_haste": 18,
+    "bleed_vuln": 19,
+    "buff_dr": 20
   },
+  "rage_generation_aura_kinds": [
+    "buff_rage_gen",
+    "buff_reckless",
+    "battle_stance"
+  ],
   "faerie_fire_armor_reduction": 0.1,
   "blind": "maximum_positive_value_or_zero",
   "tongues": "maximum_value_or_one"

@@ -25,7 +25,6 @@ use zircon_runtime_interface::ui::{
         UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiDragPayload,
         UiDragPayloadKind, UiDragSourceMetadata, UiValue,
     },
-    design_tokens::EditorDesignTokens,
     dispatch::UiPointerComponentEvent,
     layout::UiFrame,
     layout::UiPoint,
@@ -37,7 +36,6 @@ use crate::core::editor_event::EditorViewportEvent;
 use crate::core::gateway::SharedEditorRuntimeGateway;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::core::play::NativePluginBridgeActivation;
-use crate::core::settings::editor_design_tokens_at_startup;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
@@ -51,7 +49,7 @@ use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 use crate::ui::v2_design_tokens::install_editor_v2_design_tokens;
 use crate::ui::workbench::autolayout::{
-    ShellRegionId, ShellSizePx, WorkbenchChromeMetrics, WorkbenchShellGeometry,
+    ResolutionScaleMode, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics, WorkbenchShellGeometry,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, MainPageId};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -203,9 +201,6 @@ pub fn run_editor_with_config(
     runtime_gateway: SharedEditorRuntimeGateway,
     config: EditorHostRunConfig,
 ) -> Result<(), Box<dyn Error>> {
-    let design_tokens = editor_design_tokens_at_startup();
-    apply_host_appearance_from_tokens(&design_tokens);
-    install_editor_v2_design_tokens(&design_tokens);
     let exit_after_first_presented_frame = config.exit_after_first_presented_frame();
     let (
         startup_request,
@@ -224,6 +219,9 @@ pub fn run_editor_with_config(
         startup_request,
         prepared_project,
     )?;
+    let settings_snapshot = retained_host.editor_manager.context().settings().snapshot();
+    apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
+    install_editor_v2_design_tokens(settings_snapshot.as_ref());
     for registration in editor_plugin_registrations {
         retained_host
             .runtime
@@ -249,10 +247,28 @@ pub fn run_editor_with_config(
         zircon_runtime::diagnostic_log::write_log("editor_host_window", &diagnostic);
     }
     let run_result = ui.run();
+    let settings_persistence = {
+        let retained_host = host.borrow();
+        retained_host
+            .editor_manager
+            .context()
+            .settings_persistence()
+            .clone()
+    };
+    let settings_shutdown = match settings_persistence.flush_then_shutdown() {
+        Ok(closeout) => closeout,
+        Err(error) => {
+            let guard = settings_persistence.shutdown();
+            drop(guard);
+            return Err(error.into());
+        }
+    };
+    let settings_shutdown_result = settings_shutdown.finish();
     if let Some(error) = ui.take_fatal_failure() {
         return Err(error.into());
     }
     run_result?;
+    settings_shutdown_result?;
     if let Some(error) = ui.take_first_presented_frame_capture_error() {
         return Err(std::io::Error::other(error).into());
     }
@@ -333,9 +349,13 @@ struct RetainedEditorHost {
     active_layout_preset: Option<String>,
     shell_size: ShellSizePx,
     shell_scale_factor: f32,
+    shell_scale_mode: ResolutionScaleMode,
     chrome_metrics: WorkbenchChromeMetrics,
     shell_geometry: Option<WorkbenchShellGeometry>,
-    shell_token_region_defaults: Option<(EditorDesignTokens, BTreeMap<ShellRegionId, f32>)>,
+    shell_token_region_defaults: Option<(
+        Arc<zircon_runtime_interface::ui::design_tokens::EditorDesignTokens>,
+        BTreeMap<ShellRegionId, f32>,
+    )>,
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
@@ -349,6 +369,14 @@ struct RetainedEditorHost {
 }
 
 impl RetainedEditorHost {
+    fn sync_settings_projections(&mut self) {
+        let snapshot = self.editor_manager.context().settings().snapshot();
+        if install_editor_v2_design_tokens(snapshot.as_ref()) {
+            apply_host_appearance_from_tokens(snapshot.design_tokens());
+            self.mark_presentation_dirty();
+        }
+    }
+
     fn sync_plugin_template_documents_if_changed(
         &mut self,
     ) -> Result<(), EditorUiHostRuntimeError> {

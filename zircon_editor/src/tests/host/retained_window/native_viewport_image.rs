@@ -1,3 +1,4 @@
+use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
 use crate::ui::retained_host::primitives::{
     Image, ModelRc, PhysicalSize, Rgba8Pixel, SharedPixelBuffer, VecModel,
 };
@@ -30,8 +31,10 @@ fn native_host_painter_composites_latest_viewport_image_into_scene_body() {
         .window()
         .take_snapshot()
         .expect("pre-image scene snapshot should render");
-    ui.global::<PaneSurfaceHostContext>()
-        .set_viewport_image(solid_viewport_image([201, 42, 33, 255]));
+    ui.global::<PaneSurfaceHostContext>().set_viewport_capture(
+        RenderViewportHandle::new(1),
+        solid_viewport_capture([201, 42, 33, 255]),
+    );
     let after = ui
         .window()
         .take_snapshot()
@@ -92,6 +95,10 @@ fn solid_viewport_image(color: [u8; 4]) -> Image {
     Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
         &pixels, 2, 2,
     ))
+}
+
+fn solid_viewport_capture(color: [u8; 4]) -> CapturedFrame {
+    CapturedFrame::new(2, 2, [color, color, color, color].concat(), 1)
 }
 
 fn host_frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {

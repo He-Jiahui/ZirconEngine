@@ -1,4 +1,3 @@
-use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -8,6 +7,7 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::Component;
+use crate::scene::EntityId;
 
 use crate::scene::{SceneResult, World};
 
@@ -50,19 +50,14 @@ impl_component_for_scene_type!(
 );
 
 trait FixedSceneComponent: Component {
-    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) -> SceneResult<()>;
+    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self);
 }
 
 macro_rules! fixed_component_map {
     ($ty:ty, $field:ident) => {
         impl FixedSceneComponent for $ty {
-            fn insert_fixed(
-                world: &mut World,
-                entity: EntityId,
-                component: &Self,
-            ) -> SceneResult<()> {
+            fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) {
                 world.$field.insert(entity, component.clone());
-                Ok(())
             }
         }
     };
@@ -70,9 +65,7 @@ macro_rules! fixed_component_map {
 
 fixed_component_map!(Name, names);
 fixed_component_map!(Hierarchy, hierarchy);
-fixed_component_map!(WorldMatrix, world_matrices);
 fixed_component_map!(ActiveSelf, active_self);
-fixed_component_map!(ActiveInHierarchy, active_in_hierarchy);
 fixed_component_map!(RenderLayerMask, render_layer_masks);
 fixed_component_map!(CameraComponent, cameras);
 fixed_component_map!(MeshRenderer, mesh_renderers);
@@ -99,14 +92,30 @@ fixed_component_map!(PostProcessVolumeComponent, post_process_volumes);
 fixed_component_map!(Mobility, mobility);
 
 impl FixedSceneComponent for LocalTransform {
-    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) -> SceneResult<()> {
-        validate_transform_for_write(entity, component.transform)?;
+    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) {
         world.local_transforms.insert(entity, *component);
-        Ok(())
     }
 }
 
 impl World {
+    pub(super) fn validate_fixed_component<T>(
+        &self,
+        entity: EntityId,
+        component: &T,
+    ) -> SceneResult<()>
+    where
+        T: Component,
+    {
+        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<LocalTransform>()
+        {
+            return validate_transform_for_write(entity, component.transform);
+        }
+        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mobility>() {
+            return self.validate_mobility_change(entity, *component);
+        }
+        Ok(())
+    }
+
     pub(super) fn insert_fixed_component<T>(
         &mut self,
         entity: EntityId,
@@ -115,118 +124,141 @@ impl World {
     where
         T: Component,
     {
+        self.validate_fixed_component(entity, component)?;
+        self.insert_prevalidated_fixed_component(entity, component);
+        Ok(())
+    }
+
+    pub(super) fn insert_prevalidated_fixed_component<T>(&mut self, entity: EntityId, component: &T)
+    where
+        T: Component,
+    {
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Name>() {
-            return Name::insert_fixed(self, entity, component);
+            Name::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Hierarchy>() {
-            return Hierarchy::insert_fixed(self, entity, component);
+            Hierarchy::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<LocalTransform>()
         {
-            return LocalTransform::insert_fixed(self, entity, component);
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<WorldMatrix>() {
-            return WorldMatrix::insert_fixed(self, entity, component);
+            self.local_transforms.insert(entity, *component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<ActiveSelf>() {
-            return ActiveSelf::insert_fixed(self, entity, component);
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<ActiveInHierarchy>()
-        {
-            return ActiveInHierarchy::insert_fixed(self, entity, component);
+            ActiveSelf::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<RenderLayerMask>()
         {
-            return RenderLayerMask::insert_fixed(self, entity, component);
+            RenderLayerMask::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<CameraComponent>()
         {
-            return CameraComponent::insert_fixed(self, entity, component);
+            CameraComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<MeshRenderer>() {
-            return MeshRenderer::insert_fixed(self, entity, component);
+            MeshRenderer::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<Sprite2dComponent>()
         {
-            return Sprite2dComponent::insert_fixed(self, entity, component);
+            Sprite2dComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mesh2dComponent>()
         {
-            return Mesh2dComponent::insert_fixed(self, entity, component);
+            Mesh2dComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<RigidBodyComponent>()
         {
-            return RigidBodyComponent::insert_fixed(self, entity, component);
+            RigidBodyComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<ColliderComponent>()
         {
-            return ColliderComponent::insert_fixed(self, entity, component);
+            ColliderComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<JointComponent>()
         {
-            return JointComponent::insert_fixed(self, entity, component);
+            JointComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<AnimationSkeletonComponent>()
         {
-            return AnimationSkeletonComponent::insert_fixed(self, entity, component);
+            AnimationSkeletonComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<AnimationPlayerComponent>()
         {
-            return AnimationPlayerComponent::insert_fixed(self, entity, component);
+            AnimationPlayerComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<AnimationSequencePlayerComponent>()
         {
-            return AnimationSequencePlayerComponent::insert_fixed(self, entity, component);
+            AnimationSequencePlayerComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<AnimationGraphPlayerComponent>()
         {
-            return AnimationGraphPlayerComponent::insert_fixed(self, entity, component);
+            AnimationGraphPlayerComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<AnimationStateMachinePlayerComponent>()
         {
-            return AnimationStateMachinePlayerComponent::insert_fixed(self, entity, component);
+            AnimationStateMachinePlayerComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<AmbientLight>() {
-            return AmbientLight::insert_fixed(self, entity, component);
+            AmbientLight::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<DirectionalLight>()
         {
-            return DirectionalLight::insert_fixed(self, entity, component);
+            DirectionalLight::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<PointLight>() {
-            return PointLight::insert_fixed(self, entity, component);
+            PointLight::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<RectLight>() {
-            return RectLight::insert_fixed(self, entity, component);
+            RectLight::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<SpotLight>() {
-            return SpotLight::insert_fixed(self, entity, component);
+            SpotLight::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<PostProcessSettingsComponent>()
         {
-            return PostProcessSettingsComponent::insert_fixed(self, entity, component);
+            PostProcessSettingsComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<PostProcessVolumeComponent>()
         {
-            return PostProcessVolumeComponent::insert_fixed(self, entity, component);
+            PostProcessVolumeComponent::insert_fixed(self, entity, component);
+            return;
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mobility>() {
-            self.validate_mobility_change(entity, *component)?;
-            return Mobility::insert_fixed(self, entity, component);
+            Mobility::insert_fixed(self, entity, component);
         }
-        Ok(())
     }
 
     pub(super) fn remove_fixed_component_value<T>(&mut self, entity: EntityId) -> Option<T>
@@ -242,16 +274,8 @@ impl World {
             self.local_transforms
                 .remove(&entity)
                 .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<WorldMatrix>() {
-            self.world_matrices
-                .remove(&entity)
-                .map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<ActiveSelf>() {
             self.active_self.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<ActiveInHierarchy>() {
-            self.active_in_hierarchy
-                .remove(&entity)
-                .map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<RenderLayerMask>() {
             self.render_layer_masks
                 .remove(&entity)
@@ -332,14 +356,8 @@ impl World {
             self.hierarchy.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<LocalTransform>() {
             self.local_transforms.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<WorldMatrix>() {
-            self.world_matrices.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<ActiveSelf>() {
             self.active_self.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<ActiveInHierarchy>() {
-            self.active_in_hierarchy
-                .get(&entity)
-                .and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<RenderLayerMask>() {
             self.render_layer_masks
                 .get(&entity)
@@ -416,16 +434,8 @@ impl World {
             self.local_transforms
                 .get_mut(&entity)
                 .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<WorldMatrix>() {
-            self.world_matrices
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<ActiveSelf>() {
             self.active_self.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<ActiveInHierarchy>() {
-            self.active_in_hierarchy
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<RenderLayerMask>() {
             self.render_layer_masks
                 .get_mut(&entity)
@@ -503,9 +513,7 @@ impl World {
         type_id == std::any::TypeId::of::<Name>()
             || type_id == std::any::TypeId::of::<Hierarchy>()
             || type_id == std::any::TypeId::of::<LocalTransform>()
-            || type_id == std::any::TypeId::of::<WorldMatrix>()
             || type_id == std::any::TypeId::of::<ActiveSelf>()
-            || type_id == std::any::TypeId::of::<ActiveInHierarchy>()
             || type_id == std::any::TypeId::of::<RenderLayerMask>()
             || type_id == std::any::TypeId::of::<CameraComponent>()
             || type_id == std::any::TypeId::of::<MeshRenderer>()
@@ -544,9 +552,57 @@ impl World {
         insert_presence!(names);
         insert_presence!(hierarchy);
         insert_presence!(local_transforms);
-        insert_presence!(world_matrices);
         insert_presence!(active_self);
-        insert_presence!(active_in_hierarchy);
+        insert_presence!(render_layer_masks);
+        insert_presence!(cameras);
+        insert_presence!(mesh_renderers);
+        insert_presence!(sprite_2d);
+        insert_presence!(mesh_2d);
+        insert_presence!(rigid_bodies);
+        insert_presence!(colliders);
+        insert_presence!(joints);
+        insert_presence!(animation_skeletons);
+        insert_presence!(animation_players);
+        insert_presence!(animation_sequence_players);
+        insert_presence!(animation_graph_players);
+        insert_presence!(animation_state_machine_players);
+        insert_presence!(ambient_lights);
+        insert_presence!(directional_lights);
+        insert_presence!(point_lights);
+        insert_presence!(rect_lights);
+        insert_presence!(spot_lights);
+        insert_presence!(post_process_settings);
+        insert_presence!(post_process_volumes);
+        insert_presence!(mobility);
+    }
+
+    /// Populates fixed storage before assigning one final archetype signature.
+    pub(in crate::scene::world) fn rebuild_fixed_component_presence_into_final_archetype(
+        &mut self,
+        entity: EntityId,
+    ) {
+        self.rebuild_fixed_component_presence_without_final_archetype(entity);
+        self.refresh_entity_archetype(entity);
+    }
+
+    pub(in crate::scene::world) fn rebuild_fixed_component_presence_without_final_archetype(
+        &mut self,
+        entity: EntityId,
+    ) {
+        macro_rules! insert_presence {
+            ($field:ident) => {
+                if let Some(component) = self.$field.get(&entity).cloned() {
+                    self.insert_rebuilt_fixed_component_presence_without_archetype(
+                        entity, component,
+                    );
+                }
+            };
+        }
+
+        insert_presence!(names);
+        insert_presence!(hierarchy);
+        insert_presence!(local_transforms);
+        insert_presence!(active_self);
         insert_presence!(render_layer_masks);
         insert_presence!(cameras);
         insert_presence!(mesh_renderers);

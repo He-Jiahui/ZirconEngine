@@ -131,6 +131,8 @@ staged `zircon_runtime` 通过正常 App entry 打开 F1 项目，进入窗口�
 ### 实现切片
 
 - [ ] 确认 runtime startup args 把 canonical project root 投影到 `RuntimeProjectConfig`，不在 App 层重新创建 fixture。
+- [ ] `ZIRCON_RUNTIME_CAPTURE_FRAME_PNG` 必须是绝对路径，并在 runtime startup 通过
+  `ProjectPaths` 只解析一次：文件写入保留物理操作路径，产品诊断只发布显示路径。
 - [ ] 首帧退出只在 scene load、input manager、render graph 和 presented surface 成功后生效。
 - [ ] 产品诊断输出 project identity、scene URI、adapter/backend、frame dimensions、draw/light/pass counts 和 teardown result。
 - [ ] 对 missing scene、unresolved mesh/material、device/surface failure 返回非零退出和 typed diagnostic。

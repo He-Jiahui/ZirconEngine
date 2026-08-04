@@ -1,3 +1,4 @@
+use crate::handles::ZrRuntimeViewportHandle;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -255,6 +256,8 @@ pub struct ZrRuntimeImeSurroundingTextV1 {
     pub value: String,
     pub cursor: usize,
     pub anchor: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composition_range: Option<ZrRuntimeImeTextRangeV1>,
 }
 
 impl ZrRuntimeImeSurroundingTextV1 {
@@ -263,7 +266,29 @@ impl ZrRuntimeImeSurroundingTextV1 {
             value: value.into(),
             cursor,
             anchor,
+            composition_range: None,
         }
+    }
+
+    pub fn with_composition_range(
+        mut self,
+        composition_range: Option<ZrRuntimeImeTextRangeV1>,
+    ) -> Self {
+        self.composition_range = composition_range;
+        self
+    }
+}
+
+/// UTF-8 byte offsets into the surrounding-text window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZrRuntimeImeTextRangeV1 {
+    pub start: usize,
+    pub end: usize,
+}
+
+impl ZrRuntimeImeTextRangeV1 {
+    pub const fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
     }
 }
 
@@ -323,5 +348,19 @@ mod tests {
             area.coordinate_space,
             ZrRuntimeImeCoordinateSpaceV1::WindowLogical
         );
+    }
+
+    #[test]
+    fn legacy_ime_surrounding_text_defaults_to_no_composition_range() {
+        let legacy_text = serde_json::json!({
+            "value": "search",
+            "cursor": 6,
+            "anchor": 0,
+        });
+
+        let text: ZrRuntimeImeSurroundingTextV1 =
+            serde_json::from_value(legacy_text).expect("decode legacy surrounding text");
+
+        assert_eq!(text.composition_range, None);
     }
 }

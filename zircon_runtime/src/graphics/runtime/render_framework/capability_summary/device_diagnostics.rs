@@ -19,6 +19,10 @@ pub(in crate::graphics::runtime::render_framework) fn render_device_diagnostics(
             max_texture_dimension_2d: limits.max_texture_dimension_2d,
             max_texture_array_layers: limits.max_texture_array_layers,
             max_sampled_textures_per_shader_stage: limits.max_sampled_textures_per_shader_stage,
+            max_binding_array_elements_per_shader_stage: limits
+                .max_binding_array_elements_per_shader_stage,
+            max_binding_array_sampler_elements_per_shader_stage: limits
+                .max_binding_array_sampler_elements_per_shader_stage,
             max_storage_buffers_per_shader_stage: limits.max_storage_buffers_per_shader_stage,
             max_storage_buffer_binding_size: limits.max_storage_buffer_binding_size,
         },
@@ -43,6 +47,8 @@ mod tests {
                 max_texture_dimension_2d: 16_384,
                 max_texture_array_layers: 256,
                 max_sampled_textures_per_shader_stage: 16,
+                max_binding_array_elements_per_shader_stage: 500_000,
+                max_binding_array_sampler_elements_per_shader_stage: 1_000,
                 max_storage_buffers_per_shader_stage: 8,
                 max_storage_buffer_binding_size: 134_217_728,
             });
@@ -55,6 +61,18 @@ mod tests {
         assert_eq!(diagnostics.limits.max_texture_dimension_2d, 16_384);
         assert_eq!(diagnostics.limits.max_texture_array_layers, 256);
         assert_eq!(diagnostics.limits.max_sampled_textures_per_shader_stage, 16);
+        assert_eq!(
+            diagnostics
+                .limits
+                .max_binding_array_elements_per_shader_stage,
+            500_000
+        );
+        assert_eq!(
+            diagnostics
+                .limits
+                .max_binding_array_sampler_elements_per_shader_stage,
+            1_000
+        );
         assert_eq!(diagnostics.limits.max_storage_buffers_per_shader_stage, 8);
         assert_eq!(
             diagnostics.limits.max_storage_buffer_binding_size,

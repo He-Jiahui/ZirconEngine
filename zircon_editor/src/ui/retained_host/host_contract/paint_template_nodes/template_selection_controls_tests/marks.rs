@@ -127,6 +127,8 @@ fn selection_control_metrics_project_from_host_control_metrics() {
 
     assert_eq!(metrics.mark_inset_x, 14.0);
     assert_eq!(metrics.mark_size, 16.0);
+    assert_eq!(metrics.border_width, 2.0);
+    assert_eq!(metrics.checkbox_radius, 4.0);
     assert_eq!(metrics.label_gap, 12.0);
     assert_eq!(metrics.text_inset_y, 7.0);
     assert_eq!(metrics.radio_dot_size, 7.0);

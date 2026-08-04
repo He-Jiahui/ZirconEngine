@@ -39,6 +39,7 @@ impl EditorCoreProfile {
                 "editor.host.asset_core",
                 "editor.host.scene_interaction",
                 "editor.host.runtime_render_embed",
+                "runtime.editor_overlay.highlight_set",
                 "editor.host.plugin_management",
                 "editor.host.capability_bridge",
             ]
@@ -46,5 +47,18 @@ impl EditorCoreProfile {
             .map(str::to_string)
             .collect(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EditorCoreProfile;
+
+    #[test]
+    fn editor_profile_reports_the_runtime_highlight_input_capability() {
+        assert!(EditorCoreProfile::minimal()
+            .required_capabilities
+            .iter()
+            .any(|capability| capability == "runtime.editor_overlay.highlight_set"));
     }
 }

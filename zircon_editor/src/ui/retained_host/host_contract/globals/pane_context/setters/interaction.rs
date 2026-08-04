@@ -51,10 +51,43 @@ impl PaneSurfaceHostContext<'_> {
             .pane_interaction_state
             .activity_asset_content_scroll_px = value.max(0.0);
     }
-    pub(crate) fn set_activity_asset_references_hovered_index(&self, _value: i32) {}
-    pub(crate) fn set_activity_asset_references_scroll_px(&self, _value: f32) {}
-    pub(crate) fn set_activity_asset_used_by_hovered_index(&self, _value: i32) {}
-    pub(crate) fn set_activity_asset_used_by_scroll_px(&self, _value: f32) {}
+    pub(crate) fn set_activity_asset_references_hovered_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_references_hovered_index = value;
+    }
+
+    pub(crate) fn set_activity_asset_references_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_references_scroll_px = value.max(0.0);
+    }
+
+    pub(crate) fn set_activity_asset_used_by_hovered_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_used_by_hovered_index = value;
+    }
+
+    pub(crate) fn set_activity_asset_used_by_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_used_by_scroll_px = value.max(0.0);
+    }
+
+    pub(crate) fn set_activity_asset_reference_hover_frame(
+        &self,
+        value: crate::ui::retained_host::host_contract::data::FrameRect,
+    ) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_reference_hover_frame = value;
+    }
 
     pub(crate) fn set_browser_asset_tree_hovered_index(&self, value: i32) {
         self.state
@@ -83,10 +116,43 @@ impl PaneSurfaceHostContext<'_> {
             .pane_interaction_state
             .browser_asset_content_scroll_px = value.max(0.0);
     }
-    pub(crate) fn set_browser_asset_references_hovered_index(&self, _value: i32) {}
-    pub(crate) fn set_browser_asset_references_scroll_px(&self, _value: f32) {}
-    pub(crate) fn set_browser_asset_used_by_hovered_index(&self, _value: i32) {}
-    pub(crate) fn set_browser_asset_used_by_scroll_px(&self, _value: f32) {}
+    pub(crate) fn set_browser_asset_references_hovered_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_references_hovered_index = value;
+    }
+
+    pub(crate) fn set_browser_asset_references_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_references_scroll_px = value.max(0.0);
+    }
+
+    pub(crate) fn set_browser_asset_used_by_hovered_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_used_by_hovered_index = value;
+    }
+
+    pub(crate) fn set_browser_asset_used_by_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_used_by_scroll_px = value.max(0.0);
+    }
+
+    pub(crate) fn set_browser_asset_reference_hover_frame(
+        &self,
+        value: crate::ui::retained_host::host_contract::data::FrameRect,
+    ) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_reference_hover_frame = value;
+    }
 }
 
 #[cfg(test)]

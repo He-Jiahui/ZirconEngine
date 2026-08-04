@@ -44,7 +44,7 @@ pub use property_mutation::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,
 };
 pub use reflection_snapshot::reflector_snapshot;
-pub(crate) use render::measure_text_with_cache;
+pub(crate) use render::{measure_text_with_cache, measure_text_with_fixed_width_cache};
 pub use render::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
 pub use surface::{UiSurface, UiSurfaceRebuildReport};
 pub use text_geometry::{text_caret_frame_for_layout, text_range_frames_for_layout};

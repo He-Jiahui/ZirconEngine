@@ -12,8 +12,9 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image
-  - zircon_runtime/src/rhi/ui_surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface
+  - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
 tests:
   - UI image resource generation/upload deduplication
   - atlas multi-command CPU payload ownership
@@ -79,4 +80,10 @@ PERF-MVP-187补充：MUI X line/pie/sparkline/gauge在paint线程每帧生成最
 
 ## 修复结果与回传
 
-Open state: `待 Render13 + EditorUI08 建立handle/generation/upload-on-change契约并完成动态验收`。
+Open state: `实现与独立静态复核已完成，待协调器受管动态验收`。
+
+- Editor Chrome stream、`zr_rhi::UiSurfaceDrawList`、WGPU geometry/batching/upload/cache/render pass 均以精确 `(resource_key, generation)` 作为图像身份；同键的并存 generation 不会覆盖、错误批处理或错误采样。
+- 资源表压缩只移除已驻留的同一资源身份，RHI 上传统计、WGPU admission/LRU/invalidations 和 render-pass bind-group 查询也使用同一对键；1/1k/10k 同 generation atlas 命令维持一次 source/upload 与一次批处理。
+- 场景 UI 图像准备路径改为借用 `ResourceStreamer` 的已准备纹理并在绘制记录中保存紧凑 binding handle；缓存保留唯一资源所有权，稳定帧不再为每条命令克隆 `Arc<BindGroup>` 或 `Arc<GpuTextureResource>`，热重载仍由已准备资源的实际身份精确替换。
+- 两次独立静态审查已完成；发现的 borrowed stream residency converter 重导出遗漏已前向修复。`rustfmt --check`、限定 `git diff --check` 与旧 key-only 语义扫描均已通过。
+- 待协调器以可租赁 Session 身份运行受管 Cargo、真实 WGPU 1/1k/10k/热重载与 device-loss 帧、RenderDoc capture 和新 PNG 截图；截图必须写入 `docs/tests/runtime/render`。在该证据产生前不得关闭本 failure 或写为 accepted。

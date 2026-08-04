@@ -5,7 +5,7 @@ use super::selection::{
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    METRICS, PALETTE, current_host_palette,
+    current_host_palette, METRICS, PALETTE,
 };
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::{
@@ -125,6 +125,24 @@ fn toolbar_icon_button_normal_glyph_uses_semantic_button_tone() {
     assert_eq!(normal.state, UiPainterResolvedState::Normal);
     assert_eq!(normal.glyph, PALETTE.success);
     assert_eq!(normal.background, None);
+}
+
+#[test]
+fn primary_import_icon_button_pure_focus_keeps_primary_surface_and_focus_ring() {
+    let node = TemplatePaneNodeData {
+        control_id: "ImportModel".into(),
+        action_id: "workbench.asset.import_model".into(),
+        focused: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.accent));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.border_width, METRICS.border_width);
+    assert_eq!(style.glyph, PALETTE.shell_background);
 }
 
 #[test]

@@ -169,8 +169,61 @@ const WOC_RETAINED_ABILITY_IDS = [
   // WOS200 retains Chronomancy's group/raid full-haste cooldown through the
   // shared group-haste and Sated source contracts.
   'temporal_acceleration',
+  // WOS218 retains the Restoration Shaman's deterministic multi-target heal.
+  // Its source effect shape is projected here; hop selection remains world-owned.
+  'chain_heal',
+  // WOS219 retains the Druid's form-dependent resource ability. The generated
+  // profile owns source admission; its persistent timer and resource step are
+  // world-owned.
+  'feral_charge',
+  // WOS220 retains the Warrior's result-dependent Rage interrupt. Its target
+  // cancellation and school lockout reuse existing world-owned state.
+  'pummel',
+  // WOS224 retains the Rogue's off-GCD immediate Energy restore through the
+  // existing exact resource and gainResource talent-scaling boundaries.
+  'adrenaline_rush',
+  // WOS225 retains the Warrior's off-GCD immediate Rage restore through the
+  // same exact resource and gainResource talent-scaling boundaries.
+  'berserker_rage',
+  // WOS226 retains the Paladin's independent-cooldown instant Holy impact.
+  'exorcism',
+  // WOS227 retains the Rogue's off-GCD dodge aura through motion-aura state.
+  'evasion',
+  // WOS228 retains the Mage's rank-aware Frost armor aura.
+  'frost_armor',
+  // WOS229 retains the Hunter's mutually exclusive Aspect aura suite.
+  'aspect_of_the_hawk',
+  'aspect_of_the_monkey',
+  'aspect_of_the_cheetah',
+  // WOS230 retains the Rogue's one-shot next-attack critical aura.
+  'cold_blood',
+  // WOS231 retains the Rogue's source-owned automatic-attack haste window.
+  'blade_flurry',
+  // WOS232 retains the Rogue's source-ordered strike, bleed and vulnerability row.
+  'hemorrhage',
+  // WOS233 retains the Hunter's hard-cast physical ranged attack-spell.
+  'aimed_shot',
+  // WOS234 retains the Hunter's off-GCD swing-haste cooldown.
+  'rapid_fire',
+  // WOS235 retains the Hunter's instant Arcane ranged attack-spell.
+  'arcane_shot',
+  // WOS237 retains the Hunter's close-range physical slow action.
+  'wing_clip',
+  // WOS238 retains the Hunter's physical ranged projectile slow action.
+  'concussive_shot',
+  // WOS239 retains the Hunter's immediate ranged school interrupt.
+  'counter_shot',
+  // WOS239 retains the source-only interrupt-immunity contract so Counter
+  // Shot can exercise a real uninterruptible cast without a synthetic row.
+  'bladestorm',
+  // WOS240 retains the Hunter choice-granted ranged incapacitate.
+  'startle_shot',
+  // WOS241 retains the Hunter choice-granted off-GCD defensive cooldown.
+  'deterrence',
+  // WOS242 retains the Hunter choice-granted armed contact trap.
+  'frost_trap',
 ];
-const EXPECTED_ABILITY_COUNT = 93;
+const EXPECTED_ABILITY_COUNT = 117;
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, '..');
@@ -179,6 +232,13 @@ const parityCatalogPath = join(projectRoot, 'reference', 'current-head', 'parity
 const sourceManifestPath = join(projectRoot, 'reference', 'current-head', 'source_manifest.json');
 const scenariosSourcePath = 'tests/parity/scenarios.ts';
 const abilitiesSourcePath = 'src/sim/content/classes.ts';
+const talentAbilitiesV2ASourceOwner =
+  'src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A';
+const directDefinitionOwners = new Map([
+  ['startle_shot', talentAbilitiesV2ASourceOwner],
+  ['deterrence', talentAbilitiesV2ASourceOwner],
+  ['frost_trap', talentAbilitiesV2ASourceOwner],
+]);
 const outputPath = join(projectRoot, 'contracts', 'm4_abilities.json');
 const extractorPath = join(scriptDirectory, 'm4_ability_source_extract.mjs');
 const loaderUrl = pathToFileURL(join(scriptDirectory, 'typescript_git_loader.mjs')).href;
@@ -272,7 +332,7 @@ function main() {
       index,
       id,
       scenarios: [...uses.get(id)].sort(),
-      source_owner: `src/sim/content/classes.ts#ABILITIES.${id}`,
+      source_owner: `${directDefinitionOwners.get(id) ?? 'src/sim/content/classes.ts#ABILITIES'}.${id}`,
       definition,
     };
   });

@@ -1,7 +1,7 @@
 use super::{
-    IBL_BAKE_ARTIFACT_HEADER_SIZE, IblBakeArtifactDescriptor, IblBakeArtifactHeader,
-    IblBakeArtifactHeaderError, IblBakeArtifactPayload, IblBakeArtifactPayloadError,
-    IblBakeArtifactRequest,
+    IblBakeArtifactDescriptor, IblBakeArtifactHeader, IblBakeArtifactHeaderError,
+    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactRequest,
+    IBL_BAKE_ARTIFACT_HEADER_SIZE,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

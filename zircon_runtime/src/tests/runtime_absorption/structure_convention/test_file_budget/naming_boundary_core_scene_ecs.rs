@@ -117,40 +117,4 @@ fn runtime_15_core_scene_naming_ecs_owner_guards_are_child_owner() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/naming_guard_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/naming_guard_maps.rs",
-    );
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("module convention doc", module_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                SLICE,
-                STATUS,
-                GUARD,
-                "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs",
-                "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners.rs",
-            ],
-        );
-    }
-
-    assert_contains_all(
-        "Runtime 15 status/date maps record core-scene scene-ECS child owner",
-        &format!("{status_map}\n{date_map}"),
-        &[SLICE, STATUS, "2026-06-30"],
-    );
 }

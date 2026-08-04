@@ -3,7 +3,7 @@ use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::geometry::chip_delete_icon_frame;
 use super::super::style::chip_delete_icon_color;
 use super::dot::push_chip_delete_dot;
-use super::metrics::CHIP_DELETE_DIAGONAL_DOT_COUNT;
+use super::metrics::{CHIP_DELETE_DIAGONAL_DOT_COUNT, CHIP_DELETE_STROKE};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_delete_icon(
     commands: &mut Vec<HostPaintCommand>,

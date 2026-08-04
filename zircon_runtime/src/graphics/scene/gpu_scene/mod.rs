@@ -1,4 +1,5 @@
 mod binding;
+mod bindless_material_payload;
 mod gpu_scene;
 mod id_allocator;
 mod layout;
@@ -16,6 +17,10 @@ mod virtual_geometry;
 
 pub(crate) use gpu_scene::{
     GpuScene, GpuSceneEntry, GpuSceneStats, GpuSceneUploadPath, GpuSceneUploadReport,
+};
+pub(crate) use bindless_material_payload::{
+    BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT, GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
+    GpuBindlessMaterialPayload,
 };
 pub(crate) use layout::{
     GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,

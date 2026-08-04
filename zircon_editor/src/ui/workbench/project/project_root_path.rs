@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use std::path::PathBuf;
 
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::scene::world::SceneProjectError;
 
 pub(crate) fn project_root_path(
@@ -15,9 +16,23 @@ pub(crate) fn project_root_path(
     } else {
         candidate
     };
-    if root.is_absolute() {
-        Ok(root.to_path_buf())
-    } else {
-        Ok(std::env::current_dir()?.join(root))
+    Ok(ProjectPaths::resolve_existing_path(root)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::scene::world::SceneProjectError;
+
+    use super::project_root_path;
+
+    #[cfg(windows)]
+    #[test]
+    fn project_root_path_rejects_drive_relative_paths() {
+        let result = project_root_path(r"C:ambiguous-project-root");
+
+        assert!(matches!(
+            result,
+            Err(SceneProjectError::Io(error)) if error.kind() == std::io::ErrorKind::InvalidInput
+        ));
     }
 }

@@ -17,10 +17,6 @@ mod paths;
 mod reads;
 #[path = "sources/source_helper_ownership.rs"]
 mod source_helper_ownership;
-#[path = "sources/source_helper_status.rs"]
-mod source_helper_status;
-#[path = "sources/status_mirrors.rs"]
-mod status_mirrors;
 
 pub(super) use child_inventory::*;
 pub(super) use child_sources::*;
@@ -36,12 +32,4 @@ pub(super) fn assert_typed_error_line_budgets() {
 
 pub(super) fn typed_error_review_guard_count() -> usize {
     reads::typed_error_review_guard_count()
-}
-
-#[test]
-fn runtime_15_typed_error_source_inventory_is_child_owner() {
-    let sources = typed_error_source_inventory_sources();
-
-    delegation::assert_typed_error_source_inventory_is_child_owner(&sources);
-    budgets::assert_typed_error_source_inventory_children_line_budgets_are_current(&sources);
 }

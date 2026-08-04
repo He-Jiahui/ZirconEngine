@@ -39,6 +39,16 @@ pub(super) fn projected_value_media(
 
     ProjectedValueMedia {
         value_text,
+        has_clear_action: component_role == "search-field"
+            && attributes
+                .get("has_clear_action")
+                .and_then(toml::Value::as_bool)
+                .unwrap_or(false),
+        layout_stepper: component_role == "number-field"
+            && attributes
+                .get("layout_stepper")
+                .and_then(toml::Value::as_bool)
+                .unwrap_or(false),
         value_number,
         value_percent,
         value_color: projected_value_color(component_role, attributes),

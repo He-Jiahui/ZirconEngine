@@ -7,9 +7,12 @@ import { fileURLToPath } from 'node:url';
 const SOURCE_COMMIT = '5ef9f7cb21cd8875b6d2c49701015dfcd78de35a';
 const SOURCE_PATH = 'src/sim/combat/cc.ts';
 const ABILITIES_SOURCE_PATH = 'src/sim/content/classes.ts';
+const TALENT_ABILITIES_V2_A_SOURCE_PATH = 'src/sim/content/talent_abilities_v2_a.ts';
 const PLAYER_MOTION_SOURCE_PATH = 'src/sim/player_motion.ts';
 const ENTITY_SOURCE_PATH = 'src/sim/entity.ts';
 const EFFECT_DISPATCH_SOURCE_PATH = 'src/sim/combat/effect_dispatch.ts';
+const EMPOWER_NEXT_SOURCE_PATH = 'src/sim/combat/empower_next.ts';
+const AURAS_SOURCE_PATH = 'src/sim/combat/auras.ts';
 const SIM_SOURCE_PATH = 'src/sim/sim.ts';
 const TYPES_SOURCE_PATH = 'src/sim/types.ts';
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -27,6 +30,12 @@ const abilitiesBlob = execFileSync(
   { encoding: 'buffer' },
 );
 const abilitiesSource = abilitiesBlob.toString('utf8');
+const talentAbilitiesV2ABlob = execFileSync(
+  'git',
+  ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${TALENT_ABILITIES_V2_A_SOURCE_PATH}`],
+  { encoding: 'buffer' },
+);
+const talentAbilitiesV2ASource = talentAbilitiesV2ABlob.toString('utf8');
 const playerMotionBlob = execFileSync(
   'git',
   ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${PLAYER_MOTION_SOURCE_PATH}`],
@@ -42,6 +51,15 @@ const effectDispatchBlob = execFileSync(
   { encoding: 'buffer' },
 );
 const effectDispatchSource = effectDispatchBlob.toString('utf8');
+const empowerNextBlob = execFileSync(
+  'git', ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${EMPOWER_NEXT_SOURCE_PATH}`],
+  { encoding: 'buffer' },
+);
+const empowerNextSource = empowerNextBlob.toString('utf8');
+const aurasBlob = execFileSync(
+  'git', ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${AURAS_SOURCE_PATH}`], { encoding: 'buffer' },
+);
+const aurasSource = aurasBlob.toString('utf8');
 const simBlob = execFileSync(
   'git', ['-C', sourceRoot, 'show', `${SOURCE_COMMIT}:${SIM_SOURCE_PATH}`], { encoding: 'buffer' },
 );
@@ -90,6 +108,13 @@ invariant(
   'Primal Reflexes dodge-buff source drifted',
 );
 invariant(
+  talentAbilitiesV2ASource.includes("id: 'deterrence'") &&
+    talentAbilitiesV2ASource.includes("kind: 'buff_dodge', value: 0.25, duration: 10") &&
+    talentAbilitiesV2ASource.includes("kind: 'buff_dr', value: 0.3, duration: 10") &&
+    effectDispatchSource.includes("case 'selfBuff':"),
+  'Deterrence damage-reduction source drifted',
+);
+invariant(
   abilitiesSource.includes("id: 'tigers_fury'") &&
     abilitiesSource.includes("kind: 'buff_ap', value: 40, duration: 6") &&
     effectDispatchSource.includes("case 'selfBuff':") &&
@@ -111,6 +136,32 @@ invariant(
     faerieFireArmorReduction === 0.1,
   'Faerie Fire aura or max-combined armor source drifted',
 );
+invariant(
+  typesSource.includes("aura.kind === 'buff_rage_gen') mult += aura.value") &&
+    typesSource.includes("aura.kind === 'buff_reckless') mult += RECKLESSNESS_RAGE_GEN") &&
+    typesSource.includes("aura.kind === 'battle_stance') mult += STANCE_RAGE_GEN"),
+  'Rage-generation aura source semantics drifted',
+);
+  invariant(
+      abilitiesSource.includes("id: 'cold_blood'") &&
+    abilitiesSource.includes("kind: 'next_attack_crit', value: 1, duration: 60") &&
+    effectDispatchSource.includes('consumeNextAttackCrit(ctx, p)') &&
+    empowerNextSource.includes("consumeAuraKind(ctx, e, 'next_attack_crit')"),
+    'Cold Blood next-attack-crit source semantics drifted',
+  );
+invariant(
+  abilitiesSource.includes("id: 'blade_flurry'") &&
+      abilitiesSource.includes("kind: 'buff_haste', value: 1.2, duration: 12") &&
+      simSource.includes("if (a.kind === 'buff_haste') m /= a.value;"),
+  'Blade Flurry haste source semantics drifted',
+);
+invariant(
+  abilitiesSource.includes("id: 'hemorrhage'") &&
+    abilitiesSource.includes("kind: 'bleed_vuln', value: 0.4, duration: 12") &&
+    effectDispatchSource.includes("case 'applyDebuff'") &&
+    aurasSource.includes("if (targetAura.kind === 'bleed_vuln') bleedAmp += pctValue(targetAura.value);"),
+  'Hemorrhage bleed-vulnerability source semantics drifted',
+);
 const motionKindCodes = {
   stun: 1,
   stasis: 2,
@@ -125,22 +176,33 @@ const motionKindCodes = {
   faerie_fire: 11,
   buff_ap: 12,
   lockout: 13,
-};
+  buff_rage_gen: 14,
+  buff_reckless: 15,
+    battle_stance: 16,
+  next_attack_crit: 17,
+  buff_haste: 18,
+  bleed_vuln: 19,
+  buff_dr: 20,
+  };
 const document = {
-  schema_version: 1,
+  schema_version: 2,
   source_commit: SOURCE_COMMIT,
   generated_by: 'examples/woc/tools/cc_contract_codegen.mjs',
   source_blobs: {
     [SOURCE_PATH]: createHash('sha256').update(blob).digest('hex'),
     [ABILITIES_SOURCE_PATH]: createHash('sha256').update(abilitiesBlob).digest('hex'),
+    [TALENT_ABILITIES_V2_A_SOURCE_PATH]: createHash('sha256').update(talentAbilitiesV2ABlob).digest('hex'),
     [PLAYER_MOTION_SOURCE_PATH]: createHash('sha256').update(playerMotionBlob).digest('hex'),
     [ENTITY_SOURCE_PATH]: createHash('sha256').update(entityBlob).digest('hex'),
     [EFFECT_DISPATCH_SOURCE_PATH]: createHash('sha256').update(effectDispatchBlob).digest('hex'),
+    [EMPOWER_NEXT_SOURCE_PATH]: createHash('sha256').update(empowerNextBlob).digest('hex'),
+    [AURAS_SOURCE_PATH]: createHash('sha256').update(aurasBlob).digest('hex'),
     [SIM_SOURCE_PATH]: createHash('sha256').update(simBlob).digest('hex'),
     [TYPES_SOURCE_PATH]: createHash('sha256').update(typesBlob).digest('hex'),
   },
   kinds,
   motion_kind_codes: motionKindCodes,
+  rage_generation_aura_kinds: ['buff_rage_gen', 'buff_reckless', 'battle_stance'],
   faerie_fire_armor_reduction: faerieFireArmorReduction,
   blind: 'maximum_positive_value_or_zero',
   tongues: 'maximum_value_or_one',

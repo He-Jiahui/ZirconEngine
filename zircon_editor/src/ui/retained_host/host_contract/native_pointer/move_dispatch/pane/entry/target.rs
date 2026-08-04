@@ -10,6 +10,10 @@ use super::super::{
 
 pub(super) fn dispatch_pane_pointer_move_target(ui: &UiHostWindow, pointer: &PanePointerRoute) {
     let pane_host = ui.global::<PaneSurfaceHostContext>();
+    if !retains_asset_reference_hover(&pointer.target) {
+        pane_host.invoke_asset_reference_pointer_left("activity".into());
+        pane_host.invoke_asset_reference_pointer_left("browser".into());
+    }
     match &pointer.target {
         PanePointerTarget::Hierarchy | PanePointerTarget::Welcome => {
             dispatch_native_pane_move(&pane_host, pointer)
@@ -25,5 +29,28 @@ pub(super) fn dispatch_pane_pointer_move_target(ui: &UiHostWindow, pointer: &Pan
         | PanePointerTarget::ViewportToolbar { .. }
         | PanePointerTarget::UiAsset
         | PanePointerTarget::Other => clear_passive_pane_move_hover(ui),
+    }
+}
+
+fn retains_asset_reference_hover(target: &PanePointerTarget) -> bool {
+    matches!(target, PanePointerTarget::AssetReference(_, _))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::retains_asset_reference_hover;
+    use crate::ui::retained_host::host_contract::native_pointer::routing::PanePointerTarget;
+
+    #[test]
+    fn only_asset_reference_targets_retain_hover() {
+        assert!(!retains_asset_reference_hover(
+            &PanePointerTarget::AssetContent("browser".into())
+        ));
+        assert!(!retains_asset_reference_hover(
+            &PanePointerTarget::BrowserAssetDetails
+        ));
+        assert!(retains_asset_reference_hover(
+            &PanePointerTarget::AssetReference("browser".into(), "references".into(),)
+        ));
     }
 }
