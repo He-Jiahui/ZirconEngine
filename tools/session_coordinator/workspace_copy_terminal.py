@@ -2,14 +2,42 @@ from __future__ import annotations
 
 import json
 import subprocess
+import threading
+from collections import deque
 from contextlib import nullcontext
 from dataclasses import dataclass
-from typing import Callable, ContextManager
+from typing import Callable, ContextManager, TextIO
 
 from .database import Database
 from .models import CoordinatorError, utc_text
 
 _CAPTURED_STREAM_CHARACTER_LIMIT = 65_536
+_STREAM_READ_CHARACTER_COUNT = 8_192
+
+
+class _BoundedTextTail:
+    def __init__(self, limit: int) -> None:
+        self._limit = limit
+        self._chunks: deque[str] = deque()
+        self._length = 0
+
+    def append(self, value: str) -> None:
+        if not value:
+            return
+        self._chunks.append(value)
+        self._length += len(value)
+        while self._length > self._limit:
+            excess = self._length - self._limit
+            first = self._chunks[0]
+            if len(first) <= excess:
+                self._chunks.popleft()
+                self._length -= len(first)
+            else:
+                self._chunks[0] = first[excess:]
+                self._length -= excess
+
+    def value(self) -> str:
+        return "".join(self._chunks)
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,17 +70,63 @@ class ValidationCopyTerminalLifecycle:
         self._mutation_gate = mutation_gate
 
     def collect(self, process: subprocess.Popen[str]) -> tuple[int, str, str]:
-        stdout_full, stderr_full = process.communicate()
-        if process.returncode is None:
+        stdout_tail = _BoundedTextTail(_CAPTURED_STREAM_CHARACTER_LIMIT)
+        stderr_tail = _BoundedTextTail(_CAPTURED_STREAM_CHARACTER_LIMIT)
+        errors: list[BaseException] = []
+        error_lock = threading.Lock()
+
+        def drain(stream: TextIO, tail: _BoundedTextTail) -> None:
+            try:
+                while chunk := stream.read(_STREAM_READ_CHARACTER_COUNT):
+                    tail.append(chunk)
+            except BaseException as error:
+                with error_lock:
+                    errors.append(error)
+                try:
+                    if process.poll() is None:
+                        process.kill()
+                except BaseException:
+                    pass
+            finally:
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+
+        readers = [
+            threading.Thread(
+                target=drain,
+                args=(stream, tail),
+                name=f"zircon-validation-{name}-drain",
+                daemon=True,
+            )
+            for name, stream, tail in (
+                ("stdout", process.stdout, stdout_tail),
+                ("stderr", process.stderr, stderr_tail),
+            )
+            if stream is not None
+        ]
+        for reader in readers:
+            reader.start()
+        waited_exit_code = process.wait()
+        for reader in readers:
+            reader.join()
+        if errors:
+            error = errors[0]
+            raise CoordinatorError(
+                "validation_copy_stream_capture_failed",
+                "Validation process output stream could not be captured",
+                details={"errorType": type(error).__name__},
+            ) from error
+        exit_code = process.returncode
+        if exit_code is None:
+            exit_code = waited_exit_code
+        if exit_code is None:
             raise CoordinatorError(
                 "validation_copy_process_not_terminal",
-                "Validation process communicate returned without a terminal exit code",
+                "Validation process wait returned without a terminal exit code",
             )
-        return (
-            int(process.returncode),
-            self._capture_stream_tail(stdout_full),
-            self._capture_stream_tail(stderr_full),
-        )
+        return int(exit_code), stdout_tail.value(), stderr_tail.value()
 
     def latest_for_job(
         self, *, session_id: str, job_id: str

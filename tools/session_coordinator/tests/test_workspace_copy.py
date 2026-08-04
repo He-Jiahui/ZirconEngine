@@ -58,8 +58,10 @@ class WorkspaceCopyTests(unittest.TestCase):
         process = mock.Mock()
         process.pid = 4242
         process.returncode = exit_code
-        process.communicate.return_value = (stdout, stderr)
+        process.stdout = io.StringIO(stdout) if stdout is not None else None
+        process.stderr = io.StringIO(stderr) if stderr is not None else None
         process.poll.return_value = exit_code
+        process.wait.return_value = exit_code
         with mock.patch(
             "tools.session_coordinator.workspace_copy.subprocess.Popen",
             return_value=process,
@@ -967,8 +969,10 @@ class WorkspaceCopyTests(unittest.TestCase):
         process = mock.Mock()
         process.pid = 4444
         process.returncode = 0
-        process.communicate.return_value = ("stdout", "")
+        process.stdout = io.StringIO("stdout")
+        process.stderr = io.StringIO("")
         process.poll.return_value = 0
+        process.wait.return_value = 0
 
         def blocking_popen(*_args, **_kwargs):
             launch_started.set()
@@ -1016,8 +1020,10 @@ class WorkspaceCopyTests(unittest.TestCase):
         process = mock.Mock()
         process.pid = 4545
         process.returncode = 0
-        process.communicate.return_value = ("stdout", "")
+        process.stdout = io.StringIO("stdout")
+        process.stderr = io.StringIO("")
         process.poll.return_value = 0
+        process.wait.return_value = 0
         original_transaction = self.database.transaction
 
         @contextmanager
@@ -1107,8 +1113,10 @@ class WorkspaceCopyTests(unittest.TestCase):
         process = mock.Mock()
         process.pid = 4343
         process.returncode = 101
-        process.communicate.return_value = (None, "async cargo stderr")
+        process.stdout = None
+        process.stderr = io.StringIO("async cargo stderr")
         process.poll.return_value = 101
+        process.wait.return_value = 101
 
         with mock.patch(
             "tools.session_coordinator.workspace_copy.subprocess.Popen",

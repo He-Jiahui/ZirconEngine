@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-30
 summary_slug: validation-copy-run-terminal-output-loss-regression
 origin_plan: docs/plans/zircon_plugins/01-plugin-architecture-core.md
@@ -16,7 +16,9 @@ related_code:
 tests:
   - validation_copy.run persists nonzero Cargo stdout/stderr or a bounded typed terminal diagnostic
   - cargo +1.94.1 test -p zircon_runtime --lib native_live_host_editor_hot_reload_keeps_same_id_runtime_plugin --locked --jobs 1 --color never -- --exact --nocapture --test-threads=1
+resolved_at: 2026-08-05
 ---
+
 
 # Coordinator01: validation-copy run terminal output loss regression
 
@@ -71,16 +73,7 @@ Cargo 闭包、不可变 manifest 和受管子进程均已存在，但 run 记�
 
 ## 修复结果与回传
 
-Open state: `Coordinator01 review finding open / bounded stream capture repair pending`;
-no Cargo GREEN, `fixed` return, or Plan08 commandlet pass is claimed.
-
-- 根因已收敛到 validation-copy terminal lifecycle：旧路径允许 cleanup 后只保留 copy 状态，调用方无法从 job status 取回 run 的 exit code 和输出。
-- 当前实现已确保 terminal evidence 先于 completion 与 cleanup 持久化，但 `communicate()` 仍先把完整 stdout/stderr 读入内存，之后才截取 65,536 字符。持久记录有界而采集过程无界，大输出仍可能在 durable insert 前耗尽 coordinator 内存。
-- `validation-copy status` 按 owning Session 与 job 查询最新 terminal evidence；副本删除后仍保留诊断，foreign Session 被拒绝，畸形 durable command JSON 返回 typed error。
-- 前向修复必须在持续排空 stdout/stderr 时使用有界 ring buffer 或等价 spooled tail，并以双流均超过上限的 exit-101 子进程证明内存采集有界、尾部准确且 cleanup 后仍可查询。
-
-## 状态与完成项目
-
-| 日期 | 切片 | 状态 | 完成项目与证据 |
-|---|---|---|---|
-| 2026-08-03 | Coordinator01 validation-copy terminal evidence review | `review_finding_open` | 本地小输出组合门 8/8 通过，但独立二次审查发现 `communicate()` 在截尾前无界收集双流，现有测试没有覆盖超过限制的输出。production 与测试路径由既有 immutable receipt 冻结；待 wakeup 后添加双流超限回归并前向实现 bounded drain，再进行 managed ticket 与 Plugins01 原命令复放。未运行共享工作树 Cargo。 |
+- 根因：validation-copy.run used communicate() to collect complete stdout/stderr before truncation, leaving collection unbounded; Windows text=True also used strict locale decoding, so invalid Cargo bytes raised UnicodeDecodeError before terminal evidence was inserted.
+- 架构修复：Drain stdout and stderr concurrently into independent fixed 65,536-character tails, terminate with a typed capture error on read failure, and launch sync/async validation-copy processes with explicit UTF-8 replacement decoding so exit code and bounded evidence survive cleanup.
+- 验证：Local combined workspace-copy suite 49/49 passed in 87.840s; immutable managed ticket 1dd901b1e49c4518b83e5e150dba6aee passed 49/49 in copy 9c5c0c4e1e3f4de4b787fa7f40dea1f2 in 89.593s; same-manifest Plugins01 replay job 2e1eb52882ae44e4869eb99f4df0c82c persisted run 19249a8d65764c8386c05aae9a4fd3b6 with exit 101 and 23,092 stderr characters after cleanup, diagnosing 17 missing renderable-empty template inputs rather than losing output.
+- 回传：Coordinator01 terminal-output-loss is fixed and returned. Plugins01 now has durable diagnostics for its separate validation-copy input coverage issue; this return does not claim the original Cargo test is green.

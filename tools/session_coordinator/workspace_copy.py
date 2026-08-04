@@ -1021,6 +1021,8 @@ class WorkspaceCopyService:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             process_started = True
             with self._running_lock:
@@ -1142,6 +1144,8 @@ class WorkspaceCopyService:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             with self._running_lock:
                 self._running_processes[job_id] = process
