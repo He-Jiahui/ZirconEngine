@@ -297,29 +297,6 @@ class SessionServiceTests(unittest.TestCase):
         self.assertEqual(["running"], marked)
         self.assertEqual(SessionStatus.STALE, self.service.get("running").status)
 
-    def test_mark_stale_preserves_an_unexpired_pending_cpu_reservation(self) -> None:
-        self.service.register(session_id="expired")
-        self.service.set_status("expired", SessionStatus.ACTIVE)
-        reservation = self.cargo_jobs().reserve_cpu(
-            "expired",
-            compatibility=self.compatibility(),
-            command=("cargo", "test", "-p", "zircon_runtime"),
-        )
-        with self.database.transaction() as connection:
-            connection.execute(
-                "UPDATE sessions SET last_heartbeat_at=? WHERE session_id='expired'",
-                (utc_text(utc_now() - timedelta(hours=2)),),
-            )
-        self.assertEqual([], self.service.mark_stale(older_than_seconds=60))
-
-        self.assertEqual(SessionStatus.ACTIVE, self.service.get("expired").status)
-        with self.database.connect() as connection:
-            row = connection.execute(
-                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
-                (reservation["reservationId"],),
-            ).fetchone()
-        self.assertEqual("pending", row["status"])
-
     def test_set_status_stale_terminals_pending_cpu_reservation_atomically(self) -> None:
         self.service.register(session_id="owner")
         self.service.set_status("owner", SessionStatus.ACTIVE)

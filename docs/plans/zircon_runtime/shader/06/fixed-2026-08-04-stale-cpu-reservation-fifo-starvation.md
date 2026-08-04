@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-27
 summary_slug: stale-cpu-reservation-fifo-starvation
 origin_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
@@ -16,7 +16,9 @@ tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -RepoRoot E:\Git\ZirconEngine -Package zircon_runtime -LibTests -TestFilter light_grid_normalizes_surface_inputs_once_per_pixel -SkipBuild -VerboseOutput
   - .\tools\zircon-session.ps1 session heartbeat --session-id shader06-m5-current-source-20260726 -Json
   - .\tools\zircon-session.ps1 lease heartbeat --session-id shader06-m5-current-source-20260726 -Json
+resolved_at: 2026-08-04
 ---
+
 
 # Coordinator01: stale CPU reservation causes FIFO starvation
 
@@ -87,4 +89,7 @@ owner 在 `cargo_jobs.py` / `reserved_starts.py` 中诊断；来源计划不得�
 
 ## 修复结果与回传
 
-Open state: `待 Coordinator01 修复`; no Cargo or product pass is claimed.
+- 根因：A pending CPU reservation whose owner was stale or no longer executable could remain at the FIFO head without a live Cargo process or a bounded terminal transition. Admission repeatedly returned the same lane reservation block and control-plane timeouts prevented safe owner recovery.
+- 架构修复：The integrated reservation lifecycle reconciles expired and non-executable pending owners before FIFO selection, preserves live leased and running jobs, releases orphaned or terminal bound jobs auditably, and applies the same helpers at startup, maintenance, reserve, consume, start, and atomic Session status boundaries. A duplicate weak Session regression was removed so the retained test actually enforces pending status and a null completed_at.
+- 验证：Local core gate passed 28/28 in 30.979s and the separate upward gate passed 7/7 in 6.948s; Python compilation and diff checks passed. Managed ticket ee23f4e0e2364f14a8fe90eccb20d6f3, source manifest 00bebf21373a93b6e96bc3902dc314cfd32cef0fa1cb7d184e3eff1268a2142e, copy job 07892583aa3f4c11919715ae705fa2aa passed 35/35 in 37.550s with exit code 0. Handoff graph before return validated 561 artifacts with 0 errors.
+- 回传：The original Shader06 source session is archived, so no historical Rust/Naga product gate was fabricated. Historical blocking reservations 74981a9137264e67b8ea4bc479b2d0e9 and b91bdc6a0a4f4ffdbd2f01704c092a27 are both released with bound jobs and completed_at evidence. A new Shader06 current-source session must run the product gate when that plan resumes.
