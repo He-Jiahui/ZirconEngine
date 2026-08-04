@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-27
 summary_slug: validation-copy-zr-vm-external-source-pin
 origin_plan: docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
@@ -17,7 +17,9 @@ related_code:
 tests:
   - validation-copy materialize-cargo with a pinned zr_vm external source descriptor
   - managed Cargo test runs from the resulting immutable source copy
+resolved_at: 2026-08-05
 ---
+
 
 # Editor08: validation-copy 缺少 zr_vm 外部源码固定描述
 
@@ -70,12 +72,7 @@ manifest 作为后续 CPU reservation 的强制关联输入。因此 Editor08 �
 
 ## 修复结果与回传
 
-Open state: `待 Coordinator01 external-source descriptor 覆盖校验与返回绑定修复`。Editor08 已保留
-固定 commit 和所需 crate 根，但尚未获得 materialized source copy、Cargo 终态、fixed return 或提交。
-
-## 产出记录与时间
-
-| 日期 | 切片 | 状态 | 完成项目与验证证据 |
-| --- | --- | --- | --- |
-| 2026-07-27 | Editor08 M2/M3 source-bound validation-copy | open | 受管 `validation-copy materialize-cargo` 在 Cargo 启动前返回 `validation_copy_external_source_missing`；缺失 manifest 为 `E:\Git\zr_vm\zr_vm_rust_binding\rust\zr_vm_rust_binding\Cargo.toml`。已实读 sibling Git root `E:\Git\zr_vm` 与固定 commit `503fb72163cd20ddf32a38f8a330083712f5d648`，并将 descriptor 覆盖校验、immutable mount 和 reservation 绑定交接给 Coordinator01。 |
-| 2026-07-27 | Editor08 M2 keymap signature-index source-copy retry | open | 受管 snapshot `1122` 已冻结 `key_chord.rs`=`ff3198d1...`, `keymap.rs`=`a29a0e23...`, `keymap/tests.rs`=`e0329e69...`；随后以 `cargo test -p zircon_editor --lib core::commands::keymap::tests --locked --jobs 1 --color never -- --test-threads=1` 请求 `validation-copy materialize-cargo`。协调器在 Cargo 启动前拒绝，原始错误为 `Cargo manifest path dependency has no pinned external source descriptor`；未创建 source copy、Cargo job 或 run，不能作为 Rust 验收。该重现确认同一 Coordinator01 external-source descriptor 覆盖契约仍是最低共享阻断。 |
+- 根因：The Editor08 Cargo closure referenced sibling zr_vm manifests, but its original validation-copy request had no immutable ExternalGitSource descriptor, so the coordinator correctly failed before Cargo and could not bind an auditable source input.
+- 架构修复：The committed Coordinator01 contract validates a concrete Git commit, safe unique mount path, and non-empty include roots; resolves external Cargo path dependencies against that descriptor; archives only the pinned commit; persists external metadata and the canonical input hash; and binds reservation plus run context to the exact source-copy job/hash while rejecting mismatches.
+- 验证：Local descriptor tests passed 3/3 in 9.047s and local binding tests passed 2/2 in 6.229s. Managed ticket 0776fe03da9d4048ab0b8ec5cb8ec253, source manifest 8820634f802e0b75c45cd37606f97c6025c896fa5e5136d4dc778b0fa55ed716, copy job 1a25bb8ef1d94ab9bcc478ab8749783c passed 3/3 in 9.060s. Managed ticket aaf14968696946969d09258b9b4bb92f, copy job ced6c625b43744f881ae0a2cdf5d4a07 passed 2/2 in 4.286s. Handoff validator checked 561 artifacts with 0 errors before return.
+- 回传：The sibling pin 503fb72163cd20ddf32a38f8a330083712f5d648 remains a valid commit while the sibling checkout HEAD has advanced, proving immutable pin semantics. Original Editor08 session editor08-keymap-signature-index-r1-20260727 is archived and snapshot 1122 has drift in key_chord.rs and keymap/tests.rs, so no historical Cargo replay was attempted; Editor08 must use a new current-source Session for product-level keymap/Cargo acceptance.
