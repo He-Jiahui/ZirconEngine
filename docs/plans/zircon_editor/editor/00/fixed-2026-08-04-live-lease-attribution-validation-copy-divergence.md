@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-26
 summary_slug: live-lease-attribution-validation-copy-divergence
 origin_plan: docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
@@ -14,11 +14,15 @@ related_code:
   - tools/session_coordinator/server.py
   - tools/session_coordinator/tests/test_workspace_copy.py
   - tools/session_coordinator/tests/test_server.py
+  - tools/session_coordinator/tests/test_live_lease_validation_copy.py
 tests:
+  - python -m unittest tools.session_coordinator.tests.test_live_lease_validation_copy
   - exact untracked Session source file lease -> baseline attribute -> validation-copy materialize-cargo
   - lease claim durability and heartbeat regression for untracked Rust sources
   - validation-copy source manifest hash equals current attributed overlay hash
+resolved_at: 2026-08-04
 ---
+
 
 # Coordinator01: live lease attribution validation-copy divergence
 
@@ -60,10 +64,7 @@ Coordinator01 的 lease claim 成功语义与后续 baseline attribution 所读�
 
 ## 修复结果与回传
 
-Open state：`待 Coordinator01 修复 live lease -> attribution -> validation-copy 原子链`。Editor00 root facade integration 保持 `source_closure_static_green / managed_validation_blocked`；不宣称 Cargo、review、fixed return 或 commit 完成。
-
-## 产出记录与时间
-
-| 日期 | 切片 | 状态 | 完成项目与验证证据 |
-| --- | --- | --- | --- |
-| 2026-07-26 | Editor00 -> Coordinator01 validation-copy ownership handoff | `open / reproducible_live_lease_divergence` | snapshot `1089` 的 29 Rust hashes 复核无漂移；`lease claim` 成功回执与 `baseline attribute` 的 `baseline_lease_missing`、validation copy `d1c2fb6f…` 的 `validation_copy_unowned_path` 形成最小矛盾证据。外部 `zr_vm` 已由 commit descriptor 固定，未启动 Cargo；修复必须由 Coordinator01 以服务端原子 ledger 与 focused tests 完成。 |
+- 根因：The lease claim success response diverged from the persisted live lease ledger consumed by baseline attribution. Accepted untracked source paths could disappear before attribution, so immutable validation-copy materialization rejected the same paths as unowned.
+- 架构修复：The current coordinator implementation persists exact and directory-derived lease claims transactionally, baseline attribution reads that same live ledger and records the current content hash, and validation copy overlays only attributed untracked sources. A dedicated end-to-end regression now locks exact-file and directory-derived ownership, foreign-session rejection, heartbeat expiry extension, attribution, and copied-byte identity.
+- 验证：Local focused unittest passed 2/2 in 3.269s and Python compilation plus diff checks passed. Managed ticket 2c7893cc9fbe43f6a4c139d4c4527719, source manifest bc507259b0e471134c50212910c42284e8a4680edb76d12ce09ad7b891de6e02, copy job 2f6bfa7b723646ab890e3e42d9516e10 passed 2/2 in 3.432s with exit code 0. Handoff graph before return validated 561 artifacts with 0 errors.
+- 回传：The coordinator-owned lease-to-attribution-to-validation-copy contract is accepted on an immutable managed copy. The original Editor00 session is archived and snapshot 1089 now has widespread current-hash drift across its historical business paths, so no historical session or Cargo replay was fabricated; Editor00 must use a new current-source session for any further business validation.
