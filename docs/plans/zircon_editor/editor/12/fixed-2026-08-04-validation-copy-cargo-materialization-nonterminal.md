@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-27
 summary_slug: validation-copy-cargo-materialization-nonterminal
 origin_plan: docs/plans/zircon_editor/editor/12-plugin-management.md
@@ -17,7 +17,9 @@ tests:
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy
   - validation_copy.materialize_cargo persists a terminal materialized or failed state after closure persistence
   - Editor12 pinned external-source cargo-copy and catalog_store test rerun
+resolved_at: 2026-08-04
 ---
+
 
 # Coordinator01: validation-copy Cargo 物化非终态
 
@@ -84,29 +86,7 @@ catalog 源码，也不是未固定 external source。
 
 ## 修复结果与回传
 
-Open state: `待 Coordinator01 完成 cargo closure 后物化终态、恢复与可观测错误合同`。Editor12 保留 job
-`f8726b18912e49d7a74dcb10051f3006`，不宣称 Cargo、review、fixed return 或提交已完成。
-
-## 产出记录与时间
-
-### 2026-07-27
-
-- 状态：`open`；Coordinator01 最低共享层 handoff 已建立，来源 Editor12 继续保持 `resolving_failure`。
-- 完成项目：记录了 closure 已持久化、external pin 已验证、但无 hash/无 typed terminal 的精确 job 证据与上层重放条件。
-- 状态更新：job `f8726b18912e49d7a74dcb10051f3006` 已以 `validation_copy_unowned_path` 终态失败；`errorPath` 是
-  Runtime15 已跟踪 plan-status source。无 Cargo、无 Rust 测试、无 review、无 fixed return；此记录将 Coordinator01
-  修复范围收窄到 baseline 与 attributable overlay 的分类和可重放合同。
-
-### 2026-07-29 00:xx CST
-
-- 状态：`resolving_failure`，本 failure 保持 `open`；本条记录 Coordinator01 source repair 与 Python 验证，不将其写为 live reload、Editor12 Cargo、独立 review、fixed return 或 commit。
-- 完成项目：`WorkspaceCopyService._require_untracked_overlay_attribution` 由逐路径 `git show` 改为每个 job 一次读取 pinned baseline tree；仅当 closure 含 baseline 缺失路径时再一次读取当前 tracked tree。当前已跟踪但不在 pinned baseline 的 foreign closure path 以 `validation_copy_baseline_drift` / `materialization_prepare` / 精确 `errorPath` 终态返回，并要求受管 replay；真正未跟踪路径仍为 `validation_copy_unowned_path`。因此不会读取新 HEAD 内容、要求来源 Session 归属 foreign 路径，或在 18k closure 上启动数万个 Git 子进程。
-- TDD 与验证：先新增“worker 固定 baseline 后 closure 出现新 tracked path”的回归，旧实现如预期错误为 `validation_copy_unowned_path`；修复后该测试通过。`python -m unittest tools.session_coordinator.tests.test_workspace_copy` 的 39 项以 5 个单用例和 5 个独立批次完成，合计 `39/39`；一次性顺序执行超过客户端 184 秒上限，不能据此报为单次 suite terminal。`python -m compileall` 和 scoped `git diff --check` 通过。
-- 独立复审：Coordinator01 baseline-drift repair 复审结果为 Critical/Important/Minor `0/0/0`；未发现错误分类、不可变输入或回归覆盖缺口。
-- 后续：在独立 review 和受管 commit 后，使用受管 Coordinator reload 让 live service 载入该分类/批量 baseline 行为；随后对 Editor12 同一 command 与固定 `zr_vm` pin 创建新的 immutable copy，只有取得 `materialized + inputManifestHash` 或 typed terminal 后才可进行 Cargo run。现有 `416b041cd7524ae6a983f8801bf9bcfc` 不被清理、伪造为绿色或用共享工作树绕过。
-
-### 2026-07-29 02:xx CST
-
-- 状态：`resolving_failure`；受管 Cargo 队列曾清空，但 `tools/zircon-session.ps1 stop` 被控制面拒绝：`Global stop, restart, and force-stop are disabled while task admission is open`。该操作未终止或释放任何外部 job。
-- 完成项目：将 live reload 作为本 failure 的受控生命周期依赖明确记录。修复源码、focused TDD、39/39 分批 Python 验证和独立 review `0/0/0` 仍有效；但旧进程尚未加载源码，所以不得宣称 replay、immutable source hash、Editor12 Rust gate、fixed return 或提交已完成。
-- 后续：只能通过 Coordinator01 已授权的 drain/restart control-plane action 建立持久维护 hold，等待现有受管 Cargo 自然排空后重载；不得以直接停止、SQLite 写入、共享工作树 Cargo 或释放外部预留绕过 admission policy。本 Session 保持 `resolving_failure`，不标记为 `blocked`。
+- 根因：After a Cargo closure was persisted, a tracked foreign path added after the job's pinned Git baseline was classified as an unattributed untracked overlay. The worker could remain materializing for a long interval and eventually returned validation_copy_unowned_path, even though the origin Session could not own that foreign tracked source.
+- 架构修复：The committed worker reads each job's pinned baseline tree once and consults the current tracked tree only for closure paths missing from that baseline. Such foreign tracked additions terminalize the same durable job as validation_copy_baseline_drift with exact stage and path; true untracked paths remain ownership errors, malformed requests and restart recovery terminalize exactly once, and successful jobs persist materialized plus inputManifestHash.
+- 验证：Four exact local terminalization regressions passed in 5.841s. Managed ticket c7dd772dc0354e67a55134d4f77e8317, source manifest 68becd7dc156702fcf2bdaa669b62bb82c06c5495563ef73a80f5037bc604355, copy job 7675f897fb854d2aa25781f687be2d71 passed 4/4 in 5.913s with exit code 0. The ticket uses committed terminalization code and excludes a later terminal-output evidence change. Handoff graph before return validated 561 artifacts with 0 errors.
+- 回传：The original Editor12 Session is archived. Preserved jobs f8726b18912e49d7a74dcb10051f3006 and 416b041cd7524ae6a983f8801bf9bcfc remain typed failed with no Cargo run and the historical Runtime15 path evidence; neither was retried or cleaned. A new current-source Editor12 Session must perform any catalog_store product validation.
