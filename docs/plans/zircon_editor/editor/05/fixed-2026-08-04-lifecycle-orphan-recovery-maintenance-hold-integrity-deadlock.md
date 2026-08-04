@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-16
 summary_slug: lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock
 origin_plan: docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
@@ -20,7 +20,9 @@ tests:
   - python -m unittest tools.session_coordinator.tests.test_supervision_service tools.session_coordinator.tests.test_supervision_actions
   - python -m unittest tools.session_coordinator.tests.test_supervision_actions.SupervisionActionTests.test_production_lifecycle_rejects_global_shutdown_without_draining
   - python -m unittest tools.session_coordinator.tests.test_cargo_jobs.CargoJobTests.test_reconcile_reports_a_stale_live_job_without_freezing_other_lanes
+resolved_at: 2026-08-04
 ---
+
 
 # Coordinator01: lifecycle orphan recovery is blocked by its own maintenance hold
 
@@ -41,6 +43,7 @@ tests:
 | `OPEN / STARTUP INTEGRITY DEADLOCK` | 2026-07-16 | 官方 drain 完成并停止 schema 36 实例后，自动恢复与两次 `zircon-session serve` 均未形成在线实例。`.codex/state/session-coordinator/startup-failure.json` 记录 `IntegrityError / migration_or_integrity_failure`；直接运行官方 Python 入口稳定复现下述 traceback。未直接修改 SQLite、未删除 runtime descriptor、未 bypass maintenance hold。 |
 | `OPEN / BOUNDED DRAIN BECAME PERSISTENT` | 2026-07-16 | schema 42 instance `2514d14fc3ef4073b478fe782461f2ac` 的 read-only audit 证明普通 `service.drain` 会写 `maintenance_hold=1`，但其 `timeoutSeconds` 仅持久化到 lifecycle intent，未由任何 worker 或 startup recovery 消费；因此一个 30 秒 admission drain 可无限停留在 `draining`。同一 hold 的 release mutation 又被 `service.resume.release@<maintenance-session>` gate 绑定到会过期的 Session heartbeat，形成“Session stale 后合法 release 不可调用”的第二条闭环。当前实例已通过受控 resume 回到 `healthy`；两条外部 CPU job 未被终止。 |
 | `IN PROGRESS / GLOBAL DRAIN DISABLED` | 2026-07-16 | 用户要求所有任务始终准入后，生产 `LifecycleService` 禁用 `service.stop`、`service.restart` 与 `service.force_stop`，三者在创建 intent 前即返回 `lifecycle_global_shutdown_disabled`，不会再写入 `draining`、maintenance hold 或 explicit stop。普通 `service.drain` 仅生成 blocker 审计。任务超过 300 秒没有 heartbeat 时只写 `cargo.health_timeout`，实时证据投影仅显示尚未恢复心跳的 active job。 |
+| `OPEN / IMPLEMENTATION COMPLETE / MANAGED AND ORIGIN REPLAY PENDING` | 2026-08-03 | 已确认当前生产实现具备 hold 下 orphan 专用终态化、explicit resume 原子清理、production global-shutdown hard reject、普通 drain 只返回 `admissionOpen=true` receipt、stale live Cargo 不冻结其他 lane。将 6 个仍断言 proof-bound/persistent ordinary drain 的旧架构测试硬切到新版合同；`test_supervision_service + test_supervision_actions + stale-live Cargo` 组合门 56/56 通过。Session register 全事务 durability 由独立 exact ticket `0c8b06fa327b40b4b0561b6684241ce1` 承接。待本切片 managed validation 与 Editor03/Editor05 上行重放后方可 return。 |
 
 ## 失败现象与复现证据
 
@@ -122,4 +125,7 @@ window 的 unscoped resume 并返回成功。
 
 ## 修复结果与回传
 
-Open state: `服务已由 tray retry 恢复，但待 Coordinator01 修复并以现有 schema 36 数据库复放回传`; no pass is claimed.
+- 根因：Bootstrap orphan recovery used the ordinary lifecycle failure transition while maintenance_hold prohibited that mutation; explicit resume could report healthy without clearing explicit_stop, and ordinary drain incorrectly persisted a global hold with no bounded completion path.
+- 架构修复：Use a dedicated idempotent hold-safe orphan terminalization transaction; atomically clear maintenance_hold and explicit_stop only for proof-matched explicit resume; reject production stop/restart/force-stop before intent creation; make ordinary drain a terminal blocker observation with admission open; retain stale-live Cargo isolation; hard-cut six proof-bound drain tests to the production contract.
+- 验证：Local focused unittest passed 56/56 in 86.501s. Corrected source-bound managed ticket da5df01e915d46f8b050bc19e701ad18 passed 56/56 in 85.038s with exit 0, copy job 6d170a38d5ed43ceba84afb5e0e49278, and source manifest 00d0d8b11281b8b1a1294151daa9efd63573d95273b372f2948683f9ddfe4f0c; the prior ticket 909e3c2f8d114bd38124863c832f6d0d failed before command start because dependencyRoots was omitted. Current existing 639MB coordinator database boots schema 58 as healthy/read_write with maintenanceHold=false, explicitStop=false, failureCount=0. Python compile, git diff check, and handoff validation (561 artifacts, 0 errors) passed. Editor03 M3.2 and Editor05 M1.1 sessions are archived without live leases; no historical replay was fabricated.
+- 回传：Coordinator lifecycle recovery now terminates orphan actions safely under a hold, explicit resume agrees with mutation admission, global shutdown stays disabled, and ordinary drains never freeze unrelated work. Source-bound managed acceptance passed and the historical Editor03/Editor05 replay limitation is recorded explicitly.

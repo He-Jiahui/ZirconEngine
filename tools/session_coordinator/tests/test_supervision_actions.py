@@ -490,7 +490,7 @@ class SupervisionActionTests(unittest.TestCase):
 
         self.assertEqual("bootstrap_reservation_not_fifo_head", rejected.exception.code)
 
-    def test_second_drain_cannot_replace_the_active_proof_scope_or_release_source(self) -> None:
+    def test_repeated_drain_does_not_scope_admission_to_either_session(self) -> None:
         first = self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["executor-session"],
@@ -518,27 +518,14 @@ class SupervisionActionTests(unittest.TestCase):
         self.supervision.require_mutation_allowed(
             "cargo.consume_cpu_reservation@executor-session"
         )
-        with self.assertRaises(CoordinatorError) as foreign:
-            self.supervision.require_mutation_allowed(
-                "cargo.consume_cpu_reservation@reviewer-session"
-            )
-        self.assertEqual("maintenance_hold_active", foreign.exception.code)
-        with self.assertRaises(CoordinatorError) as replaced:
-            self._confirm(
-                ActionKind.SERVICE_RESUME,
-                releaseMaintenanceHold=True,
-                maintenanceHoldActionId=second.action_id,
-            )
-        self.assertEqual("maintenance_hold_release_mismatch", replaced.exception.code)
-        with self.assertRaises(CoordinatorError) as active:
-            self._confirm(
-                ActionKind.SERVICE_RESUME,
-                releaseMaintenanceHold=True,
-                maintenanceHoldActionId=first.action_id,
-            )
-        self.assertEqual("maintenance_proof_reservation_active", active.exception.code)
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@reviewer-session"
+        )
+        self.assertEqual("succeeded", first.status.value)
+        self.assertEqual("succeeded", second.status.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
 
-    def test_new_proof_cycle_retires_the_previous_scope_and_release_action(self) -> None:
+    def test_repeated_drain_cycles_leave_both_sessions_admitted(self) -> None:
         first = self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["executor-session"],
@@ -559,11 +546,8 @@ class SupervisionActionTests(unittest.TestCase):
                 )
                 """
             )
-        self._confirm(
-            ActionKind.SERVICE_RESUME,
-            releaseMaintenanceHold=True,
-            maintenanceHoldActionId=first.action_id,
-        )
+        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
         second = self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["reviewer-session"],
@@ -587,28 +571,14 @@ class SupervisionActionTests(unittest.TestCase):
         self.supervision.require_mutation_allowed(
             "cargo.consume_cpu_reservation@reviewer-session"
         )
-        with self.assertRaises(CoordinatorError) as retired_scope:
-            self.supervision.require_mutation_allowed(
-                "cargo.consume_cpu_reservation@executor-session"
-            )
-        self.assertEqual("maintenance_hold_active", retired_scope.exception.code)
-        with self.assertRaises(CoordinatorError) as retired_release:
-            self._confirm(
-                ActionKind.SERVICE_RESUME,
-                releaseMaintenanceHold=True,
-                maintenanceHoldActionId=first.action_id,
-            )
-        self.assertEqual("maintenance_hold_release_mismatch", retired_release.exception.code)
-        with self.assertRaises(CoordinatorError) as active:
-            self._confirm(
-                ActionKind.SERVICE_RESUME,
-                releaseMaintenanceHold=True,
-                maintenanceHoldActionId=second.action_id,
-            )
-        self.assertEqual("maintenance_proof_reservation_active", active.exception.code)
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
+        )
+        self.assertEqual("succeeded", first.status.value)
+        self.assertEqual("succeeded", second.status.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
 
-    def test_restarted_daemon_retires_first_proof_scope_before_second_cycle(self) -> None:
-        """A restart during cycle A must not leak A into a later cycle B."""
+    def test_restarted_daemon_keeps_all_sessions_admitted_across_drain_cycles(self) -> None:
         first = self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["executor-session"],
@@ -690,12 +660,8 @@ class SupervisionActionTests(unittest.TestCase):
                 reason=f"test successor {kind.value}",
             )
 
-        resumed = confirm(
-            ActionKind.SERVICE_RESUME,
-            releaseMaintenanceHold=True,
-            maintenanceHoldActionId=first.action_id,
-        )
-        self.assertEqual("succeeded", resumed.status.value)
+        self.assertEqual("healthy", successor.snapshot().state.value)
+        self.assertFalse(successor.snapshot().maintenance_hold)
         second = confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["reviewer-session"],
@@ -705,26 +671,14 @@ class SupervisionActionTests(unittest.TestCase):
             "cargo.consume_cpu_reservation@reviewer-session"
         )
         successor.require_mutation_allowed("cargo.run_reserved@reviewer-session")
-        with self.assertRaises(CoordinatorError) as retired_scope:
-            successor.require_mutation_allowed(
-                "cargo.consume_cpu_reservation@executor-session"
-            )
-        self.assertEqual("maintenance_hold_active", retired_scope.exception.code)
-        with self.assertRaises(CoordinatorError) as retired_release:
-            confirm(
-                ActionKind.SERVICE_RESUME,
-                releaseMaintenanceHold=True,
-                maintenanceHoldActionId=first.action_id,
-            )
-        self.assertEqual("maintenance_hold_release_mismatch", retired_release.exception.code)
-        resumed = confirm(
-            ActionKind.SERVICE_RESUME,
-            releaseMaintenanceHold=True,
-            maintenanceHoldActionId=second.action_id,
+        successor.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
         )
-        self.assertEqual("succeeded", resumed.status.value)
+        self.assertEqual("succeeded", first.status.value)
+        self.assertEqual("succeeded", second.status.value)
+        self.assertFalse(successor.snapshot().maintenance_hold)
 
-    def test_proof_bound_drain_requires_terminal_reservation_before_explicit_resume(self) -> None:
+    def test_drain_does_not_gate_existing_or_new_reservations_after_restart(self) -> None:
         drained = self._confirm(
             ActionKind.SERVICE_DRAIN,
             maintenanceSessionIds=["executor-session"],
@@ -754,7 +708,7 @@ class SupervisionActionTests(unittest.TestCase):
         )
         successor.initialize(start_reason="recovery.proof_bound_drain")
         successor.mark_healthy()
-        self.assertTrue(successor.snapshot().maintenance_hold)
+        self.assertFalse(successor.snapshot().maintenance_hold)
         successor.require_mutation_allowed(
             "cargo.consume_cpu_reservation@executor-session"
         )
@@ -769,33 +723,8 @@ class SupervisionActionTests(unittest.TestCase):
             "cargo.promote_failure_reservation@executor-session",
             "cargo.consume_gpu_reservation@executor-session",
         ):
-            with self.assertRaises(CoordinatorError) as rejected:
-                successor.require_mutation_allowed(operation)
-            self.assertEqual("maintenance_hold_active", rejected.exception.code)
-
-        with self.assertRaises(CoordinatorError) as blocked:
-            self._confirm(
-                ActionKind.SERVICE_RESUME,
-                releaseMaintenanceHold=True,
-                maintenanceHoldActionId=drained.action_id,
-            )
-        self.assertEqual("maintenance_proof_reservation_active", blocked.exception.code)
-
-        with self.database.transaction() as connection:
-            connection.execute(
-                """
-                UPDATE cargo_lane_reservations
-                SET status='released', completed_at='2026-07-19T00:01:00+00:00'
-                WHERE reservation_id='proof-reservation'
-                """
-            )
-        resumed = self._confirm(
-            ActionKind.SERVICE_RESUME,
-            releaseMaintenanceHold=True,
-            maintenanceHoldActionId=drained.action_id,
-        )
-        self.assertEqual("succeeded", resumed.status.value)
-        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+            successor.require_mutation_allowed(operation)
+        self.assertEqual("succeeded", drained.status.value)
 
     def test_drain_persists_its_maintenance_session_scope(self) -> None:
         drained = self._confirm(
@@ -1411,7 +1340,7 @@ class SupervisionActionTests(unittest.TestCase):
         self.maintenance_active.clear()
         self.assertTrue(self.shutdown.wait(2))
 
-    def test_maintenance_hold_requires_explicit_resume_release(self) -> None:
+    def test_unbound_legacy_maintenance_hold_fails_closed(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN)
 
         self.supervision.transition(
@@ -1429,31 +1358,32 @@ class SupervisionActionTests(unittest.TestCase):
             self._confirm(
                 ActionKind.SERVICE_RESUME,
                 releaseMaintenanceHold=True,
-                maintenanceHoldActionId="not-the-current-drain",
+                maintenanceHoldActionId=drained.action_id,
             )
         self.assertEqual("maintenance_hold_release_mismatch", stale_release.exception.code)
+        self.assertIsNone(stale_release.exception.details["maintenanceHoldActionId"])
 
-        resumed = self._confirm(
-            ActionKind.SERVICE_RESUME,
-            releaseMaintenanceHold=True,
-            maintenanceHoldActionId=drained.action_id,
-        )
-        self.assertEqual("succeeded", resumed.status.value)
-        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+        self.assertEqual("succeeded", drained.status.value)
+        self.assertTrue(self.supervision.snapshot().maintenance_hold)
+        with self.assertRaises(CoordinatorError) as still_blocked:
+            self.supervision.require_mutation_allowed("session.register@executor-session")
+        self.assertEqual("maintenance_hold_active", still_blocked.exception.code)
 
-    def test_drain_is_immediately_terminal_and_keeps_admission_held(self) -> None:
+    def test_drain_is_immediately_terminal_and_keeps_admission_open(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN, timeout=1)
 
-        self.assertEqual("draining", self.supervision.snapshot().state.value)
-        self.assertTrue(self.supervision.snapshot().maintenance_hold)
+        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
 
         with self.database.connect() as connection:
             intent = connection.execute(
-                "SELECT status, completed_at FROM service_lifecycle_intents WHERE action_id=?",
+                """SELECT status, completed_at, result_json
+                   FROM service_lifecycle_intents WHERE action_id=?""",
                 (drained.action_id,),
             ).fetchone()
         self.assertEqual("succeeded", intent["status"])
         self.assertIsNotNone(intent["completed_at"])
+        self.assertTrue(json.loads(intent["result_json"])["admissionOpen"])
 
     def test_recovered_drain_deadline_cannot_reopen_proof_bound_admission(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN, timeout=30)

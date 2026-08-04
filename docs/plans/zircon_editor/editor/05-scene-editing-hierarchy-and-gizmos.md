@@ -27,7 +27,7 @@ status: in_progress
 - fixed 已修复：[command-eval-scene-mode-selection-projection](08/fixed-2026-07-26-command-eval-scene-mode-selection-projection.md)
 - 向 Editor07 移交（`open / viewport 单选兼容消费者硬切`）：[`07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md`](07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md)
 - 向 Render04 移交（`open / viewport picking 缺少 runtime visible spatial query`）：[`../../zircon_runtime/render/04/failure-2026-07-18-viewport-picking-visible-spatial-query.md`](../../zircon_runtime/render/04/failure-2026-07-18-viewport-picking-visible-spatial-query.md)
-- 向 Coordinator01 移交（`open / lifecycle orphan recovery 被 maintenance hold 阻断`）：[`../../zircon_tooling/session_coordinator/01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md`](../../zircon_tooling/session_coordinator/01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)
+- fixed 已修复：[lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock](05/fixed-2026-08-04-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)
 
 本计划落地 00 §6 的「选中集」权威 `SelectionModel` 与场景交互层。
 
