@@ -91,15 +91,16 @@ class CoordinatorClientTests(unittest.TestCase):
         client = CoordinatorClient(
             "http://127.0.0.1:43123", "", reconciliation_timeout_seconds=0
         )
+        timeout = CoordinatorClientError(
+            "command_timeout", "health probe exceeded its deadline"
+        )
 
         with (
             mock.patch.object(
                 CoordinatorClient,
                 "_verify_endpoint_repository",
-                side_effect=CoordinatorClientError(
-                    "command_timeout", "health probe exceeded its deadline"
-                ),
-            ),
+                side_effect=(timeout, timeout),
+            ) as preflight,
             mock.patch.object(CoordinatorClient, "_request") as request,
             self.assertRaises(CoordinatorClientError) as rejected,
         ):
@@ -109,7 +110,38 @@ class CoordinatorClientTests(unittest.TestCase):
         self.assertEqual("preflight", rejected.exception.details["phase"])
         self.assertEqual("not_submitted", rejected.exception.details["submission"])
         self.assertEqual(32, len(rejected.exception.details["requestId"]))
+        self.assertEqual(2, preflight.call_count)
         request.assert_not_called()
+
+    def test_command_retries_only_the_timed_out_preflight_before_one_submission(self) -> None:
+        client = CoordinatorClient(
+            "http://127.0.0.1:43123", "", reconciliation_timeout_seconds=0
+        )
+        timeout = CoordinatorClientError(
+            "command_timeout", "health probe exceeded its deadline"
+        )
+        expected = {"session": {"session_id": "session-a"}}
+
+        with (
+            mock.patch.object(
+                CoordinatorClient,
+                "_verify_endpoint_repository",
+                side_effect=(timeout, None),
+            ) as preflight,
+            mock.patch.object(
+                CoordinatorClient, "_request", return_value=expected
+            ) as request,
+        ):
+            result = client.command("session.register", {"session_id": "session-a"})
+
+        self.assertEqual(expected, result)
+        self.assertEqual(2, preflight.call_count)
+        request.assert_called_once()
+        method, path, payload = request.call_args.args
+        self.assertEqual(("POST", "/command"), (method, path))
+        self.assertEqual("session.register", payload["command"])
+        self.assertEqual({"session_id": "session-a"}, payload["arguments"])
+        self.assertEqual(32, len(payload["request_id"]))
 
     def test_command_post_timeout_queries_durable_request_without_replay(self) -> None:
         client = CoordinatorClient(

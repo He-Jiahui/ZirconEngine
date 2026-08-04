@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-27
 summary_slug: coordinator-health-preflight-validation-admission-timeout
 origin_plan: docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
@@ -17,7 +17,9 @@ tests:
   - focused Coordinator01 client preflight timeout/no-submit regression
   - focused health endpoint latency regression while supervised Cargo is active
   - validation-copy admission after a recovered preflight timeout
+resolved_at: 2026-08-04
 ---
+
 
 # Coordinator01: health preflight can prevent validation admission
 
@@ -90,16 +92,7 @@ the requested action itself is cheap and the CPU lane is unrelated.
 
 ## 修复结果与回传
 
-Open state: `待 Coordinator01 health/preflight latency and durable admission repair`.
-Editor08 has only static M2/M3 evidence; it has no immutable source-copy id, managed Cargo
-terminal result, review, fixed return, or commit claim from this failure.
-
-## 产出记录与时间
-
-| 日期 | 切片 | 状态 | 完成项目与验证证据 |
-| --- | --- | --- | --- |
-| 2026-07-27 | M3 validation admission | open | Captured `command_preflight_timeout` for `session.register` with explicit `submission: not_submitted` and request `ef2d1a07f41e45fdb20998082ada5be1`; read `CoordinatorClient.command` to prove POST is skipped after a preflight timeout. Subsequent supervisor recovery was recorded but not accepted as a repair. |
-| 2026-07-27 | Failure-record snapshot | open | A second, one-file `snapshot.create` request failed at the same preflight after `tray.recovery_clear`: request `883c6f41241845858d8503e58e0c3e68`, `submission: not_submitted`. This rules out validation-copy input size as the sole trigger. |
-| 2026-07-27 | Plugin List materialize admission | open | A materialize request for immutable Plugin List validation exceeded the client timeout after 64 seconds. Read-only `control snapshot` then showed no `validationCopies` entry for `editor08-plugin-list-canonical-route-r1-20260727`; no Cargo job, source-copy id, or retry claim is inferred. |
-| 2026-07-27 | Plugin List idempotent reattempt | open | After the no-copy control-snapshot check, the single permitted retry returned `command_preflight_timeout` before submission: request `357fd60e48024148a5777ab832e60c03`, command `validation_copy.materialize_cargo`, phase `preflight`, `submission: not_submitted`. The current source therefore remains unvalidated but has no ambiguous queued copy. |
-| 2026-07-27 | Editor08 keymap immutable admission with pinned sibling source | open | Current-source snapshot `1130` fixed `key_chord.rs`=`ff3198d1...`, `keymap.rs`=`a29a0e23...`, `keymap/tests.rs`=`e8d2f84d...`; all three overlays were live-leased and attributed. `validation-copy materialize-cargo` then received the fixed zr_vm descriptor (`commit=503fb721...`, `mountPath=zr_vm`, two includeRoots) and `cargo test -p zircon_editor --lib core::commands::keymap::tests --locked --jobs 1 --color never -- --test-threads=1`, but the coordinator client exceeded its 34.4s command deadline without returning a source-copy job ID. Submission state is therefore unknown, no direct retry or worktree Cargo was performed, and no Cargo/run result is claimed. |
+- 根因：Every mutating command performed a health and repository preflight before POST. A single bounded GET timeout correctly prevented submission but provided no recovery attempt, so cheap validation admission could be lost while active Cargo or supervision made the health projection transiently slow.
+- 架构修复：CoordinatorClient now retries only the read-only preflight once. Two timeouts still return command_preflight_timeout with submission not_submitted and no POST, while a recovered second preflight submits the original request id exactly once. POST timeouts retain durable request-status reconciliation and are never replayed.
+- 验证：Three exact local regressions passed in 2.045s and the full current client suite passed 18/18 in 1.728s; Python compilation and diff checks passed. Managed ticket 55427efa356e4164ad38d04f0521891a, source manifest d6a13d6bee52a1f91376804b15bab5e21f8fe09c2f13185fade97db98c2cda04, copy job dbfc15ac2a084628a42826b3f5c2bd59 passed 3/3 in 2.109s with exit code 0. Its focused coverage explicitly isolates preflight recovery from adjacent post-response reconciliation changes. Handoff graph before return validated 561 artifacts with 0 errors.
+- 回传：All related Editor08 sessions are archived and snapshot 1130 now has current-source drift in key_chord.rs, so the historical validation admission and Cargo run were not fabricated. Editor08 can start a new current-source session and rely on the accepted bounded preflight contract.

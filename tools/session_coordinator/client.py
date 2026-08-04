@@ -15,6 +15,7 @@ from .config import CoordinatorConfig
 
 _PENDING_ACTION_STATUSES = frozenset({"previewed", "executing"})
 _ACTION_POLL_INTERVAL_SECONDS = 0.25
+_COMMAND_PREFLIGHT_ATTEMPTS = 2
 _COMMAND_RECONCILIATION_TIMEOUT_SECONDS = 1.0
 _COMMAND_RECONCILIATION_POLL_INTERVAL_SECONDS = 0.05
 _RUNTIME_DESCRIPTOR_RETRY_SECONDS = 3.0
@@ -192,21 +193,26 @@ class CoordinatorClient:
 
     def command(self, command: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         request_id = uuid.uuid4().hex
-        try:
-            self._verify_endpoint_repository()
-        except CoordinatorClientError as error:
-            if error.code != "command_timeout":
-                raise
-            raise CoordinatorClientError(
-                "command_preflight_timeout",
-                "Coordinator health preflight exceeded its deadline; command was not submitted",
-                details={
-                    "requestId": request_id,
-                    "command": command,
-                    "phase": "preflight",
-                    "submission": "not_submitted",
-                },
-            ) from error
+        for attempt in range(1, _COMMAND_PREFLIGHT_ATTEMPTS + 1):
+            try:
+                self._verify_endpoint_repository()
+                break
+            except CoordinatorClientError as error:
+                if error.code != "command_timeout":
+                    raise
+                if attempt < _COMMAND_PREFLIGHT_ATTEMPTS:
+                    continue
+                raise CoordinatorClientError(
+                    "command_preflight_timeout",
+                    "Coordinator health preflight exceeded its deadline; command was not submitted",
+                    details={
+                        "requestId": request_id,
+                        "command": command,
+                        "phase": "preflight",
+                        "submission": "not_submitted",
+                        "attempts": attempt,
+                    },
+                ) from error
         payload = {
             "request_id": request_id,
             "command": command,

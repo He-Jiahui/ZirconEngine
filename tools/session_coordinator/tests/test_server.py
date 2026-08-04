@@ -926,6 +926,74 @@ class ServerTests(unittest.TestCase):
 
             self.assertEqual("repository_mismatch", rejected.exception.code)
 
+    def test_command_preflight_recovers_once_while_a_cargo_job_is_running(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(
+                repo, state_root=root / "state", port=0
+            )
+
+            with RunningCoordinator.start(config) as running:
+                application = running.httpd.application
+                application.sessions.register(session_id="cargo-owner")
+                with application.database.transaction() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO cargo_jobs(
+                            job_id, session_id, lane_kind, target_dir, target_key,
+                            status, pid, command_json, created_at, last_heartbeat_at,
+                            started_at
+                        ) VALUES (
+                            'active-job', 'cargo-owner', 'test', 'D:/cargo-targets/active',
+                            'd:\\cargo-targets\\active', 'running', ?, '["cargo", "test"]',
+                            '2026-08-03T00:00:00+00:00', '2026-08-03T00:00:00+00:00',
+                            '2026-08-03T00:00:00+00:00'
+                        )
+                        """,
+                        (os.getpid(),),
+                    )
+
+                original_health = application.health
+                health_calls = 0
+                health_lock = threading.Lock()
+                first_health_complete = threading.Event()
+
+                def delayed_health() -> dict[str, object]:
+                    nonlocal health_calls
+                    with health_lock:
+                        health_calls += 1
+                        ordinal = health_calls
+                    if ordinal == 1:
+                        time.sleep(0.3)
+                    try:
+                        return original_health()
+                    finally:
+                        if ordinal == 1:
+                            first_health_complete.set()
+
+                client = CoordinatorClient(
+                    running.base_url,
+                    "",
+                    expected_repository_key=config.repository_key,
+                    timeout_seconds=0.1,
+                    command_timeout_seconds=2,
+                )
+                with mock.patch.object(application, "health", side_effect=delayed_health):
+                    registered = client.command(
+                        "session.register", {"session_id": "recovered-session"}
+                    )
+                    self.assertTrue(first_health_complete.wait(1))
+
+                with application.database.connect() as connection:
+                    count = connection.execute(
+                        "SELECT COUNT(*) FROM sessions WHERE session_id='recovered-session'"
+                    ).fetchone()[0]
+
+            self.assertEqual("recovered-session", registered["session"]["session_id"])
+            self.assertEqual(2, health_calls)
+            self.assertEqual(1, count)
+
     def test_isolated_config_disables_host_artifact_sweeps(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
