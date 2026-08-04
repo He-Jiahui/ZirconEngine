@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-16
 summary_slug: native-slice-closeout-checker-staged-index-contract-drift
 origin_plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
@@ -11,11 +11,13 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 related_code:
   - .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.ps1
   - .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.Tests.ps1
-  - tools/session_coordinator/workflows/milestones.py
-  - tools/session_coordinator/git_finalize.py
+  - .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/read-closeout-evidence.py
 tests:
+  - Invoke-Pester -Script .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.Tests.ps1 -PassThru
   - .\.codex\skills\zircon-project-skills\close-session-goal-milestones\scripts\check-closeout.ps1 -RepoRoot . -Mode Milestone -SessionId editor02-m1-3-inspection-hardening-20260715 -CommitMessage "fix(editor): hard-cut inspection hierarchy snapshot contracts" -ManifestPath .\.codex\state\session-coordinator\editor02-m1-3-inspection-hardening-closeout-manifest.json
+resolved_at: 2026-08-04
 ---
+
 
 # Session Coordinator 01：原生 slice closeout checker 仍依赖共享暂存区
 
@@ -24,6 +26,7 @@ tests:
 | 状态 | 记录日期 | 完成项目与当前门禁 |
 |---|---|---|
 | `OPEN / CHECKER CONTRACT DRIFT` | 2026-07-16 | Editor02 `M1.3` 六文件 current-hash manifest 已由 schema 36 coordinator prepare 绑定，`commit_manifest`、`failure_audit`、`plan_output` 均 accepted，共享 Git index 为 0。按 closeout skill 对同一六文件分类 manifest 执行只读 checker，仍返回 `milestone_id_invalid`、`plan_evidence_missing`、`staged_scope_mismatch`、`empty_commit_scope` 等错误：checker 只接受 `M<number>`，并要求调用前把计划记录和业务文件放入共享 index；这与原生 `M1.3` node、禁止手工 staging、服务在 Git mutex 内原子暂存的当前合同冲突。未手工 `git add`、未修改其他会话暂存区，Editor02 acceptance 保持未完成。 |
+| `IMPLEMENTED / LOCAL GREEN / MANAGED ACCEPTANCE PENDING` | 2026-08-03 | 已 hard-cut 删除调用方预暂存兼容路径：checker 先拒绝任何非空共享 index，计划证据、tracked deletion、untracked 分类和敏感内容均读取当前工作树；evidence reader 只暴露 coordinator attribution SHA256 与 current worktree SHA256，删除 `staged_hashes` 旧合同。TDD RED 为 24/30、六个预期失败；初次实现 30/30 GREEN 后，独立复审发现 `ACMRD` filter 会遗漏 type-change/unmerged index，已移除 filter 并增加真实 mode-120000 type-change 与 merge-conflict stage 1/2/3 回归。最终完整 Pester 32/32 通过（339.81s），复审 C0/I0/M0，Python 编译、PowerShell parser 与 `git diff --check` 通过。当前待 managed validation receipt 与原 Editor02 六文件复放；未宣称 fixed/accepted。 |
 
 ## 来源执行者
 
@@ -73,4 +76,7 @@ current-hash attribution、validation/review gates 和 scoped staging 固定在�
 
 ## 修复结果与回传
 
-Open state: `待 Coordinator01 修复并以原 Editor02 六文件复放回传`; no pass is claimed.
+- 根因：The closeout checker still enforced the retired caller-prestaged milestone contract: it rejected native slice IDs, derived evidence from the shared Git index, and disagreed with coordinator-owned current-hash attribution and atomic finalization.
+- 架构修复：Hard-cut closeout preflight to accept native M<number>.<positive> slices, require an empty shared index, read plan evidence and ownership from current worktree/current-hash attribution, classify deletions and untracked paths against worktree/HEAD, preserve exact node manifests, and reject type-change or unmerged index state.
+- 验证：Local Pester passed 32/32 in 252.11s; managed validation ticket e5eff23a152b495fbc885e005704924a passed against source manifest d58fb43ca9c9e83c9d9de1dacf3ee9fac52c6e5e038280a7d81e52559c016b44; Python compile, PowerShell parser, git diff check, and handoff validation (561 artifacts, 0 errors) passed. The archived Editor02 source session has no current attributions and all six preserved manifest paths are clean at HEAD, so no live replay was fabricated; managed fixtures replay the native M1.3 empty-index and exact-manifest contracts.
+- 回传：Coordinator01 now validates native slice closeout from current worktree evidence with an empty shared index; the original Editor02 six-path manifest remains historical evidence, and the failure is returned as fixed after source-bound managed acceptance.

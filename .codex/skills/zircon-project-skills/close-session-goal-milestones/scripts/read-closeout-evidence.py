@@ -124,29 +124,23 @@ def read_evidence(repo_root: Path, session_id: str) -> dict[str, object]:
     }
     owned_dirty: list[str] = []
     attributed_hashes: dict[str, str | None] = {}
-    staged_hashes: dict[str, str | None] = {}
+    current_hashes: dict[str, str | None] = {}
     for row in attributions:
         relative = str(row["display_path"]).replace("\\", "/")
         absolute = (repo / relative).resolve()
         if not absolute.is_relative_to(repo):
             continue
+        attributed_hashes[relative] = row["content_hash"]
         if absolute.is_file():
             current_hash = hash_file(absolute)
+            current_hashes[relative] = current_hash
             if current_hash != row["content_hash"]:
                 continue
             if baseline_manifest.get(relative) != current_hash:
-                candidate = subprocess.run(
-                    ["git", "hash-object", f"--path={relative}", "--", relative],
-                    cwd=repo,
-                    capture_output=True,
-                    check=False,
-                    text=True,
-                )
-                if candidate.returncode != 0:
-                    continue
                 owned_dirty.append(relative)
-                attributed_hashes[relative] = candidate.stdout.strip()
-        elif relative in baseline_manifest:
+        else:
+            current_hashes[relative] = None
+        if not absolute.is_file() and relative in baseline_manifest:
             lease = live_leases.get(relative)
             deletion_owned = (
                 lease is not None
@@ -157,16 +151,6 @@ def read_evidence(repo_root: Path, session_id: str) -> dict[str, object]:
             if deletion_owned:
                 owned_dirty.append(relative)
                 attributed_hashes[relative] = None
-
-        if relative in attributed_hashes:
-            staged = subprocess.run(
-                ["git", "rev-parse", "--verify", f":{relative}"],
-                cwd=repo,
-                capture_output=True,
-                check=False,
-                text=True,
-            )
-            staged_hashes[relative] = staged.stdout.strip() if staged.returncode == 0 else None
 
     validator_path = (
         REPO_ROOT
@@ -221,7 +205,7 @@ def read_evidence(repo_root: Path, session_id: str) -> dict[str, object]:
         "plan_path": session["plan_path"],
         "owned_dirty_paths": owned_dirty,
         "attributed_hashes": attributed_hashes,
-        "staged_hashes": staged_hashes,
+        "current_hashes": current_hashes,
         "leased_paths": sorted(live_leases, key=str.casefold),
         "open_failure_count": max(int(open_failures), canonical_open_failures),
         "failure_diagnostics": sorted(set(failure_diagnostics)),

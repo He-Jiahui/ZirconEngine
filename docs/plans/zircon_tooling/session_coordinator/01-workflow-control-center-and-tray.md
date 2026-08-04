@@ -511,7 +511,7 @@ At each accepted milestone:
 - fixed 已修复：[support-slice-exact-finalize-plan-output-conflict](../../zircon_editor/editor/02/fixed-2026-07-16-support-slice-exact-finalize-plan-output-conflict.md)
 - fixed 已修复：[repeated-milestone-slice-manifest-selection-conflict](../../zircon_plugins/12/fixed-2026-08-04-repeated-milestone-slice-manifest-selection-conflict.md)
 - open / 活跃受管 ephemeral target 被误判为 unmanaged：[live-ephemeral-target-misclassified-unmanaged](01/failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md)
-- open / 原生 slice closeout checker 仍依赖共享暂存区：[native-slice-closeout-checker-staged-index-contract-drift](01/failure-2026-07-16-native-slice-closeout-checker-staged-index-contract-drift.md)
+- fixed 已修复：[native-slice-closeout-checker-staged-index-contract-drift](../../zircon_editor/editor/02/fixed-2026-08-04-native-slice-closeout-checker-staged-index-contract-drift.md)
 - open / lifecycle orphan recovery 被 maintenance hold 完整性约束阻断，服务无法启动：[lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock](01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)
 - open / 待修复；accepted `session.register` 必须持久化并最终收敛为 terminal request：[accepted session register durability](01/failure-2026-07-31-accepted-session-register-durability.md)
 - fixed 已修复：[stale-session-pending-cpu-reservation-starvation](../../zircon_editor/editor/07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)

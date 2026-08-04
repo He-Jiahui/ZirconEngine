@@ -108,7 +108,7 @@ function Get-CoordinatorState {
         plan_path = [string]$evidence.plan_path
         owned_dirty_paths = @($evidence.owned_dirty_paths | ForEach-Object { [string]$_ })
         attributed_hashes = $evidence.attributed_hashes
-        staged_hashes = $evidence.staged_hashes
+        current_hashes = $evidence.current_hashes
         leased_paths = @($evidence.leased_paths | ForEach-Object { [string]$_ })
         open_failure_count = [int]$evidence.open_failure_count
         failure_diagnostics = @($evidence.failure_diagnostics | ForEach-Object { [string]$_ })
@@ -120,7 +120,12 @@ try {
     $script:resolvedRepo = (Resolve-Path -LiteralPath $RepoRoot -ErrorAction Stop).Path
     $manifest = Get-JsonFile -Path $ManifestPath -Label "Closeout manifest"
     $coordinator = Get-CoordinatorState
-    $stagedDeleted = @(Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=D") |
+    $stagedPaths = @(Invoke-GitText -Arguments @("diff", "--cached", "--name-only") |
+        ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
+    if ($stagedPaths.Count -gt 0) {
+        Add-CloseoutError "shared_index_not_empty" "Closeout requires the shared Git index to be empty." $stagedPaths
+    }
+    $trackedDeleted = @(Invoke-GitText -Arguments @("ls-files", "--deleted") |
         ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
 
     $actualBranch = (Invoke-GitText -Arguments @("branch", "--show-current") | Select-Object -First 1).Trim()
@@ -179,8 +184,8 @@ try {
             }
             $absolute = Join-Path $script:resolvedRepo $relative
             if (-not (Test-Path -LiteralPath $absolute -PathType Leaf)) {
-                if ($category -eq "untracked" -or $stagedDeleted -notcontains $relative) {
-                    Add-CloseoutError "manifest_path_missing" "Manifest path does not exist and is not a staged deletion." @($relative)
+                if ($category -eq "untracked" -or $trackedDeleted -notcontains $relative) {
+                    Add-CloseoutError "manifest_path_missing" "Manifest path does not exist and is not a tracked worktree deletion." @($relative)
                     continue
                 }
             }
@@ -194,7 +199,6 @@ try {
         if ($null -ne $relative) { $manifestPaths.Add($relative) }
     }
     $manifestSet = @($manifestPaths | Sort-Object -Unique)
-    $preStage = @(Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=ACMRD")).Count -eq 0
 
     $planEvidencePaths = @()
     $childPrefix = $null
@@ -217,21 +221,12 @@ try {
     $planEvidencePaths += $manifestPlanEvidence
     $planTextParts = [Collections.Generic.List[string]]::new()
     foreach ($evidencePath in @($planEvidencePaths | Sort-Object -Unique)) {
-        if ($preStage) {
-            $worktreePath = Join-Path $script:resolvedRepo $evidencePath
-            if (-not (Test-Path -LiteralPath $worktreePath -PathType Leaf)) {
-                Add-CloseoutError "plan_evidence_missing" "Plan evidence must exist in the working tree." @($evidencePath)
-                continue
-            }
-            $content = Get-Content -LiteralPath $worktreePath -Encoding UTF8
+        $worktreePath = Join-Path $script:resolvedRepo $evidencePath
+        if (-not (Test-Path -LiteralPath $worktreePath -PathType Leaf)) {
+            Add-CloseoutError "plan_evidence_missing" "Plan evidence must exist in the working tree." @($evidencePath)
+            continue
         }
-        else {
-            $content = & git -C $script:resolvedRepo show ":$evidencePath" 2>$null
-            if ($LASTEXITCODE -ne 0) {
-                Add-CloseoutError "plan_evidence_missing" "Plan evidence must exist in the Git index." @($evidencePath)
-                continue
-            }
-        }
+        $content = Get-Content -LiteralPath $worktreePath -Encoding UTF8
         $planTextParts.Add(($content -join "`n"))
     }
     $planText = $planTextParts -join "`n"
@@ -273,39 +268,32 @@ try {
         Add-CloseoutError "manifest_path_not_leased" "Every closeout path requires a live lease owned by this Session." $unleasedManifest
     }
     $attributedHashes = Get-PropertyValue $coordinator "attributed_hashes"
-    $stagedHashes = Get-PropertyValue $coordinator "staged_hashes"
-    $stagedHashMismatch = [Collections.Generic.List[string]]::new()
+    $currentHashes = Get-PropertyValue $coordinator "current_hashes"
+    $currentHashMismatch = [Collections.Generic.List[string]]::new()
     foreach ($path in $manifestSet) {
         $attributedProperty = if ($null -eq $attributedHashes) { $null } else { $attributedHashes.PSObject.Properties[$path] }
-        $stagedProperty = if ($null -eq $stagedHashes) { $null } else { $stagedHashes.PSObject.Properties[$path] }
-        if ($null -eq $attributedProperty -or $null -eq $stagedProperty -or
-            -not [object]::Equals($attributedProperty.Value, $stagedProperty.Value)) {
-            $stagedHashMismatch.Add($path)
+        $currentProperty = if ($null -eq $currentHashes) { $null } else { $currentHashes.PSObject.Properties[$path] }
+        if ($null -eq $attributedProperty -or $null -eq $currentProperty -or
+            -not [object]::Equals($attributedProperty.Value, $currentProperty.Value)) {
+            $currentHashMismatch.Add($path)
         }
     }
-    if (-not $preStage -and $stagedHashMismatch.Count -gt 0) {
-        Add-CloseoutError "staged_content_not_attributed" "Staged content differs from current-hash Session attribution." @($stagedHashMismatch)
+    if ($currentHashMismatch.Count -gt 0) {
+        Add-CloseoutError "current_content_not_attributed" "Current worktree content differs from Session attribution." @($currentHashMismatch)
     }
 
-    $untrackedRaw = @(
-        if ($preStage) {
-            Invoke-GitText -Arguments @("ls-files", "--others", "--exclude-standard")
-        }
-        else {
-            Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=A")
-        }
-    )
+    $untrackedRaw = @(Invoke-GitText -Arguments @("ls-files", "--others", "--exclude-standard"))
     $untrackedActual = @($untrackedRaw | ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
     $declaredUntracked = @($categoryPaths["untracked"] | ForEach-Object {
         ConvertTo-RepoPath ([string]$_)
     } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
     $misclassifiedUntracked = @($declaredUntracked | Where-Object { $untrackedActual -notcontains $_ })
     if ($misclassifiedUntracked.Count -gt 0) {
-        Add-CloseoutError "untracked_category_mismatch" "Declared untracked paths are not staged additions relative to HEAD." $misclassifiedUntracked
+        Add-CloseoutError "untracked_category_mismatch" "Declared untracked paths are not current untracked worktree files." $misclassifiedUntracked
     }
     $missingUntrackedClassification = @($untrackedActual | Where-Object { $manifestSet -contains $_ -and $declaredUntracked -notcontains $_ })
     if ($missingUntrackedClassification.Count -gt 0) {
-        Add-CloseoutError "staged_addition_not_untracked" "Every staged addition must appear in the untracked category." $missingUntrackedClassification
+        Add-CloseoutError "untracked_content_not_classified" "Every untracked manifest path must appear in the untracked category." $missingUntrackedClassification
     }
     $contentCategories = @("code", "docs", "tests", "scripts")
     $contentPaths = @($contentCategories | ForEach-Object { @($categoryPaths[$_]) } | ForEach-Object {
@@ -314,17 +302,6 @@ try {
     $unclassifiedNew = @($declaredUntracked | Where-Object { $contentPaths -notcontains $_ })
     if ($unclassifiedNew.Count -gt 0) {
         Add-CloseoutError "untracked_content_category_missing" "Every untracked path also requires a content category." $unclassifiedNew
-    }
-
-    $stagedPaths = @(Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=ACMRD") |
-        ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
-    $extraStaged = @($stagedPaths | Where-Object { $manifestSet -notcontains $_ })
-    $missingStaged = @($manifestSet | Where-Object { $stagedPaths -notcontains $_ })
-    if (-not $preStage -and ($extraStaged.Count -gt 0 -or $missingStaged.Count -gt 0)) {
-        Add-CloseoutError "staged_scope_mismatch" "Staged paths must exactly equal the manifest scope." @($extraStaged + $missingStaged)
-    }
-    if (-not $preStage -and $stagedPaths.Count -eq 0) {
-        Add-CloseoutError "empty_commit_scope" "Closeout cannot create an empty commit."
     }
 
     $subject = ($CommitMessage -split "`r?`n", 2)[0].Trim()
@@ -338,18 +315,24 @@ try {
         Add-CloseoutError "invalid_commit_message" "Use a Conventional Commit without module prefixes, Session tags, or checkpoint wording."
     }
 
-    $diffLines = Invoke-GitText -Arguments @("diff", "--cached", "--unified=0", "--no-color")
-    $addedText = @($diffLines | Where-Object { $_.StartsWith("+") -and -not $_.StartsWith("+++") }) -join "`n"
     $capabilityName = @("ZIRCON", "COORDINATOR", "MAINTENANCE", "TOKEN") -join "_"
     $secretValue = '(?:"[^"\r\n]+"|''[^''\r\n]+''|[^\s,;}]+)'
     $capabilityPattern = '(?i)["'']?' + [Regex]::Escape($capabilityName) + '["'']?\s*[:=]\s*' + $secretValue
     $credentialPattern = '(?i)["'']?(?:api[_-]?key|access[_-]?token|client[_-]?secret|password)["'']?\s*[:=]\s*' + $secretValue
     # The operator explicitly permits enterprise-WeChat webhook configuration
     # to travel with an auditable Git commit. Maintenance capabilities and
-    # generic credentials remain prohibited in staged content.
-    if ($addedText -match $capabilityPattern -or
-        $addedText -match $credentialPattern) {
-        Add-CloseoutError "sensitive_staged_content" "Staged added lines contain a maintenance capability or credential."
+    # generic credentials remain prohibited in attributed manifest content.
+    $sensitivePaths = [Collections.Generic.List[string]]::new()
+    foreach ($path in $manifestSet) {
+        $absolute = Join-Path $script:resolvedRepo $path
+        if (-not (Test-Path -LiteralPath $absolute -PathType Leaf)) { continue }
+        $currentText = Get-Content -Raw -LiteralPath $absolute -Encoding UTF8
+        if ($currentText -match $capabilityPattern -or $currentText -match $credentialPattern) {
+            $sensitivePaths.Add($path)
+        }
+    }
+    if ($sensitivePaths.Count -gt 0) {
+        Add-CloseoutError "sensitive_manifest_content" "Attributed manifest content contains a maintenance capability or credential." @($sensitivePaths)
     }
 
     $result = [ordered]@{

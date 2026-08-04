@@ -262,7 +262,7 @@ M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync �
 - fixed 已修复：[sdf-font-bake-cjk-loaded-font-count-regression](02/fixed-2026-07-15-sdf-font-bake-cjk-loaded-font-count-regression.md)
 - fixed 已修复：[vm-dynamic-property-write-structure-regression](02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
 - fixed 已修复：[support-slice-exact-finalize-plan-output-conflict](02/fixed-2026-07-16-support-slice-exact-finalize-plan-output-conflict.md)
-- open / Coordinator01 native slice closeout checker 仍依赖共享暂存区：[native-slice-closeout-checker-staged-index-contract-drift](../../zircon_tooling/session_coordinator/01/failure-2026-07-16-native-slice-closeout-checker-staged-index-contract-drift.md)
+- fixed 已修复：[native-slice-closeout-checker-staged-index-contract-drift](02/fixed-2026-08-04-native-slice-closeout-checker-staged-index-contract-drift.md)
 - open / editor-event retention 源码已落地但 source-bound Cargo/review/fixed return 仍被 Coordinator01 immutable full-input barrier 阻塞：[editor-event-journal-listener-unbounded-retention](02/failure-2026-07-17-editor-event-journal-listener-unbounded-retention.md)
 - open / World sync subscription基础源码已落地但subtree触发按watch重复祖先遍历/visited分配，asset/component/fact burst仍有全扫、分配与无界风险；按variant/root direct index和bounded coalesce归PERF-MVP-468：[world-sync-subscription-invalidation-scaling](02/failure-2026-07-22-world-sync-subscription-invalidation-scaling.md)
 - open / 待修复；plugin registration 必须在 extension batch 成功后原子提交 runtime-event consumers：[plugin registration runtime consumer atomicity](02/failure-2026-08-01-plugin-registration-runtime-consumer-atomicity.md)

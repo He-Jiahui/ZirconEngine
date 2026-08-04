@@ -88,8 +88,10 @@ function New-CloseoutFixture {
         [switch]$ForeignInvalidFailureMarkdown,
         [switch]$UnleasedPath,
         [switch]$DeleteOwnedCode,
-        [switch]$DivergeAfterStage,
+        [switch]$DivergeAfterAttribution,
         [switch]$StageForeign,
+        [switch]$StageTypeChange,
+        [switch]$StageUnmerged,
         [switch]$AddUnownedManifestPath,
         [switch]$UseNonMain,
         [string]$CommitMessage = "feat(runtime): add managed validation coverage",
@@ -98,8 +100,7 @@ function New-CloseoutFixture {
         [switch]$StageCredential,
         [switch]$StageWeComKey,
         [switch]$AddMissingManifestPath,
-        [switch]$NativeSlice,
-        [switch]$KeepIndexEmpty
+        [switch]$NativeSlice
     )
 
     $root = Join-Path ([IO.Path]::GetTempPath()) ("zircon-closeout-" + [guid]::NewGuid().ToString("N"))
@@ -243,6 +244,10 @@ $pendingRow
     foreach ($path in $attributedPaths) { $attributeArguments += @("--path", $path) }
     & python @attributeArguments
     if ($LASTEXITCODE -ne 0) { throw "Failed to attribute owned fixture paths" }
+    if ($DivergeAfterAttribution) {
+        if ($DeleteOwnedCode) { throw "Divergence fixture cannot also delete the code file" }
+        Set-Content -LiteralPath (Join-Path $root "src/feature.py") -Value "newer worktree content" -Encoding UTF8
+    }
 
     $stage = @("docs/feature.md", "docs/plans/feature/02/2026-07-11-m2.md", "tools/check.ps1")
     if ($DeleteOwnedCode) {
@@ -252,18 +257,30 @@ $pendingRow
     }
     if (-not $OmitOwnedUntracked) { $stage += "tests/test_feature.py" }
     & git -C $root add -- $stage
-    if ($KeepIndexEmpty) {
-        & git -C $root reset --mixed HEAD | Out-Null
-    }
-    if ($DivergeAfterStage) {
-        if ($DeleteOwnedCode) { throw "Divergence fixture cannot also delete the code file" }
-        Set-Content -LiteralPath (Join-Path $root "src/feature.py") -Value "newer worktree content" -Encoding UTF8
-        & python -B $seed --repo-root $root --action attribute --path "src/feature.py"
-        if ($LASTEXITCODE -ne 0) { throw "Failed to update divergent attribution" }
-    }
+    & git -C $root reset --mixed HEAD | Out-Null
     if ($StageForeign -or $AddUnownedManifestPath) {
         Set-Content -LiteralPath (Join-Path $root "docs/foreign-staged.md") -Value "foreign staged" -Encoding UTF8
+    }
+    if ($StageForeign) {
         & git -C $root add docs/foreign-staged.md
+    }
+    if ($StageTypeChange) {
+        $blob = (& git -C $root rev-parse HEAD:src/feature.py).Trim()
+        & git -C $root update-index --add --cacheinfo "120000,$blob,src/feature.py"
+        if ($LASTEXITCODE -ne 0) { throw "Failed to create staged type-change fixture" }
+    }
+    if ($StageUnmerged) {
+        $conflictPath = Join-Path $root "docs/foreign-staged.md"
+        & git -C $root switch -q -c unmerged-side
+        Set-Content -LiteralPath $conflictPath -Value "side branch" -Encoding UTF8
+        & git -C $root add docs/foreign-staged.md
+        & git -C $root commit -q -m "test: add conflict side"
+        & git -C $root switch -q main
+        Set-Content -LiteralPath $conflictPath -Value "main branch" -Encoding UTF8
+        & git -C $root add docs/foreign-staged.md
+        & git -C $root commit -q -m "test: add conflict main"
+        & git -C $root merge --no-edit unmerged-side 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { throw "Failed to create unmerged index fixture" }
     }
     if ($UseNonMain) {
         & git -C $root branch -M other
@@ -389,13 +406,14 @@ Describe "Session Goal milestone closeout checker" {
         $result.ExitCode | Should Be 0
         $result.Json.status | Should Be "ok"
         $result.Json.keep_session_active | Should Be $true
+        @($result.Json.staged_paths).Count | Should Be 0
         ((& git -C $script:fixture.Root rev-parse HEAD).Trim()) | Should Be $beforeHead
         ((& git -C $script:fixture.Root status --porcelain=v1) -join "`n") | Should Be $beforeStatus
         ((& git -C $script:fixture.Root diff --cached --binary) -join "`n") | Should Be $beforeIndex
     }
 
     It "accepts an attributed native slice while the shared index is empty" {
-        $script:fixture = New-CloseoutFixture -Mode Milestone -NativeSlice -KeepIndexEmpty
+        $script:fixture = New-CloseoutFixture -Mode Milestone -NativeSlice
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Be 0
@@ -411,7 +429,7 @@ Describe "Session Goal milestone closeout checker" {
         $result.Json.complete_goal | Should Be $true
     }
 
-    It "accepts an attributed staged deletion" {
+    It "accepts an attributed worktree deletion while the shared index is empty" {
         $script:fixture = New-CloseoutFixture -Mode Milestone -DeleteOwnedCode
         $result = Invoke-CloseoutCheck $script:fixture
 
@@ -427,12 +445,30 @@ Describe "Session Goal milestone closeout checker" {
         Assert-ErrorCode $result "manifest_path_missing"
     }
 
-    It "rejects a staged path owned by another Session" {
+    It "rejects any foreign staged path before closeout" {
         $script:fixture = New-CloseoutFixture -StageForeign
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Not Be 0
-        Assert-ErrorCode $result "staged_scope_mismatch"
+        Assert-ErrorCode $result "shared_index_not_empty"
+    }
+
+    It "rejects a staged type change before closeout" {
+        $script:fixture = New-CloseoutFixture -StageTypeChange
+        @(& git -C $script:fixture.Root diff --cached --name-only --diff-filter=T).Count | Should Be 1
+        $result = Invoke-CloseoutCheck $script:fixture
+
+        $result.ExitCode | Should Not Be 0
+        Assert-ErrorCode $result "shared_index_not_empty"
+    }
+
+    It "rejects an unmerged index before closeout" {
+        $script:fixture = New-CloseoutFixture -StageUnmerged
+        @(& git -C $script:fixture.Root ls-files --unmerged).Count | Should BeGreaterThan 0
+        $result = Invoke-CloseoutCheck $script:fixture
+
+        $result.ExitCode | Should Not Be 0
+        Assert-ErrorCode $result "shared_index_not_empty"
     }
 
     It "rejects an omitted owned untracked test" {
@@ -443,20 +479,20 @@ Describe "Session Goal milestone closeout checker" {
         Assert-ErrorCode $result "owned_path_omitted"
     }
 
-    It "rejects a staged addition omitted from the untracked category" {
+    It "rejects an untracked addition omitted from the untracked category" {
         $script:fixture = New-CloseoutFixture -OmitUntrackedCategory
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Not Be 0
-        Assert-ErrorCode $result "staged_addition_not_untracked"
+        Assert-ErrorCode $result "untracked_content_not_classified"
     }
 
-    It "rejects staged content older than the current attributed worktree hash" {
-        $script:fixture = New-CloseoutFixture -DivergeAfterStage
+    It "rejects worktree content newer than its current attribution" {
+        $script:fixture = New-CloseoutFixture -DivergeAfterAttribution
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Not Be 0
-        Assert-ErrorCode $result "staged_content_not_attributed"
+        Assert-ErrorCode $result "current_content_not_attributed"
     }
 
     It "rejects a non-main checkout" {
@@ -496,7 +532,7 @@ Describe "Session Goal milestone closeout checker" {
         }
     }
 
-    It "allows staged enterprise-WeChat webhook configuration" {
+    It "allows attributed enterprise-WeChat webhook configuration" {
         foreach ($switchName in @("StageWebhook", "StageWeComKey")) {
             $arguments = @{}
             $arguments[$switchName] = $true
@@ -508,25 +544,24 @@ Describe "Session Goal milestone closeout checker" {
         }
     }
 
-    It "rejects a staged maintenance capability" {
+    It "rejects a maintenance capability in attributed manifest content" {
         $script:fixture = New-CloseoutFixture -StageMaintenanceToken
         $capability = (@("ZIRCON", "COORDINATOR", "MAINTENANCE", "TOKEN") -join "_") + '=fake'
         ((Get-Content -LiteralPath (Join-Path $script:fixture.Root 'src/feature.py') -Raw).Trim()) |
             Should Be $capability
-        ((& git -C $script:fixture.Root diff --cached -- src/feature.py) -join "`n") |
-            Should Match ([Regex]::Escape($capability))
+        @(& git -C $script:fixture.Root diff --cached --name-only).Count | Should Be 0
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Not Be 0
-        Assert-ErrorCode $result "sensitive_staged_content"
+        Assert-ErrorCode $result "sensitive_manifest_content"
     }
 
-    It "rejects a staged generic credential" {
+    It "rejects a generic credential in attributed manifest content" {
         $script:fixture = New-CloseoutFixture -StageCredential
         $result = Invoke-CloseoutCheck $script:fixture
 
         $result.ExitCode | Should Not Be 0
-        Assert-ErrorCode $result "sensitive_staged_content"
+        Assert-ErrorCode $result "sensitive_manifest_content"
     }
 
     It "rejects terminal Goal closeout without aggregate completion" {
@@ -576,7 +611,7 @@ Describe "Session Goal milestone closeout checker" {
         Assert-ErrorCode $result "goal_incomplete"
     }
 
-    It "ignores historical pending text when current staged Goal evidence is complete" {
+    It "ignores historical pending text when current worktree Goal evidence is complete" {
         $script:fixture = New-CloseoutFixture -Mode Goal -ChildPlanPending
         $result = Invoke-CloseoutCheck $script:fixture
 
