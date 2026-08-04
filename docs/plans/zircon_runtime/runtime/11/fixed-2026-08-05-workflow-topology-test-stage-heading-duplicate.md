@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-29
 summary_slug: workflow-topology-test-stage-heading-duplicate
 origin_plan: docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
@@ -13,7 +13,9 @@ related_code:
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
 tests:
   - .\tools\zircon-session.ps1 milestone prepare --session-id runtime11-native-plugin-refresh-contract-r1-20260729 --milestone M2
+resolved_at: 2026-08-05
 ---
+
 
 # Session Coordinator: Workflow Topology Test-Stage Heading Duplicate
 
@@ -56,14 +58,7 @@ Coordinator topology parsing does not distinguish an implementation milestone he
 
 ## 修复结果与回传
 
-Open state: `Coordinator01 implementation integrated / local topology gate GREEN / managed and Runtime11 origin replay pending`; no `fixed` return is claimed.
-
-- `TopologyParser` 仅忽略“最近更高层级、同 milestone ID”的 `测试阶段` / `Testing stage` 子标题；同级或独立的 `Testing stage rollout` 仍保留为真实节点，重复节点校验未被放宽。
-- 当前组合回归 `test_workflow_topology_testing_stages + test_workflow_topology` 为 18/18 通过；旧记录中的外部 content-version 断言失败已经前向收敛。
-- 当前源码直接解析真实 Runtime11 计划得到 `M0`、`M1`、`M2`、`M3` 各一个节点。原始 Runtime11 Session 仍须通过 coordinator wakeup 重新执行 `milestone prepare ... --milestone M2`；本修复 Session 不代替 origin Session 创建 workflow run。
-
-## 状态与完成项目
-
-| 日期 | 切片 | 状态 | 完成项目与证据 |
-|---|---|---|---|
-| 2026-08-03 | Coordinator01 nested testing-stage hard cut | `implementation_integrated` | 生产 parser 与中英文嵌套测试阶段回归均已进入当前源码；完整 topology 组合门 18/18 通过，真实 Runtime11 计划只生成四个唯一 milestone。待 immutable managed validation 与 Runtime11 原始 `milestone prepare` 复放；未声明 fixed、Cargo pass 或 origin closeout。 |
+- 根因：Fallback workflow topology parsing treated every level-2 through level-6 M<n> heading as a milestone, so a nested 测试阶段 / Testing stage heading duplicated the enclosing milestone ID before graph validation.
+- 架构修复：Ignore a testing-stage heading only when its nearest higher-level milestone candidate has the same ID. Preserve standalone testing-stage rollout headings and the existing rejection of genuine duplicate milestone IDs.
+- 验证：Local combined topology regression: 18/18 passed in 19.943s. Current-source Runtime11 parse: headings source with exactly M0, M1, M2, M3. Coordinator-managed ticket 88f0d976a8724b578a487a3bb97a462d, request 38672d72e802479ca359f822d2fa0ad5, copy 11accda2934d432a997039d7851ba539: 18/18 passed in 15.360s, exit 0, copy removed. Runtime11 replay action 42a3c5db474d48ea972d839cef954054 reached milestone_manifest_record_ambiguous for M2, proving the duplicate-node parser gate passed. Handoff validator: 561 artifacts, 0 errors.
+- 回传：The original Runtime11 native-plugin session is archived. The current-source replay passed topology parsing and stopped at the legitimate child-record manifest selection gate; Runtime11 must resume through a current-source session, and no Cargo result or synthetic M2 output record is claimed.
