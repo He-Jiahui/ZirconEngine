@@ -870,7 +870,7 @@ class WorkflowCommitTests(unittest.TestCase):
                     value.baseline_epoch,
                     value.manifest_hash,
                     value.failure_revision,
-                    value.plan_content_hash,
+                    value.plan_topology_hash,
                 )
             return value
 
@@ -910,6 +910,11 @@ class WorkflowCommitTests(unittest.TestCase):
             nodes["M2"].node_id,
             WorkflowNodeState.SUCCEEDED,
             {"exit": 0},
+        )
+        plan = self.repo / "docs/plans/runtime/01-control.md"
+        plan.write_text(
+            plan.read_text(encoding="utf-8") + "\ncloseout status update\n",
+            encoding="utf-8",
         )
         result = service.close_goal("session-a", self.run_id)
         self.assertEqual("completed", result["session"]["status"])
@@ -998,11 +1003,34 @@ class WorkflowCommitTests(unittest.TestCase):
         self.assertEqual("workflow_goal_commit_reconciliation_pending", pending.exception.code)
         self.assertEqual(1, pending.exception.details["count"])
 
-    def test_plan_text_change_invalidates_active_topology_before_commit(self) -> None:
+    def test_plan_text_change_preserves_active_topology_gate_before_commit(self) -> None:
         service = self._service()
         paths = self._prepare_change_and_gates(service)
         plan = self.repo / "docs/plans/runtime/01-control.md"
         plan.write_text(plan.read_text(encoding="utf-8") + "\nnew requirement\n", encoding="utf-8")
+
+        result = service.commit(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M1",
+            paths=paths,
+            summary="accept unchanged semantic topology before commit",
+            actor="session-a",
+        )
+
+        self.assertTrue(result.finalize.commit_sha)
+
+    def test_plan_topology_change_invalidates_active_topology_before_commit(self) -> None:
+        service = self._service()
+        paths = self._prepare_change_and_gates(service)
+        plan = self.repo / "docs/plans/runtime/01-control.md"
+        plan.write_text(
+            plan.read_text(encoding="utf-8").replace(
+                '"id":"M1","title":"Base"',
+                '"id":"M1","title":"Changed Base"',
+            ),
+            encoding="utf-8",
+        )
 
         with self.assertRaises(CoordinatorError) as rejected:
             service.commit(
@@ -1010,13 +1038,13 @@ class WorkflowCommitTests(unittest.TestCase):
                 run_id=self.run_id,
                 milestone_key="M1",
                 paths=paths,
-                summary="reject changed plan topology before commit",
+                summary="reject changed semantic topology before commit",
                 actor="session-a",
             )
 
         self.assertEqual("workflow_topology_plan_changed", rejected.exception.code)
 
-    def test_refreshing_unchanged_topology_updates_active_plan_content_hash(self) -> None:
+    def test_refreshing_unchanged_topology_retains_active_version_and_gate_identity(self) -> None:
         plan = self.repo / "docs/plans/runtime/01-control.md"
         plan.write_text(plan.read_text(encoding="utf-8") + "\nstatus update\n", encoding="utf-8")
 
@@ -1035,10 +1063,17 @@ class WorkflowCommitTests(unittest.TestCase):
             ["src/runtime.py"],
             failure_workflow_node_keys=("M1", "M1.1"),
         )
+        with self.database.connect() as connection:
+            version_count = connection.execute(
+                "SELECT COUNT(*) FROM workflow_topology_versions WHERE run_id=?",
+                (self.run_id,),
+            ).fetchone()[0]
 
         self.assertEqual(current.content_hash, imported.content_hash)
+        self.assertEqual(self.topology_version_id, imported.topology_version_id)
         self.assertEqual(imported.topology_version_id, context.topology_version_id)
-        self.assertEqual(current.content_hash, context.plan_content_hash)
+        self.assertEqual(current.topology_hash, context.plan_topology_hash)
+        self.assertEqual(1, version_count)
 
     def test_managed_validation_result_creates_node_scoped_gate_evidence(self) -> None:
         service = self._service()
@@ -1260,6 +1295,7 @@ class WorkflowCommitTests(unittest.TestCase):
             ),
         )
         plan_path = "docs/plans/runtime/01-control.md"
+        self.sessions.set_status("session-a", SessionStatus.COMPLETED)
         self.sessions.register(session_id="session-b", plan_path=plan_path)
         self.sessions.set_status("session-b", SessionStatus.ACTIVE)
         target = TopologyImporter(self.database, self.repo).import_plan("session-b", plan_path)
@@ -1393,6 +1429,7 @@ class WorkflowCommitTests(unittest.TestCase):
     def test_reconcile_accepted_milestone_recovers_legacy_second_hop_intent_reference(self) -> None:
         service = self._service()
         plan_path = "docs/plans/runtime/01-control.md"
+        self.sessions.set_status("session-a", SessionStatus.COMPLETED)
         self.sessions.register(session_id="session-b", plan_path=plan_path)
         self.sessions.set_status("session-b", SessionStatus.ACTIVE)
         target = TopologyImporter(self.database, self.repo).import_plan("session-b", plan_path)
@@ -1475,6 +1512,7 @@ class WorkflowCommitTests(unittest.TestCase):
     def test_reconcile_rejects_terminal_target_run(self) -> None:
         service = self._service()
         plan_path = "docs/plans/runtime/01-control.md"
+        self.sessions.set_status("session-a", SessionStatus.COMPLETED)
         self.sessions.register(session_id="session-terminal", plan_path=plan_path)
         self.sessions.set_status("session-terminal", SessionStatus.ACTIVE)
         target = TopologyImporter(self.database, self.repo).import_plan(

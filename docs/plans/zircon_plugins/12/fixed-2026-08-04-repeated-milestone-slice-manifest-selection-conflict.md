@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-15
 summary_slug: repeated-milestone-slice-manifest-selection-conflict
 origin_plan: docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
@@ -13,7 +13,9 @@ related_code:
   - tools/session_coordinator/git_finalize.py
 tests:
   - .\tools\zircon-session.ps1 -Json milestone validate --session-id plugins12-failure-priority-20260715 --run-id 8f51a0df781d414ca86220fc90cd5d2f --milestone M4 --template coordinator-actions
+resolved_at: 2026-08-04
 ---
+
 
 # Session Coordinator 01：重复里程碑编号错误选择历史切片 manifest
 
@@ -23,6 +25,7 @@ tests:
 |---|---|---|
 | `OPEN / 待修复` | 2026-07-15 | Plugins12 当前 runtime event consumer 收口切片已完成受管产品门与独立复核，但 `milestone validate M4` 重新选择了同一编号下已提交或不属于当前切片的历史 M4 manifest，返回 `milestone_manifest_not_attributed`；共享暂存区保持 0，未绕过协调器。 |
 | `OPEN / SAME-TOPOLOGY STATUS EDIT INVALIDATES SLICE EVIDENCE` | 2026-07-15 | Editor02 Runtime15 Failure return 只把 `02-data-sync-and-messaging.md` 的一行 `open` 链接改为 `fixed`；workflow topology hash 在 version 1/2 中均为 `67a355e8804dd6b4b6678c81cfe2e0470dc13b57fc34b47a527fde7a869b65a7`，milestones、slices 与 dependencies 完全相同。`topology.refresh` action `fcdc7a3b9a2b45b3922bae55b399f92c` 仍创建 version 2 `e88bff87699644c689f58bfc2be53ae4`，使 M1.3 的 immutable manifest、validation 与 review 留在 version 1 并全部显示 rejected。CLI 的 `milestone prepare --milestone M1.3` action payload 又只发送 `sessionId`，未传 node key，因而不能在新 version 上绑定所请求 slice。该复现证明冲突不仅是重复编号聚合，还包含 same-topology content churn 与 prepare identity 丢失。 |
+| `OPEN / SAME-TOPOLOGY HARD CUT IMPLEMENTED / ACCEPTANCE PENDING` | 2026-08-03 | 已完成独立子问题的硬切：相同 semantic topology 的 plan 状态、Failure 链接和说明文字变化不再创建 topology version；milestone gate 与 goal closeout 改为比较 `topology_hash`，fingerprint 字段从兼容性的 `planContentHash` 硬切为 `planTopologyHash`。本地 topology/gates/commit 组合验证 48/51，剩余 3 个均确认为现行 plan-family WIP 夹具漂移并前向修复，定向复跑 3/3 通过。整个 failure 仍保持 open：CLI typed node identity 与历史同编号 manifest selection 尚未完成，且本切片仍需 managed validation/commit receipt。 |
 
 ## 来源执行者
 
@@ -69,4 +72,7 @@ validation 与 review 绑定。与此同时，CLI 接受 `--milestone` 却没有
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+- 根因：协调器曾以计划全文 content hash 切换 topology version，并在 prepare 未绑定调用方 node identity 时按重复里程碑编号重新推导 manifest，导致普通状态文本变化切断证据、同号历史记录污染当前切片。
+- 架构修复：TopologyImporter 仅以 semantic topology hash 切换版本；CLI 将规范化 milestone node key 传入 typed topology.refresh action，prepare_milestone 持久化并返回 topologyVersionId、nodeId、manifestId 与 manifestHash；manifest 派生只接受唯一的 current attributed child record，validate/commit 只读取当前 run、当前 topology version、当前 node 的 immutable manifest。
+- 验证：受管 ticket d3da28843c3143dfb44b2c061472a657（copy job bc808bb4420e42d5bbfc362e69fee8fe，source manifest 9ad91cde70050328ca6948b5e1c20fb254cf8a6d33509d4e39daf32c7d53af7a）28/28、exit 0；本地相关全集 70/70；handoff validator 561/561。归档原 run 8f51a0df781d414ca86220fc90cd5d2f 的 manifest 表为空，未伪造业务 child record；current-record isolation 回归使用同编号历史记录与当前 attributed record 重建选择场景，确认只绑定当前精确 manifest。
+- 回传：Plugins12 M4 重复编号选择已收敛到 topology-version/node/manifest 唯一身份；旧 topology、已提交或非当前 attribution 的同号记录不再进入当前 slice，来源计划无需扩大业务所有权。

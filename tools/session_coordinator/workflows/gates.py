@@ -16,7 +16,7 @@ class GateContext:
     baseline_epoch: int
     manifest_hash: str
     failure_revision: str
-    plan_content_hash: str
+    plan_topology_hash: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -214,10 +214,7 @@ class MilestoneGateEvaluator:
                 "baselineEpoch": context.baseline_epoch,
                 "manifestHash": context.manifest_hash,
                 "failureRevision": context.failure_revision,
-                # The field name is retained for stored-evidence compatibility,
-                # but callers supply the semantic topology hash.  This keeps
-                # ordinary plan prose from invalidating accepted gates.
-                "planContentHash": context.plan_content_hash,
+                "planTopologyHash": context.plan_topology_hash,
                 "currentAttemptIds": list(attempt_ids),
             }
         )

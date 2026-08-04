@@ -61,7 +61,7 @@ class WorkflowGateTests(unittest.TestCase):
             baseline_epoch=7,
             manifest_hash="b" * 64,
             failure_revision="failure-r1",
-            plan_content_hash="c" * 64,
+            plan_topology_hash="c" * 64,
         )
 
     def test_all_current_evidence_allows_milestone(self) -> None:

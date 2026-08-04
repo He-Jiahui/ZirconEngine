@@ -62,54 +62,11 @@ class TopologyImporter:
                         "workflow_topology_not_active",
                         "Workflow topology hash exists without its active version",
                     )
-                if existing["content_hash"] == topology.content_hash:
-                    return self._result(existing, activated=True)
-                refreshed = connection.execute(
-                    """SELECT * FROM workflow_topology_versions
-                       WHERE run_id=? AND content_hash=?""",
-                    (run.run_id, topology.content_hash),
-                ).fetchone()
-                if refreshed is None:
-                    version_number = int(
-                        connection.execute(
-                            """SELECT COALESCE(MAX(version_number), 0) + 1
-                               FROM workflow_topology_versions WHERE run_id=?""",
-                            (run.run_id,),
-                        ).fetchone()[0]
-                    )
-                    version_id = uuid.uuid4().hex
-                    connection.execute(
-                        """INSERT INTO workflow_topology_versions(
-                               topology_version_id, run_id, version_number, plan_path,
-                               plan_id, schema_version, source_kind, content_hash,
-                               topology_hash, topology_json, supersedes_id, created_at
-                           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            version_id,
-                            run.run_id,
-                            version_number,
-                            topology.plan_path,
-                            topology.plan_id,
-                            topology.schema_version,
-                            topology.source,
-                            topology.content_hash,
-                            topology.topology_hash,
-                            topology.canonical_json(),
-                            existing["topology_version_id"],
-                            utc_text(),
-                        ),
-                    )
-                    refreshed = connection.execute(
-                        "SELECT * FROM workflow_topology_versions WHERE topology_version_id=?",
-                        (version_id,),
-                    ).fetchone()
-                if current["current_topology_version_id"] != refreshed["topology_version_id"]:
-                    connection.execute(
-                        """UPDATE workflow_runs
-                           SET current_topology_version_id=?, updated_at=? WHERE run_id=?""",
-                        (refreshed["topology_version_id"], utc_text(), run.run_id),
-                    )
-                return self._result(refreshed, activated=True)
+                return self._result(
+                    existing,
+                    activated=True,
+                    observed_content_hash=topology.content_hash,
+                )
             existing = connection.execute(
                 """SELECT * FROM workflow_topology_versions
                    WHERE run_id=? AND content_hash=?

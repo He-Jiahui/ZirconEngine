@@ -494,7 +494,7 @@ class MilestoneWorkflowService:
         with self.database.connect() as connection:
             run = connection.execute(
                 """SELECT workflow_runs.current_topology_version_id,
-                          versions.content_hash, versions.plan_path
+                          versions.topology_hash, versions.plan_path
                    FROM workflow_runs
                    LEFT JOIN workflow_topology_versions versions
                      ON versions.topology_version_id=workflow_runs.current_topology_version_id
@@ -506,13 +506,13 @@ class MilestoneWorkflowService:
                     "workflow_topology_not_active", "Workflow has no active topology version"
                 )
             current_plan = TopologyParser(self.repo_root).parse(run["plan_path"])
-            if current_plan.content_hash != run["content_hash"]:
+            if current_plan.topology_hash != run["topology_hash"]:
                 raise CoordinatorError(
                     "workflow_topology_plan_changed",
-                    "Plan content changed after the active topology version was imported",
+                    "Plan topology changed after the active topology version was imported",
                     details={
-                        "activeContentHash": run["content_hash"],
-                        "currentContentHash": current_plan.content_hash,
+                        "activeTopologyHash": run["topology_hash"],
+                        "currentTopologyHash": current_plan.topology_hash,
                     },
                 )
             plan_path = run["plan_path"]
@@ -567,7 +567,7 @@ class MilestoneWorkflowService:
             baseline_epoch=baseline.epoch_id,
             manifest_hash=self._manifest_hash(normalized),
             failure_revision=_hash_json(failure_rows),
-            plan_content_hash=current_plan.content_hash,
+            plan_topology_hash=current_plan.topology_hash,
         )
 
     def defer_failure(
@@ -1863,7 +1863,7 @@ class MilestoneWorkflowService:
         self._require_run_owner(run_id, session_id)
         with self.database.connect() as connection:
             run = connection.execute(
-                """SELECT run.current_topology_version_id, version.content_hash,
+                """SELECT run.current_topology_version_id, version.topology_hash,
                           version.plan_path
                    FROM workflow_runs run
                    LEFT JOIN workflow_topology_versions version
@@ -1877,10 +1877,14 @@ class MilestoneWorkflowService:
                     "Goal closeout requires an active topology version",
                 )
             current_plan = TopologyParser(self.repo_root).parse(run["plan_path"])
-            if current_plan.content_hash != run["content_hash"]:
+            if current_plan.topology_hash != run["topology_hash"]:
                 raise CoordinatorError(
                     "workflow_topology_plan_changed",
-                    "Plan content changed after the active topology version was imported",
+                    "Plan topology changed after the active topology version was imported",
+                    details={
+                        "activeTopologyHash": run["topology_hash"],
+                        "currentTopologyHash": current_plan.topology_hash,
+                    },
                 )
             milestone_count = int(
                 connection.execute(

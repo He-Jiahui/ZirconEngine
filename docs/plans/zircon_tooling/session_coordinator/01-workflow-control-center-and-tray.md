@@ -509,7 +509,7 @@ At each accepted milestone:
 - fixed 已修复：[cargo-release-retains-live-child-process-lock](../../zircon_editor/editor/02/fixed-2026-07-14-cargo-release-retains-live-child-process-lock.md)
 - fixed 已修复：[milestone-session-relative-line-ending-drift](../../zircon_runtime/text/01/fixed-2026-07-15-milestone-session-relative-line-ending-drift.md)
 - fixed 已修复：[support-slice-exact-finalize-plan-output-conflict](../../zircon_editor/editor/02/fixed-2026-07-16-support-slice-exact-finalize-plan-output-conflict.md)
-- open / Plugins12 重复里程碑编号错误选择历史切片 manifest：[repeated-milestone-slice-manifest-selection-conflict](01/failure-2026-07-15-repeated-milestone-slice-manifest-selection-conflict.md)
+- fixed 已修复：[repeated-milestone-slice-manifest-selection-conflict](../../zircon_plugins/12/fixed-2026-08-04-repeated-milestone-slice-manifest-selection-conflict.md)
 - open / 活跃受管 ephemeral target 被误判为 unmanaged：[live-ephemeral-target-misclassified-unmanaged](01/failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md)
 - open / 原生 slice closeout checker 仍依赖共享暂存区：[native-slice-closeout-checker-staged-index-contract-drift](01/failure-2026-07-16-native-slice-closeout-checker-staged-index-contract-drift.md)
 - open / lifecycle orphan recovery 被 maintenance hold 完整性约束阻断，服务无法启动：[lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock](01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)

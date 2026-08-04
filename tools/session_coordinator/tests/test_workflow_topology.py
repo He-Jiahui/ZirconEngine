@@ -302,12 +302,20 @@ class WorkflowTopologyTests(unittest.TestCase):
         )
 
         self.assertTrue(second.activated)
+        self.assertEqual(first.topology_version_id, second.topology_version_id)
+        self.assertEqual(1, second.version_number)
+        self.assertNotEqual(first.content_hash, second.content_hash)
         with database.connect() as connection:
             active = connection.execute(
                 "SELECT current_topology_version_id FROM workflow_runs WHERE run_id=?",
                 (first.run_id,),
             ).fetchone()[0]
+            version_count = connection.execute(
+                "SELECT COUNT(*) FROM workflow_topology_versions WHERE run_id=?",
+                (first.run_id,),
+            ).fetchone()[0]
         self.assertEqual(second.topology_version_id, active)
+        self.assertEqual(1, version_count)
 
     def test_structural_candidate_refuses_to_rewrite_progressed_graph(self) -> None:
         self._write(
