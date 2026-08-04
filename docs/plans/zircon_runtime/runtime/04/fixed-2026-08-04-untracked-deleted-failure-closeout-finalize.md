@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-24
 summary_slug: untracked-deleted-failure-closeout-finalize
 origin_plan: docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
@@ -15,9 +15,17 @@ related_code:
   - tools/session_coordinator/tests/test_git_finalize.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_failure_closeout tools.session_coordinator.tests.test_git_finalize
+resolved_at: 2026-08-04
 ---
 
+
 # Session Coordinator 01：未跟踪 failure 删除墓碑无法完成原子 closeout
+
+## 产出记录与时间
+
+| 状态 | 记录日期 | 完成项目与当前门禁 |
+|---|---|---|
+| `OPEN / IMPLEMENTATION COMPLETE / MANAGED REPLAY PENDING` | 2026-08-03 | 当前 failure closeout workflow 已把 authoritative source artifact `null` 墓碑保留在 exact proof manifest，并由 finalizer 的 proof-only 路径只提交真实 workspace changes；never-tracked/absent artifact 不再被要求制造 index deletion。精确 combined closeout 回归 1/1 通过，提交树排除 never-tracked tombstone 并保留 exact acceptance revalidation。全量 `test_failure_closeout + test_git_finalize` 首轮 92/94 暴露两个相邻旧合同：pathspec test 仍要求多次 `git add`，ignored local Session state 被 unchanged gate 抢先截获；已前向修复为单次 NUL pathspec-file add + chunked reset，并在 ownership 前稳定拒绝 `.codex/sessions/`，focused 2/2、全量 94/94 通过（692.267s）。待二次审查、managed ticket 与 Runtime04 原 closeout 复放；未声明 fixed/commit。 |
 
 ## 来源执行者
 
@@ -61,4 +69,7 @@ failure artifact，合法删除墓碑既不能相对 HEAD dirty，也不能从 i
 
 ## 修复结果与回传
 
-Open state: `待 Coordinator01 修复并复放 Runtime04 exact failure closeout`; no managed commit is claimed.
+- 根因：Failure closeout required the authoritative prior source artifact null tombstone in the exact proof manifest, while Git finalization treated every approved path as a required workspace change. A never-tracked and currently absent source artifact therefore could neither create an index deletion nor pass the unchanged-path gate.
+- 架构修复：Failure closeout now retains the authoritative null tombstone as proof-only material and finalizes only real workspace changes; tracked source artifacts still require a real deletion, ordinary unchanged paths remain rejected, local .codex/sessions state is rejected before ownership checks, and milestone staging uses one NUL pathspec-file add with chunked reset cleanup.
+- 验证：Focused regression 3/3 passed locally in 16.816s; local full suite 94/94 passed in 692.267s. Managed ticket c99a9b6e21f14f7e82431f087145c6b3 ran all 94 tests but failed only because its validation copy omitted the handoff validator dependency. Corrected managed ticket 0469849305a2423ea363c3ff0ed9b719, source manifest d03bde1869af78d6b3e8d0f650e4a7fc3b76b21fd51c55e340bdee3e2bf56697, copy job a3762b67ccb14130871b79fe96552fea passed 94/94 in 275.910s with exit code 0. Handoff graph before return validated 561 artifacts with 0 errors.
+- 回传：The coordinator-managed exact closeout fixtures replay the untracked null-tombstone lifecycle end to end and leave the index clean. The original Runtime04 source session is archived, its historical source failure was never tracked and is absent, and current Runtime04 business paths contain newer foreign changes, so no fabricated live business replay was performed.

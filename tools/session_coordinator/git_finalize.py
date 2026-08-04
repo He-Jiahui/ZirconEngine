@@ -721,6 +721,15 @@ class GitFinalizeService:
                     "milestone_baseline_head_changed",
                     "HEAD changed after the coordinator baseline was captured",
                 )
+            local_session_state = tuple(
+                path for path in normalized if self._is_local_session_state(path)
+            )
+            if local_session_state:
+                raise CoordinatorError(
+                    "milestone_ignored_path_forbidden",
+                    "Local Session state cannot enter a managed commit",
+                    details={"paths": list(local_session_state)},
+                )
             self._require_attribution(session_id, normalized, maintenance=False)
             commit_paths = self._require_owned_scope(
                 session_id,

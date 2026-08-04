@@ -327,7 +327,7 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(original_index, bytes(request["index_snapshot"]))
         self.assertEqual("session-a", self._mutex_owner())
 
-    def test_milestone_commit_chunks_add_and_post_commit_reset_pathspecs(self) -> None:
+    def test_milestone_commit_uses_pathspec_file_add_and_chunked_reset(self) -> None:
         paths = [f"src/chunked/path_{index}.py" for index in range(8)]
         self.assertTrue(self.leases.acquire("session-a", paths).acquired)
         for path in paths:
@@ -356,7 +356,14 @@ class GitFinalizeTests(unittest.TestCase):
             for call in git_call.call_args_list
             if call.args and call.args[0] == "reset" and "--quiet" in call.args
         ]
-        self.assertGreater(len(add_calls), 1)
+        self.assertEqual(1, len(add_calls))
+        self.assertTrue(
+            any(
+                str(argument).startswith("--pathspec-from-file=")
+                for argument in add_calls[0].args
+            )
+        )
+        self.assertIn("--pathspec-file-nul", add_calls[0].args)
         self.assertGreater(len(reset_calls), 1)
 
     def test_milestone_commit_keeps_attributed_tracked_change_after_global_baseline_absorbs_hash(
