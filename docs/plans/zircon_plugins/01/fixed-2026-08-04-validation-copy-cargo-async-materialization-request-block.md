@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-26
 summary_slug: validation-copy-cargo-async-materialization-request-block
 origin_plan: docs/plans/zircon_plugins/01-plugin-architecture-core.md
@@ -18,9 +18,17 @@ related_code:
 tests:
   - python -m unittest tools.session_coordinator.tests.test_workspace_copy tools.session_coordinator.tests.test_server tools.session_coordinator.tests.test_database
   - validation_copy.materialize_cargo bounded durable acknowledgement and restart recovery regression
+resolved_at: 2026-08-04
 ---
 
+
 # Coordinator01: validation-copy Cargo async materialization request block
+
+## 产出记录与时间
+
+| 状态 | 记录日期 | 完成项目与当前门禁 |
+|---|---|---|
+| `OPEN / IMPLEMENTATION INTEGRATED / MANAGED RETURN PENDING` | 2026-08-03 | 当前 production 已在 request thread 仅持久化 bounded accepted job metadata，closure planning、disk/Git probe、artifact governance、archive/overlay/hash 均由 worker 执行；startup recovery 对同一 job exactly-once claim，malformed durable payload terminalize 为 typed failure。当前源码精确 8-test 回归 8/8 通过（18.656s），覆盖 ack-before-work、durable-before-probe、bounded no-manifest response、governance 不阻塞 ACK、unowned/external descriptor typed failure、pinned-baseline drift、restart recovery 与 request decode terminalization。生产/既有测试属于先前冻结 validation-copy 切片，本轮未抢改；待 managed receipt、Plugins01 origin replay 与 failure return，不声明 fixed/commit。 |
 
 ## 来源执行者
 
@@ -54,4 +62,7 @@ The command response was about 1.68 MiB and journaled as digest `d2e57c9c…`; w
 
 ## 修复结果与回传
 
-Open state：`Coordinator01 current-source repair and validation are complete; failure return and managed exact-scope closeout remain pending`. Plugins01 remains allowed to preserve its materialized job and wait for the Coordinator01 fixed return; no Cargo GREEN is claimed.
+- 根因：Cargo validation-copy materialization executed closure planning, disk and Git probes, artifact governance, archive and hashing synchronously on the command request thread, so durable acknowledgement was delayed behind unbounded work; malformed persisted requests could also remain recoverable instead of becoming terminal.
+- 架构修复：The current coordinator persists a bounded accepted job record before all probes and heavy work, returns job metadata without a full manifest, lets a worker claim and materialize the job exactly once, recovers accepted work after restart, and terminalizes malformed durable requests with typed request_decode evidence.
+- 验证：Eight exact local regressions passed in 11.189s. Managed ticket 7d91906cc854499bb3d2fec594915182, source manifest b29de4cf430182e844c8d53b249edff5b3fc0ea6c92e049f94520636dfae15dc, copy job 8f8f3e6fc4fe451486eaec20b1086100 passed 8/8 in 13.817s with exit code 0. Handoff graph before return validated 561 artifacts with 0 errors.
+- 回传：The preserved Plugins01 job 5945e3ef29d74bd69602adca02e243b5 remains materialized with immutable input manifest 595c5d5f02c80dc63e5e289ad2bf3709e4f67639f5bccb272e7efd1e32f9ee27 and no validation-copy run, exactly as required; it was inspected without retry or cleanup. Its source session is archived, so no historical Cargo run was fabricated.
