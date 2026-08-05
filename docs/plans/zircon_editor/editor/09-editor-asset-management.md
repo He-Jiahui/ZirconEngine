@@ -255,7 +255,7 @@ M1 均保持 `in_progress`。
 - fixed 已修复：[editor-viewport-resolve-job-guard-drift](09/fixed-2026-07-14-editor-viewport-resolve-job-guard-drift.md)
 - fixed 已修复（Plugins05 Navigation 产出记录已收束到编号子目录）：[navigation-plan-output-record-archive-limit](09/fixed-2026-07-15-navigation-plan-output-record-archive-limit.md)
 - fixed 已修复：[plan-output-record-archive-limit](09/fixed-2026-07-14-plan-output-record-archive-limit.md)
-- open 待修复（EditorUI01 archive notice）：[plan-output-archive-notice](../editor_ui/01/failure-2026-07-13-plan-output-archive-notice.md)
+- fixed 已修复：[plan-output-archive-notice](09/fixed-2026-08-05-plan-output-archive-notice.md)
 - open 待修复（EditorUI10 与 index output notice）：[editor-ui-plan-output-notices](../editor_ui/10/failure-2026-07-13-editor-ui-plan-output-notices.md)
 - open 待修复（EditorUI11 archive notice）：[plan-output-archive-notice](../editor_ui/11/failure-2026-07-13-plan-output-archive-notice.md)
 - 2026-07-18 shader hot-reload性能交接：shader package、template registry与IDE preview对同一WGSL分别extract includes与strip，至少双全文扫描且strip分配临时行Vec。Editor09联动Runtime04/Render08提供单遍parse artifact（stripped source/deps/line map/hash input）并按module generation共享；稳定source scan=0、changed source scan=1，依赖图只增量失效changed nodes；见PERF-MVP-358。

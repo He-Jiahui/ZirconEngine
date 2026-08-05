@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-13
 summary_slug: plan-output-archive-notice
 origin_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
@@ -11,7 +11,9 @@ related_code:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
 tests:
   - python .codex/skills/zircon-project-skills/write-plan-output-records/scripts/audit_plan_output_records.py --repo-root E:\Git\ZirconEngine
+resolved_at: 2026-08-05
 ---
+
 
 # EditorUI01：编号归档链接缺少固定产出提示语
 
@@ -44,8 +46,11 @@ EditorUI01 的 `## 产出记录与时间` 段落没有同步当前 archive notic
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
-| EditorUI01 文档收敛 | archive notice | `open-待功能owner处理` | 2026-07-13 | 审计在 `01-slate-input-dispatch-core.md:246` 报告 `missing-archive-notice`。 |
+| EditorUI01 文档收敛 | archive notice | `fixed-已修复` | 2026-08-05 | 全仓产出记录审计通过，不再报告 `missing-archive-notice`。 |
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+- 根因：EditorUI01 的状态与产出记录段曾保留编号归档链接，但未同步 plan-output 审计器要求的精确归档提示语。
+- 架构修复：EditorUI01 计划现在保留规范归档提示语和编号归档链接；迁移后的产出记录以归档标题标识自身，并回链唯一所属计划，计划概述与历史明细继续分离。
+- 验证：python .codex/skills/zircon-project-skills/write-plan-output-records/scripts/audit_plan_output_records.py --repo-root .：audit passed。
+- 回传：EditorUI01 的归档通知契约已恢复，Editor09 的产出记录全仓审计门可以继续。
