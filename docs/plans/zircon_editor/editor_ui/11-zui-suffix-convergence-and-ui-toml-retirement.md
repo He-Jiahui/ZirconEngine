@@ -156,4 +156,4 @@ M3 + M4 ──→ M5（删后缀支持 + 闸口）
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`11/2026-07-09-zui-suffix-convergence-and-ui-toml-retirement-output-records.md`](11/2026-07-09-zui-suffix-convergence-and-ui-toml-retirement-output-records.md)
-- open 待修复：[plan-output-archive-notice](11/failure-2026-07-13-plan-output-archive-notice.md)
+- fixed 已修复：[plan-output-archive-notice](../editor/09/fixed-2026-07-16-plan-output-archive-notice.md)
