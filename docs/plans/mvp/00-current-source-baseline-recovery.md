@@ -21,7 +21,7 @@ last_refined: 2026-08-01
 
 # 当前源码与验证基线恢复 Implementation Plan
 
-- open 待修复：[validation ticket deletion manifest](00/failure-2026-08-03-validation-ticket-deletion-manifest.md)；删除墓碑协议与 focused 回归已实现，最终复审 `C0/I0/M0`；focused terminal receipt 与 [Coordinator01 大 manifest CLI transport](../zircon_tooling/session_coordinator/01/failure-2026-08-03-validation-ticket-large-manifest-cli-transport.md) fixed return 尚未返回。
+- fixed 已修复：[validation ticket deletion manifest](00/fixed-2026-08-05-validation-ticket-deletion-manifest.md)；删除墓碑协议、目录/悬空链接重现拒绝与最终复审均已收敛，source-bound managed batch `30/30` GREEN；Runtime15 可恢复硬删除 manifest 票据。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: 使用 `subagent-driven-development`（推荐）或 `executing-plans` 按里程碑执行；开始前使用 `cross-session-coordination`，测试阶段使用 `zircon-dev-validation` 和 `support-first-regression-testing`。
 
