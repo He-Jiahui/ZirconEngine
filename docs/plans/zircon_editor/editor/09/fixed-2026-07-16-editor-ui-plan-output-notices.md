@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-13
 summary_slug: editor-ui-plan-output-notices
 origin_plan: docs/plans/zircon_editor/editor/09-editor-asset-management.md
@@ -12,7 +12,9 @@ related_code:
   - docs/plans/zircon_editor/editor_ui/index.md
 tests:
   - python .codex/skills/zircon-project-skills/write-plan-output-records/scripts/audit_plan_output_records.py --repo-root E:\Git\ZirconEngine
+resolved_at: 2026-07-16
 ---
+
 
 # EditorUI10：结构计划与 EditorUI 索引缺少固定产出提示语
 
@@ -46,8 +48,11 @@ EditorUI 的结构约定计划与顶层索引没有同时采用当前 numbered-p
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
-| EditorUI10 文档收敛 | plan/index output notice | `open-待功能owner处理` | 2026-07-13 | 审计分别在 EditorUI10:161 与 `editor_ui/index.md:271` 报告 notice 缺失。 |
+| EditorUI10 文档收敛 | plan/index output notice | `fixed-已修复` | 2026-07-16 | 全仓产出记录审计通过；`ad2c6f989c` 证明计划与 index 两处规范提示语均已于该日落地。 |
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+- 根因：EditorUI10 编号计划与 editor_ui 顶层索引曾未同时采用 plan-output 审计器要求的精确产出提示语。
+- 架构修复：提交 ad2c6f989c 于 2026-07-16 在 EditorUI10 计划及 editor_ui/index.md 的产出位置加入统一规范提示语；详细记录继续保留在编号子目录，计划与索引只保留概述和归档链接。
+- 验证：python .codex/skills/zircon-project-skills/write-plan-output-records/scripts/audit_plan_output_records.py --repo-root .：audit passed；git blame 证明两处提示语均由 ad2c6f989c 于 2026-07-16 落地。
+- 回传：EditorUI10 与 editor_ui index 的产出提示契约均已恢复，Editor09 的全仓审计门可以继续。
