@@ -18,17 +18,24 @@ pub(in crate::ui::retained_host::host_contract) fn hit_test_template_popup_rows(
     y: f32,
 ) -> Option<TemplatePopupRowHit> {
     for node in nodes.iter().rev() {
-        if !node.popup_open || node.disabled || node.control_id.is_empty() {
-            continue;
-        }
-        if let Some(hit) = hit_test_template_menu_rows(node, origin, x, y) {
-            return Some(hit);
-        }
-        if let Some(hit) = hit_test_template_option_rows(node, origin, x, y) {
+        if let Some(hit) = hit_test_template_popup_node(node, origin, x, y) {
             return Some(hit);
         }
     }
     None
+}
+
+pub(super) fn hit_test_template_popup_node(
+    node: &TemplatePaneNodeData,
+    origin: &FrameRect,
+    x: f32,
+    y: f32,
+) -> Option<TemplatePopupRowHit> {
+    if !node.popup_open || node.disabled || node.control_id.is_empty() {
+        return None;
+    }
+    hit_test_template_menu_rows(node, origin, x, y)
+        .or_else(|| hit_test_template_option_rows(node, origin, x, y))
 }
 
 pub(super) fn uniform_popup_row_at_y(

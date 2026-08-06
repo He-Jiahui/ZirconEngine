@@ -1,9 +1,9 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::template_component_family::{
-    TemplateComponentFamily, template_component_family,
+    template_component_family, TemplateComponentFamily,
 };
 
-pub(super) fn is_dispatchable(node: &TemplatePaneNodeData) -> bool {
+pub(in super::super) fn is_dispatchable(node: &TemplatePaneNodeData) -> bool {
     let family = template_component_family(node);
     !node.disabled
         && !node.control_id.is_empty()

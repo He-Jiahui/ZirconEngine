@@ -1,4 +1,5 @@
 mod hit;
+mod index;
 mod model;
 mod pane_nodes;
 mod popup_rows;
@@ -8,10 +9,14 @@ use zircon_runtime_interface::ui::{layout::UiSize, surface::UiSurfaceFrame};
 
 use super::super::data::{FrameRect, HostWindowPresentationData, PaneData};
 use super::super::template_geometry::template_nodes_bounds;
-use hit::hit_test_template_nodes;
+use hit::{
+    hit_test_template_nodes, hit_test_workbench_template_nodes,
+    hit_test_workbench_template_nodes_with_index,
+};
+pub(crate) use index::HostWorkbenchHitIndex;
 pub(crate) use model::TemplateNodePointerHit;
 use pane_nodes::pane_template_nodes;
-use surface_frame_builder::{build_template_surface_frame, template_nodes_surface_frame};
+use surface_frame_builder::build_template_surface_frame;
 
 pub(crate) fn hit_test_pane_template_node(
     pane: &PaneData,
@@ -39,9 +44,16 @@ pub(crate) fn hit_test_workbench_window_template_node(
         width: bounds.width.max(bounds.x + bounds.width).max(1.0),
         height: bounds.height.max(bounds.y + bounds.height).max(1.0),
     };
-    let surface_frame =
-        template_nodes_surface_frame(nodes, UiSize::new(origin.width, origin.height));
-    hit_test_template_nodes(nodes, &surface_frame, &origin, x, y)
+    hit_test_workbench_template_nodes(nodes, &origin, x, y)
+}
+
+pub(crate) fn hit_test_workbench_window_template_node_with_index(
+    presentation: &HostWindowPresentationData,
+    index: &HostWorkbenchHitIndex,
+    x: f32,
+    y: f32,
+) -> Option<TemplateNodePointerHit> {
+    hit_test_workbench_template_nodes_with_index(&presentation.workbench_window_nodes, index, x, y)
 }
 
 pub(crate) fn build_pane_template_surface_frame(

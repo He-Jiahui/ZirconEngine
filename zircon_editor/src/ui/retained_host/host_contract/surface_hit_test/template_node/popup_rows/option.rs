@@ -6,7 +6,7 @@ use super::super::super::super::paint_geometry::frame_from_template;
 use super::super::super::super::template_popup_layout::{
     template_option_popup_frame_within, template_option_row_frame_within,
 };
-use super::hit::{TemplatePopupRowHit, template_popup_row_hit};
+use super::hit::{template_popup_row_hit, TemplatePopupRowHit};
 use super::{next_uniform_popup_row_at_boundary, uniform_popup_row_at_y};
 
 pub(super) fn hit_test_template_option_rows(

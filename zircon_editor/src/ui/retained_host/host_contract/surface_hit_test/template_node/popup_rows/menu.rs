@@ -3,7 +3,7 @@ use super::super::super::super::frame_geometry::contains_point;
 use super::super::super::super::paint_geometry::frame_from_template;
 use super::super::super::super::template_popup_layout::menu_item_row_frame;
 use super::action_id::normalized_menu_row_action_id;
-use super::hit::{TemplatePopupRowHit, template_popup_row_hit};
+use super::hit::{template_popup_row_hit, TemplatePopupRowHit};
 use super::{next_uniform_popup_row_at_boundary, uniform_popup_row_at_y};
 
 pub(super) fn hit_test_template_menu_rows(
