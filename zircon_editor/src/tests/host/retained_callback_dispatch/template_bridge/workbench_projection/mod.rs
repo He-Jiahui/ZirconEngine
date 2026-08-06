@@ -35,6 +35,8 @@ mod shell_layout;
 mod support;
 mod surface_contract;
 
+use support::*;
+
 #[test]
 fn workbench_projection_test_owners_stay_within_budget() {
     for (path, source) in [
