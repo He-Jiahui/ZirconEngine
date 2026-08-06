@@ -14,6 +14,12 @@ fn inspector_pane_projects_editable_field_nodes_and_actions() {
     let data =
         to_host_contract_inspector_pane_from_host_pane(&pane, PaneContentSize::new(360.0, 240.0));
 
+    let panel = find_node(&data.nodes, "InspectorEditableFieldsPanel");
+    assert!(
+        panel.text.is_empty(),
+        "the inspector fields surface is a container and must not paint a centered title"
+    );
+
     let name = find_node(&data.nodes, "NameField");
     assert_eq!(name.role.as_str(), "InputField");
     assert_eq!(name.value_text.as_str(), "Camera");
@@ -35,6 +41,12 @@ fn inspector_pane_projects_editable_field_nodes_and_actions() {
     );
     assert_eq!(position_x.surface_variant.as_str(), "inspector-field");
     assert_eq!(position_x.text_tone.as_str(), "default");
+
+    let transform = find_node(&data.nodes, "InspectorTransformLabel");
+    assert!(
+        transform.frame.y + transform.frame.height <= position_x.frame.y,
+        "the transform label must not overlap the vector fields"
+    );
 
     let apply = find_node(&data.nodes, "ApplyBatchButton");
     assert_eq!(apply.role.as_str(), "Button");
@@ -68,12 +80,10 @@ fn inspector_pane_marks_plugin_inspector_customization_fallback() {
     assert_eq!(fallback.surface_variant.as_str(), "inset");
     assert_eq!(fallback.text_tone.as_str(), "warning");
     assert_eq!(fallback.validation_level.as_str(), "warning");
-    assert!(
-        fallback
-            .validation_message
-            .as_str()
-            .contains("serialized component data stays protected")
-    );
+    assert!(fallback
+        .validation_message
+        .as_str()
+        .contains("serialized component data stays protected"));
     assert!(fallback.disabled);
 }
 
@@ -210,12 +220,10 @@ fn inspector_pane_projects_plugin_inspector_customization_fields_and_unload_degr
     assert_eq!(degraded.surface_variant.as_str(), "inset");
     assert_eq!(degraded.text_tone.as_str(), "muted");
     assert_eq!(degraded.validation_level.as_str(), "warning");
-    assert!(
-        degraded
-            .validation_message
-            .as_str()
-            .contains("serialized data stays protected")
-    );
+    assert!(degraded
+        .validation_message
+        .as_str()
+        .contains("serialized data stays protected"));
 }
 
 fn find_node(

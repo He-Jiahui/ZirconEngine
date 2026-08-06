@@ -62,7 +62,7 @@ pub(super) fn inspector_field_nodes(
         "inspector_field_panel",
         "InspectorEditableFieldsPanel",
         "Panel",
-        "Inspector",
+        "",
         host_contract::TemplateNodeFrameData {
             x: body_frame.x,
             y: body_frame.y,
