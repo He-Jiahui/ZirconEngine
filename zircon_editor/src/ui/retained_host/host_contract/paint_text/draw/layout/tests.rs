@@ -485,6 +485,63 @@ fn retained_text_run_carries_runtime_projected_spacing() {
 }
 
 #[test]
+fn repeated_retained_text_layouts_share_the_cached_projection() {
+    let rect = FrameRect {
+        x: 5.0,
+        y: 4.0,
+        width: 200.0,
+        height: 22.0,
+    };
+    let first = layout_text_run(
+        &rect,
+        "Cached Preview",
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+    );
+    let second = layout_text_run(
+        &rect,
+        "Cached Preview",
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+    );
+
+    assert!(std::sync::Arc::ptr_eq(&first, &second));
+}
+
+#[test]
+fn retained_text_layout_cache_separates_distinct_widths() {
+    let wide = FrameRect {
+        x: 5.0,
+        y: 4.0,
+        width: 200.0,
+        height: 22.0,
+    };
+    let narrow = FrameRect {
+        width: 48.0,
+        ..wide.clone()
+    };
+    let wide_layout = layout_text_run(
+        &wide,
+        "Width-sensitive preview label",
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+    );
+    let narrow_layout = layout_text_run(
+        &narrow,
+        "Width-sensitive preview label",
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+    );
+
+    assert!(!std::sync::Arc::ptr_eq(&wide_layout, &narrow_layout));
+    assert_ne!(wide_layout.display_text, narrow_layout.display_text);
+}
+
+#[test]
 fn runtime_phase_guard_uses_subpixel_bins_for_grayscale_glyphs_after_line_snap() {
     let text = "Wi";
     let probe_glyphs = super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, 0.0, 2.0);

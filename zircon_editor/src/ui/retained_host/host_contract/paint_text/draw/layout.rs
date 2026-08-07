@@ -1,4 +1,5 @@
 use fontdue::layout::{CoordinateSystem, GlyphPosition, Layout, LayoutSettings, TextStyle};
+use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime::{
     text::ShapedGlyph,
@@ -18,8 +19,10 @@ use super::placement::{
     retained_text_origin_for_smoothing,
 };
 
+mod cache;
 mod metrics;
 
+use self::cache::cached_paint_text_layout;
 use self::metrics::{
     advances_include_positive_width, centered_line_y, empty_grapheme_advance_px,
     empty_runtime_line_frame_x, glyph_origin_matches_without_visible_drift,
@@ -50,7 +53,7 @@ pub(super) fn layout_text_run(
     font_size: f32,
     line_height: f32,
     style: UiTextRunPaintStyle,
-) -> PaintTextLayout {
+) -> Arc<PaintTextLayout> {
     let font_face = font_face_for_paint_style(style);
     let smoothing = current_host_text_preferences().smoothing;
     layout_text_run_with_layout_policy_and_smoothing(
@@ -71,7 +74,7 @@ pub(super) fn layout_text_run_with_layout_policy(
     line_height: f32,
     style: UiTextRunPaintStyle,
     layout_policy: HostTextLayoutPolicy,
-) -> PaintTextLayout {
+) -> Arc<PaintTextLayout> {
     let font_face = font_face_for_paint_style(style);
     let smoothing = current_host_text_preferences().smoothing;
     layout_text_run_with_layout_policy_and_smoothing(
@@ -92,7 +95,7 @@ fn layout_text_run_with_smoothing(
     line_height: f32,
     font_face: HostTextFontFace,
     smoothing: HostTextSmoothing,
-) -> PaintTextLayout {
+) -> Arc<PaintTextLayout> {
     layout_text_run_with_layout_policy_and_smoothing(
         rect,
         text,
@@ -112,7 +115,39 @@ fn layout_text_run_with_layout_policy_and_smoothing(
     font_face: HostTextFontFace,
     smoothing: HostTextSmoothing,
     layout_policy: HostTextLayoutPolicy,
+) -> Arc<PaintTextLayout> {
+    cached_paint_text_layout(
+        rect,
+        text,
+        font_size,
+        line_height,
+        font_face,
+        smoothing,
+        layout_policy,
+        || {
+            layout_text_run_uncached(
+                rect,
+                text,
+                font_size,
+                line_height,
+                font_face,
+                smoothing,
+                layout_policy,
+            )
+        },
+    )
+}
+
+fn layout_text_run_uncached(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    font_face: HostTextFontFace,
+    smoothing: HostTextSmoothing,
+    layout_policy: HostTextLayoutPolicy,
 ) -> PaintTextLayout {
+    zircon_runtime::profile_scope!("editor", "host_painter", "text_layout_cache_miss");
     let lines = match layout_policy {
         HostTextLayoutPolicy::SingleLineEllipsis => {
             vec![runtime_single_line_text(
