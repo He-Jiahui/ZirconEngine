@@ -124,15 +124,21 @@ related_code:
 
 M4 源码收敛已删除 HEAD 中无调用者的 `route_pointer_to_workbench_window`、`hit_test_workbench_window_template_node` 与 `nodes.iter().rev()` Workbench 线性 hit fallback，提交为 `8518d7e8c`。新增的 Python 源码守卫 `2/2` 通过，定向 rustfmt 通过，Windows 受管 `cargo build -p zircon_editor --locked` 通过。当前产品 pointer move/press 已使用 generation-owned `HostWorkbenchHitIndex`；该证据关闭 Workbench 旧 fallback，但不把其余独立 pointer bridge 的 event-time surface rebuild 清单或被共享测试基线阻断的 focused contracts 误记为完成。
 
+M1 的 immutable presentation authority 已以提交 `9c2592c4d` 收口：structure、interaction、menu/overflow、viewport、theme、diagnostics 与 hit/paint index 由同一个 `HostPresentationGeneration` 原子捕获，普通输入与绘制只借用该代；viewport RGBA 使用 `Arc<[u8]>`，主题读取使用 immutable `ArcSwap` snapshot，transient hover 只应用到实际进入 damage paint 的节点。提交后的 Windows 受管 `cargo build -p zircon_editor --locked` 通过（30.64 秒），presentation generation 与旧 hit fallback 两组源码合同 `6/6` 通过。完整 Rust generation/focused contracts 仍被共享 `lib test` 的 148 个既有 API 漂移错误阻断，因此 M1 保持“执行中”而不误报 gate 全绿。
+
+M4 的显式 profile artifact 导出已以提交 `ec26dc7ec` 移出 UI 线程：one-shot request 只向容量为 1 的后台 worker 投递 immutable payload，JSON/PNG 编码与文件写入不再发生在 present 回调内；稳定帧的 artifact export counter 保持为 0。
+
+剩余 pointer bridge inventory 已逐项复核：主 Workbench move/press/scroll 路由没有 `UiSurface` rebuild；activity/asset/detail/document-tab/drawer/host-page/viewport-toolbar 等独立 bridge 只在初始化、模型/尺寸变化或测量值真实变化时重建，并且同值短路；菜单普通 move 同样不重建，只在 open/submenu topology 变化时提交新 surface；hierarchy/welcome/menu 的 scroll 只在 offset 真实变化时刷新。后两类仍是有意保留的 event-time topology/scroll rebuild，不属于修复前的 every-move 放大，但也不记为“源码守卫归零”；若后续采样显示其超出预算，应在 runtime `UiSurface` 增量 scroll/hit-index authority 中统一解决，而不是给每个 bridge 增加旁路缓存。
+
 每个里程碑测试通过后记录一次；实现切片不单独写入产出记录。
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
 | M0 | 可复现基线、计数器与构建入口 | 执行中 | - | 性能采样与构建脚本已稳定；共享 support 导入修复把 `lib test` 错误从 569 降到 148，但其余并行 API 漂移仍阻止 focused test 进入目标用例。 |
-| M1 | immutable presentation 与 dirty domains | 执行中 | - | shared viewport/theme/generation 与 diagnostics 独立分代已接入；主题快照现在只在启动或 token 变化时同步，稳定 generation 读取不再访问全局主题 authority；产品配置 check 通过，完整 generation 合同测试仍受共享测试基线阻断。 |
+| M1 | immutable presentation 与 dirty domains | 执行中 | - | `9c2592c4d` 已收口单一 generation authority、shared viewport、immutable theme 与 indexed paint/hit read；Windows 受管 package build 通过，源码合同 `6/6` 通过，完整 generation 合同测试仍受共享测试基线阻断。 |
 | M2 | generation-owned input/hit/hover index | 执行中 | - | 产品 input-to-damage p95 已达标，same-target/transient hover 与稳定索引已接入；完整 popup/clip/focus focused batch 待共享测试基线恢复。 |
 | M3 | damage paint 与有序命令提取 | 执行中 | - | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本 reference/GPU/Softbuffer 三向对拍通过，Inspector 容器标题重叠已修复，完整 focused full/patch contracts 仍受共享测试基线阻断。 |
-| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活与产物审计通过；Workbench 线性 fallback 源码守卫已归零，其余 pointer bridge 清单与完整 focused tests 仍开放。 |
+| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活与产物审计通过；Workbench 线性 fallback 源码守卫已归零，`ec26dc7ec` 已把 artifact 编码/写盘移出 UI 线程；独立 bridge 清单已审计，真实 scroll/topology rebuild 与完整 focused tests 仍开放。 |
 
 当前执行切片（不等同于里程碑完成）：2026-08-07 已完成 generation-owned shared presentation、damage-driven spatial/paint index、transient interaction、state-owned immutable theme snapshot、有界文本缓存、显式一次性异步 profile 导出、native window 同值 no-op，以及 diagnostics 独立 generation。主题 authority 只在启动或设计 token 变化时同步到 host state，普通 pointer/keyboard generation read 只克隆已有 `Arc`。Windows 原生 `cargo check -p zircon_editor --lib --locked` 在 Inspector 修复后再次通过，profiling 产品配置 `cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host,profiling --locked` 通过；`tools/tests/build-editor.Tests.ps1` 两次复核均为 `3/3` 通过；协调器 artifact audit 返回 `unmanaged: []`。
 
