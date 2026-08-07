@@ -148,6 +148,8 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 
 ### M2 layout 管线权威化
 
+**Dependencies:** M1 accepted.
+
 #### 切片 2.1 taffy 单后端入口与 pass 序
 
 - 目标文件：`ui/layout/taffy_bridge/{mod,compute}.rs`（唯一后端计算入口）、`ui/layout/pass/{pipeline,layout_tree,incremental,taffy_arrange}.rs`（pass 序显式化）、`ui/layout/style_mapping.rs`。
@@ -170,6 +172,8 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 - `cargo test -p zircon_runtime --lib ui --locked`
 
 ### M3 template 编译与实例化边界
+
+**Dependencies:** M2 accepted.
 
 #### 切片 3.1 编译产物与 generated 规则衔接
 
