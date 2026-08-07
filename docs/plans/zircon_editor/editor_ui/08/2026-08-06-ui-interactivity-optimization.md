@@ -128,6 +128,8 @@ M1 的 immutable presentation authority 已以提交 `9c2592c4d` 收口：struct
 
 M4 的显式 profile artifact 导出已以提交 `ec26dc7ec` 移出 UI 线程：one-shot request 只向容量为 1 的后台 worker 投递 immutable payload，JSON/PNG 编码与文件写入不再发生在 present 回调内；稳定帧的 artifact export counter 保持为 0。
 
+最新共享工作区已通过 `tools/build-editor.ps1` 产出独立 bundle `C:\Users\HeJiahui\ZirconBuilds\editor-ui-optimized-20260807-1000`。脚本依次完成受管 `zircon_app --bin zircon_editor --features target-editor-host` 与 `zircon_runtime --features target-editor-host` 构建、资产复制和 `--help` smoke；`zircon_editor.exe` SHA-256 为 `837698900FE480CBBE3A5210C408DDC556872E6F5A702E653D1824F0BE2B3A70`，`zircon_runtime.dll` 为 `FB4F1E1E7FEB4CA888BD80AF45361DC667236EB34EB7C927B2242A7618864615`。随后真实 GUI 首帧完成窗口创建与 present，并在 25.1 秒内按 one-shot capture 合同以退出码 0 结束；`first-frame.png` SHA-256 为 `72FBC9D18B743D747AE83FCB57C7B433B49C14B2AA1100A00764C15D34D1278A`，目视复核 Workbench、Hierarchy、Inspector、Console、菜单与状态栏完整且无文本覆盖。
+
 剩余 pointer bridge inventory 已逐项复核：主 Workbench move/press/scroll 路由没有 `UiSurface` rebuild；activity/asset/detail/document-tab/drawer/host-page/viewport-toolbar 等独立 bridge 只在初始化、模型/尺寸变化或测量值真实变化时重建，并且同值短路；菜单普通 move 同样不重建，只在 open/submenu topology 变化时提交新 surface；hierarchy/welcome/menu 的 scroll 只在 offset 真实变化时刷新。后两类仍是有意保留的 event-time topology/scroll rebuild，不属于修复前的 every-move 放大，但也不记为“源码守卫归零”；若后续采样显示其超出预算，应在 runtime `UiSurface` 增量 scroll/hit-index authority 中统一解决，而不是给每个 bridge 增加旁路缓存。
 
 每个里程碑测试通过后记录一次；实现切片不单独写入产出记录。
