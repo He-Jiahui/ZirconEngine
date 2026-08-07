@@ -2,7 +2,9 @@ use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::diagnostic_log::write_log;
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
-use crate::ui::retained_host::host_contract::profiling_artifacts::export_present_artifacts;
+use crate::ui::retained_host::host_contract::profiling_artifacts::{
+    profile_capture_enabled, queue_present_artifacts,
+};
 use crate::ui::retained_host::ui_perf::{UiPerfScenario, enter_ui_perf_scenario};
 
 use super::super::UiHostWindowEventLoop;
@@ -21,8 +23,14 @@ pub(super) fn present_redraw(
     let invalidation = event_loop_state.host.refresh_invalidation_diagnostics();
     match presenter.present(&presentation, damage_region, invalidation) {
         Ok(diagnostics) => {
-            if let Some(backend) = event_loop_state.presenter_backend {
-                export_present_artifacts(
+            if let Some(backend) = event_loop_state.presenter_backend.filter(|_| {
+                should_queue_profile_artifacts(
+                    profile_capture_enabled(),
+                    event_loop_state.profile_artifact_capture_requested,
+                )
+            }) {
+                event_loop_state.profile_artifact_capture_requested = true;
+                let _ = queue_present_artifacts(
                     &presentation,
                     &event_loop_state.host.window().size(),
                     backend,
@@ -76,9 +84,13 @@ fn first_presented_frame_diagnostic(enabled: bool) -> Option<&'static str> {
     enabled.then_some("editor_first_frame_presented")
 }
 
+fn should_queue_profile_artifacts(capture_enabled: bool, already_requested: bool) -> bool {
+    capture_enabled && !already_requested
+}
+
 #[cfg(test)]
 mod tests {
-    use super::first_presented_frame_diagnostic;
+    use super::{first_presented_frame_diagnostic, should_queue_profile_artifacts};
 
     #[test]
     fn first_frame_exit_emits_a_presented_frame_diagnostic() {
@@ -91,5 +103,12 @@ mod tests {
     #[test]
     fn continuous_editor_does_not_emit_a_one_shot_presented_frame_diagnostic() {
         assert_eq!(first_presented_frame_diagnostic(false), None);
+    }
+
+    #[test]
+    fn profile_artifacts_are_explicit_and_one_shot() {
+        assert!(!should_queue_profile_artifacts(false, false));
+        assert!(should_queue_profile_artifacts(true, false));
+        assert!(!should_queue_profile_artifacts(true, true));
     }
 }

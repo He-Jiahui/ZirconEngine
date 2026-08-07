@@ -27,6 +27,7 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     ime_allowed: bool,
     current_modifiers: ModifiersState,
     next_input_sequence: u64,
+    profile_artifact_capture_requested: bool,
 }
 
 impl UiHostWindowEventLoop {
@@ -44,6 +45,7 @@ impl UiHostWindowEventLoop {
             ime_allowed: false,
             current_modifiers: ModifiersState::empty(),
             next_input_sequence: 1,
+            profile_artifact_capture_requested: false,
         }
     }
 }
