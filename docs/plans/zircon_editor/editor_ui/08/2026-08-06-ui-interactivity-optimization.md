@@ -120,6 +120,8 @@ related_code:
 
 同一精确 bundle 的进程内部 reference 与实际桌面 GPU 客户区均为 `1672x941`。从可信全桌面捕获按客户区边界裁切后，GPU 帧文件 `parity/screenshot_gpu_desktop_crop.png` 的 SHA-256 为 `3158AB31C088650B0E93DAAE5AA90238C582B50EF4917F99D4BD81B2923E6118`；相对内部 reference 的 differing-pixel ratio 为 `0.0165621`，average-channel delta 为 `0.977978/255`。目视复核确认 Workbench、Hierarchy、Inspector、Console、状态栏与 popup/chrome 层级完整，Inspector 文本无覆盖。该证据关闭当前版本 reference-vs-GPU 门槛，但不替代最新版本 GPU-vs-Softbuffer 对拍。
 
+随后用同一源码构建启用 `target-editor-host,profiling,profiling-chrome` 的独立 bundle，并通过 `ZIRCON_PROFILE_FORCE_SOFTBUFFER=1` 捕获精确 `1672x941` 客户区。bundle 位于 `C:\Users\HeJiahui\ZirconBuilds\ui-perf-validation\profile-softbuffer-fixed-20260807-0818`，`zircon_editor.exe` SHA-256 为 `4159E72ACA758C4F81C046F0EB1F4EC98DC6DB81A307E05D7AD918A07D763EFD`，`zircon_runtime.dll` SHA-256 为 `3DD843F1BA6C4E507102868168974C89CD67ACB8AE0191553E0B3A09EE151217`。Softbuffer 窗口在捕获时 responding，stderr 为 0，正常退出；reference vs Softbuffer 的 differing-pixel ratio 为 `0.000509104`、average-channel delta 为 `0.0312068/255`，GPU vs Softbuffer 为 `0.0165112` 与 `0.976091/255`。三组画面结构、clip、z-order 与内容一致，当前精确版本三向产品像素门槛关闭。
+
 每个里程碑测试通过后记录一次；实现切片不单独写入产出记录。
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
@@ -127,8 +129,8 @@ related_code:
 | M0 | 可复现基线、计数器与构建入口 | 执行中 | - | 性能采样与构建脚本已稳定；共享 support 导入修复把 `lib test` 错误从 569 降到 148，但其余并行 API 漂移仍阻止 focused test 进入目标用例。 |
 | M1 | immutable presentation 与 dirty domains | 执行中 | - | shared viewport/theme/generation 与 diagnostics 独立分代已接入；主题快照现在只在启动或 token 变化时同步，稳定 generation 读取不再访问全局主题 authority；产品配置 check 通过，完整 generation 合同测试仍受共享测试基线阻断。 |
 | M2 | generation-owned input/hit/hover index | 执行中 | - | 产品 input-to-damage p95 已达标，same-target/transient hover 与稳定索引已接入；完整 popup/clip/focus focused batch 待共享测试基线恢复。 |
-| M3 | damage paint 与有序命令提取 | 执行中 | - | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本的内部 reference 与真实 GPU 客户区对拍通过，Inspector 容器标题重叠已修复，最新版本 Softbuffer 三向对拍仍开放。 |
-| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、首帧、600-event、10 分钟压力、30 秒真实 GPU 存活与产物审计通过；旧宽刷新源码守卫、完整 focused tests 和最新 Softbuffer 对拍仍开放。 |
+| M3 | damage paint 与有序命令提取 | 执行中 | - | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本 reference/GPU/Softbuffer 三向对拍通过，Inspector 容器标题重叠已修复，完整 focused full/patch contracts 仍受共享测试基线阻断。 |
+| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活与产物审计通过；旧宽刷新源码守卫与完整 focused tests 仍开放。 |
 
 当前执行切片（不等同于里程碑完成）：2026-08-07 已完成 generation-owned shared presentation、damage-driven spatial/paint index、transient interaction、state-owned immutable theme snapshot、有界文本缓存、显式一次性异步 profile 导出、native window 同值 no-op，以及 diagnostics 独立 generation。主题 authority 只在启动或设计 token 变化时同步到 host state，普通 pointer/keyboard generation read 只克隆已有 `Arc`。Windows 原生 `cargo check -p zircon_editor --lib --locked` 在 Inspector 修复后再次通过，profiling 产品配置 `cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host,profiling --locked` 通过；`tools/tests/build-editor.Tests.ps1` 两次复核均为 `3/3` 通过；协调器 artifact audit 返回 `unmanaged: []`。
 
