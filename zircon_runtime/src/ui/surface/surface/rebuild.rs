@@ -9,8 +9,8 @@ use crate::ui::layout::{
 use crate::ui::surface::{
     build_arranged_tree,
     render::{
-        UiSurfaceRenderCacheStats,
         extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
+        UiSurfaceRenderCacheStats,
     },
 };
 use zircon_runtime_interface::ui::{
@@ -40,6 +40,15 @@ pub struct UiSurfaceRebuildReport {
     pub hit_grid_entry_count: usize,
     pub hit_grid_cell_count: usize,
     #[serde(default)]
+    /// Nodes entered by the arranged-tree builder's outer traversal.
+    pub arranged_outer_node_visit_count: usize,
+    #[serde(default)]
+    /// Nodes entered by the hit-grid builder's outer traversal.
+    pub hit_grid_outer_node_visit_count: usize,
+    #[serde(default)]
+    /// Nodes entered by the render extractor's outer traversal.
+    pub render_outer_node_visit_count: usize,
+    #[serde(default)]
     pub layout_visited_node_count: usize,
     #[serde(default)]
     pub layout_geometry_changed_node_count: usize,
@@ -51,6 +60,18 @@ pub struct UiSurfaceRebuildReport {
     pub render_command_rebuilt_count: usize,
     #[serde(default)]
     pub render_damage_rect_count: usize,
+    #[serde(default)]
+    pub text_measure_cache_hit_count: u64,
+    #[serde(default)]
+    pub text_measure_cache_miss_count: u64,
+    #[serde(default)]
+    pub text_layout_cache_hit_count: u64,
+    #[serde(default)]
+    pub text_layout_cache_miss_count: u64,
+    #[serde(default)]
+    pub text_shape_cache_hit_count: u64,
+    #[serde(default)]
+    pub text_shape_cache_miss_count: u64,
     #[serde(default)]
     pub control_pool_created_count: usize,
     #[serde(default)]
@@ -78,12 +99,21 @@ impl UiSurfaceRebuildReport {
             render_command_count: self.render_command_count,
             hit_grid_entry_count: self.hit_grid_entry_count,
             hit_grid_cell_count: self.hit_grid_cell_count,
+            arranged_outer_node_visit_count: self.arranged_outer_node_visit_count,
+            hit_grid_outer_node_visit_count: self.hit_grid_outer_node_visit_count,
+            render_outer_node_visit_count: self.render_outer_node_visit_count,
             layout_visited_node_count: self.layout_visited_node_count,
             layout_geometry_changed_node_count: self.layout_geometry_changed_node_count,
             layout_skipped_node_count: self.layout_skipped_node_count,
             render_command_reused_count: self.render_command_reused_count,
             render_command_rebuilt_count: self.render_command_rebuilt_count,
             render_damage_rect_count: self.render_damage_rect_count,
+            text_measure_cache_hit_count: self.text_measure_cache_hit_count,
+            text_measure_cache_miss_count: self.text_measure_cache_miss_count,
+            text_layout_cache_hit_count: self.text_layout_cache_hit_count,
+            text_layout_cache_miss_count: self.text_layout_cache_miss_count,
+            text_shape_cache_hit_count: self.text_shape_cache_hit_count,
+            text_shape_cache_miss_count: self.text_shape_cache_miss_count,
             control_pool_created_count: self.control_pool_created_count,
             control_pool_reused_count: self.control_pool_reused_count,
             control_pool_recycled_count: self.control_pool_recycled_count,
@@ -114,11 +144,7 @@ impl UiSurfaceRebuildReport {
                     dirty_reasons_for_widget_behavior(self.dirty_flags),
                     "widget behavior is recorded by dispatch replies, not rebuild timing",
                 ),
-                skipped_stage(
-                    UiPipelineStage::TextMeasure,
-                    dirty_reasons_for_text_measure(self.dirty_flags),
-                    "text measurement is folded into the current layout pass",
-                ),
+                text_measure_stage_report(self),
                 measured_or_skipped_stage(
                     UiPipelineStage::Layout,
                     self.layout_recomputed,
@@ -143,6 +169,8 @@ impl UiSurfaceRebuildReport {
                     dirty_reasons_for_post_layout(self.dirty_flags),
                     UiPipelineStageCounters {
                         stack_node_count: self.arranged_node_count as u64,
+                        post_layout_outer_node_visit_count: self.arranged_outer_node_visit_count
+                            as u64,
                         ..UiPipelineStageCounters::default()
                     },
                     "post-layout arranged tree did not rebuild",
@@ -154,6 +182,7 @@ impl UiSurfaceRebuildReport {
                     dirty_reasons_for_picking(self.dirty_flags),
                     UiPipelineStageCounters {
                         picking_candidate_count: self.hit_grid_entry_count as u64,
+                        picking_outer_node_visit_count: self.hit_grid_outer_node_visit_count as u64,
                         hit_grid_rebuild_count: u64::from(self.hit_grid_rebuilt),
                         ..UiPipelineStageCounters::default()
                     },
@@ -171,6 +200,8 @@ impl UiSurfaceRebuildReport {
                     dirty_reasons_for_render(self.dirty_flags),
                     UiPipelineStageCounters {
                         render_extract_command_count: self.render_command_count as u64,
+                        render_extract_outer_node_visit_count: self.render_outer_node_visit_count
+                            as u64,
                         render_command_reuse_count: self.render_command_reused_count as u64,
                         render_command_rebuild_count: self.render_command_rebuilt_count as u64,
                         ..UiPipelineStageCounters::default()
@@ -197,6 +228,66 @@ impl UiSurfaceRebuildReport {
         self.control_pool_discarded_count = counts.control_pool_discarded_count;
         self
     }
+
+    fn with_text_cache_stats(mut self, stats: UiTextCacheFrameStats) -> Self {
+        self.text_measure_cache_hit_count = stats.measure_hit_count;
+        self.text_measure_cache_miss_count = stats.measure_miss_count;
+        self.text_layout_cache_hit_count = stats.layout_hit_count;
+        self.text_layout_cache_miss_count = stats.layout_miss_count;
+        self.text_shape_cache_hit_count = stats.shape_hit_count;
+        self.text_shape_cache_miss_count = stats.shape_miss_count;
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct UiTextCacheFrameStats {
+    measure_hit_count: u64,
+    measure_miss_count: u64,
+    layout_hit_count: u64,
+    layout_miss_count: u64,
+    shape_hit_count: u64,
+    shape_miss_count: u64,
+}
+
+fn text_measure_stage_report(rebuild: UiSurfaceRebuildReport) -> UiPipelineStageReport {
+    let counters = UiPipelineStageCounters {
+        text_measure_count: rebuild
+            .text_measure_cache_hit_count
+            .saturating_add(rebuild.text_measure_cache_miss_count),
+        content_measure_count: rebuild
+            .text_layout_cache_hit_count
+            .saturating_add(rebuild.text_layout_cache_miss_count),
+        text_measure_cache_hit_count: rebuild.text_measure_cache_hit_count,
+        text_measure_cache_miss_count: rebuild.text_measure_cache_miss_count,
+        text_layout_cache_hit_count: rebuild.text_layout_cache_hit_count,
+        text_layout_cache_miss_count: rebuild.text_layout_cache_miss_count,
+        text_shape_cache_hit_count: rebuild.text_shape_cache_hit_count,
+        text_shape_cache_miss_count: rebuild.text_shape_cache_miss_count,
+        ..UiPipelineStageCounters::default()
+    };
+    if counters.text_measure_count == 0
+        && counters.content_measure_count == 0
+        && counters.text_shape_cache_hit_count == 0
+        && counters.text_shape_cache_miss_count == 0
+    {
+        return skipped_stage(
+            UiPipelineStage::TextMeasure,
+            dirty_reasons_for_text_measure(rebuild.dirty_flags),
+            "text measurement did not run for this surface rebuild",
+        );
+    }
+
+    let mut report = UiPipelineStageReport::new(
+        UiPipelineStage::TextMeasure,
+        0,
+        dirty_reasons_for_text_measure(rebuild.dirty_flags),
+        counters,
+    );
+    report
+        .notes
+        .push("text timing is folded into layout and render extract stages".to_string());
+    report
 }
 
 fn measured_or_skipped_stage(
@@ -346,6 +437,20 @@ impl UiSurface {
         update.stats
     }
 
+    fn text_cache_frame_stats(&self) -> UiTextCacheFrameStats {
+        let measure = self.text_measure_cache.frame_measure_report();
+        let layout = self.text_measure_cache.frame_layout_report();
+        let shape = self.text_measure_cache.frame_shaped_run_report();
+        UiTextCacheFrameStats {
+            measure_hit_count: measure.hit_count,
+            measure_miss_count: measure.miss_count,
+            layout_hit_count: layout.hit_count,
+            layout_miss_count: layout.miss_count,
+            shape_hit_count: shape.hit_count,
+            shape_miss_count: shape.miss_count,
+        }
+    }
+
     pub(crate) fn refresh_render_extract_for_current_tree(&mut self) {
         self.arranged_tree = build_arranged_tree(&self.tree);
         let _ = self.rebuild_render_extract(false);
@@ -362,12 +467,16 @@ impl UiSurface {
         let render_start = Instant::now();
         let render_stats = self.rebuild_render_extract(true);
         let render_elapsed_micros = elapsed_micros(render_start);
+        let text_cache_stats = self.text_cache_frame_stats();
         self.last_rebuild_report = UiSurfaceRebuildReport {
             dirty_flags,
             dirty_node_count,
             arranged_rebuilt: true,
             hit_grid_rebuilt: true,
             render_rebuilt: true,
+            arranged_outer_node_visit_count: self.tree.nodes.len(),
+            hit_grid_outer_node_visit_count: self.arranged_tree.draw_order.len(),
+            render_outer_node_visit_count: self.arranged_tree.draw_order.len(),
             layout_visited_node_count: self.tree.nodes.len(),
             layout_geometry_changed_node_count: self.tree.nodes.len(),
             render_command_reused_count: render_stats.reused_command_count,
@@ -377,7 +486,8 @@ impl UiSurface {
             hit_grid_elapsed_micros,
             render_elapsed_micros,
             ..self.rebuild_counts()
-        };
+        }
+        .with_text_cache_stats(text_cache_stats);
         self.seed_popup_stack_from_tree_metadata();
         self.reset_pending_pool_report();
     }
@@ -474,6 +584,7 @@ impl UiSurface {
             let render_start = Instant::now();
             let render_stats = self.rebuild_render_extract_with_text_frame(false, false);
             let render_elapsed_micros = elapsed_micros(render_start);
+            let text_cache_stats = self.text_cache_frame_stats();
             let report = UiSurfaceRebuildReport {
                 dirty_flags: dirty,
                 dirty_node_count,
@@ -481,6 +592,9 @@ impl UiSurface {
                 arranged_rebuilt: true,
                 hit_grid_rebuilt: true,
                 render_rebuilt: true,
+                arranged_outer_node_visit_count: self.tree.nodes.len(),
+                hit_grid_outer_node_visit_count: self.arranged_tree.draw_order.len(),
+                render_outer_node_visit_count: self.arranged_tree.draw_order.len(),
                 layout_visited_node_count: layout_stats.visited_node_count,
                 layout_geometry_changed_node_count: layout_stats.geometry_changed_node_count,
                 layout_skipped_node_count: layout_stats.skipped_node_count,
@@ -492,7 +606,8 @@ impl UiSurface {
                 hit_grid_elapsed_micros,
                 render_elapsed_micros,
                 ..self.rebuild_counts()
-            };
+            }
+            .with_text_cache_stats(text_cache_stats);
             self.last_rebuild_report = report;
             self.clear_dirty_flags();
             self.reset_pending_pool_report();
@@ -513,6 +628,8 @@ impl UiSurface {
             report.hit_grid_elapsed_micros = elapsed_micros(hit_start);
             report.arranged_rebuilt = true;
             report.hit_grid_rebuilt = true;
+            report.arranged_outer_node_visit_count = self.tree.nodes.len();
+            report.hit_grid_outer_node_visit_count = self.arranged_tree.draw_order.len();
         }
         if dirty.render {
             let render_start = Instant::now();
@@ -522,6 +639,8 @@ impl UiSurface {
             report.render_command_reused_count = render_stats.reused_command_count;
             report.render_command_rebuilt_count = render_stats.rebuilt_command_count;
             report.render_damage_rect_count = render_stats.damage_rect_count;
+            report.render_outer_node_visit_count = self.arranged_tree.draw_order.len();
+            report = report.with_text_cache_stats(self.text_cache_frame_stats());
         }
         report = UiSurfaceRebuildReport {
             ..report.with_counts(self.rebuild_counts())
@@ -551,6 +670,7 @@ impl UiSurface {
         let render_start = Instant::now();
         let render_stats = self.rebuild_render_extract_with_text_frame(true, false);
         let render_elapsed_micros = elapsed_micros(render_start);
+        let text_cache_stats = self.text_cache_frame_stats();
         self.last_rebuild_report = UiSurfaceRebuildReport {
             dirty_flags,
             dirty_node_count,
@@ -558,6 +678,9 @@ impl UiSurface {
             arranged_rebuilt: true,
             hit_grid_rebuilt: true,
             render_rebuilt: true,
+            arranged_outer_node_visit_count: self.tree.nodes.len(),
+            hit_grid_outer_node_visit_count: self.arranged_tree.draw_order.len(),
+            render_outer_node_visit_count: self.arranged_tree.draw_order.len(),
             layout_visited_node_count: self.tree.nodes.len(),
             layout_geometry_changed_node_count: self.tree.nodes.len(),
             layout_skipped_node_count: 0,
@@ -569,7 +692,8 @@ impl UiSurface {
             hit_grid_elapsed_micros,
             render_elapsed_micros,
             ..self.rebuild_counts()
-        };
+        }
+        .with_text_cache_stats(text_cache_stats);
         self.seed_popup_stack_from_tree_metadata();
         self.clear_dirty_flags();
         self.reset_pending_pool_report();

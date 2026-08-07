@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{UiFrame, UiSize},
     pipeline::{UiPipelineDirtyReason, UiPipelineStage},
-    tree::{UiInputPolicy, UiTreeNode},
+    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
 #[test]
@@ -64,6 +64,14 @@ fn surface_frame_pipeline_report_uses_required_stage_order() {
     );
     assert_eq!(
         pipeline
+            .stage_report(UiPipelineStage::PostLayout)
+            .unwrap()
+            .counters
+            .post_layout_outer_node_visit_count,
+        surface.tree.nodes.len() as u64
+    );
+    assert_eq!(
+        pipeline
             .stage_report(UiPipelineStage::Picking)
             .unwrap()
             .counters
@@ -72,11 +80,27 @@ fn surface_frame_pipeline_report_uses_required_stage_order() {
     );
     assert_eq!(
         pipeline
+            .stage_report(UiPipelineStage::Picking)
+            .unwrap()
+            .counters
+            .picking_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len() as u64
+    );
+    assert_eq!(
+        pipeline
             .stage_report(UiPipelineStage::RenderExtract)
             .unwrap()
             .counters
             .render_extract_command_count,
         surface.render_extract.list.commands.len() as u64
+    );
+    assert_eq!(
+        pipeline
+            .stage_report(UiPipelineStage::RenderExtract)
+            .unwrap()
+            .counters
+            .render_extract_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len() as u64
     );
 }
 
@@ -142,6 +166,51 @@ fn surface_frame_pipeline_report_keeps_render_only_rebuild_scoped() {
 }
 
 #[test]
+fn surface_pipeline_report_exposes_text_cache_work() {
+    let mut surface = surface_with_button();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("text node should exist")
+        .template_metadata = Some(UiTemplateNodeMetadata {
+        component: "Text".to_string(),
+        attributes: toml::from_str(
+            r#"
+text = "Measured label"
+editable_text = true
+font_size = 10.0
+line_height = 12.0
+wrap = "Word"
+"#,
+        )
+        .expect("text metadata should parse"),
+        ..UiTemplateNodeMetadata::default()
+    });
+
+    surface.compute_layout(UiSize::new(120.0, 60.0)).unwrap();
+    let first = surface.surface_frame().pipeline_report;
+    let first_text = first
+        .stage_report(UiPipelineStage::TextMeasure)
+        .expect("text stage should be reported");
+
+    assert!(!first_text.skipped);
+    assert_eq!(first_text.counters.text_measure_cache_miss_count, 1);
+    assert_eq!(first_text.counters.text_layout_cache_miss_count, 1);
+    assert!(first_text.counters.text_shape_cache_miss_count > 0);
+
+    surface.rebuild();
+    let forced_rebuild = surface.surface_frame().pipeline_report;
+    let forced_rebuild_text = forced_rebuild
+        .stage_report(UiPipelineStage::TextMeasure)
+        .expect("forced-rebuild text stage should be reported");
+
+    assert!(!forced_rebuild_text.skipped);
+    assert_eq!(forced_rebuild_text.counters.text_layout_cache_hit_count, 1);
+    assert_eq!(forced_rebuild_text.counters.text_layout_cache_miss_count, 0);
+    assert_eq!(forced_rebuild_text.counters.text_shape_cache_miss_count, 0);
+}
+
+#[test]
 fn debug_snapshot_carries_surface_pipeline_report() {
     let mut surface = surface_with_button();
 
@@ -158,7 +227,12 @@ fn surface_with_button() -> UiSurface {
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
             .with_frame(UiFrame::new(0.0, 0.0, 120.0, 60.0))
-            .with_input_policy(UiInputPolicy::Ignore),
+            .with_input_policy(UiInputPolicy::Ignore)
+            .with_state_flags(UiStateFlags {
+                visible: true,
+                enabled: true,
+                ..UiStateFlags::default()
+            }),
     );
     surface
         .tree

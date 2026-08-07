@@ -15,12 +15,24 @@ pub struct UiPipelineStageCounters {
     pub full_layout_count: u64,
     pub incremental_layout_count: u64,
     pub stack_node_count: u64,
+    /// Nodes entered by the post-layout stage's outer traversal.
+    pub post_layout_outer_node_visit_count: u64,
     pub picking_candidate_count: u64,
+    /// Nodes entered by the picking stage's outer traversal.
+    pub picking_outer_node_visit_count: u64,
     pub hit_grid_rebuild_count: u64,
     pub accessibility_node_count: u64,
     pub render_extract_command_count: u64,
+    /// Nodes entered by the render-extract stage's outer traversal.
+    pub render_extract_outer_node_visit_count: u64,
     pub render_command_reuse_count: u64,
     pub render_command_rebuild_count: u64,
+    pub text_measure_cache_hit_count: u64,
+    pub text_measure_cache_miss_count: u64,
+    pub text_layout_cache_hit_count: u64,
+    pub text_layout_cache_miss_count: u64,
+    pub text_shape_cache_hit_count: u64,
+    pub text_shape_cache_miss_count: u64,
     pub batch_count: u64,
     pub paint_submit_count: u64,
     pub diagnostic_record_count: u64,
@@ -39,12 +51,21 @@ impl UiPipelineStageCounters {
         self.full_layout_count += other.full_layout_count;
         self.incremental_layout_count += other.incremental_layout_count;
         self.stack_node_count += other.stack_node_count;
+        self.post_layout_outer_node_visit_count += other.post_layout_outer_node_visit_count;
         self.picking_candidate_count += other.picking_candidate_count;
+        self.picking_outer_node_visit_count += other.picking_outer_node_visit_count;
         self.hit_grid_rebuild_count += other.hit_grid_rebuild_count;
         self.accessibility_node_count += other.accessibility_node_count;
         self.render_extract_command_count += other.render_extract_command_count;
+        self.render_extract_outer_node_visit_count += other.render_extract_outer_node_visit_count;
         self.render_command_reuse_count += other.render_command_reuse_count;
         self.render_command_rebuild_count += other.render_command_rebuild_count;
+        self.text_measure_cache_hit_count += other.text_measure_cache_hit_count;
+        self.text_measure_cache_miss_count += other.text_measure_cache_miss_count;
+        self.text_layout_cache_hit_count += other.text_layout_cache_hit_count;
+        self.text_layout_cache_miss_count += other.text_layout_cache_miss_count;
+        self.text_shape_cache_hit_count += other.text_shape_cache_hit_count;
+        self.text_shape_cache_miss_count += other.text_shape_cache_miss_count;
         self.batch_count += other.batch_count;
         self.paint_submit_count += other.paint_submit_count;
         self.diagnostic_record_count += other.diagnostic_record_count;

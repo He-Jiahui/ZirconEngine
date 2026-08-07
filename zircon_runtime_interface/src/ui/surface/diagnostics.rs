@@ -151,6 +151,15 @@ pub struct UiSurfaceRebuildDebugStats {
     pub hit_grid_entry_count: usize,
     pub hit_grid_cell_count: usize,
     #[serde(default)]
+    /// Nodes entered by the arranged-tree builder's outer traversal.
+    pub arranged_outer_node_visit_count: usize,
+    #[serde(default)]
+    /// Nodes entered by the hit-grid builder's outer traversal.
+    pub hit_grid_outer_node_visit_count: usize,
+    #[serde(default)]
+    /// Nodes entered by the render extractor's outer traversal.
+    pub render_outer_node_visit_count: usize,
+    #[serde(default)]
     pub layout_visited_node_count: usize,
     #[serde(default)]
     pub layout_geometry_changed_node_count: usize,
@@ -162,6 +171,18 @@ pub struct UiSurfaceRebuildDebugStats {
     pub render_command_rebuilt_count: usize,
     #[serde(default)]
     pub render_damage_rect_count: usize,
+    #[serde(default)]
+    pub text_measure_cache_hit_count: u64,
+    #[serde(default)]
+    pub text_measure_cache_miss_count: u64,
+    #[serde(default)]
+    pub text_layout_cache_hit_count: u64,
+    #[serde(default)]
+    pub text_layout_cache_miss_count: u64,
+    #[serde(default)]
+    pub text_shape_cache_hit_count: u64,
+    #[serde(default)]
+    pub text_shape_cache_miss_count: u64,
     #[serde(default)]
     pub control_pool_created_count: usize,
     #[serde(default)]
