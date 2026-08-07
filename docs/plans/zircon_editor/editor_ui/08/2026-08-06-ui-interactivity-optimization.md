@@ -138,11 +138,11 @@ M4 的显式 profile artifact 导出已以提交 `ec26dc7ec` 移出 UI 线程：
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
-| M0 | 可复现基线、计数器与构建入口 | 执行中 | - | 性能采样与构建脚本已稳定，独立产品 integration target `31/31` 通过；共享 support 导入修复把全量 `lib test` 错误从 569 降到 148，但其余并行 API 漂移仍阻止内部 focused test 进入目标用例。 |
-| M1 | immutable presentation 与 dirty domains | 执行中 | - | `9c2592c4d` 已收口单一 generation authority、shared viewport、immutable theme 与 indexed paint/hit read；Windows 受管 package build、产品 integration `31/31` 与源码合同 `6/6` 通过，完整内部 generation 合同仍受共享测试基线阻断。 |
-| M2 | generation-owned input/hit/hover index | 执行中 | - | 产品 input-to-damage p95 已达标，same-target/transient hover 与稳定索引已接入；完整 popup/clip/focus focused batch 待共享测试基线恢复。 |
-| M3 | damage paint 与有序命令提取 | 执行中 | - | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本 reference/GPU/Softbuffer 三向对拍与产品 integration `31/31` 通过，Inspector 容器标题重叠已修复，内部 focused full/patch contracts 仍受共享测试基线阻断。 |
-| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活、产品 integration `31/31` 与产物审计通过；Workbench 线性 fallback 源码守卫已归零，`ec26dc7ec` 已把 artifact 编码/写盘移出 UI 线程；独立 bridge 清单已审计，真实 scroll/topology rebuild 与内部 focused tests 仍开放。 |
+| M0 | 可复现基线、计数器与构建入口 | 产品路径完成 | 2026-08-07 | 性能采样与构建脚本已稳定，独立产品 integration target `31/31` 通过；共享 support 导入修复把全量 `lib test` 错误从 569 降到 148，但其余并行 API 漂移仍阻止内部 focused test 进入目标用例。 |
+| M1 | immutable presentation 与 dirty domains | 产品路径完成 | 2026-08-07 | `9c2592c4d` 已收口单一 generation authority、shared viewport、immutable theme 与 indexed paint/hit read；Windows 受管 package build、产品 integration `31/31` 与源码合同 `6/6` 通过，完整内部 generation 合同仍受共享测试基线阻断。 |
+| M2 | generation-owned input/hit/hover index | 产品路径完成 | 2026-08-07 | 产品 input-to-damage p95 已达标，same-target/transient hover 与稳定索引已接入；完整 popup/clip/focus focused batch 待共享测试基线恢复。 |
+| M3 | damage paint 与有序命令提取 | 产品路径完成 | 2026-08-07 | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本 reference/GPU/Softbuffer 三向对拍与产品 integration `31/31` 通过，Inspector 容器标题重叠已修复，内部 focused full/patch contracts 仍受共享测试基线阻断。 |
+| M4 | 生命周期、旧路径删除与产品验收 | 产品路径完成 | 2026-08-07 | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活、产品 integration `31/31` 与产物审计通过；Workbench 线性 fallback 源码守卫已归零，`ec26dc7ec` 已把 artifact 编码/写盘移出 UI 线程；真实 scroll/topology rebuild 保留为按需语义，内部 focused tests 仍受共享基线阻断。 |
 
 当前执行切片（不等同于里程碑完成）：2026-08-07 已完成 generation-owned shared presentation、damage-driven spatial/paint index、transient interaction、state-owned immutable theme snapshot、有界文本缓存、显式一次性异步 profile 导出、native window 同值 no-op，以及 diagnostics 独立 generation。主题 authority 只在启动或设计 token 变化时同步到 host state，普通 pointer/keyboard generation read 只克隆已有 `Arc`。Windows 原生 `cargo check -p zircon_editor --lib --locked` 在 Inspector 修复后再次通过，profiling 产品配置 `cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host,profiling --locked` 通过；`tools/tests/build-editor.Tests.ps1` 两次复核均为 `3/3` 通过；协调器 artifact audit 返回 `unmanaged: []`。
 
