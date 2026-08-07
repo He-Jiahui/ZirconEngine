@@ -1,5 +1,6 @@
 mod clip;
 mod draw;
+mod hover;
 mod transform;
 
 #[cfg(test)]

@@ -1,12 +1,12 @@
 mod markers;
 
 use self::markers::{draw_debug_refresh_rate_marker, draw_project_marker};
-use super::super::data::HostWindowPresentationData;
+use super::super::data::{paint_debug_refresh_rate, HostWindowPresentationData};
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_primitives::{
     draw_border, draw_label_marker, draw_rect, draw_separator_line,
 };
-use super::super::paint_theme::{HostMaterialPalette, current_host_metrics, current_host_palette};
+use super::super::paint_theme::{current_host_metrics, current_host_palette, HostMaterialPalette};
 use super::root_frames::RootFrames;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,13 +74,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_root_skeleton(
         palette,
         metrics,
     );
-    draw_debug_refresh_rate_marker(
-        frame,
-        &root.top_bar,
-        &presentation.host_shell.debug_refresh_rate,
-        palette,
-        metrics,
-    );
+    let debug_refresh_rate = paint_debug_refresh_rate(presentation);
+    draw_debug_refresh_rate_marker(frame, &root.top_bar, &debug_refresh_rate, palette, metrics);
     draw_label_marker(
         frame,
         &root.viewport_region,

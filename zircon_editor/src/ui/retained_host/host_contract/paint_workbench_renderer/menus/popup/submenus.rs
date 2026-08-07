@@ -1,7 +1,7 @@
 use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::super::data::{
-    FrameRect, HostMenuChromeItemData, HostWindowPresentationData,
+    FrameRect, HostMenuChromeItemData, HostMenuStateData, HostWindowPresentationData,
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::is_visible_frame;
@@ -18,18 +18,13 @@ use super::menu_popup_palette;
 pub(super) fn draw_open_submenu_popups(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
+    menu_state: &HostMenuStateData,
     mut items: ModelRc<HostMenuChromeItemData>,
     mut parent_popup: FrameRect,
 ) {
     let metrics = current_host_metrics();
     let palette = menu_popup_palette(current_host_palette());
-    for (level, selected_index) in presentation
-        .menu_state
-        .open_submenu_path
-        .iter()
-        .copied()
-        .enumerate()
-    {
+    for (level, selected_index) in menu_state.open_submenu_path.iter().copied().enumerate() {
         let Some(branch) = items.row_data(selected_index) else {
             break;
         };
@@ -38,7 +33,7 @@ pub(super) fn draw_open_submenu_popups(
         }
 
         let scroll_px = if level == 0 {
-            presentation.menu_state.window_menu_scroll_px
+            menu_state.window_menu_scroll_px
         } else {
             0.0
         };

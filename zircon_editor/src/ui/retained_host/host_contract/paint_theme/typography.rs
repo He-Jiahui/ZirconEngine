@@ -1,5 +1,3 @@
-use std::sync::{OnceLock, RwLock};
-
 use zircon_runtime_interface::ui::design_tokens::{
     EditorDesignTokens, EditorFontSmoothing, EditorTypographyTokens, EditorUtilityTabTextRole,
 };
@@ -41,26 +39,15 @@ impl HostTextPreferences {
 }
 
 pub(crate) fn current_host_text_preferences() -> HostTextPreferences {
-    match host_text_preferences().read() {
-        Ok(preferences) => preferences.clone(),
-        Err(poisoned) => poisoned.into_inner().clone(),
-    }
+    super::host_text_preferences_for_read()
 }
 
 pub(crate) fn apply_host_text_preferences(preferences: HostTextPreferences) {
-    match host_text_preferences().write() {
-        Ok(mut current_preferences) => *current_preferences = preferences,
-        Err(poisoned) => *poisoned.into_inner() = preferences,
-    }
+    super::replace_host_text_preferences(preferences);
 }
 
 pub(crate) fn project_host_text_preferences(tokens: &EditorDesignTokens) -> HostTextPreferences {
     project_typography_tokens(&tokens.typography)
-}
-
-fn host_text_preferences() -> &'static RwLock<HostTextPreferences> {
-    static PREFERENCES: OnceLock<RwLock<HostTextPreferences>> = OnceLock::new();
-    PREFERENCES.get_or_init(|| RwLock::new(HostTextPreferences::default()))
 }
 
 fn project_typography_tokens(tokens: &EditorTypographyTokens) -> HostTextPreferences {

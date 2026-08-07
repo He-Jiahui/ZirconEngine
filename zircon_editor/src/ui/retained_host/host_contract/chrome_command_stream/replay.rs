@@ -1,6 +1,7 @@
 use super::ChromeCommandStream;
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 mod commands;
 
@@ -39,6 +40,7 @@ fn paint_chrome_command_stream_into_frame(frame: &mut HostRgbaFrame, stream: &Ch
         return;
     }
 
+    record_current_ui_perf_counter(UiPerfCounter::FallbackSortCount, 1.0);
     let mut ordered = commands.iter().enumerate().collect::<Vec<_>>();
     ordered.sort_by_key(|(index, command)| (command.z_index, *index));
     for (_, command) in ordered {

@@ -1,25 +1,30 @@
-use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
+use crate::ui::retained_host::host_contract::data::HostPresentationGeneration;
 use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 
 use super::super::menu_geometry::{
-    menu_damage_frame, menu_handles_point, menu_popup_handles_point,
+    menu_damage_frame_with_state, menu_handles_point_with_state,
+    menu_popup_handles_point_with_state,
 };
 
 pub(super) fn dispatch_menu_pointer_scroll(
     ui: &UiHostWindow,
-    presentation: &HostWindowPresentationData,
+    generation: &HostPresentationGeneration,
     x: f32,
     y: f32,
     delta: f32,
 ) -> Option<NativePointerDispatchResult> {
-    if !menu_handles_point(presentation, x, y) && !menu_popup_handles_point(presentation, x, y) {
+    let structure = generation.structure();
+    let menu_state = generation.menu_state();
+    let handles_menu_bar = menu_handles_point_with_state(structure, menu_state, x, y);
+    let handles_popup = menu_popup_handles_point_with_state(structure, menu_state, x, y);
+    if !handles_menu_bar && !handles_popup {
         return None;
     }
     ui.global::<UiHostContext>()
         .invoke_menu_pointer_scrolled(x, y, delta);
-    Some(NativePointerDispatchResult::region(menu_damage_frame(
-        presentation,
-    )))
+    Some(NativePointerDispatchResult::region(
+        menu_damage_frame_with_state(structure, menu_state),
+    ))
 }

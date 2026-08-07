@@ -1,7 +1,7 @@
 use super::menu::menu_popup_keyboard_target;
 use super::model::PopupKeyboardTarget;
 use super::options::option_popup_keyboard_target;
-use super::page_overflow::host_page_overflow_keyboard_target;
+use super::page_overflow::host_page_overflow_keyboard_target_with_state;
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplatePaneNodeData,
 };
@@ -12,16 +12,25 @@ use crate::ui::retained_host::primitives::ModelRc;
 pub(in crate::ui::retained_host::host_contract) fn active_popup_keyboard_target_for_ui(
     ui: &UiHostWindow,
 ) -> Option<PopupKeyboardTarget> {
-    let presentation = ui.get_host_presentation();
-    if let Some(target) = host_page_overflow_keyboard_target(&presentation) {
-        return Some(target);
+    let generation = ui.get_host_presentation_generation();
+    if generation.page_overflow_menu_state().open {
+        if let Some(target) = host_page_overflow_keyboard_target_with_state(
+            generation.structure(),
+            generation.page_overflow_menu_state(),
+        ) {
+            return Some(target);
+        }
     }
-    let interaction = ui.get_pane_interaction_state();
+    if !generation.workbench_hit_index().has_popup_rows() {
+        return None;
+    }
+    let presentation = generation.structure();
+    let interaction = generation.pane_interaction_state();
     let bounds = template_popup_bounds(
         &presentation.host_shell.native_window_bounds,
         &presentation.workbench_window_nodes,
     );
-    active_popup_keyboard_target(&presentation.workbench_window_nodes, &interaction, &bounds)
+    active_popup_keyboard_target(&presentation.workbench_window_nodes, interaction, &bounds)
 }
 
 fn active_popup_keyboard_target(

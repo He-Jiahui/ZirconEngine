@@ -1,9 +1,9 @@
-use super::super::super::data::{FrameRect, HostWindowPresentationData};
+use super::super::super::data::{paint_menu_state, FrameRect, HostWindowPresentationData};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_primitives::draw_border_clipped;
 use super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::paint_theme::{
-    HostControlMetrics, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostControlMetrics,
 };
 use super::geometry::scrolled_menu_frame;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -15,6 +15,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_bar_labels(
     let scene = &presentation.host_scene_data;
     let metrics = current_host_metrics();
     let palette = current_host_palette();
+    let menu_state = paint_menu_state(presentation);
     let clip = FrameRect {
         x: 0.0,
         y: 0.0,
@@ -32,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_bar_labels(
         let Some(menu) = scene.menu_chrome.menus.row_data(row) else {
             continue;
         };
-        let color = if presentation.menu_state.open_menu_index == row as i32 {
+        let color = if menu_state.open_menu_index == row as i32 {
             palette.accent
         } else {
             palette.text_muted

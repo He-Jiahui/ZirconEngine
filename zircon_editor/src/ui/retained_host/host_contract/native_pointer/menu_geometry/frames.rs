@@ -12,6 +12,6 @@ pub(in crate::ui::retained_host::host_contract) use self::content::{
 };
 pub(in crate::ui::retained_host::host_contract) use self::popup::constrained_menu_popup_frame;
 pub(in crate::ui::retained_host::host_contract) use self::row::{
-    menu_popup_height, menu_popup_row_frame, scrolled_menu_frame,
+    menu_popup_height, menu_popup_row_frame, scrolled_menu_frame, scrolled_menu_frame_with_state,
 };
 pub(in crate::ui::retained_host::host_contract) use self::submenu::constrained_submenu_popup_frame;

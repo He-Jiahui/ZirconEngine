@@ -1,8 +1,8 @@
-use super::data::{FrameRect, HostWindowPresentationData};
+use super::data::{FrameRect, HostPageOverflowMenuStateData, HostWindowPresentationData};
 use super::menu_popup_metrics::{
+    menu_popup_outer_padding, menu_popup_row_stride, menu_popup_shell_padding,
     MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT, MENU_POPUP_SHELL_MARGIN,
-    MENU_POPUP_TEXT_INSET_X, menu_popup_outer_padding, menu_popup_row_stride,
-    menu_popup_shell_padding,
+    MENU_POPUP_TEXT_INSET_X,
 };
 #[cfg(test)]
 use super::paint_text::measure_runtime_text_width;
@@ -24,7 +24,17 @@ struct HostPageOverflowVerticalPlacement {
 pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_popup_frame(
     presentation: &HostWindowPresentationData,
 ) -> Option<FrameRect> {
-    if !presentation.host_page_overflow_menu_state.open {
+    host_page_overflow_popup_frame_with_state(
+        presentation,
+        &presentation.host_page_overflow_menu_state,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_popup_frame_with_state(
+    presentation: &HostWindowPresentationData,
+    state: &HostPageOverflowMenuStateData,
+) -> Option<FrameRect> {
+    if !state.open {
         return None;
     }
     let overflow = &presentation.host_scene_data.page_chrome.overflow_frame;
@@ -143,10 +153,24 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_row_frame(
     popup: &FrameRect,
     row: usize,
 ) -> FrameRect {
+    host_page_overflow_row_frame_with_state(
+        presentation,
+        popup,
+        row,
+        &presentation.host_page_overflow_menu_state,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_row_frame_with_state(
+    presentation: &HostWindowPresentationData,
+    popup: &FrameRect,
+    row: usize,
+    state: &HostPageOverflowMenuStateData,
+) -> FrameRect {
     host_page_overflow_row_frame_for_scroll(
         popup,
         row,
-        host_page_overflow_clamped_scroll_offset(presentation, popup),
+        host_page_overflow_clamp_scroll_offset(presentation, popup, state.scroll_offset),
     )
 }
 
@@ -171,6 +195,18 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_visible_ro
         presentation,
         popup,
         host_page_overflow_clamped_scroll_offset(presentation, popup),
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_visible_row_range_with_state(
+    presentation: &HostWindowPresentationData,
+    popup: &FrameRect,
+    state: &HostPageOverflowMenuStateData,
+) -> std::ops::Range<usize> {
+    host_page_overflow_visible_row_range_for_scroll(
+        presentation,
+        popup,
+        host_page_overflow_clamp_scroll_offset(presentation, popup, state.scroll_offset),
     )
 }
 
@@ -221,6 +257,20 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_scroll_off
     popup: &FrameRect,
     page_index: usize,
 ) -> f32 {
+    host_page_overflow_scroll_offset_for_page_with_state(
+        presentation,
+        popup,
+        page_index,
+        &presentation.host_page_overflow_menu_state,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_scroll_offset_for_page_with_state(
+    presentation: &HostWindowPresentationData,
+    popup: &FrameRect,
+    page_index: usize,
+    state: &HostPageOverflowMenuStateData,
+) -> f32 {
     let Some(row) = presentation
         .host_scene_data
         .page_chrome
@@ -228,10 +278,10 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_scroll_off
         .iter()
         .position(|index| *index == page_index)
     else {
-        return host_page_overflow_clamped_scroll_offset(presentation, popup);
+        return host_page_overflow_clamp_scroll_offset(presentation, popup, state.scroll_offset);
     };
     let viewport_height = host_page_overflow_content_viewport_height(popup);
-    let current = host_page_overflow_clamped_scroll_offset(presentation, popup);
+    let current = host_page_overflow_clamp_scroll_offset(presentation, popup, state.scroll_offset);
     let row_top = row as f32 * menu_popup_row_stride();
     let row_bottom = row_top + MENU_POPUP_ROW_HEIGHT;
     let offset = if row_top < current {
@@ -254,7 +304,21 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_scroll_off
     popup: &FrameRect,
     delta: f32,
 ) -> f32 {
-    let current = host_page_overflow_clamped_scroll_offset(presentation, popup);
+    host_page_overflow_scroll_offset_for_delta_with_state(
+        presentation,
+        popup,
+        delta,
+        &presentation.host_page_overflow_menu_state,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_scroll_offset_for_delta_with_state(
+    presentation: &HostWindowPresentationData,
+    popup: &FrameRect,
+    delta: f32,
+    state: &HostPageOverflowMenuStateData,
+) -> f32 {
+    let current = host_page_overflow_clamp_scroll_offset(presentation, popup, state.scroll_offset);
     if !delta.is_finite() {
         return current;
     }

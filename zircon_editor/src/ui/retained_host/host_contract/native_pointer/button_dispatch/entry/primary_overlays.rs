@@ -1,4 +1,4 @@
-use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
+use crate::ui::retained_host::host_contract::data::{FrameRect, HostPresentationGeneration};
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
@@ -8,7 +8,7 @@ use super::super::primary_press::dispatch_primary_press_overlays;
 
 pub(super) fn dispatch_primary_press_overlays_if_pressed(
     ui: &UiHostWindow,
-    presentation: &HostWindowPresentationData,
+    presentation: &HostPresentationGeneration,
     state: NativePointerButtonState,
     button: UiPointerButton,
     x: f32,

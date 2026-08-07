@@ -3,14 +3,14 @@ use super::super::super::globals::{PaneSurfaceHostContext, UiHostContext};
 use super::super::super::redraw::NativePointerDispatchResult;
 use super::super::super::window::UiHostWindow;
 use super::super::target::{
-    HOST_PAGE_OVERFLOW_DISPATCH_KIND, PopupKeyboardRow, PopupKeyboardTarget,
-    PopupKeyboardWindowFocus, PopupKeyboardWindowRequest,
+    PopupKeyboardRow, PopupKeyboardTarget, PopupKeyboardWindowFocus, PopupKeyboardWindowRequest,
+    HOST_PAGE_OVERFLOW_DISPATCH_KIND,
 };
 use crate::ui::retained_host::callback_dispatch::{
     WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
 };
 use crate::ui::retained_host::host_contract::data::HostPageOverflowMenuStateData;
-use crate::ui::retained_host::host_contract::host_page_overflow_menu::host_page_overflow_scroll_offset_for_page;
+use crate::ui::retained_host::host_contract::host_page_overflow_menu::host_page_overflow_scroll_offset_for_page_with_state;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 
 pub(super) fn dispatch_popup_accept(
@@ -86,11 +86,12 @@ pub(super) fn dispatch_popup_hover_row(
         let Some(page_index) = next.source_index else {
             return NativePointerDispatchResult::idle();
         };
-        let presentation = ui.get_host_presentation();
-        let scroll_offset = host_page_overflow_scroll_offset_for_page(
-            &presentation,
+        let presentation = ui.get_host_presentation_generation();
+        let scroll_offset = host_page_overflow_scroll_offset_for_page_with_state(
+            presentation.structure(),
             &target.popup_frame,
             page_index,
+            presentation.page_overflow_menu_state(),
         );
         ui.global::<UiHostContext>()
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData {

@@ -1,7 +1,9 @@
 use super::model::{PopupKeyboardRow, PopupKeyboardTarget};
-use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
+use crate::ui::retained_host::host_contract::data::{
+    HostPageOverflowMenuStateData, HostWindowPresentationData,
+};
 use crate::ui::retained_host::host_contract::host_page_overflow_menu::{
-    host_page_overflow_popup_frame, host_page_overflow_row_frame,
+    host_page_overflow_popup_frame_with_state, host_page_overflow_row_frame_with_state,
 };
 
 const HOST_PAGE_OVERFLOW_CONTROL_ID: &str = "HostPageOverflowMenu";
@@ -11,7 +13,17 @@ pub(in crate::ui::retained_host::host_contract) const HOST_PAGE_OVERFLOW_DISPATC
 pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_keyboard_target(
     presentation: &HostWindowPresentationData,
 ) -> Option<PopupKeyboardTarget> {
-    let popup_frame = host_page_overflow_popup_frame(presentation)?;
+    host_page_overflow_keyboard_target_with_state(
+        presentation,
+        &presentation.host_page_overflow_menu_state,
+    )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_keyboard_target_with_state(
+    presentation: &HostWindowPresentationData,
+    state: &HostPageOverflowMenuStateData,
+) -> Option<PopupKeyboardTarget> {
+    let popup_frame = host_page_overflow_popup_frame_with_state(presentation, state)?;
     let hidden_indices = &presentation
         .host_scene_data
         .page_chrome
@@ -30,13 +42,15 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_keyboard_t
                 value_text: tab.title.clone(),
                 identity: tab.id.clone(),
                 search_text: tab.title.clone(),
-                focused: presentation
-                    .host_page_overflow_menu_state
-                    .hovered_page_index
-                    == *page_index as i32,
+                focused: state.hovered_page_index == *page_index as i32,
                 selected: tab.active,
                 source_index: Some(*page_index),
-                frame: host_page_overflow_row_frame(presentation, &popup_frame, row_index),
+                frame: host_page_overflow_row_frame_with_state(
+                    presentation,
+                    &popup_frame,
+                    row_index,
+                    state,
+                ),
             })
         })
         .collect::<Vec<_>>();
@@ -89,16 +103,12 @@ mod tests {
         assert_eq!(target.total_count, target.rows.len());
         assert!(!target.window_navigation_enabled);
         assert!(target.window_query.is_empty());
-        assert!(
-            target
-                .next_move(WorkbenchPopupKeyboardCommand::PageDown)
-                .is_none()
-        );
-        assert!(
-            target
-                .next_move(WorkbenchPopupKeyboardCommand::PageUp)
-                .is_none()
-        );
+        assert!(target
+            .next_move(WorkbenchPopupKeyboardCommand::PageDown)
+            .is_none());
+        assert!(target
+            .next_move(WorkbenchPopupKeyboardCommand::PageUp)
+            .is_none());
     }
 
     fn overflow_presentation() -> HostWindowPresentationData {

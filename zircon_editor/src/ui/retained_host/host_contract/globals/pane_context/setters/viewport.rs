@@ -12,7 +12,7 @@ impl PaneSurfaceHostContext<'_> {
         let Some(image) = HostViewportImageData::from_captured_frame(viewport, frame) else {
             return false;
         };
-        self.state.borrow_mut().viewport_image = Some(image);
+        self.state.borrow_mut().replace_viewport_image(image);
         true
     }
 }

@@ -13,7 +13,6 @@ mod lifecycle;
 mod metadata;
 mod presentation;
 mod redraw;
-mod template_hover;
 #[cfg(test)]
 mod test_support;
 mod text_input;

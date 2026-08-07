@@ -1,18 +1,23 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use super::super::super::super::data::{
-    FrameRect, HostWindowLayoutData, HostWindowPresentationData, TemplatePaneNodeData,
+    paint_pane_interaction_state, paint_text_input_focus, paint_viewport_image,
+    paint_workbench_hit_index, FrameRect, HostWindowLayoutData, HostWindowPresentationData,
+    TemplatePaneNodeData,
 };
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_template_nodes::{
-    TemplateNodePaintTransform, draw_template_nodes, draw_template_nodes_with_transform,
-    has_template_nodes, is_viewport_fallback_scene_node,
+    draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
+    is_viewport_fallback_scene_node, TemplateNodePaintTransform,
 };
+use super::super::super::super::surface_hit_test::HostWorkbenchHitIndex;
 use super::super::super::root_frames::{resolve_root_frames, zero_origin};
 use super::super::{chrome, dock_layer, resize};
 use super::modal;
 use super::page_overflow::draw_host_page_overflow_menu;
 use super::root_template::{draw_root_template_overlay, frame_bounds};
+use crate::ui::retained_host::primitives::ModelRc;
 
 const EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID: &str = "WorkbenchExtensionModuleWorkspacesHost";
 
@@ -22,9 +27,9 @@ struct ComponentizedChromeFallbackTransform {
 
 impl ComponentizedChromeFallbackTransform {
     fn from_presentation(presentation: &HostWindowPresentationData) -> Self {
+        let viewport_image = paint_viewport_image(presentation);
         Self {
-            suppress_viewport_fallback: presentation
-                .viewport_image
+            suppress_viewport_fallback: viewport_image
                 .as_ref()
                 .is_some_and(|image| image.is_valid()),
         }
@@ -55,6 +60,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_componentized_workbench_
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
 ) {
+    let pane_interaction_state = paint_pane_interaction_state(presentation);
+    frame.set_pane_interaction_state(&pane_interaction_state);
     let frame_bounds = frame_bounds(frame);
     let root = resolve_root_frames(frame.width(), frame.height(), presentation);
     chrome::draw_top_chrome_layers(frame, &root, presentation);
@@ -76,22 +83,34 @@ fn draw_componentized_extension_workspace(
     presentation: &HostWindowPresentationData,
     frame_bounds: &FrameRect,
 ) -> bool {
-    let Some(workspace_region) =
-        componentized_extension_workspace_region(presentation, frame_bounds)
-    else {
+    let paint_index = paint_workbench_hit_index(&presentation.workbench_window_nodes);
+    let Some(workspace_region) = componentized_extension_workspace_region(
+        presentation,
+        frame_bounds,
+        paint_index.as_deref(),
+    ) else {
         return false;
     };
+    if frame
+        .paint_clip()
+        .is_some_and(|damage| intersect_rect(&workspace_region.clip, damage).is_none())
+    {
+        return false;
+    }
     let subtree = ExtensionWorkspaceSubtree::from_presentation(
         presentation,
         workspace_region.root_node_id.as_str(),
+        workspace_region.root_row,
+        paint_index,
     );
+    let text_input_focus = paint_text_input_focus(presentation);
 
     draw_template_nodes_with_transform(
         frame,
         &presentation.workbench_window_nodes,
         &zero_origin(),
         &workspace_region.clip,
-        Some(&presentation.text_input_focus),
+        Some(&text_input_focus),
         Some(&subtree),
     )
 }
@@ -111,59 +130,71 @@ pub(crate) fn paint_componentized_extension_workspace_for_test(
 
 struct ExtensionWorkspacePaintRegion {
     root_node_id: String,
+    root_row: Option<usize>,
     clip: FrameRect,
 }
 
 struct ExtensionWorkspaceSubtree {
-    included_node_ids: BTreeSet<String>,
+    indexed_root: Option<(Arc<HostWorkbenchHitIndex>, usize)>,
+    included_rows: Vec<usize>,
 }
 
 impl ExtensionWorkspaceSubtree {
-    fn from_presentation(presentation: &HostWindowPresentationData, root_node_id: &str) -> Self {
-        let nodes = (0..presentation.workbench_window_nodes.row_count())
-            .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
-            .collect::<Vec<_>>();
-        let parents_by_node_id = nodes
+    fn from_presentation(
+        presentation: &HostWindowPresentationData,
+        root_node_id: &str,
+        root_row: Option<usize>,
+        paint_index: Option<Arc<HostWorkbenchHitIndex>>,
+    ) -> Self {
+        if let (Some(root_row), Some(index)) = (root_row, paint_index) {
+            return Self {
+                indexed_root: Some((index, root_row)),
+                included_rows: Vec::new(),
+            };
+        }
+        let nodes = &presentation.workbench_window_nodes;
+        let nodes_by_node_id = node_index(nodes);
+        let included_rows = nodes
             .iter()
-            .filter_map(|node| {
-                (!node.parent_node_id.is_empty()).then(|| {
-                    (
-                        node.node_id.as_str().to_string(),
-                        node.parent_node_id.as_str().to_string(),
-                    )
-                })
-            })
-            .collect::<BTreeMap<_, _>>();
-        let included_node_ids = nodes
-            .iter()
-            .filter_map(|node| {
-                reaches_subtree_root(node.node_id.as_str(), root_node_id, &parents_by_node_id)
-                    .then(|| node.node_id.as_str().to_string())
+            .enumerate()
+            .filter_map(|(row, node)| {
+                reaches_subtree_root(node.node_id.as_str(), root_node_id, &nodes_by_node_id)
+                    .then_some(row)
             })
             .collect();
-        Self { included_node_ids }
+        Self {
+            indexed_root: None,
+            included_rows,
+        }
     }
 }
 
 impl TemplateNodePaintTransform for ExtensionWorkspaceSubtree {
+    fn row_visit_indices(&self, _row_count: usize, clip: &FrameRect) -> Option<Vec<usize>> {
+        Some(
+            self.indexed_root
+                .as_ref()
+                .map(|(index, root_row)| index.paint_rows_for_subtree(*root_row, clip))
+                .unwrap_or_else(|| self.included_rows.clone()),
+        )
+    }
+
     fn transform(
         &self,
         node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        self.included_node_ids
-            .contains(node.node_id.as_str())
-            .then_some((node, clip))
+        Some((node, clip))
     }
 }
 
-fn reaches_subtree_root(
-    node_id: &str,
+fn reaches_subtree_root<'a>(
+    node_id: &'a str,
     root_node_id: &str,
-    parents_by_node_id: &BTreeMap<String, String>,
+    nodes_by_node_id: &HashMap<&'a str, &'a TemplatePaneNodeData>,
 ) -> bool {
     let mut current_node_id = node_id;
-    let mut visited_node_ids = BTreeSet::new();
+    let mut visited_node_ids = HashSet::new();
     loop {
         if current_node_id == root_node_id {
             return true;
@@ -171,20 +202,29 @@ fn reaches_subtree_root(
         if !visited_node_ids.insert(current_node_id) {
             return false;
         }
-        let Some(parent_node_id) = parents_by_node_id.get(current_node_id) else {
+        let Some(node) = nodes_by_node_id.get(current_node_id) else {
             return false;
         };
-        current_node_id = parent_node_id;
+        if node.parent_node_id.is_empty() {
+            return false;
+        }
+        current_node_id = node.parent_node_id.as_str();
     }
 }
 
 fn componentized_extension_workspace_region(
     presentation: &HostWindowPresentationData,
     frame_bounds: &FrameRect,
+    paint_index: Option<&HostWorkbenchHitIndex>,
 ) -> Option<ExtensionWorkspacePaintRegion> {
-    let nodes = (0..presentation.workbench_window_nodes.row_count())
-        .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
-        .collect::<Vec<_>>();
+    if let Some(workspace) = paint_index.and_then(HostWorkbenchHitIndex::extension_workspace) {
+        return Some(ExtensionWorkspacePaintRegion {
+            root_node_id: workspace.root_node_id.clone(),
+            root_row: Some(workspace.root_row),
+            clip: intersect_rect(&workspace.host_frame, frame_bounds)?,
+        });
+    }
+    let nodes = &presentation.workbench_window_nodes;
     let module_workspaces_host = nodes
         .iter()
         .find(|node| node.control_id.as_str() == EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID)?;
@@ -198,29 +238,16 @@ fn componentized_extension_workspace_region(
     };
     Some(ExtensionWorkspacePaintRegion {
         root_node_id: active_workspace_root_node_id,
+        root_row: None,
         clip: intersect_rect(&workspace_frame, frame_bounds)?,
     })
 }
 
 fn active_extension_workspace_root_node_id(
-    nodes: &[TemplatePaneNodeData],
+    nodes: &ModelRc<TemplatePaneNodeData>,
     module_workspaces_host_node_id: &str,
 ) -> Option<String> {
-    let nodes_by_node_id = nodes
-        .iter()
-        .map(|node| (node.node_id.as_str(), node))
-        .collect::<BTreeMap<_, _>>();
-    let parents_by_node_id = nodes
-        .iter()
-        .filter_map(|node| {
-            (!node.parent_node_id.is_empty()).then(|| {
-                (
-                    node.node_id.as_str().to_string(),
-                    node.parent_node_id.as_str().to_string(),
-                )
-            })
-        })
-        .collect::<BTreeMap<_, _>>();
+    let nodes_by_node_id = node_index(nodes);
 
     nodes
         .iter()
@@ -234,10 +261,18 @@ fn active_extension_workspace_root_node_id(
                 && reaches_subtree_root(
                     node.node_id.as_str(),
                     module_workspaces_host_node_id,
-                    &parents_by_node_id,
+                    &nodes_by_node_id,
                 )
         })
         .map(|node| node.node_id.as_str().to_string())
+}
+
+fn node_index(nodes: &ModelRc<TemplatePaneNodeData>) -> HashMap<&str, &TemplatePaneNodeData> {
+    nodes
+        .iter()
+        .filter(|node| !node.node_id.is_empty())
+        .map(|node| (node.node_id.as_str(), node))
+        .collect()
 }
 
 fn is_extension_workspace_root_control(control_id: &str) -> bool {
@@ -270,12 +305,13 @@ fn draw_componentized_workbench_chrome(
         componentized_chrome_clips(&presentation.host_layout, frame_bounds)
     else {
         let transform = ComponentizedChromeFallbackTransform::from_presentation(presentation);
+        let text_input_focus = paint_text_input_focus(presentation);
         draw_template_nodes_with_transform(
             frame,
             &presentation.workbench_window_nodes,
             &zero_origin(),
             frame_bounds,
-            Some(&presentation.text_input_focus),
+            Some(&text_input_focus),
             Some(&transform),
         );
         return;
@@ -293,13 +329,14 @@ fn draw_componentized_workbench_chrome_clip(
     if !visible_rect(clip) {
         return;
     }
+    let text_input_focus = paint_text_input_focus(presentation);
 
     draw_template_nodes(
         frame,
         &presentation.workbench_window_nodes,
         &zero_origin(),
         clip,
-        Some(&presentation.text_input_focus),
+        Some(&text_input_focus),
     );
 }
 

@@ -16,9 +16,10 @@ impl RetainedEditorHost {
             &mut self.viewport_toolbar_bridge,
             document_viewport_toolbar_width,
         );
+        let generation = self.ui.get_host_presentation_generation();
         let world_space_ui_surfaces =
             crate::ui::retained_host::build_world_space_ui_surface_submissions_from_host_scene(
-                &self.ui.get_host_presentation().host_scene_data,
+                &generation.structure().host_scene_data,
             );
         self.viewport
             .submit_world_space_ui_surfaces(world_space_ui_surfaces);

@@ -14,7 +14,7 @@ impl UiHostWindow {
     pub(crate) fn dispatch_focused_text_insert(&self, text: &str) -> NativePointerDispatchResult {
         let (focus, value) = {
             let mut state = self.state.borrow_mut();
-            let focus = state.text_input_focus.clone();
+            let focus = state.text_input_focus.as_ref().clone();
             if !focus.is_active() {
                 return NativePointerDispatchResult::idle();
             }
@@ -25,7 +25,9 @@ impl UiHostWindow {
                 return NativePointerDispatchResult::idle();
             }
             let value: SharedString = value.into();
-            state.text_input_focus.value_text = value.clone();
+            let mut next_focus = focus.clone();
+            next_focus.value_text = value.clone();
+            state.replace_text_input_focus(next_focus);
             (focus, value)
         };
         let target_id = focus.edit_target_id();
@@ -35,7 +37,7 @@ impl UiHostWindow {
     pub(crate) fn dispatch_focused_text_backspace(&self) -> NativePointerDispatchResult {
         let (focus, value) = {
             let mut state = self.state.borrow_mut();
-            let focus = state.text_input_focus.clone();
+            let focus = state.text_input_focus.as_ref().clone();
             if !focus.is_active() {
                 return NativePointerDispatchResult::idle();
             }
@@ -44,7 +46,9 @@ impl UiHostWindow {
                 return NativePointerDispatchResult::idle();
             }
             let value: SharedString = value.into();
-            state.text_input_focus.value_text = value.clone();
+            let mut next_focus = focus.clone();
+            next_focus.value_text = value.clone();
+            state.replace_text_input_focus(next_focus);
             (focus, value)
         };
         let target_id = focus.edit_target_id();
@@ -54,7 +58,7 @@ impl UiHostWindow {
     pub(in crate::ui::retained_host::host_contract) fn dispatch_focused_text_commit(
         &self,
     ) -> NativePointerDispatchResult {
-        let focus = self.state.borrow().text_input_focus.clone();
+        let focus = self.state.borrow().text_input_focus.as_ref().clone();
         if !focus.is_active() || focus.commit_action_id.is_empty() {
             return NativePointerDispatchResult::idle();
         }

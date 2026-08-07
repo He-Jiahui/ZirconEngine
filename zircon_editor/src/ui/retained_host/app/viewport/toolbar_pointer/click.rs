@@ -1,7 +1,7 @@
 use super::super::super::RetainedEditorHost;
 use crate::ui::retained_host::{
-    HostWindowPresentationData, callback_dispatch,
-    viewport_toolbar_pointer::build_viewport_toolbar_pointer_layout_with_size,
+    callback_dispatch, viewport_toolbar_pointer::build_viewport_toolbar_pointer_layout_with_size,
+    HostWindowPresentationData,
 };
 use zircon_runtime_interface::ui::{layout::UiPoint, layout::UiSize, surface::UiSurfaceFrame};
 
@@ -28,10 +28,10 @@ impl RetainedEditorHost {
                 surface_size,
             ));
 
-        let Some(surface_frame) = viewport_toolbar_surface_frame_for_surface(
-            &self.ui.get_host_presentation(),
-            surface_key,
-        ) else {
+        let generation = self.ui.get_host_presentation_generation();
+        let Some(surface_frame) =
+            viewport_toolbar_surface_frame_for_surface(generation.structure(), surface_key)
+        else {
             self.set_status_line(format!(
                 "Missing viewport toolbar surface frame for {surface_key}"
             ));

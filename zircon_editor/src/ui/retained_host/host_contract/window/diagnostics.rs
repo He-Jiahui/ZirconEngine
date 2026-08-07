@@ -25,7 +25,8 @@ impl UiHostWindow {
     }
 
     fn set_host_refresh_diagnostics_overlay_text(&self, overlay_text: SharedString) {
-        let mut state = self.state.borrow_mut();
-        state.host_presentation.host_shell.debug_refresh_rate = overlay_text;
+        self.state
+            .borrow_mut()
+            .replace_diagnostics_overlay_text(overlay_text);
     }
 }

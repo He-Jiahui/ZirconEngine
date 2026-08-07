@@ -5,7 +5,9 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::profiling_artifacts::{
     profile_capture_enabled, queue_present_artifacts,
 };
-use crate::ui::retained_host::ui_perf::{UiPerfScenario, enter_ui_perf_scenario};
+use crate::ui::retained_host::ui_perf::{
+    UiPerfCounter, UiPerfScenario, enter_ui_perf_scenario, record_current_ui_perf_counter,
+};
 
 use super::super::UiHostWindowEventLoop;
 
@@ -19,10 +21,21 @@ pub(super) fn present_redraw(
     let Some(presenter) = event_loop_state.presenter.as_mut() else {
         return;
     };
-    let presentation = event_loop_state.host.get_host_presentation();
+    let generation = event_loop_state.host.get_host_presentation_generation();
+    let _paint_scope = generation.enter_paint_scope();
+    let presentation = generation.structure();
     let invalidation = event_loop_state.host.refresh_invalidation_diagnostics();
-    match presenter.present(&presentation, damage_region, invalidation) {
+    #[cfg(feature = "profiling")]
+    let damage_started_at = event_loop_state.pending_damage_started_at.take();
+    match presenter.present(presentation, damage_region, invalidation) {
         Ok(diagnostics) => {
+            #[cfg(feature = "profiling")]
+            if let Some(started_at) = damage_started_at {
+                record_current_ui_perf_counter(
+                    UiPerfCounter::DamageToSubmitUs,
+                    started_at.elapsed().as_secs_f64() * 1_000_000.0,
+                );
+            }
             if let Some(backend) = event_loop_state.presenter_backend.filter(|_| {
                 should_queue_profile_artifacts(
                     profile_capture_enabled(),
@@ -30,11 +43,14 @@ pub(super) fn present_redraw(
                 )
             }) {
                 event_loop_state.profile_artifact_capture_requested = true;
-                let _ = queue_present_artifacts(
-                    &presentation,
+                let artifact_presentation = generation.materialize();
+                if queue_present_artifacts(
+                    &artifact_presentation,
                     &event_loop_state.host.window().size(),
                     backend,
-                );
+                ) {
+                    record_current_ui_perf_counter(UiPerfCounter::ArtifactExportCount, 1.0);
+                }
             }
             event_loop_state
                 .host
@@ -73,6 +89,10 @@ pub(super) fn present_redraw(
     }
 }
 
+fn should_queue_profile_artifacts(capture_enabled: bool, already_requested: bool) -> bool {
+    capture_enabled && !already_requested
+}
+
 fn exit_after_presented_frame(enabled: bool, event_loop: &dyn ActiveEventLoop) {
     if let Some(diagnostic) = first_presented_frame_diagnostic(enabled) {
         write_log("editor_host_window", diagnostic);
@@ -82,10 +102,6 @@ fn exit_after_presented_frame(enabled: bool, event_loop: &dyn ActiveEventLoop) {
 
 fn first_presented_frame_diagnostic(enabled: bool) -> Option<&'static str> {
     enabled.then_some("editor_first_frame_presented")
-}
-
-fn should_queue_profile_artifacts(capture_enabled: bool, already_requested: bool) -> bool {
-    capture_enabled && !already_requested
 }
 
 #[cfg(test)]

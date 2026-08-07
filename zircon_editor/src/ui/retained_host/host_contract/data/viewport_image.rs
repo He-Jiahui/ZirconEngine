@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
 
 #[derive(Clone, Default)]
@@ -5,7 +7,7 @@ pub(crate) struct HostViewportImageData {
     pub(crate) resource_key: String,
     pub(crate) width: u32,
     pub(crate) height: u32,
-    pub(crate) rgba: Vec<u8>,
+    pub(crate) rgba: Arc<[u8]>,
 }
 
 impl HostViewportImageData {
@@ -20,7 +22,7 @@ impl HostViewportImageData {
             resource_key: viewport_image_resource_key(viewport, generation),
             width,
             height,
-            rgba: frame.rgba,
+            rgba: frame.rgba.into(),
         };
         image.is_valid().then_some(image)
     }
@@ -41,6 +43,8 @@ fn viewport_image_resource_key(viewport: RenderViewportHandle, generation: u64) 
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
 
     #[test]
@@ -59,10 +63,18 @@ mod tests {
             resource_key: String::new(),
             width: 1,
             height: 1,
-            rgba: vec![255, 255, 255, 255],
+            rgba: vec![255, 255, 255, 255].into(),
         };
 
         assert!(!image.is_valid());
+    }
+
+    #[test]
+    fn viewport_image_clones_share_the_captured_rgba_payload() {
+        let image = viewport_image(3, 7, &[255, 0, 0, 255]);
+        let cloned = image.clone();
+
+        assert!(Arc::ptr_eq(&image.rgba, &cloned.rgba));
     }
 
     fn viewport_image(viewport: u64, generation: u64, rgba: &[u8]) -> HostViewportImageData {

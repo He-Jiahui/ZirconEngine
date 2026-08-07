@@ -1,7 +1,7 @@
-use super::super::super::{RetainedEditorHost, callback_dispatch};
+use super::super::super::{callback_dispatch, RetainedEditorHost};
 use crate::ui::retained_host::{
-    HostPageOverflowMenuStateData, UiHostContext,
-    host_page_pointer::HOST_PAGE_OVERFLOW_POINTER_INDEX,
+    host_page_pointer::HOST_PAGE_OVERFLOW_POINTER_INDEX, HostPageOverflowMenuStateData,
+    UiHostContext,
 };
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -53,8 +53,8 @@ impl RetainedEditorHost {
                 if dispatch.pointer.route.is_some() {
                     let open = !self
                         .ui
-                        .get_host_presentation()
-                        .host_page_overflow_menu_state
+                        .get_host_presentation_generation()
+                        .page_overflow_menu_state()
                         .open;
                     self.set_host_page_overflow_menu_open(open);
                 }

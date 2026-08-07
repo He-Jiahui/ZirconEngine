@@ -15,11 +15,12 @@ pub(in super::super) fn dispatch_pane_pointer_move(
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
     let pointer = route_pointer_move_to_pane(presentation, x, y)?;
-    let before = ui.get_pane_interaction_state();
+    let before = ui.get_host_presentation_generation();
     dispatch_pane_pointer_move_target(ui, &pointer);
+    let after = ui.get_host_presentation_generation();
     Some(pointer_move_redraw(
         &pointer,
-        &before,
-        &ui.get_pane_interaction_state(),
+        before.pane_interaction_state(),
+        after.pane_interaction_state(),
     ))
 }

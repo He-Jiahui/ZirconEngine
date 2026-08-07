@@ -1,10 +1,11 @@
 use super::super::super::super::data::{
-    FrameRect, HostPageOverflowMenuStateData, HostWindowPresentationData,
+    paint_page_overflow_menu_state, FrameRect, HostPageOverflowMenuStateData,
+    HostWindowPresentationData,
 };
 use super::super::super::super::host_page_overflow_menu::{
-    host_page_overflow_content_viewport_frame, host_page_overflow_popup_frame,
-    host_page_overflow_row_frame, host_page_overflow_scroll_content_extent,
-    host_page_overflow_scrollbar_reserve, host_page_overflow_visible_row_range,
+    host_page_overflow_content_viewport_frame, host_page_overflow_popup_frame_with_state,
+    host_page_overflow_row_frame_with_state, host_page_overflow_scroll_content_extent,
+    host_page_overflow_scrollbar_reserve, host_page_overflow_visible_row_range_with_state,
 };
 use super::super::super::super::menu_popup_metrics::MENU_POPUP_TEXT_INSET_X;
 use super::super::super::super::paint_frame::HostRgbaFrame;
@@ -14,7 +15,7 @@ use super::super::super::super::paint_primitives::{
 };
 use super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::paint_theme::{
-    HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostMaterialPalette,
 };
 use super::super::super::native_panes::draw_vertical_scrollbar;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -33,7 +34,8 @@ pub(in super::super) fn draw_host_page_overflow_menu(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
 ) {
-    let Some(popup) = host_page_overflow_popup_frame(presentation) else {
+    let state = paint_page_overflow_menu_state(presentation);
+    let Some(popup) = host_page_overflow_popup_frame_with_state(presentation, &state) else {
         return;
     };
     if !is_visible_frame(&popup) {
@@ -61,7 +63,7 @@ pub(in super::super) fn draw_host_page_overflow_menu(
     let scroll_content_extent = host_page_overflow_scroll_content_extent(presentation);
     let scrollbar_reserve = host_page_overflow_scrollbar_reserve(presentation, popup.height);
 
-    for row in host_page_overflow_visible_row_range(presentation, &popup) {
+    for row in host_page_overflow_visible_row_range_with_state(presentation, &popup, &state) {
         let page_index = presentation
             .host_scene_data
             .page_chrome
@@ -74,9 +76,9 @@ pub(in super::super) fn draw_host_page_overflow_menu(
         else {
             continue;
         };
-        let row_frame = host_page_overflow_row_frame(presentation, &popup, row);
+        let row_frame = host_page_overflow_row_frame_with_state(presentation, &popup, row, &state);
         let active = tab.active;
-        let hovered = is_hovered(&presentation.host_page_overflow_menu_state, page_index);
+        let hovered = is_hovered(&state, page_index);
         if active || hovered {
             draw_rect_clipped(frame, row_frame.clone(), Some(&viewport), palette.hover);
         }
@@ -122,12 +124,9 @@ pub(in super::super) fn draw_host_page_overflow_menu(
         frame,
         &viewport,
         &popup,
-        presentation.host_page_overflow_menu_state.scroll_offset,
+        state.scroll_offset,
         scroll_content_extent,
-        presentation
-            .host_page_overflow_menu_state
-            .hovered_page_index
-            >= 0,
+        state.hovered_page_index >= 0,
     );
 }
 

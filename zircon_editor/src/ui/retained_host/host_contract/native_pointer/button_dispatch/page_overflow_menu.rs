@@ -4,8 +4,8 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::frame_geometry::union_frame;
 use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::host_contract::host_page_overflow_menu::{
-    host_page_overflow_popup_frame, host_page_overflow_popup_frame_contains,
-    host_page_overflow_row_hit_in_popup,
+    host_page_overflow_popup_frame_contains, host_page_overflow_popup_frame_with_state,
+    host_page_overflow_row_hit_in_popup_for_scroll,
 };
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
@@ -13,15 +13,22 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 pub(super) fn dispatch_host_page_overflow_menu_primary_press(
     ui: &UiHostWindow,
     presentation: &HostWindowPresentationData,
+    state: &HostPageOverflowMenuStateData,
     x: f32,
     y: f32,
     cleared_text_input_frame: Option<FrameRect>,
 ) -> Option<NativePointerDispatchResult> {
-    if !presentation.host_page_overflow_menu_state.open {
+    if !state.open {
         return None;
     }
-    let popup = host_page_overflow_popup_frame(presentation)?;
-    if let Some(hit) = host_page_overflow_row_hit_in_popup(presentation, &popup, x, y) {
+    let popup = host_page_overflow_popup_frame_with_state(presentation, state)?;
+    if let Some(hit) = host_page_overflow_row_hit_in_popup_for_scroll(
+        presentation,
+        &popup,
+        x,
+        y,
+        state.scroll_offset,
+    ) {
         ui.global::<UiHostContext>()
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
         ui.global::<UiHostContext>()

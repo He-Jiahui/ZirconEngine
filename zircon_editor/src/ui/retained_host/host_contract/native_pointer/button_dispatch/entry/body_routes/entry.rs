@@ -1,4 +1,4 @@
-use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
+use crate::ui::retained_host::host_contract::data::{FrameRect, HostPresentationGeneration};
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
@@ -10,7 +10,7 @@ use super::sequence::dispatch_body_button_route_sequence;
 
 pub(in super::super) fn dispatch_body_button_routes(
     ui: &UiHostWindow,
-    presentation: &HostWindowPresentationData,
+    presentation: &HostPresentationGeneration,
     state: NativePointerButtonState,
     button: UiPointerButton,
     button_id: i32,

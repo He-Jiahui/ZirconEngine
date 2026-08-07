@@ -1,6 +1,8 @@
-use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
+use crate::ui::retained_host::host_contract::data::{
+    FrameRect, HostMenuStateData, HostWindowPresentationData,
+};
 use crate::ui::retained_host::host_contract::menu_popup_metrics::{
-    MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT, menu_popup_outer_padding, menu_popup_row_stride,
+    menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT,
 };
 use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
 
@@ -8,8 +10,15 @@ pub(in crate::ui::retained_host::host_contract) fn scrolled_menu_frame(
     menu_frame: &FrameRect,
     presentation: &HostWindowPresentationData,
 ) -> FrameRect {
+    scrolled_menu_frame_with_state(menu_frame, &presentation.menu_state)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn scrolled_menu_frame_with_state(
+    menu_frame: &FrameRect,
+    menu_state: &HostMenuStateData,
+) -> FrameRect {
     FrameRect {
-        x: menu_frame.x - presentation.menu_state.menu_bar_scroll_px,
+        x: menu_frame.x - menu_state.menu_bar_scroll_px,
         y: menu_frame.y,
         width: menu_frame.width,
         height: menu_frame.height,

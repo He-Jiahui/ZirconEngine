@@ -1,6 +1,6 @@
 mod submenus;
 
-use super::super::super::data::HostWindowPresentationData;
+use super::super::super::data::{paint_menu_state, HostWindowPresentationData};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::is_visible_frame;
 use super::super::super::paint_primitives::{
@@ -8,7 +8,7 @@ use super::super::super::paint_primitives::{
 };
 use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::super::paint_theme::{
-    HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostMaterialPalette,
 };
 use super::super::native_panes::draw_vertical_scrollbar;
 use super::geometry::{constrained_menu_popup_frame, scrolled_menu_frame};
@@ -33,7 +33,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
     frame: &mut HostRgbaFrame,
     presentation: &HostWindowPresentationData,
 ) {
-    let menu_index = presentation.menu_state.open_menu_index;
+    let menu_state = paint_menu_state(presentation);
+    let menu_index = menu_state.open_menu_index;
     if menu_index < 0 {
         return;
     }
@@ -49,8 +50,8 @@ pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
     let viewport = root_menu_popup_viewport(
         menu_index,
         menu.popup_height_px.max(1.0),
-        presentation.menu_state.window_menu_popup_height_px,
-        presentation.menu_state.window_menu_scroll_px,
+        menu_state.window_menu_popup_height_px,
+        menu_state.window_menu_scroll_px,
     );
     let popup = constrained_menu_popup_frame(
         presentation,
@@ -91,7 +92,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_open_menu_popup(
         menu.popup_height_px,
         false,
     );
-    draw_open_submenu_popups(frame, presentation, menu.items.clone(), popup);
+    draw_open_submenu_popups(frame, presentation, &menu_state, menu.items.clone(), popup);
 }
 
 #[cfg(test)]

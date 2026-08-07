@@ -1,5 +1,5 @@
 use super::super::super::super::super::data::{HostMenuStateData, HostWindowPresentationData};
-use super::super::super::frames::{constrained_menu_popup_frame, scrolled_menu_frame};
+use super::super::super::frames::{constrained_menu_popup_frame, scrolled_menu_frame_with_state};
 use super::super::stack::menu_popup_stack_bottom;
 use crate::ui::retained_host::menu_popup_contract::root_menu_popup_viewport;
 
@@ -16,7 +16,7 @@ pub(super) fn opened_root_menu_popup_bottom(
         .menu_chrome
         .menu_frames
         .row_data(menu_state.open_menu_index as usize)?;
-    let menu_frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+    let menu_frame_rect = scrolled_menu_frame_with_state(&menu_frame.frame, menu_state);
     let menu_index = menu_state.open_menu_index as usize;
     let viewport = root_menu_popup_viewport(
         menu_index,

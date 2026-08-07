@@ -1,4 +1,6 @@
 use std::sync::Arc;
+#[cfg(feature = "profiling")]
+use std::time::Instant;
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -28,6 +30,10 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     current_modifiers: ModifiersState,
     next_input_sequence: u64,
     profile_artifact_capture_requested: bool,
+    #[cfg(feature = "profiling")]
+    pending_input_started_at: Option<Instant>,
+    #[cfg(feature = "profiling")]
+    pending_damage_started_at: Option<Instant>,
 }
 
 impl UiHostWindowEventLoop {
@@ -46,6 +52,10 @@ impl UiHostWindowEventLoop {
             current_modifiers: ModifiersState::empty(),
             next_input_sequence: 1,
             profile_artifact_capture_requested: false,
+            #[cfg(feature = "profiling")]
+            pending_input_started_at: None,
+            #[cfg(feature = "profiling")]
+            pending_damage_started_at: None,
         }
     }
 }

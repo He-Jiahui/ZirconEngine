@@ -9,9 +9,9 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodeP
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 
 use super::{
-    ComponentizedChromeFallbackTransform, EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID,
-    ExtensionWorkspaceSubtree, draw_componentized_extension_workspace,
-    draw_componentized_workbench_window,
+    draw_componentized_extension_workspace, draw_componentized_workbench_window,
+    ComponentizedChromeFallbackTransform, ExtensionWorkspaceSubtree,
+    EXTENSION_MODULE_WORKSPACES_HOST_CONTROL_ID,
 };
 
 const SENTINEL: [u8; 4] = [241, 17, 193, 255];
@@ -84,7 +84,7 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
             resource_key: "viewport:test".into(),
             width: 1,
             height: 1,
-            rgba: vec![255; 4],
+            rgba: vec![255; 4].into(),
         }),
         ..HostWindowPresentationData::default()
     };
@@ -96,11 +96,9 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
         height: 100.0,
     };
 
-    assert!(
-        filter
-            .transform(template_node("WorkbenchViewportBackdrop"), clip.clone())
-            .is_none()
-    );
+    assert!(filter
+        .transform(template_node("WorkbenchViewportBackdrop"), clip.clone())
+        .is_none());
     for control_id in [
         "WorkbenchViewportToolbar",
         "WorkbenchViewportSelectionTop",
@@ -108,11 +106,9 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
         "WorkbenchViewportGizmoCenter",
         "WorkbenchUnrelatedControl",
     ] {
-        assert!(
-            filter
-                .transform(template_node(control_id), clip.clone())
-                .is_some()
-        );
+        assert!(filter
+            .transform(template_node(control_id), clip.clone())
+            .is_some());
     }
 }
 
@@ -126,19 +122,17 @@ fn missing_or_invalid_viewport_image_keeps_the_fallback_scene() {
         },
     ] {
         let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
-        assert!(
-            filter
-                .transform(
-                    template_node("WorkbenchViewportBackdrop"),
-                    FrameRect {
-                        x: 0.0,
-                        y: 0.0,
-                        width: 100.0,
-                        height: 100.0,
-                    },
-                )
-                .is_some()
-        );
+        assert!(filter
+            .transform(
+                template_node("WorkbenchViewportBackdrop"),
+                FrameRect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 100.0,
+                    height: 100.0,
+                },
+            )
+            .is_some());
     }
 }
 
@@ -205,20 +199,17 @@ fn active_extension_workspace_paints_only_inside_its_adaptive_host_frame() {
         workbench_window_nodes: model(extension_nodes.clone()),
         ..HostWindowPresentationData::default()
     };
-    let subtree =
-        ExtensionWorkspaceSubtree::from_presentation(&presentation, "root/extension_workspaces");
-    assert!(
-        subtree
-            .included_node_ids
-            .contains("root/extension_workspaces")
+    let subtree = ExtensionWorkspaceSubtree::from_presentation(
+        &presentation,
+        "root/extension_workspaces",
+        None,
+        None,
     );
-    assert!(
-        subtree
-            .included_node_ids
-            .contains("root/extension_workspaces/blend_host")
-    );
-    assert!(subtree.included_node_ids.contains("component-instance-41"));
-    assert!(subtree.included_node_ids.contains("generated-node-92"));
+    let subtree_node_ids = included_node_ids(&subtree, &presentation);
+    assert!(subtree_node_ids.contains(&"root/extension_workspaces"));
+    assert!(subtree_node_ids.contains(&"root/extension_workspaces/blend_host"));
+    assert!(subtree_node_ids.contains(&"component-instance-41"));
+    assert!(subtree_node_ids.contains(&"generated-node-92"));
     let frame_bounds = FrameRect {
         x: 0.0,
         y: 0.0,
@@ -261,12 +252,14 @@ fn active_extension_workspace_paints_only_inside_its_adaptive_host_frame() {
     let filtered_subtree = ExtensionWorkspaceSubtree::from_presentation(
         &presentation_with_overlapping_scene_sibling,
         "root/extension_workspaces",
+        None,
+        None,
     );
-    assert!(
-        !filtered_subtree
-            .included_node_ids
-            .contains("root/scene_workspace")
-    );
+    assert!(!included_node_ids(
+        &filtered_subtree,
+        &presentation_with_overlapping_scene_sibling,
+    )
+    .contains(&"root/scene_workspace"));
     let mut filtered = HostRgbaFrame::filled(80, 72, SENTINEL);
     assert!(draw_componentized_extension_workspace(
         &mut filtered,
@@ -278,6 +271,18 @@ fn active_extension_workspace_paints_only_inside_its_adaptive_host_frame() {
         baseline,
         "legacy SceneWorkspace siblings must not overpaint the activated extension subtree"
     );
+}
+
+fn included_node_ids<'a>(
+    subtree: &ExtensionWorkspaceSubtree,
+    presentation: &'a HostWindowPresentationData,
+) -> Vec<&'a str> {
+    subtree
+        .included_rows
+        .iter()
+        .filter_map(|row| presentation.workbench_window_nodes.get(*row))
+        .map(|node| node.node_id.as_str())
+        .collect()
 }
 
 #[test]
@@ -310,12 +315,10 @@ fn scene_workspace_without_extension_host_keeps_legacy_dock_pixels_untouched() {
         &presentation,
         &frame_bounds,
     ));
-    assert!(
-        frame
-            .as_bytes()
-            .chunks_exact(4)
-            .all(|pixel| pixel == SENTINEL)
-    );
+    assert!(frame
+        .as_bytes()
+        .chunks_exact(4)
+        .all(|pixel| pixel == SENTINEL));
 }
 
 #[test]
@@ -535,6 +538,22 @@ fn distinct_colors(frame: &HostRgbaFrame, rect: &FrameRect) -> usize {
         .flat_map(|y| (left..right).map(move |x| pixel(frame, x, y)))
         .collect::<std::collections::BTreeSet<_>>()
         .len()
+}
+
+#[test]
+fn extension_workspace_projection_borrows_committed_nodes_and_visits_only_its_subtree() {
+    let production = include_str!("../componentized.rs");
+    let subtree = production
+        .split_once("struct ExtensionWorkspaceSubtree")
+        .map(|(_, subtree)| subtree)
+        .expect("extension workspace subtree should remain explicit");
+
+    assert!(subtree.contains("fn row_visit_indices"));
+    assert!(subtree.contains("included_rows"));
+    assert!(
+        !production.contains("filter_map(|row| presentation.workbench_window_nodes.row_data(row))")
+    );
+    assert!(!production.contains("parents_by_node_id"));
 }
 
 fn model<T: Clone>(values: Vec<T>) -> ModelRc<T> {

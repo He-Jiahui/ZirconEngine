@@ -26,10 +26,8 @@ impl RetainedEditorHost {
         window_id: &MainPageId,
     ) -> Option<UiSize> {
         let window = self.native_window_presenters.window(window_id)?;
-        let bounds = window
-            .get_host_presentation()
-            .host_shell
-            .native_window_bounds;
+        let generation = window.get_host_presentation_generation();
+        let bounds = &generation.structure().host_shell.native_window_bounds;
         let size = UiSize::new(
             bounds.width.max(0.0),
             (bounds.height

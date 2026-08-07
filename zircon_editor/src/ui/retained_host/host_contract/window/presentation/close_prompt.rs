@@ -12,7 +12,9 @@ impl UiHostWindow {
             } else {
                 prompt.overlay_frame.clone()
             };
-            state.host_presentation.close_prompt = prompt;
+            state.update_host_presentation(|presentation| {
+                presentation.close_prompt = prompt;
+            });
             damage
         };
         self.queue_external_redraw(HostRedrawRequest::region(damage));

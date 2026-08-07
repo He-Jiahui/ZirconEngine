@@ -17,6 +17,8 @@ pub(crate) enum UiPerfScenario {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiPerfCounter {
     FrameDurationUs,
+    InputToDamageUs,
+    DamageToSubmitUs,
     SlowPathRebuildCount,
     RenderPathCount,
     PresentationRebuildCount,
@@ -31,8 +33,18 @@ pub(crate) enum UiPerfCounter {
     DirtyPaintOnly,
     ChromeSnapshotCount,
     WorkbenchModelBuildCount,
+    WorkbenchHitIndexBuildCount,
+    WorkbenchPaintIndexQueryCount,
+    WorkbenchPaintIndexCandidateCount,
     ChromeCommandFullRebuildCount,
     ChromeCommandPatchCount,
+    PresentationGenerationReadCount,
+    PresentationSnapshotReadCount,
+    TemplateNodeVisitCount,
+    TemplateNodeCloneCount,
+    TemplateNodeDamageRejectCount,
+    FallbackSortCount,
+    ArtifactExportCount,
     SoftwareFallbackPresentCount,
     GpuUploadBytes,
     GpuImageUploadWrites,
@@ -180,6 +192,8 @@ macro_rules! counter_name_for_prefix {
     ($counter:expr, $prefix:literal) => {
         match $counter {
             UiPerfCounter::FrameDurationUs => concat!($prefix, ".frame_duration_us"),
+            UiPerfCounter::InputToDamageUs => concat!($prefix, ".input_to_damage_us"),
+            UiPerfCounter::DamageToSubmitUs => concat!($prefix, ".damage_to_submit_us"),
             UiPerfCounter::SlowPathRebuildCount => {
                 concat!($prefix, ".slow_path_rebuild_count")
             }
@@ -200,12 +214,38 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::WorkbenchModelBuildCount => {
                 concat!($prefix, ".workbench_model_build_count")
             }
+            UiPerfCounter::WorkbenchHitIndexBuildCount => {
+                concat!($prefix, ".workbench_hit_index_build_count")
+            }
+            UiPerfCounter::WorkbenchPaintIndexQueryCount => {
+                concat!($prefix, ".workbench_paint_index_query_count")
+            }
+            UiPerfCounter::WorkbenchPaintIndexCandidateCount => {
+                concat!($prefix, ".workbench_paint_index_candidate_count")
+            }
             UiPerfCounter::ChromeCommandFullRebuildCount => {
                 concat!($prefix, ".chrome_command_full_rebuild_count")
             }
             UiPerfCounter::ChromeCommandPatchCount => {
                 concat!($prefix, ".chrome_command_patch_count")
             }
+            UiPerfCounter::PresentationGenerationReadCount => {
+                concat!($prefix, ".presentation_generation_read_count")
+            }
+            UiPerfCounter::PresentationSnapshotReadCount => {
+                concat!($prefix, ".presentation_snapshot_read_count")
+            }
+            UiPerfCounter::TemplateNodeVisitCount => {
+                concat!($prefix, ".template_node_visit_count")
+            }
+            UiPerfCounter::TemplateNodeCloneCount => {
+                concat!($prefix, ".template_node_clone_count")
+            }
+            UiPerfCounter::TemplateNodeDamageRejectCount => {
+                concat!($prefix, ".template_node_damage_reject_count")
+            }
+            UiPerfCounter::FallbackSortCount => concat!($prefix, ".fallback_sort_count"),
+            UiPerfCounter::ArtifactExportCount => concat!($prefix, ".artifact_export_count"),
             UiPerfCounter::SoftwareFallbackPresentCount => {
                 concat!($prefix, ".software_fallback_present_count")
             }
@@ -356,6 +396,26 @@ mod tests {
     fn compiled_ui_presenter_reuse_counters_use_the_active_scenario_prefix() {
         let cases = [
             (
+                UiPerfCounter::InputToDamageUs,
+                "ui.startup.input_to_damage_us",
+            ),
+            (
+                UiPerfCounter::DamageToSubmitUs,
+                "ui.startup.damage_to_submit_us",
+            ),
+            (
+                UiPerfCounter::WorkbenchHitIndexBuildCount,
+                "ui.startup.workbench_hit_index_build_count",
+            ),
+            (
+                UiPerfCounter::WorkbenchPaintIndexQueryCount,
+                "ui.startup.workbench_paint_index_query_count",
+            ),
+            (
+                UiPerfCounter::WorkbenchPaintIndexCandidateCount,
+                "ui.startup.workbench_paint_index_candidate_count",
+            ),
+            (
                 UiPerfCounter::GpuRenderPasses,
                 "ui.startup.gpu_render_passes",
             ),
@@ -378,6 +438,34 @@ mod tests {
             (
                 UiPerfCounter::GpuImagePrepareCacheHits,
                 "ui.startup.gpu_image_prepare_cache_hits",
+            ),
+            (
+                UiPerfCounter::PresentationGenerationReadCount,
+                "ui.startup.presentation_generation_read_count",
+            ),
+            (
+                UiPerfCounter::PresentationSnapshotReadCount,
+                "ui.startup.presentation_snapshot_read_count",
+            ),
+            (
+                UiPerfCounter::TemplateNodeVisitCount,
+                "ui.startup.template_node_visit_count",
+            ),
+            (
+                UiPerfCounter::TemplateNodeCloneCount,
+                "ui.startup.template_node_clone_count",
+            ),
+            (
+                UiPerfCounter::TemplateNodeDamageRejectCount,
+                "ui.startup.template_node_damage_reject_count",
+            ),
+            (
+                UiPerfCounter::FallbackSortCount,
+                "ui.startup.fallback_sort_count",
+            ),
+            (
+                UiPerfCounter::ArtifactExportCount,
+                "ui.startup.artifact_export_count",
             ),
         ];
 

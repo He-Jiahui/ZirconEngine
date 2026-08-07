@@ -27,11 +27,13 @@ impl<'a> HostContractGlobal for UiHostContext<'a> {
 
 impl UiHostContext<'_> {
     pub(crate) fn set_menu_state(&self, value: HostMenuStateData) {
-        self.state.borrow_mut().menu_state = value;
+        self.state.borrow_mut().replace_menu_state(value);
     }
 
     pub(crate) fn set_host_page_overflow_menu_state(&self, value: HostPageOverflowMenuStateData) {
-        self.state.borrow_mut().host_page_overflow_menu_state = value;
+        self.state
+            .borrow_mut()
+            .replace_page_overflow_menu_state(value);
     }
 
     pub(crate) fn get_drag_state(&self) -> HostDragStateData {
@@ -55,15 +57,17 @@ impl UiHostContext<'_> {
     }
 
     pub(crate) fn get_text_input_focus(&self) -> HostTextInputFocusData {
-        self.state.borrow().text_input_focus.clone()
+        self.state.borrow().text_input_focus.as_ref().clone()
     }
 
     pub(crate) fn set_text_input_focus(&self, value: HostTextInputFocusData) {
-        self.state.borrow_mut().text_input_focus = value;
+        self.state.borrow_mut().replace_text_input_focus(value);
     }
 
     pub(crate) fn clear_text_input_focus(&self) {
-        self.state.borrow_mut().text_input_focus = HostTextInputFocusData::default();
+        self.state
+            .borrow_mut()
+            .replace_text_input_focus(HostTextInputFocusData::default());
     }
 
     callback_methods!(

@@ -1,4 +1,7 @@
-use super::super::super::data::HostWindowPresentationData;
+use super::super::super::data::{
+    paint_pane_interaction_state, paint_text_input_focus, paint_viewport_image,
+    HostWindowPresentationData,
+};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::docks;
 
@@ -7,15 +10,17 @@ pub(super) fn draw_dock_layers(
     presentation: &HostWindowPresentationData,
 ) {
     let scene = &presentation.host_scene_data;
-    let viewport_image = presentation.viewport_image.as_ref();
+    let viewport_image = paint_viewport_image(presentation);
+    let interaction = paint_pane_interaction_state(presentation);
+    let text_input_focus = paint_text_input_focus(presentation);
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_left_dock");
         docks::draw_side_dock(
             frame,
             &scene.left_dock,
-            &presentation.pane_interaction_state,
-            viewport_image,
-            Some(&presentation.text_input_focus),
+            &interaction,
+            viewport_image.as_deref(),
+            Some(&text_input_focus),
         );
     }
     {
@@ -23,9 +28,9 @@ pub(super) fn draw_dock_layers(
         docks::draw_document_dock(
             frame,
             &scene.document_dock,
-            &presentation.pane_interaction_state,
-            viewport_image,
-            Some(&presentation.text_input_focus),
+            &interaction,
+            viewport_image.as_deref(),
+            Some(&text_input_focus),
         );
     }
     {
@@ -33,9 +38,9 @@ pub(super) fn draw_dock_layers(
         docks::draw_side_dock(
             frame,
             &scene.right_dock,
-            &presentation.pane_interaction_state,
-            viewport_image,
-            Some(&presentation.text_input_focus),
+            &interaction,
+            viewport_image.as_deref(),
+            Some(&text_input_focus),
         );
     }
     {
@@ -43,9 +48,9 @@ pub(super) fn draw_dock_layers(
         docks::draw_bottom_dock(
             frame,
             &scene.bottom_dock,
-            &presentation.pane_interaction_state,
-            viewport_image,
-            Some(&presentation.text_input_focus),
+            &interaction,
+            viewport_image.as_deref(),
+            Some(&text_input_focus),
         );
     }
 }
@@ -55,11 +60,14 @@ pub(super) fn draw_floating_layer(
     presentation: &HostWindowPresentationData,
 ) {
     zircon_runtime::profile_scope!("editor", "host_painter", "painter_floating_layer");
+    let interaction = paint_pane_interaction_state(presentation);
+    let viewport_image = paint_viewport_image(presentation);
+    let text_input_focus = paint_text_input_focus(presentation);
     docks::draw_floating_layer(
         frame,
         presentation,
-        &presentation.pane_interaction_state,
-        presentation.viewport_image.as_ref(),
-        Some(&presentation.text_input_focus),
+        &interaction,
+        viewport_image.as_deref(),
+        Some(&text_input_focus),
     );
 }

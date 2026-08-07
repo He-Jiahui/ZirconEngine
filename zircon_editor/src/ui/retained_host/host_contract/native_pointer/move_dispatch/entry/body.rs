@@ -14,20 +14,32 @@ pub(super) fn dispatch_pointer_move_body(
     x: f32,
     y: f32,
 ) -> NativePointerDispatchResult {
-    let presentation = ui.get_host_presentation();
-    let overflow = match dispatch_host_page_overflow_pointer_move(ui, &presentation, x, y) {
+    let generation = ui.get_host_presentation_generation();
+    let structure = generation.structure();
+    let overflow = if generation.page_overflow_menu_state().open {
+        dispatch_host_page_overflow_pointer_move(
+            ui,
+            structure,
+            generation.page_overflow_menu_state(),
+            x,
+            y,
+        )
+    } else {
+        None
+    };
+    let overflow = match overflow {
         Some(dispatch) if dispatch.consumed => return dispatch.result,
         other => other,
     };
-    let routed = if let Some(result) = dispatch_menu_pointer_move(ui, &presentation, x, y) {
+    let routed = if let Some(result) = dispatch_menu_pointer_move(ui, &generation, x, y) {
         result
     } else if let Some(result) =
-        dispatch_workbench_template_popup_pointer_move(ui, &presentation, x, y)
+        dispatch_workbench_template_popup_pointer_move(ui, &generation, x, y)
     {
         result
-    } else if let Some(result) = dispatch_pane_pointer_move(ui, &presentation, x, y) {
+    } else if let Some(result) = dispatch_pane_pointer_move(ui, structure, x, y) {
         result
-    } else if let Some(result) = dispatch_workbench_template_pointer_move(ui, &presentation, x, y) {
+    } else if let Some(result) = dispatch_workbench_template_pointer_move(ui, &generation, x, y) {
         result
     } else {
         clear_hovered_template_move(ui)

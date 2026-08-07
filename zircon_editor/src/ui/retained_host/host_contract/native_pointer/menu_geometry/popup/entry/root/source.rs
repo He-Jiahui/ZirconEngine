@@ -1,5 +1,6 @@
-use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
-use crate::ui::retained_host::host_contract::data::{FrameRect, HostMenuChromeItemData};
+use crate::ui::retained_host::host_contract::data::{
+    FrameRect, HostMenuChromeItemData, HostMenuStateData, HostWindowPresentationData,
+};
 use crate::ui::retained_host::primitives::ModelRc;
 
 pub(super) struct RootMenuPopupSource {
@@ -10,10 +11,10 @@ pub(super) struct RootMenuPopupSource {
     pub(super) items: ModelRc<HostMenuChromeItemData>,
 }
 
-pub(super) fn opened_root_menu_popup_source(
+pub(super) fn opened_root_menu_popup_source_with_state(
     presentation: &HostWindowPresentationData,
+    state: &HostMenuStateData,
 ) -> Option<RootMenuPopupSource> {
-    let state = &presentation.menu_state;
     if state.open_menu_index < 0 {
         return None;
     }

@@ -3,14 +3,15 @@ mod snapshot;
 mod template_hover_state;
 
 use crate::ui::retained_host::console_output::console_output_viewport_size;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use zircon_runtime::diagnostic_log::{
-    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::data::{
-    FrameRect, HostMenuStateData, HostPaneInteractionStateData, HostWindowPresentationData,
+    FrameRect, HostMenuStateData, HostPaneInteractionStateData, HostPresentationGeneration,
+    HostWindowPresentationData,
 };
 use super::UiHostWindow;
 
@@ -40,7 +41,7 @@ impl UiHostWindow {
                 );
             }
         }
-        state.host_presentation = presentation;
+        state.replace_host_presentation(presentation);
     }
 
     pub(crate) fn get_host_presentation(&self) -> HostWindowPresentationData {
@@ -48,12 +49,31 @@ impl UiHostWindow {
         host_presentation_from_state(&state)
     }
 
+    pub(crate) fn update_host_presentation<R>(
+        &self,
+        update: impl FnOnce(&mut HostWindowPresentationData) -> R,
+    ) -> R {
+        let mut state = self.state.borrow_mut();
+        state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
+        record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
+        state.update_host_presentation(update)
+    }
+
+    pub(crate) fn get_host_presentation_generation(&self) -> HostPresentationGeneration {
+        record_current_ui_perf_counter(UiPerfCounter::PresentationGenerationReadCount, 1.0);
+        self.state.borrow().presentation_generation()
+    }
+
+    pub(crate) fn sync_host_paint_theme(&self) -> bool {
+        self.state.borrow_mut().sync_host_paint_theme()
+    }
+
     pub(crate) fn get_menu_state(&self) -> HostMenuStateData {
-        self.state.borrow().menu_state.clone()
+        self.state.borrow().menu_state.as_ref().clone()
     }
 
     pub(crate) fn get_pane_interaction_state(&self) -> HostPaneInteractionStateData {
-        self.state.borrow().pane_interaction_state.clone()
+        self.state.borrow().pane_interaction_state.as_ref().clone()
     }
 
     pub(crate) fn console_output_viewport_size(

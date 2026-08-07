@@ -221,6 +221,7 @@ pub fn run_editor_with_config(
     )?;
     let settings_snapshot = retained_host.editor_manager.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
+    ui.sync_host_paint_theme();
     install_editor_v2_design_tokens(settings_snapshot.as_ref());
     for registration in editor_plugin_registrations {
         retained_host
@@ -373,6 +374,7 @@ impl RetainedEditorHost {
         let snapshot = self.editor_manager.context().settings().snapshot();
         if install_editor_v2_design_tokens(snapshot.as_ref()) {
             apply_host_appearance_from_tokens(snapshot.design_tokens());
+            self.ui.sync_host_paint_theme();
             self.mark_presentation_dirty();
         }
     }

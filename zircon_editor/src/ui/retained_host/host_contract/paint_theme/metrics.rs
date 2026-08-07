@@ -1,5 +1,3 @@
-use std::sync::{OnceLock, RwLock};
-
 use zircon_runtime_interface::ui::design_tokens::{
     EditorControlTokens, EditorDensityTokens, EditorDesignTokens, EditorTypographyTokens,
 };
@@ -68,18 +66,11 @@ pub(crate) const METRICS: HostControlMetrics = HostControlMetrics {
 };
 
 pub(crate) fn apply_host_metrics_from_tokens(tokens: &EditorDesignTokens) {
-    let next_metrics = project_host_metrics(tokens);
-    match host_metrics().write() {
-        Ok(mut metrics) => *metrics = next_metrics,
-        Err(poisoned) => *poisoned.into_inner() = next_metrics,
-    }
+    super::replace_host_metrics(project_host_metrics(tokens));
 }
 
 pub(crate) fn current_host_metrics() -> HostControlMetrics {
-    match host_metrics().read() {
-        Ok(metrics) => *metrics,
-        Err(poisoned) => *poisoned.into_inner(),
-    }
+    super::host_metrics_for_read()
 }
 
 pub(in crate::ui::retained_host::host_contract) fn project_host_metrics(
@@ -149,11 +140,6 @@ fn finite_positive_or(value: f32, fallback: f32) -> f32 {
     (value.is_finite() && value > 0.0)
         .then_some(value)
         .unwrap_or(fallback)
-}
-
-fn host_metrics() -> &'static RwLock<HostControlMetrics> {
-    static METRICS_STATE: OnceLock<RwLock<HostControlMetrics>> = OnceLock::new();
-    METRICS_STATE.get_or_init(|| RwLock::new(METRICS))
 }
 
 #[cfg(test)]

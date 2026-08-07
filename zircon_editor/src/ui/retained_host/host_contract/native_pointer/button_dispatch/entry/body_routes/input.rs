@@ -1,4 +1,4 @@
-use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
+use crate::ui::retained_host::host_contract::data::{FrameRect, HostPresentationGeneration};
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
@@ -7,7 +7,7 @@ use super::super::super::super::NativePointerButtonState;
 
 pub(super) struct BodyButtonRouteInput<'a> {
     pub(super) ui: &'a UiHostWindow,
-    pub(super) presentation: &'a HostWindowPresentationData,
+    pub(super) presentation: &'a HostPresentationGeneration,
     pub(super) state: NativePointerButtonState,
     pub(super) button: UiPointerButton,
     pub(super) button_id: i32,

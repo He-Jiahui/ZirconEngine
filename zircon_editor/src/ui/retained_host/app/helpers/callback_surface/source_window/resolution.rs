@@ -2,12 +2,13 @@ use crate::ui::retained_host::UiHostWindow;
 use crate::ui::workbench::layout::MainPageId;
 
 pub(crate) fn resolve_callback_source_window_id(ui: &UiHostWindow) -> Option<MainPageId> {
-    let host_shell = ui.get_host_presentation().host_shell;
+    let generation = ui.get_host_presentation_generation();
+    let host_shell = &generation.structure().host_shell;
     if !host_shell.native_floating_window_mode {
         return None;
     }
 
-    let window_id = host_shell.native_floating_window_id.to_string();
+    let window_id = host_shell.native_floating_window_id.clone();
     if window_id.trim().is_empty() {
         None
     } else {

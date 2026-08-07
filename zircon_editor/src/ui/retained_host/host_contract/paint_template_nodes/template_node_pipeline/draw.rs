@@ -1,10 +1,14 @@
 use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
-use super::super::super::data::{FrameRect, HostTextInputFocusData, TemplatePaneNodeData};
+use super::super::super::data::{
+    paint_workbench_row_indices, FrameRect, HostTextInputFocusData, TemplatePaneNodeData,
+};
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::render_commands::{HostPaintCommand, draw_host_paint_commands};
-use super::super::template_nodes::push_template_node_commands;
+use super::super::render_commands::{draw_host_paint_commands, HostPaintCommand};
+use super::super::template_nodes::{push_template_node_commands, template_node_intersects_clip};
 use super::clip::effective_template_clip;
+use super::hover::apply_template_hover_to_node;
 use super::transform::TemplateNodePaintTransform;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes(
@@ -34,18 +38,38 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
         zircon_runtime::profile_scope!("editor", "host_painter", "template_nodes_collect_commands");
         zircon_runtime::profile_counter!("editor", "template_node_count", nodes.row_count());
         let visit_rows = transform
-            .and_then(|transform| transform.row_visit_indices(nodes.row_count(), &effective_clip));
-        let collect_row = |row: usize, commands: &mut Vec<HostPaintCommand>| {
-            let Some(source_node) = nodes.row_data(row) else {
+            .and_then(|transform| transform.row_visit_indices(nodes.row_count(), &effective_clip))
+            .or_else(|| paint_workbench_row_indices(nodes, origin, &effective_clip));
+        let mut visited = 0_usize;
+        let mut cloned = 0_usize;
+        let mut damage_rejected = 0_usize;
+        let mut collect_row = |row: usize, commands: &mut Vec<HostPaintCommand>| {
+            visited = visited.saturating_add(1);
+            let Some(source_node) = nodes.get(row) else {
                 return;
             };
+            if transform.is_none()
+                && !template_node_intersects_clip(source_node, origin, &effective_clip)
+            {
+                damage_rejected = damage_rejected.saturating_add(1);
+                return;
+            }
+            let source_node = source_node.clone();
+            cloned = cloned.saturating_add(1);
             let transformed = match transform {
                 Some(transform) => transform.transform(source_node, effective_clip.clone()),
                 None => Some((source_node, effective_clip.clone())),
             };
-            let Some((node, node_clip)) = transformed else {
+            let Some((mut node, node_clip)) = transformed else {
                 return;
             };
+            if !template_node_intersects_clip(&node, origin, &node_clip) {
+                damage_rejected = damage_rejected.saturating_add(1);
+                return;
+            }
+            if let Some(interaction) = frame.pane_interaction_state() {
+                apply_template_hover_to_node(&mut node, interaction);
+            }
             // Region repaint must avoid generating commands for off-damage nodes:
             // image commands can rasterize previews before the final primitive clip runs.
             push_template_node_commands(
@@ -69,6 +93,12 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
                 }
             }
         }
+        record_current_ui_perf_counter(UiPerfCounter::TemplateNodeVisitCount, visited as f64);
+        record_current_ui_perf_counter(UiPerfCounter::TemplateNodeCloneCount, cloned as f64);
+        record_current_ui_perf_counter(
+            UiPerfCounter::TemplateNodeDamageRejectCount,
+            damage_rejected as f64,
+        );
     }
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "template_nodes_draw_commands");

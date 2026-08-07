@@ -18,6 +18,16 @@ pub(crate) struct FrameRect {
     pub height: f32,
 }
 
+impl FrameRect {
+    pub(crate) fn right(&self) -> f32 {
+        self.x + self.width
+    }
+
+    pub(crate) fn bottom(&self) -> f32 {
+        self.y + self.height
+    }
+}
+
 #[derive(Clone, Default)]
 pub(crate) struct HostChromeControlFrameData {
     pub control_id: SharedString,

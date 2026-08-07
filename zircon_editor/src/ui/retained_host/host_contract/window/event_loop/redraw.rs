@@ -8,6 +8,8 @@ use crate::ui::retained_host::host_contract::redraw::{
     HostRedrawRequest, NativePointerDispatchResult,
 };
 use crate::ui::retained_host::ui_perf::enter_ui_perf_scenario;
+#[cfg(feature = "profiling")]
+use crate::ui::retained_host::ui_perf::{record_ui_perf_counter, UiPerfCounter};
 use present::present_redraw;
 
 impl UiHostWindowEventLoop {
@@ -16,10 +18,37 @@ impl UiHostWindowEventLoop {
         result: NativePointerDispatchResult,
     ) {
         let redraw = result.redraw();
+        #[cfg(feature = "profiling")]
+        if let Some(started_at) = self.pending_input_started_at.take() {
+            if redraw.request_redraw() {
+                record_ui_perf_counter(
+                    redraw.scenario(),
+                    UiPerfCounter::InputToDamageUs,
+                    started_at.elapsed().as_secs_f64() * 1_000_000.0,
+                );
+                if self.pending_damage_started_at.is_none() {
+                    self.pending_damage_started_at = Some(std::time::Instant::now());
+                }
+            }
+        }
         if self.queue_redraw(redraw) {
             if let Some(window) = self.window.as_ref() {
                 window.request_redraw();
             }
+        }
+    }
+
+    pub(super) fn begin_input_latency_sample(&mut self) {
+        #[cfg(feature = "profiling")]
+        {
+            self.pending_input_started_at = Some(std::time::Instant::now());
+        }
+    }
+
+    pub(super) fn cancel_input_latency_sample(&mut self) {
+        #[cfg(feature = "profiling")]
+        {
+            self.pending_input_started_at = None;
         }
     }
 
