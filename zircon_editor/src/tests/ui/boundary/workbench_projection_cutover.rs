@@ -271,7 +271,7 @@ fn view_template_projection_is_hard_cut_to_zui_prototype_store() {
 }
 
 #[test]
-fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables() {
+fn workbench_hit_test_paths_reuse_pane_surfaces_and_borrow_committed_window_geometry() {
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     assert_no_active_retained_files(&manifest.join("ui"));
 
@@ -475,22 +475,25 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
         ),
         (
             "src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs",
-            &[
-                "UiSurfaceFrame",
-                "hit_test_host_surface_frame",
-            ][..],
+            &["UiSurfaceFrame", "hit_test_host_surface_frame"][..],
         ),
         (
             "src/ui/retained_host/host_contract/surface_hit_test/template_node.rs",
             &[
-                "template_nodes_surface_frame",
+                "hit_test_workbench_window_template_node_with_index",
+                "HostWorkbenchHitIndex",
+            ][..],
+        ),
+        (
+            "src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs",
+            &[
+                "index.candidate_rows(x, y)",
+                "index.record_candidate_visit()",
             ][..],
         ),
         (
             "src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/surface.rs",
-            &[
-                "surface.surface_frame()",
-            ][..],
+            &["surface.surface_frame()"][..],
         ),
     ] {
         let source = source_file(&[relative]);
@@ -498,6 +501,59 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             assert_contains(relative, &source, marker);
         }
     }
+
+    let workbench_hit_source = source_file(&[
+        "src",
+        "ui",
+        "retained_host",
+        "host_contract",
+        "surface_hit_test",
+        "template_node.rs",
+    ]);
+    assert_does_not_contain(
+        "workbench template hit testing",
+        &workbench_hit_source,
+        "template_nodes_surface_frame",
+    );
+    assert_does_not_contain(
+        "workbench template hit testing",
+        &workbench_hit_source,
+        "hit_test_workbench_window_template_node(",
+    );
+
+    let indexed_hit_source = source_file(&[
+        "src",
+        "ui",
+        "retained_host",
+        "host_contract",
+        "surface_hit_test",
+        "template_node",
+        "hit.rs",
+    ]);
+    for forbidden in [
+        "fn hit_test_workbench_template_nodes(",
+        "nodes.iter().rev()",
+    ] {
+        assert_does_not_contain(
+            "indexed workbench hit testing",
+            &indexed_hit_source,
+            forbidden,
+        );
+    }
+
+    let native_routing_exports = source_file(&[
+        "src",
+        "ui",
+        "retained_host",
+        "host_contract",
+        "native_pointer",
+        "routing.rs",
+    ]);
+    assert_does_not_contain(
+        "native pointer routing exports",
+        &native_routing_exports,
+        "route_pointer_to_workbench_window",
+    );
 }
 
 #[test]

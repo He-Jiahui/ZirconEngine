@@ -33,25 +33,6 @@ pub(super) fn hit_test_template_nodes(
     Some(template_node_pointer_hit(node, origin, y))
 }
 
-pub(super) fn hit_test_workbench_template_nodes(
-    nodes: &ModelRc<TemplatePaneNodeData>,
-    origin: &FrameRect,
-    x: f32,
-    y: f32,
-) -> Option<TemplateNodePointerHit> {
-    match hit_test_template_popup_rows(nodes, origin, x, y) {
-        Some(TemplatePopupRowHit::Hit(hit)) => return Some(hit),
-        Some(TemplatePopupRowHit::Blocked) => return None,
-        None => {}
-    }
-
-    let node = nodes
-        .iter()
-        .rev()
-        .find(|node| is_dispatchable(node) && template_node_accepts_point(node, origin, x, y))?;
-    Some(template_node_pointer_hit(node, origin, y))
-}
-
 pub(super) fn hit_test_workbench_template_nodes_with_index(
     nodes: &ModelRc<TemplatePaneNodeData>,
     index: &HostWorkbenchHitIndex,

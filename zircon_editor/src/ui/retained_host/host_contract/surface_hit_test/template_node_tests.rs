@@ -17,9 +17,18 @@ use super::surface_frame_builder::{
     reset_template_surface_frame_build_count, template_surface_frame_build_count,
 };
 use super::{
-    hit_test_workbench_window_template_node, hit_test_workbench_window_template_node_with_index,
-    HostWorkbenchHitIndex,
+    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
+    TemplateNodePointerHit,
 };
+
+fn hit_test_workbench_window_template_node(
+    presentation: &HostWindowPresentationData,
+    x: f32,
+    y: f32,
+) -> Option<TemplateNodePointerHit> {
+    let index = HostWorkbenchHitIndex::from_presentation(presentation);
+    hit_test_workbench_window_template_node_with_index(presentation, &index, x, y)
+}
 
 #[test]
 fn workbench_hit_test_does_not_rebuild_a_template_surface() {
@@ -40,10 +49,12 @@ fn workbench_hit_test_does_not_rebuild_a_template_surface() {
         ..HostWindowPresentationData::default()
     };
     reset_template_surface_frame_build_count();
+    let index = HostWorkbenchHitIndex::from_presentation(&presentation);
 
     for _ in 0..1_000 {
-        let hit = hit_test_workbench_window_template_node(&presentation, 24.0, 30.0)
-            .expect("workbench button should remain hit-testable");
+        let hit =
+            hit_test_workbench_window_template_node_with_index(&presentation, &index, 24.0, 30.0)
+                .expect("workbench button should remain hit-testable");
         assert_eq!(hit.control_id.as_str(), "WorkbenchButton");
     }
 
@@ -52,6 +63,7 @@ fn workbench_hit_test_does_not_rebuild_a_template_surface() {
         0,
         "pointer routing must consume committed node geometry without rebuilding a UiSurface"
     );
+    assert_eq!(index.last_candidate_visit_count_for_test(), 1);
 }
 
 #[test]

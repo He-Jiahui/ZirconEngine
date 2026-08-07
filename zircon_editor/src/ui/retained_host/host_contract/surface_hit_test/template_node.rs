@@ -8,11 +8,7 @@ mod surface_frame_builder;
 use zircon_runtime_interface::ui::{layout::UiSize, surface::UiSurfaceFrame};
 
 use super::super::data::{FrameRect, HostWindowPresentationData, PaneData};
-use super::super::template_geometry::template_nodes_bounds;
-use hit::{
-    hit_test_template_nodes, hit_test_workbench_template_nodes,
-    hit_test_workbench_template_nodes_with_index,
-};
+use hit::{hit_test_template_nodes, hit_test_workbench_template_nodes_with_index};
 pub(crate) use index::HostWorkbenchHitIndex;
 pub(crate) use model::TemplateNodePointerHit;
 use pane_nodes::pane_template_nodes;
@@ -29,22 +25,6 @@ pub(crate) fn hit_test_pane_template_node(
     let mut hit = hit_test_template_nodes(nodes, surface_frame, body, x, y)?;
     hit.pane_id = pane.id.clone();
     Some(hit)
-}
-
-pub(crate) fn hit_test_workbench_window_template_node(
-    presentation: &HostWindowPresentationData,
-    x: f32,
-    y: f32,
-) -> Option<TemplateNodePointerHit> {
-    let nodes = &presentation.workbench_window_nodes;
-    let bounds = template_nodes_bounds(nodes)?;
-    let origin = FrameRect {
-        x: 0.0,
-        y: 0.0,
-        width: bounds.width.max(bounds.x + bounds.width).max(1.0),
-        height: bounds.height.max(bounds.y + bounds.height).max(1.0),
-    };
-    hit_test_workbench_template_nodes(nodes, &origin, x, y)
 }
 
 pub(crate) fn hit_test_workbench_window_template_node_with_index(
