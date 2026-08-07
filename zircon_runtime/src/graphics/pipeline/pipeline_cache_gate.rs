@@ -17,15 +17,20 @@ const MAX_PIPELINE_CACHE_SEED_BYTES: usize = 64 * 1024 * 1024;
 pub(crate) enum PipelineCacheGate {
     Enabled,
     UnsupportedBackend,
+    UnsupportedDeviceFeature,
     MissingSeedData,
 }
 
 pub(crate) const fn pipeline_cache_gate(
     backend: wgpu::Backend,
     has_seed_data: bool,
+    pipeline_cache_feature_enabled: bool,
 ) -> PipelineCacheGate {
     if !matches!(backend, wgpu::Backend::Vulkan) {
         return PipelineCacheGate::UnsupportedBackend;
+    }
+    if !pipeline_cache_feature_enabled {
+        return PipelineCacheGate::UnsupportedDeviceFeature;
     }
     if !has_seed_data {
         return PipelineCacheGate::MissingSeedData;
@@ -60,8 +65,15 @@ impl RuntimePipelineCache {
             .join(PIPELINE_CACHE_SCHEMA_DIR)
             .join(format!("{cache_key}.bin"));
         let seed = read_pipeline_cache_seed(&path);
-        let gate = pipeline_cache_gate(adapter_info.backend, seed.is_some());
-        if gate == PipelineCacheGate::UnsupportedBackend {
+        let gate = pipeline_cache_gate(
+            adapter_info.backend,
+            seed.is_some(),
+            device.features().contains(wgpu::Features::PIPELINE_CACHE),
+        );
+        if matches!(
+            gate,
+            PipelineCacheGate::UnsupportedBackend | PipelineCacheGate::UnsupportedDeviceFeature
+        ) {
             return Self::disabled();
         }
 
@@ -176,16 +188,20 @@ mod tests {
     #[test]
     fn render_perf_pipeline_cache_gate_is_vulkan_only_and_reports_cold_seed() {
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Vulkan, true),
+            pipeline_cache_gate(wgpu::Backend::Vulkan, true, true),
             PipelineCacheGate::Enabled
         );
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Vulkan, false),
+            pipeline_cache_gate(wgpu::Backend::Vulkan, false, true),
             PipelineCacheGate::MissingSeedData
         );
         assert_eq!(
-            pipeline_cache_gate(wgpu::Backend::Dx12, true),
+            pipeline_cache_gate(wgpu::Backend::Dx12, true, true),
             PipelineCacheGate::UnsupportedBackend
+        );
+        assert_eq!(
+            pipeline_cache_gate(wgpu::Backend::Vulkan, true, false),
+            PipelineCacheGate::UnsupportedDeviceFeature
         );
     }
 
