@@ -130,17 +130,19 @@ M4 的显式 profile artifact 导出已以提交 `ec26dc7ec` 移出 UI 线程：
 
 最新共享工作区已通过 `tools/build-editor.ps1` 产出独立 bundle `C:\Users\HeJiahui\ZirconBuilds\editor-ui-optimized-20260807-1000`。脚本依次完成受管 `zircon_app --bin zircon_editor --features target-editor-host` 与 `zircon_runtime --features target-editor-host` 构建、资产复制和 `--help` smoke；`zircon_editor.exe` SHA-256 为 `837698900FE480CBBE3A5210C408DDC556872E6F5A702E653D1824F0BE2B3A70`，`zircon_runtime.dll` 为 `FB4F1E1E7FEB4CA888BD80AF45361DC667236EB34EB7C927B2242A7618864615`。随后真实 GUI 首帧完成窗口创建与 present，并在 25.1 秒内按 one-shot capture 合同以退出码 0 结束；`first-frame.png` SHA-256 为 `72FBC9D18B743D747AE83FCB57C7B433B49C14B2AA1100A00764C15D34D1278A`，目视复核 Workbench、Hierarchy、Inspector、Console、菜单与状态栏完整且无文本覆盖。
 
+独立 `integration_contracts` target 已恢复到真实执行并以提交 `266d305e4` 固化：fixture 硬切换到当前 `workbench_slot/default_presets` schema，autolayout 合同改用产品公开的 `build_with_context` 与显式 scale factor，floating chrome 合同验证 `$editor.*` token，viewport toolbar 合同对齐资产声明的 28px icon 布局。Windows 受管 `cargo test -p zircon_editor --features integration-contracts --test integration_contracts --locked` 通过，直接执行同一测试二进制确认 `31/31` 通过；这补齐 Workbench retained shell、window template/resize、native window host、viewport toolbar、floating design 与 autolayout 的产品边界验证。全量 `lib test` 的 148 个其他测试 API 漂移仍保持独立共享基线阻断。
+
 剩余 pointer bridge inventory 已逐项复核：主 Workbench move/press/scroll 路由没有 `UiSurface` rebuild；activity/asset/detail/document-tab/drawer/host-page/viewport-toolbar 等独立 bridge 只在初始化、模型/尺寸变化或测量值真实变化时重建，并且同值短路；菜单普通 move 同样不重建，只在 open/submenu topology 变化时提交新 surface；hierarchy/welcome/menu 的 scroll 只在 offset 真实变化时刷新。后两类仍是有意保留的 event-time topology/scroll rebuild，不属于修复前的 every-move 放大，但也不记为“源码守卫归零”；若后续采样显示其超出预算，应在 runtime `UiSurface` 增量 scroll/hit-index authority 中统一解决，而不是给每个 bridge 增加旁路缓存。
 
 每个里程碑测试通过后记录一次；实现切片不单独写入产出记录。
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 验证批次 / 残余风险 |
 |---|---|---|---|---|
-| M0 | 可复现基线、计数器与构建入口 | 执行中 | - | 性能采样与构建脚本已稳定；共享 support 导入修复把 `lib test` 错误从 569 降到 148，但其余并行 API 漂移仍阻止 focused test 进入目标用例。 |
-| M1 | immutable presentation 与 dirty domains | 执行中 | - | `9c2592c4d` 已收口单一 generation authority、shared viewport、immutable theme 与 indexed paint/hit read；Windows 受管 package build 通过，源码合同 `6/6` 通过，完整 generation 合同测试仍受共享测试基线阻断。 |
+| M0 | 可复现基线、计数器与构建入口 | 执行中 | - | 性能采样与构建脚本已稳定，独立产品 integration target `31/31` 通过；共享 support 导入修复把全量 `lib test` 错误从 569 降到 148，但其余并行 API 漂移仍阻止内部 focused test 进入目标用例。 |
+| M1 | immutable presentation 与 dirty domains | 执行中 | - | `9c2592c4d` 已收口单一 generation authority、shared viewport、immutable theme 与 indexed paint/hit read；Windows 受管 package build、产品 integration `31/31` 与源码合同 `6/6` 通过，完整内部 generation 合同仍受共享测试基线阻断。 |
 | M2 | generation-owned input/hit/hover index | 执行中 | - | 产品 input-to-damage p95 已达标，same-target/transient hover 与稳定索引已接入；完整 popup/clip/focus focused batch 待共享测试基线恢复。 |
-| M3 | damage paint 与有序命令提取 | 执行中 | - | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本 reference/GPU/Softbuffer 三向对拍通过，Inspector 容器标题重叠已修复，完整 focused full/patch contracts 仍受共享测试基线阻断。 |
-| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活与产物审计通过；Workbench 线性 fallback 源码守卫已归零，`ec26dc7ec` 已把 artifact 编码/写盘移出 UI 线程；独立 bridge 清单已审计，真实 scroll/topology rebuild 与完整 focused tests 仍开放。 |
+| M3 | damage paint 与有序命令提取 | 执行中 | - | 正常 hover 帧 fallback sort 为 0，模板访问已降至 72/frame；当前精确版本 reference/GPU/Softbuffer 三向对拍与产品 integration `31/31` 通过，Inspector 容器标题重叠已修复，内部 focused full/patch contracts 仍受共享测试基线阻断。 |
+| M4 | 生命周期、旧路径删除与产品验收 | 执行中 | - | bundle、三向像素、600-event、10 分钟压力、30 秒真实 GPU 存活、产品 integration `31/31` 与产物审计通过；Workbench 线性 fallback 源码守卫已归零，`ec26dc7ec` 已把 artifact 编码/写盘移出 UI 线程；独立 bridge 清单已审计，真实 scroll/topology rebuild 与内部 focused tests 仍开放。 |
 
 当前执行切片（不等同于里程碑完成）：2026-08-07 已完成 generation-owned shared presentation、damage-driven spatial/paint index、transient interaction、state-owned immutable theme snapshot、有界文本缓存、显式一次性异步 profile 导出、native window 同值 no-op，以及 diagnostics 独立 generation。主题 authority 只在启动或设计 token 变化时同步到 host state，普通 pointer/keyboard generation read 只克隆已有 `Arc`。Windows 原生 `cargo check -p zircon_editor --lib --locked` 在 Inspector 修复后再次通过，profiling 产品配置 `cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host,profiling --locked` 通过；`tools/tests/build-editor.Tests.ps1` 两次复核均为 `3/3` 通过；协调器 artifact audit 返回 `unmanaged: []`。
 
