@@ -1,13 +1,14 @@
+use zircon_editor::core::commands::{CommandEvalCtx, EditorCommandRegistry};
 use zircon_editor::ui::workbench::autolayout::{
-    compute_workbench_shell_geometry, solve_axis_constraints, AxisConstraint, ShellFrame,
-    ShellRegionId, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
+    AxisConstraint, ShellFrame, ShellRegionId, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
+    compute_workbench_shell_geometry, solve_axis_constraints,
 };
 use zircon_editor::ui::workbench::fixture::default_preview_fixture;
 use zircon_editor::ui::workbench::layout::{
     DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout,
 };
 use zircon_editor::ui::workbench::model::WorkbenchViewModel;
-use zircon_editor::ui::workbench::snapshot::ViewContentKind;
+use zircon_editor::ui::workbench::snapshot::{EditorChromeSnapshot, ViewContentKind};
 use zircon_editor::ui::workbench::view::ViewInstanceId;
 use zircon_runtime_interface::ui::layout::BoxConstraints;
 
@@ -20,6 +21,16 @@ fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> A
         weight,
         stretch_mode: StretchMode::Stretch,
     }
+}
+
+fn build_workbench_model(chrome: &EditorChromeSnapshot) -> WorkbenchViewModel {
+    let command_registry = EditorCommandRegistry::default_workbench();
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(chrome.project_open)
+        .with_undo_available(chrome.can_undo)
+        .with_redo_available(chrome.can_redo)
+        .with_optional_focused_document_kind(chrome.focused_document_kind.clone());
+    WorkbenchViewModel::build_with_context(&command_registry, chrome, &context)
 }
 
 #[test]
@@ -60,13 +71,14 @@ fn axis_solver_clamps_to_hard_minimums_when_available_is_below_total_minimum() {
 fn default_hybrid_geometry_anchors_right_and_bottom_regions() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = build_workbench_model(&chrome);
     let geometry = compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(1440.0, 900.0),
+        1.0,
         &WorkbenchChromeMetrics::default(),
         None,
     );
@@ -91,13 +103,14 @@ fn geometry_viewport_frame_is_derived_from_shell_layout_not_snapshot_viewport_si
     fixture.editor.viewport_size = [32, 32];
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = build_workbench_model(&chrome);
     let geometry = compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(1600.0, 980.0),
+        1.0,
         &WorkbenchChromeMetrics::default(),
         None,
     );
@@ -122,13 +135,14 @@ fn floating_windows_without_persisted_frame_use_shared_default_geometry() {
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = build_workbench_model(&chrome);
     let geometry = compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(1440.0, 900.0),
+        1.0,
         &WorkbenchChromeMetrics::default(),
         None,
     );
@@ -158,13 +172,14 @@ fn persisted_floating_window_frame_is_clamped_to_center_band() {
     });
 
     let chrome = fixture.build_chrome();
-    let model = WorkbenchViewModel::build(&chrome);
+    let model = build_workbench_model(&chrome);
     let geometry = compute_workbench_shell_geometry(
         &model,
         &chrome,
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(1440.0, 900.0),
+        1.0,
         &WorkbenchChromeMetrics::default(),
         None,
     );

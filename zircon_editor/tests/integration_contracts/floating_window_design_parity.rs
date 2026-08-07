@@ -3,8 +3,8 @@ use std::path::Path;
 
 use toml::{Table, Value};
 use zircon_editor::ui::workbench::{
-    FloatingLayer, FloatingWindow, FloatingWindowContentLayout, FloatingWindowInteractionMode,
-    FloatingWindowKind, FloatingWindowPlacement, FLOATING_WINDOW_DESIGN_CONTRACTS,
+    FLOATING_WINDOW_DESIGN_CONTRACTS, FloatingLayer, FloatingWindow, FloatingWindowContentLayout,
+    FloatingWindowInteractionMode, FloatingWindowKind, FloatingWindowPlacement,
 };
 
 fn asset_source(relative: &str) -> String {
@@ -56,25 +56,26 @@ fn child_nodes<'a>(value: &'a Value, node: &str) -> Vec<&'a str> {
 
 fn assert_low_chrome(value: &Value, node: &str) {
     assert_eq!(
-        number_at(value, &["nodes", node, "style", "self", "border", "width"]),
-        1.0,
-        "{node} must use the 1px workbench border contract"
+        string_at(value, &["nodes", node, "style", "self", "border", "width"]),
+        "$editor.control.border_width",
+        "{node} must use the workbench border-width token"
     );
     assert!(
-        number_at(value, &["nodes", node, "style", "self", "border", "radius"]) <= 8.0,
-        "{node} must keep low workbench corner radius"
+        string_at(value, &["nodes", node, "style", "self", "border", "radius"])
+            .starts_with("$editor.control.radius."),
+        "{node} must use a workbench radius token"
     );
     assert!(
         string_at(
             value,
             &["nodes", node, "style", "self", "background", "color"]
         )
-        .starts_with("editor.surface."),
+        .starts_with("$editor.surface."),
         "{node} must use editor surface tokens"
     );
     assert_eq!(
         string_at(value, &["nodes", node, "style", "self", "border", "color"]),
-        "editor.border",
+        "$editor.border",
         "{node} must use the editor border token"
     );
 }
@@ -203,18 +204,18 @@ fn command_palette_matches_top_center_keyboard_overlay_contract() {
         "WorkbenchSearchInput"
     );
     assert_eq!(
-        number_at(
+        string_at(
             &document,
             &["nodes", "search", "layout", "height", "preferred"]
         ),
-        32.0
+        "$editor.control.height.default"
     );
     assert_eq!(
-        number_at(
+        string_at(
             &document,
             &["nodes", "first_result", "layout", "height", "preferred"]
         ),
-        28.0
+        "$editor.control.height.dense"
     );
     assert!(
         number_at(

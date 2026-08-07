@@ -6,10 +6,8 @@
     "icon_key": "folder-open-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "LeftTop",
-    "preferred_host": {
-      "Drawer": "LeftTop"
-    },
+    "workbench_slot": "LeftTopDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.project"
   },
   {
@@ -19,10 +17,8 @@
     "icon_key": "list-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "LeftTop",
-    "preferred_host": {
-      "Drawer": "LeftTop"
-    },
+    "workbench_slot": "LeftTopDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.hierarchy"
   },
   {
@@ -32,10 +28,8 @@
     "icon_key": "options-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "RightTop",
-    "preferred_host": {
-      "Drawer": "RightTop"
-    },
+    "workbench_slot": "RightTopDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.inspector"
   },
   {
@@ -45,8 +39,8 @@
     "icon_key": "cube-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": null,
-    "preferred_host": "DocumentCenter",
+    "workbench_slot": "DocumentCenter",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.scene"
   },
   {
@@ -56,8 +50,8 @@
     "icon_key": "play-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": null,
-    "preferred_host": "DocumentCenter",
+    "workbench_slot": "DocumentCenter",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.game"
   },
   {
@@ -67,10 +61,8 @@
     "icon_key": "folder-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "LeftTop",
-    "preferred_host": {
-      "Drawer": "LeftTop"
-    },
+    "workbench_slot": "LeftTopDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.assets"
   },
   {
@@ -80,10 +72,8 @@
     "icon_key": "terminal-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "BottomLeft",
-    "preferred_host": {
-      "Drawer": "BottomLeft"
-    },
+    "workbench_slot": "BottomDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.console"
   },
   {
@@ -93,10 +83,8 @@
     "icon_key": "runtime-diagnostics",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "BottomRight",
-    "preferred_host": {
-      "Drawer": "BottomRight"
-    },
+    "workbench_slot": "BottomDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.runtime_diagnostics"
   },
   {
@@ -106,10 +94,8 @@
     "icon_key": "module-plugins",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "LeftBottom",
-    "preferred_host": {
-      "Drawer": "LeftBottom"
-    },
+    "workbench_slot": "LeftBottomDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.module_plugins"
   },
   {
@@ -119,10 +105,8 @@
     "icon_key": "build-export",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": "BottomRight",
-    "preferred_host": {
-      "Drawer": "BottomRight"
-    },
+    "workbench_slot": "BottomDrawer",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.build_export_desktop"
   },
   {
@@ -132,8 +116,8 @@
     "icon_key": "construct-outline",
     "multi_instance": true,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": null,
-    "preferred_host": "DocumentCenter",
+    "workbench_slot": "DocumentCenter",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.prefab"
   },
   {
@@ -143,8 +127,8 @@
     "icon_key": "grid-outline",
     "multi_instance": false,
     "dock_policy": "DrawerOrDocument",
-    "preferred_drawer_slot": null,
-    "preferred_host": "ExclusiveMainPage",
+    "workbench_slot": "ExclusiveMainPage",
+    "default_presets": ["Authoring"],
     "persistence_key_policy": "editor.asset_browser"
   }
 ]

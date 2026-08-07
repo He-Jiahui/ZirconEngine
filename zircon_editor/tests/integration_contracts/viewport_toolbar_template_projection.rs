@@ -32,7 +32,7 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
         .expect("scene mode activation group should exist");
     assert_eq!(
         activate_scene_mode.frame,
-        UiFrame::new(0.0, 0.0, 58.0, 28.0)
+        UiFrame::new(0.0, 0.0, 28.0, 28.0)
     );
 
     let set_transform_space = host_model
@@ -43,7 +43,7 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
         UiFrame::new(
             activate_scene_mode.frame.x + activate_scene_mode.frame.width + 4.0,
             0.0,
-            68.0,
+            28.0,
             28.0
         )
     );
@@ -69,7 +69,7 @@ fn viewport_toolbar_template_projects_surface_backed_group_frames() {
     let frame_selection = host_model
         .node_by_control_id("FrameSelection")
         .expect("frame selection control should exist");
-    assert_eq!(frame_selection.frame.width, 68.0);
+    assert_eq!(frame_selection.frame.width, 28.0);
     assert_eq!(frame_selection.frame.height, 28.0);
     assert!(frame_selection.frame.x > set_transform_space.frame.x);
 }
