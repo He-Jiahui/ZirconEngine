@@ -1,4 +1,7 @@
+use std::sync::mpsc::channel;
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 use zircon_runtime_interface::math::UVec2;
 
@@ -63,10 +66,50 @@ fn controller_does_not_republish_cached_image_when_capture_fails() {
     framework.state.lock().unwrap().capture_error = Some("planned capture failure".to_string());
 
     assert!(controller.poll_captured_frame().is_none());
-    assert!(
-        controller
-            .take_error()
-            .is_some_and(|error| error.contains("planned capture failure"))
-    );
+    assert!(controller
+        .take_error()
+        .is_some_and(|error| error.contains("planned capture failure")));
     assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
+}
+
+#[test]
+fn capture_poll_does_not_wait_for_a_viewport_submit_operation() {
+    let framework = Arc::new(FakeRenderFramework::default());
+    let controller = Arc::new(RetainedViewportController::new_with_framework(
+        framework.clone(),
+    ));
+    controller
+        .submit_extract(test_extract(), UVec2::new(160, 90))
+        .unwrap();
+
+    let (submit_started, submit_release) = framework.block_next_submit();
+    let submit_controller = Arc::clone(&controller);
+    let submitted = thread::spawn(move || {
+        submit_controller.submit_extract(test_extract(), UVec2::new(160, 90))
+    });
+    submit_started
+        .recv_timeout(Duration::from_secs(5))
+        .expect("fixture submit should reach the framework gate");
+
+    let (capture_sender, capture_receiver) = channel();
+    let poll_controller = Arc::clone(&controller);
+    let polled = thread::spawn(move || {
+        capture_sender
+            .send(poll_controller.poll_captured_frame())
+            .expect("capture poll result should be observable");
+    });
+
+    assert!(capture_receiver
+        .recv_timeout(Duration::from_millis(100))
+        .expect("capture poll must not wait for a viewport submit operation")
+        .is_some());
+
+    submit_release
+        .send(())
+        .expect("fixture submit should accept release");
+    polled.join().expect("capture poll thread should not panic");
+    assert!(submitted
+        .join()
+        .expect("submit thread should not panic")
+        .is_ok());
 }

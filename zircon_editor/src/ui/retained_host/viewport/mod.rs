@@ -7,6 +7,8 @@ mod new_test_stub;
 #[cfg(test)]
 mod new_with_framework;
 mod poll_captured_frame;
+mod poll_viewport_product;
+mod presenter_factory;
 mod render_framework_resolve_job;
 mod retained_viewport_controller;
 mod submit_extract;

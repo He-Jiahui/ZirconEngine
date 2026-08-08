@@ -14,6 +14,8 @@ use super::UiArrangedTree;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfaceFrame {
+    #[serde(default)]
+    pub generation: u64,
     pub tree_id: UiTreeId,
     #[serde(default)]
     pub window_state: UiSurfaceWindowState,

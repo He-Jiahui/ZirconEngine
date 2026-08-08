@@ -11,7 +11,7 @@ pub use control::{
 pub use reflection::{
     UiActionDescriptor, UiNodeDescriptor, UiNodeId, UiNodePath, UiParameterDescriptor,
     UiPropertyDescriptor, UiPropertyInvalidationReason, UiReflectedProperty,
-    UiReflectedPropertySource, UiReflectionDiff, UiReflectionSnapshot, UiReflectorHitContext,
-    UiReflectorNode, UiReflectorSnapshot, UiStateFlags, UiTreeId, UiValueType,
-    UiWidgetLifecycleState,
+    UiReflectedPropertySource, UiReflectionDiff, UiReflectionNodePatch, UiReflectionSnapshot,
+    UiReflectorHitContext, UiReflectorNode, UiReflectorSnapshot, UiStateFlags, UiTreeId,
+    UiValueType, UiWidgetLifecycleState,
 };

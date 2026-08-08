@@ -33,6 +33,36 @@ pub(crate) struct HostPresentationGeneration {
     diagnostics_generation: u64,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct HostPresentationGenerationCursor {
+    structure: u64,
+    interaction: u64,
+    viewport: u64,
+    hit_test: u64,
+    theme: u64,
+    diagnostics: u64,
+}
+
+impl HostPresentationGenerationCursor {
+    pub(crate) const fn new(
+        structure: u64,
+        interaction: u64,
+        viewport: u64,
+        hit_test: u64,
+        theme: u64,
+        diagnostics: u64,
+    ) -> Self {
+        Self {
+            structure,
+            interaction,
+            viewport,
+            hit_test,
+            theme,
+            diagnostics,
+        }
+    }
+}
+
 #[derive(Clone)]
 struct HostPresentationPaintOverrides {
     menu_state: Arc<HostMenuStateData>,
@@ -147,6 +177,17 @@ impl HostPresentationGeneration {
 
     pub(crate) fn diagnostics_generation(&self) -> u64 {
         self.diagnostics_generation
+    }
+
+    pub(crate) fn cursor(&self) -> HostPresentationGenerationCursor {
+        HostPresentationGenerationCursor::new(
+            self.structure_generation(),
+            self.interaction_generation(),
+            self.viewport_generation(),
+            self.hit_test_generation(),
+            self.theme_generation(),
+            self.diagnostics_generation(),
+        )
     }
 
     pub(crate) fn shares_structure_with(&self, other: &Self) -> bool {

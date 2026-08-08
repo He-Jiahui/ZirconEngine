@@ -1,7 +1,11 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{UiFrame, UiSlotKind},
-    surface::{UiArrangedNode, UiArrangedTree, UiCanvasLayerGroup, UiFocusPath},
+    surface::{
+        UiArrangedNode, UiArrangedSlotSummary, UiArrangedTree, UiCanvasLayerGroup, UiFocusPath,
+    },
     tree::{UiInputPolicy, UiTree, UiTreeError},
 };
 
@@ -9,43 +13,227 @@ pub fn build_arranged_tree(tree: &UiTree) -> UiArrangedTree {
     let mut nodes: Vec<_> = tree
         .nodes
         .values()
-        .map(|node| {
-            let visibility = node.effective_visibility();
-            UiArrangedNode {
-                node_id: node.node_id,
-                node_path: node.node_path.clone(),
-                parent: node.parent,
-                children: node.children.clone(),
-                frame: node.layout_cache.frame,
-                clip_frame: effective_node_clip_frame(tree, node.node_id)
-                    .unwrap_or(node.layout_cache.frame),
-                z_index: arranged_node_z_index(tree, node.node_id),
-                paint_order: node.paint_order,
-                visibility,
-                input_policy: node.input_policy,
-                enabled: node.state_flags.enabled,
-                clickable: node.state_flags.clickable,
-                hoverable: node.state_flags.hoverable,
-                focusable: node.is_focus_candidate(),
-                clip_to_bounds: node.clip_to_bounds || node.container.clips_to_bounds(),
-                control_id: node
-                    .template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.control_id.clone()),
-                slot: arranged_node_slot(tree, node.node_id),
-            }
-        })
+        .map(|node| arranged_node_from_tree(tree, node.node_id))
         .collect();
     nodes.sort_by_key(|node| (node.z_index, node.paint_order, node.node_id));
     let draw_order = nodes.iter().map(|node| node.node_id).collect();
     let canvas_layers = arranged_canvas_layers(tree);
-    UiArrangedTree {
+    let mut arranged_tree = UiArrangedTree {
         tree_id: tree.tree_id.clone(),
         roots: tree.roots.clone(),
         nodes,
         draw_order,
         canvas_layers,
+        ..UiArrangedTree::default()
+    };
+    arranged_tree
+}
+
+pub(crate) fn patch_arranged_tree_geometry(
+    tree: &UiTree,
+    arranged_tree: &mut UiArrangedTree,
+    changed_node_ids: &BTreeSet<UiNodeId>,
+    checked_node_ids: &BTreeSet<UiNodeId>,
+    node_indices: &BTreeMap<UiNodeId, usize>,
+    slot_indices: &BTreeMap<UiNodeId, usize>,
+) -> bool {
+    if checked_node_ids.is_empty()
+        || !changed_node_ids.is_subset(checked_node_ids)
+        || arranged_tree.tree_id != tree.tree_id
+        || arranged_tree.nodes.len() != tree.nodes.len()
+        || arranged_tree.roots != tree.roots
+        || node_indices.len() != arranged_tree.nodes.len()
+        || slot_indices.len() != tree.slots.len()
+    {
+        return false;
     }
+
+    let mut replacements = Vec::with_capacity(changed_node_ids.len());
+    for node_id in checked_node_ids {
+        let Some(node) = tree.node(*node_id) else {
+            return false;
+        };
+        if changed_node_ids.contains(node_id) && has_clip_ancestor(tree, *node_id) {
+            return false;
+        }
+        let Some(previous_index) = node_indices.get(node_id).copied() else {
+            return false;
+        };
+        let Some(previous) = arranged_tree.nodes.get(previous_index) else {
+            return false;
+        };
+        let next_frame = node.layout_cache.frame;
+        let next_clip_frame =
+            effective_node_clip_frame(tree, node.node_id).unwrap_or(node.layout_cache.frame);
+        let next_slot = arranged_node_slot_indexed(tree, node.node_id, slot_indices);
+        if !same_tree_non_geometry_fields(tree, previous, node, slot_indices) {
+            return false;
+        }
+        if changed_node_ids.contains(node_id) {
+            if !same_slot_non_geometry_fields(previous.slot.as_ref(), next_slot.as_ref()) {
+                return false;
+            }
+            replacements.push((previous_index, next_frame, next_clip_frame, next_slot));
+        } else if previous.frame != next_frame
+            || previous.clip_frame != next_clip_frame
+            || previous.slot != next_slot
+        {
+            return false;
+        }
+    }
+
+    for (index, frame, clip_frame, slot) in replacements {
+        let Some(current) = arranged_tree.nodes.get_mut(index) else {
+            return false;
+        };
+        current.frame = frame;
+        current.clip_frame = clip_frame;
+        current.slot = slot;
+    }
+    true
+}
+
+pub(crate) fn arranged_node_indices(arranged_tree: &UiArrangedTree) -> BTreeMap<UiNodeId, usize> {
+    arranged_tree
+        .nodes
+        .iter()
+        .enumerate()
+        .map(|(index, node)| (node.node_id, index))
+        .collect()
+}
+
+pub(crate) fn arranged_slot_indices(tree: &UiTree) -> BTreeMap<UiNodeId, usize> {
+    tree.slots
+        .iter()
+        .enumerate()
+        .map(|(index, slot)| (slot.child_id, index))
+        .collect()
+}
+
+fn arranged_node_from_tree(tree: &UiTree, node_id: UiNodeId) -> UiArrangedNode {
+    let node = tree
+        .node(node_id)
+        .expect("arranged node source must exist in the UI tree");
+    UiArrangedNode {
+        node_id: node.node_id,
+        node_path: node.node_path.clone(),
+        parent: node.parent,
+        children: node.children.clone(),
+        frame: node.layout_cache.frame,
+        clip_frame: effective_node_clip_frame(tree, node.node_id)
+            .unwrap_or(node.layout_cache.frame),
+        z_index: arranged_node_z_index(tree, node.node_id),
+        paint_order: node.paint_order,
+        visibility: node.effective_visibility(),
+        input_policy: node.input_policy,
+        enabled: node.state_flags.enabled,
+        clickable: node.state_flags.clickable,
+        hoverable: node.state_flags.hoverable,
+        focusable: node.is_focus_candidate(),
+        clip_to_bounds: node.clip_to_bounds || node.container.clips_to_bounds(),
+        control_id: node
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.clone()),
+        slot: arranged_node_slot(tree, node.node_id),
+    }
+}
+
+fn same_tree_non_geometry_fields(
+    tree: &UiTree,
+    arranged: &UiArrangedNode,
+    tree_node: &zircon_runtime_interface::ui::tree::UiTreeNode,
+    slot_indices: &BTreeMap<UiNodeId, usize>,
+) -> bool {
+    arranged.node_id == tree_node.node_id
+        && arranged.node_path == tree_node.node_path
+        && arranged.parent == tree_node.parent
+        && arranged.children == tree_node.children
+        && arranged.z_index == arranged_node_z_index_indexed(tree, tree_node.node_id, slot_indices)
+        && arranged.paint_order == tree_node.paint_order
+        && arranged.visibility == tree_node.effective_visibility()
+        && arranged.input_policy == tree_node.input_policy
+        && arranged.enabled == tree_node.state_flags.enabled
+        && arranged.clickable == tree_node.state_flags.clickable
+        && arranged.hoverable == tree_node.state_flags.hoverable
+        && arranged.focusable == tree_node.is_focus_candidate()
+        && arranged.clip_to_bounds
+            == (tree_node.clip_to_bounds || tree_node.container.clips_to_bounds())
+        && arranged.control_id.as_deref()
+            == tree_node
+                .template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+}
+
+fn same_slot_non_geometry_fields(
+    previous: Option<&UiArrangedSlotSummary>,
+    next: Option<&UiArrangedSlotSummary>,
+) -> bool {
+    match (previous, next) {
+        (None, None) => true,
+        (Some(previous), Some(next)) => {
+            previous.parent_id == next.parent_id
+                && previous.child_id == next.child_id
+                && previous.kind == next.kind
+                && previous.order == next.order
+                && previous.z_order == next.z_order
+        }
+        _ => false,
+    }
+}
+
+fn arranged_node_slot_indexed(
+    tree: &UiTree,
+    child_id: UiNodeId,
+    slot_indices: &BTreeMap<UiNodeId, usize>,
+) -> Option<zircon_runtime_interface::ui::surface::UiArrangedSlotSummary> {
+    let child = tree.node(child_id)?;
+    let parent_id = child.parent?;
+    let slot_kind = tree.node(parent_id)?.container.child_slot_kind()?;
+    let slot = tree.slots.get(*slot_indices.get(&child_id)?)?;
+    (slot.parent_id == parent_id && slot.child_id == child_id && slot.kind == slot_kind)
+        .then(|| slot.into())
+}
+
+fn arranged_node_z_index_indexed(
+    tree: &UiTree,
+    child_id: UiNodeId,
+    slot_indices: &BTreeMap<UiNodeId, usize>,
+) -> i32 {
+    let Some(node) = tree.node(child_id) else {
+        return 0;
+    };
+    let slot_z = slot_indices
+        .get(&child_id)
+        .and_then(|index| tree.slots.get(*index))
+        .filter(|slot| {
+            slot.child_id == child_id
+                && matches!(slot.kind, UiSlotKind::Overlay | UiSlotKind::Canvas)
+        })
+        .map(|slot| slot.z_order)
+        .unwrap_or_default();
+    node.z_index.saturating_add(slot_z)
+}
+
+fn has_clip_ancestor(tree: &UiTree, node_id: UiNodeId) -> bool {
+    let Some(node) = tree.node(node_id) else {
+        return true;
+    };
+    if node.clip_to_bounds || node.container.clips_to_bounds() {
+        return true;
+    }
+    let mut current = node.parent;
+    while let Some(parent_id) = current {
+        let Some(parent) = tree.node(parent_id) else {
+            return true;
+        };
+        if parent.clip_to_bounds || parent.container.clips_to_bounds() {
+            return true;
+        }
+        current = parent.parent;
+    }
+    false
 }
 
 fn arranged_canvas_layers(tree: &UiTree) -> Vec<UiCanvasLayerGroup> {

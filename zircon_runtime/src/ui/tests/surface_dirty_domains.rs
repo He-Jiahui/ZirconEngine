@@ -1,6 +1,7 @@
 use crate::ui::{
     surface::{
-        UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface, UiSurfaceRebuildReport,
+        UiInvalidationReason, UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface,
+        UiSurfaceRebuildReport,
     },
     tree::UiRuntimeTreeLayoutExt,
 };
@@ -139,24 +140,36 @@ fn sibling_surface(container: UiContainerKind, boundary: LayoutBoundary) -> UiSu
         .tree
         .insert_child(
             root_id(),
-            UiTreeNode::new(primary_id(), UiNodePath::new("root/primary")).with_constraints(
-                BoxConstraints {
+            UiTreeNode::new(primary_id(), UiNodePath::new("root/primary"))
+                .with_constraints(BoxConstraints {
                     width: fixed_constraint(40.0),
                     height: fixed_constraint(20.0),
-                },
-            ),
+                })
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    hoverable: true,
+                    ..Default::default()
+                }),
         )
         .unwrap();
     surface
         .tree
         .insert_child(
             root_id(),
-            UiTreeNode::new(sibling_id(), UiNodePath::new("root/sibling")).with_constraints(
-                BoxConstraints {
+            UiTreeNode::new(sibling_id(), UiNodePath::new("root/sibling"))
+                .with_constraints(BoxConstraints {
                     width: fixed_constraint(40.0),
                     height: fixed_constraint(20.0),
-                },
-            ),
+                })
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    hoverable: true,
+                    ..Default::default()
+                }),
         )
         .unwrap();
     surface.compute_layout(root_size()).unwrap();

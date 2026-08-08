@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
@@ -18,5 +20,5 @@ pub(crate) struct SceneViewportChromeData {
     pub translate_snap_label: SharedString,
     pub rotate_snap_label: SharedString,
     pub scale_snap_label: SharedString,
-    pub toolbar_surface_frame: Option<UiSurfaceFrame>,
+    pub toolbar_surface_frame: Option<Arc<UiSurfaceFrame>>,
 }

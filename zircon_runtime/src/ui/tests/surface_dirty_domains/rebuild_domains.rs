@@ -138,7 +138,7 @@ fn surface_dirty_rebuild_recomputes_layout_for_structural_domains() {
             ExpectedPhases {
                 layout: true,
                 arranged: true,
-                hit_grid: true,
+                hit_grid: dirty_flags.style || dirty_flags.visible_range,
                 render: true,
             },
         );

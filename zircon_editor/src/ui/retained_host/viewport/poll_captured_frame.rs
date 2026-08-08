@@ -4,7 +4,6 @@ use super::retained_viewport_controller::RetainedViewportController;
 
 impl RetainedViewportController {
     pub(crate) fn poll_captured_frame(&self) -> Option<(RenderViewportHandle, CapturedFrame)> {
-        let _operation = self.lock_viewport_lifecycle();
         let poll_request = {
             let mut shared = self.lock_shared();
             let Some(viewport) = shared.viewport.map(|viewport| viewport.handle) else {
@@ -46,7 +45,7 @@ impl RetainedViewportController {
         }
     }
 
-    fn record_viewport_error(&self, viewport: RenderViewportHandle, error: String) {
+    pub(super) fn record_viewport_error(&self, viewport: RenderViewportHandle, error: String) {
         let mut shared = self.lock_shared();
         if shared
             .viewport

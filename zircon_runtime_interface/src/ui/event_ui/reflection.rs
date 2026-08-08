@@ -506,6 +506,35 @@ impl UiReflectionSnapshot {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiReflectionNodePatch {
+    pub node_path: UiNodePath,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub properties: BTreeMap<String, Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pressed: Option<bool>,
+}
+
+impl UiReflectionNodePatch {
+    pub fn new(node_path: UiNodePath) -> Self {
+        Self {
+            node_path,
+            ..Self::default()
+        }
+    }
+
+    pub fn with_property(mut self, name: impl Into<String>, value: Value) -> Self {
+        self.properties.insert(name.into(), value);
+        self
+    }
+
+    pub fn with_pressed(mut self, pressed: bool) -> Self {
+        self.pressed = Some(pressed);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiReflectionDiff {
     pub tree_id: UiTreeId,
     pub changed_nodes: Vec<UiNodeId>,

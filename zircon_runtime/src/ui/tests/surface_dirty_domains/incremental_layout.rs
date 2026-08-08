@@ -37,32 +37,19 @@ fn stable_and_single_node_dirty_scale_matrix_exposes_post_layout_outer_traversal
             .node_mut(changed_node_id)
             .expect("scale-matrix node should exist")
             .constraints
-            .width = fixed_constraint(60.0);
+            .width = fixed_constraint(20.0);
         surface
-            .tree
-            .node_mut(changed_node_id)
-            .expect("scale-matrix node should exist")
-            .dirty
-            .layout = true;
+            .invalidate_node(changed_node_id, UiInvalidationReason::Layout)
+            .unwrap();
 
         let report = surface.rebuild_dirty(root_size()).unwrap();
-        let total_node_count = child_count + 1;
-
         assert_eq!(report.layout_visited_node_count, 1, "{child_count}");
-        assert_eq!(
-            report.arranged_outer_node_visit_count, total_node_count,
-            "{child_count}"
-        );
-        assert_eq!(
-            report.hit_grid_outer_node_visit_count, total_node_count,
-            "{child_count}"
-        );
-        assert_eq!(
-            report.render_outer_node_visit_count, total_node_count,
-            "{child_count}"
-        );
+        assert_eq!(report.arranged_outer_node_visit_count, 1, "{child_count}");
+        assert_eq!(report.hit_grid_outer_node_visit_count, 1, "{child_count}");
+        assert_eq!(report.render_outer_node_visit_count, 1, "{child_count}");
         eprintln!(
-            "nodes={total_node_count} layout_visited={} arranged_outer_visited={} hit_outer_visited={} render_outer_visited={} layout_us={} arranged_us={} hit_us={} render_us={}",
+            "nodes={} layout_visited={} arranged_outer_visited={} hit_outer_visited={} render_outer_visited={} layout_us={} arranged_us={} hit_us={} render_us={}",
+            child_count + 1,
             report.layout_visited_node_count,
             report.arranged_outer_node_visit_count,
             report.hit_grid_outer_node_visit_count,
@@ -99,6 +86,12 @@ fn flat_scale_surface(child_count: usize) -> UiSurface {
                         width: fixed_constraint(40.0),
                         height: fixed_constraint(20.0),
                     })
+                    .with_state_flags(UiStateFlags {
+                        visible: true,
+                        enabled: true,
+                        hoverable: true,
+                        ..Default::default()
+                    })
                     .with_layout_boundary(LayoutBoundary::ParentDirected),
             )
             .expect("scale-matrix node should insert");
@@ -122,13 +115,10 @@ fn surface_dirty_layout_skips_siblings_under_non_auto_parent() {
         .node_mut(primary_id())
         .expect("primary node should exist")
         .constraints
-        .width = fixed_constraint(60.0);
+        .width = fixed_constraint(20.0);
     surface
-        .tree
-        .node_mut(primary_id())
-        .expect("primary node should exist")
-        .dirty
-        .layout = true;
+        .invalidate_node(primary_id(), UiInvalidationReason::Layout)
+        .unwrap();
 
     let report = surface.rebuild_dirty(root_size()).unwrap();
 
@@ -137,17 +127,12 @@ fn surface_dirty_layout_skips_siblings_under_non_auto_parent() {
     assert_eq!(report.layout_skipped_node_count, 2);
     assert_eq!(report.layout_geometry_changed_node_count, 1);
     assert_eq!(
-        report.arranged_outer_node_visit_count,
-        surface.tree.nodes.len()
+        surface.last_layout_geometry_changed_node_ids(),
+        &std::collections::BTreeSet::from([primary_id()])
     );
-    assert_eq!(
-        report.hit_grid_outer_node_visit_count,
-        surface.arranged_tree.draw_order.len()
-    );
-    assert_eq!(
-        report.render_outer_node_visit_count,
-        surface.arranged_tree.draw_order.len()
-    );
+    assert_eq!(report.arranged_outer_node_visit_count, 1);
+    assert_eq!(report.hit_grid_outer_node_visit_count, 1);
+    assert_eq!(report.render_outer_node_visit_count, 1);
     assert_eq!(report.render_command_rebuilt_count, 1);
     assert_eq!(report.render_damage_rect_count, 1);
     assert_eq!(
@@ -159,6 +144,155 @@ fn surface_dirty_layout_skips_siblings_under_non_auto_parent() {
         sibling_frame
     );
     assert_dirty_cleared_for(&surface, primary_id());
+}
+
+#[test]
+fn geometry_change_on_non_pointer_node_keeps_hit_grid_incremental() {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .state_flags
+        .clickable = false;
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .state_flags
+        .hoverable = false;
+    surface
+        .invalidate_node(primary_id(), UiInvalidationReason::Layout)
+        .unwrap();
+    surface.rebuild_dirty(root_size()).unwrap();
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .constraints
+        .width = fixed_constraint(20.0);
+    surface
+        .invalidate_node(primary_id(), UiInvalidationReason::Layout)
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_eq!(report.arranged_outer_node_visit_count, 1);
+    assert_eq!(report.hit_grid_outer_node_visit_count, 0);
+    assert!(!report.hit_grid_rebuilt);
+}
+
+#[test]
+fn pointer_node_growing_from_zero_area_rebuilds_missing_hit_entry() {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .constraints
+        .width = fixed_constraint(0.0);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .state_flags = UiStateFlags {
+        visible: true,
+        enabled: true,
+        clickable: true,
+        hoverable: true,
+        ..Default::default()
+    };
+    surface
+        .invalidate_node(primary_id(), UiInvalidationReason::Layout)
+        .unwrap();
+    surface.rebuild_dirty(root_size()).unwrap();
+
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .all(|entry| entry.node_id != primary_id()));
+
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .constraints
+        .width = fixed_constraint(60.0);
+    surface
+        .invalidate_node(primary_id(), UiInvalidationReason::Layout)
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_eq!(report.arranged_outer_node_visit_count, 1);
+    assert_eq!(
+        report.hit_grid_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len()
+    );
+    assert!(report.hit_grid_rebuilt);
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .any(|entry| entry.node_id == primary_id()));
+}
+
+#[test]
+fn mixed_layout_and_input_dirty_rebuilds_arranged_and_hit_state() {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .constraints
+        .width = fixed_constraint(60.0);
+    surface
+        .invalidate_node(primary_id(), UiInvalidationReason::Layout)
+        .unwrap();
+    surface
+        .tree
+        .node_mut(sibling_id())
+        .expect("sibling node should exist")
+        .state_flags
+        .clickable = false;
+    surface
+        .tree
+        .node_mut(sibling_id())
+        .expect("sibling node should exist")
+        .state_flags
+        .hoverable = false;
+    surface
+        .mark_node_dirty(
+            sibling_id(),
+            UiDirtyFlags {
+                hit_test: true,
+                render: true,
+                input: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_eq!(
+        report.arranged_outer_node_visit_count,
+        surface.tree.nodes.len()
+    );
+    assert_eq!(
+        report.hit_grid_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len()
+    );
+    assert!(report.hit_grid_rebuilt);
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .all(|entry| entry.node_id != sibling_id()));
 }
 
 #[test]
@@ -367,6 +501,10 @@ fn surface_dirty_layout_revisits_auto_parent_when_child_size_changes() {
     assert_eq!(report.layout_visited_node_count, 3);
     assert_eq!(report.layout_skipped_node_count, 0);
     assert_eq!(report.layout_geometry_changed_node_count, 2);
+    assert_eq!(
+        surface.last_layout_geometry_changed_node_ids(),
+        &std::collections::BTreeSet::from([primary_id(), sibling_id()])
+    );
     assert_eq!(
         surface
             .arranged_tree

@@ -6,6 +6,7 @@ mod focus;
 mod frame_hit_test;
 pub(crate) mod input;
 mod interaction_gate;
+mod invalidation;
 mod node_pool;
 mod popup_stack;
 mod property_mutation;
@@ -25,7 +26,8 @@ use zircon_runtime_interface::ui::{
 pub use crate::ui::text::layout_text;
 pub(crate) use arranged::{
     arranged_bubble_route, arranged_effective_input_policy, arranged_focus_path,
-    build_arranged_tree, is_arranged_child_hit_path_visible, is_arranged_render_visible,
+    arranged_node_indices, arranged_slot_indices, build_arranged_tree,
+    is_arranged_child_hit_path_visible, is_arranged_render_visible, patch_arranged_tree_geometry,
 };
 pub use component_state::UiSurfaceComponentStateStore;
 pub use diagnostics::{
@@ -39,13 +41,18 @@ pub use frame_hit_test::{
 pub(crate) use input::text_input_constraints_for_node;
 pub use input::{UiSurfaceInputEffectError, UiSurfaceInputEffectResult, UiSurfaceInputState};
 pub(crate) use interaction_gate::{ui_surface_effective_disabled, ui_surface_node_disabled};
+pub use invalidation::{
+    UiInvalidationApplyError, UiInvalidationChange, UiInvalidationCommit,
+    UiInvalidationGenerations, UiInvalidationReason, UiInvalidationTransaction,
+    UiSurfaceInvalidationApplyError, UiSurfaceInvalidationState,
+};
 pub use node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport};
 pub use property_mutation::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,
 };
 pub use reflection_snapshot::reflector_snapshot;
-pub(crate) use render::{measure_text_with_cache, measure_text_with_fixed_width_cache};
 pub use render::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
+pub(crate) use render::{measure_text_with_cache, measure_text_with_fixed_width_cache};
 pub use surface::{UiSurface, UiSurfaceRebuildReport};
 pub use text_geometry::{text_caret_frame_for_layout, text_range_frames_for_layout};
 pub use text_shape::shape_text_line;

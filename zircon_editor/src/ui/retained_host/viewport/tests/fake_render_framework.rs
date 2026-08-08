@@ -1,11 +1,12 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
+use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
+use std::sync::Mutex;
 
 use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    RenderViewportProduct,
 };
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
@@ -39,6 +40,7 @@ pub(super) struct FakeRenderFrameworkState {
     pub(super) capture_requests: usize,
     pub(super) capture_error: Option<String>,
     pub(super) captures: HashMap<RenderViewportHandle, CapturedFrame>,
+    pub(super) products: HashMap<RenderViewportHandle, RenderViewportProduct>,
 }
 
 impl FakeRenderFramework {
@@ -99,6 +101,7 @@ impl RenderFramework for FakeRenderFramework {
         state.destroyed_viewports.push(viewport);
         state.viewport_sizes.remove(&viewport);
         state.captures.remove(&viewport);
+        state.products.remove(&viewport);
         Ok(())
     }
 
@@ -211,6 +214,38 @@ impl RenderFramework for FakeRenderFramework {
             return Err(RenderFrameworkError::Backend(error.clone()));
         }
         Ok(state.captures.get(&viewport).cloned())
+    }
+
+    fn poll_captured_frame_if_newer(
+        &self,
+        viewport: RenderViewportHandle,
+        last_generation: Option<u64>,
+    ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        let mut state = self.state.lock().unwrap();
+        state.capture_requests += 1;
+        if let Some(error) = &state.capture_error {
+            return Err(RenderFrameworkError::Backend(error.clone()));
+        }
+        Ok(state
+            .captures
+            .get(&viewport)
+            .filter(|frame| last_generation.is_none_or(|generation| frame.generation > generation))
+            .cloned())
+    }
+
+    fn poll_viewport_product_if_newer(
+        &self,
+        viewport: RenderViewportHandle,
+        last_generation: Option<u64>,
+    ) -> Result<Option<RenderViewportProduct>, RenderFrameworkError> {
+        Ok(self
+            .state
+            .lock()
+            .unwrap()
+            .products
+            .get(&viewport)
+            .filter(|product| Some(product.generation()) != last_generation)
+            .cloned())
     }
 
     fn set_quality_profile(

@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::surface::UiSurface;
+use super::UiInvalidationReason;
 
 /// Surface-local pool keyed by template identity so retained UI rebuilds can reuse detached nodes.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -44,6 +45,10 @@ impl UiSurface {
         self.reset_detached_transient_state_for_nodes(&node_ids, UiFocusChangeReason::Despawned);
         let mutation =
             detach_subtree_to_pool(&mut self.tree, &mut self.node_pool, node_id, node_ids)?;
+        for detached_node_id in &mutation.node_ids {
+            self.invalidation
+                .record_reason(*detached_node_id, UiInvalidationReason::Structure);
+        }
         self.component_states.clear_nodes(&mutation.node_ids);
         self.add_pool_report(mutation.report.clone());
         Ok(mutation.report)
@@ -54,8 +59,13 @@ impl UiSurface {
         parent_id: UiNodeId,
         node: UiTreeNode,
     ) -> Result<UiSurfaceNodePoolReport, UiTreeError> {
+        let node_id = node.node_id;
         let report =
             insert_or_reuse_pooled_child(&mut self.tree, &mut self.node_pool, parent_id, node)?;
+        self.invalidation
+            .record_reason(parent_id, UiInvalidationReason::Structure);
+        self.invalidation
+            .record_reason(node_id, UiInvalidationReason::Structure);
         self.add_pool_report(report.clone());
         Ok(report)
     }
@@ -165,8 +175,7 @@ pub(crate) fn insert_or_reuse_pooled_child(
     node.parent = Some(parent_id);
     node.paint_order = next_paint_order(tree);
     let node_id = node.node_id;
-    tree.nodes
-        .get_mut(&parent_id)
+    tree.node_mut(parent_id)
         .ok_or(UiTreeError::MissingParent(parent_id))?
         .children
         .push(node_id);
@@ -201,8 +210,7 @@ fn detach_from_parent(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), UiTree
         return Ok(());
     };
     let parent = tree
-        .nodes
-        .get_mut(&parent_id)
+        .node_mut(parent_id)
         .ok_or(UiTreeError::MissingParent(parent_id))?;
     parent.children.retain(|child_id| *child_id != node_id);
     mark_node_structure_dirty(parent);
@@ -238,8 +246,7 @@ fn reusable_state_flags(flags: UiStateFlags) -> UiStateFlags {
 
 fn mark_parent_structure_dirty(tree: &mut UiTree, parent_id: UiNodeId) -> Result<(), UiTreeError> {
     let parent = tree
-        .nodes
-        .get_mut(&parent_id)
+        .node_mut(parent_id)
         .ok_or(UiTreeError::MissingParent(parent_id))?;
     mark_node_structure_dirty(parent);
     Ok(())

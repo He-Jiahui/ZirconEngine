@@ -10,6 +10,10 @@ param(
     [int]$AutoCloseSeconds = 0,
     [switch]$AutoInteract,
     [switch]$RequireScenarioEvidence,
+    [ValidateRange(0, 1000000)]
+    [int]$AutoPointerMoveCount = 0,
+    [ValidateRange(0, 1000)]
+    [int]$AutoPointerMoveDelayMs = 2,
     [int]$MaxFrames = 2048,
     [int]$MaxSpans = 65536,
     [int]$MaxCounters = 65536,
@@ -1134,6 +1138,75 @@ function Move-CaptureCursor {
     Start-Sleep -Milliseconds $DelayMs
 }
 
+function Invoke-PointerMoveStorm {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [ZirconProfileCaptureRect]$Rect,
+        [int]$Count,
+        [int]$DelayMs
+    )
+
+    if ($Count -le 0) {
+        return $null
+    }
+
+    $width = [Math]::Max(1, $Rect.Right - $Rect.Left)
+    $height = [Math]::Max(1, $Rect.Bottom - $Rect.Top)
+    $horizontalMargin = [Math]::Min(32, [Math]::Max(1, [int]($width * 0.05)))
+    $verticalMargin = [Math]::Min(32, [Math]::Max(1, [int]($height * 0.05)))
+    $xSpan = [Math]::Max(1, $width - ($horizontalMargin * 2))
+    $ySpan = [Math]::Max(1, $height - ($verticalMargin * 2))
+    $completed = 0
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+    $Process.Refresh()
+    $startWorkingSetBytes = [int64]$Process.WorkingSet64
+    $startPrivateBytes = [int64]$Process.PrivateMemorySize64
+    $peakWorkingSetBytes = $startWorkingSetBytes
+    $peakPrivateBytes = $startPrivateBytes
+
+    for ($index = 0; $index -lt $Count; $index++) {
+        if ($Process.HasExited) {
+            break
+        }
+        $x = $Rect.Left + $horizontalMargin + (($index * 17) % $xSpan)
+        $y = $Rect.Top + $verticalMargin + (($index * 29) % $ySpan)
+        if ([ZirconProfileCaptureNative]::SetCursorPos($x, $y)) {
+            $completed++
+        }
+        if ($DelayMs -gt 0) {
+            Start-Sleep -Milliseconds $DelayMs
+        }
+        if (($index % 32) -eq 31) {
+            $Process.Refresh()
+            $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, [int64]$Process.WorkingSet64)
+            $peakPrivateBytes = [Math]::Max($peakPrivateBytes, [int64]$Process.PrivateMemorySize64)
+        }
+    }
+
+    $stopwatch.Stop()
+    $Process.Refresh()
+    $endWorkingSetBytes = [int64]$Process.WorkingSet64
+    $endPrivateBytes = [int64]$Process.PrivateMemorySize64
+    $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, $endWorkingSetBytes)
+    $peakPrivateBytes = [Math]::Max($peakPrivateBytes, $endPrivateBytes)
+
+    Write-Host ("Pointer storm: requested={0} completed={1} elapsed_ms={2:N1}" -f $Count, $completed, $stopwatch.Elapsed.TotalMilliseconds)
+    return [pscustomobject]@{
+        scenario = "pointer_move_storm"
+        requested_moves = $Count
+        completed_moves = $completed
+        delay_ms = $DelayMs
+        elapsed_ms = [Math]::Round($stopwatch.Elapsed.TotalMilliseconds, 3)
+        start_working_set_bytes = $startWorkingSetBytes
+        end_working_set_bytes = $endWorkingSetBytes
+        peak_working_set_bytes = $peakWorkingSetBytes
+        start_private_bytes = $startPrivateBytes
+        end_private_bytes = $endPrivateBytes
+        peak_private_bytes = $peakPrivateBytes
+    }
+}
+
 function Click-CapturePoint {
     param([pscustomobject]$Point)
 
@@ -1286,6 +1359,9 @@ function Invoke-AutoScenarioInteraction {
         default {
             Move-CaptureCursor -Point (Get-CapturePoint -Rect $rect -XRatio 0.50 -YRatio 0.50) -DelayMs 200
         }
+    }
+    if ($interactionScenario -eq "idle_hover" -and $AutoPointerMoveCount -gt 0) {
+        $script:LastInteractionEvidence = Invoke-PointerMoveStorm -Process $Process -Rect $rect -Count $AutoPointerMoveCount -DelayMs $AutoPointerMoveDelayMs
     }
     Export-UiInteractionEvidence -ProfileDir $ProfileDir -ScenarioName $ScenarioName -BeforeGeometry $geometry -BeforeWriteTimeUtc $geometryWriteTimeUtc -Interaction $script:LastInteractionEvidence
 }

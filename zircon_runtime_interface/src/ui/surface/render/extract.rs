@@ -3,10 +3,39 @@ use serde::{Deserialize, Serialize};
 use super::{UiRenderCommandKind, UiRenderList};
 use crate::ui::event_ui::UiTreeId;
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderExtract {
     pub tree_id: UiTreeId,
     pub list: UiRenderList,
+    /// Device-pixel raster scale for resolution-dependent render resources.
+    /// Layout coordinates remain logical; consumers must normalize this before
+    /// using it as a font or image rasterization input.
+    #[serde(default = "default_raster_scale")]
+    pub raster_scale: f32,
+}
+
+impl Default for UiRenderExtract {
+    fn default() -> Self {
+        Self {
+            tree_id: UiTreeId::default(),
+            list: UiRenderList::default(),
+            raster_scale: default_raster_scale(),
+        }
+    }
+}
+
+impl UiRenderExtract {
+    pub fn normalized_raster_scale(&self) -> f32 {
+        if self.raster_scale.is_finite() && self.raster_scale > 0.0 {
+            self.raster_scale
+        } else {
+            default_raster_scale()
+        }
+    }
+}
+
+const fn default_raster_scale() -> f32 {
+    1.0
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

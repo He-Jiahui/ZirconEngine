@@ -1,17 +1,17 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, Sender, channel, sync_channel};
+use std::sync::mpsc::{channel, sync_channel, Receiver, Sender};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use super::test_render_framework::TestRenderFramework;
 use super::viewport_state::ViewportState;
 use crate::core::jobs::{
-    CancellationToken, EditorJob, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, JobTicket, test_job_system, test_job_system_with_limits,
+    test_job_system, test_job_system_with_limits, CancellationToken, EditorJob, EditorJobLimits,
+    EditorJobSpec, JobCategory, JobContext, JobError, JobTicket,
 };
 use crate::scene::viewport::RenderFramework;
 use zircon_runtime::core::manager::{
-    ManagerServiceHandle, RegisteredManagerService, render_framework_handle,
+    render_framework_handle, ManagerServiceHandle, RegisteredManagerService,
 };
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
@@ -64,11 +64,9 @@ fn viewport_maps_failed_framework_ticket_and_clears_it() {
         Ok(_) => panic!("failed ticket should become a viewport error"),
         Err(error) => error,
     };
-    assert!(
-        error
-            .to_string()
-            .contains("planned viewport resolve failure")
-    );
+    assert!(error
+        .to_string()
+        .contains("planned viewport resolve failure"));
     assert!(state.render_framework_task.is_none());
 }
 

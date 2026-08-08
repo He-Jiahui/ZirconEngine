@@ -73,6 +73,21 @@ fn shader_ide_lightmap_stub_resolves_irradiance_volume_dependency() {
         .expect("lightmap stub should parse with irradiance-volume dependency");
 }
 
+#[test]
+fn shader_ide_bindless_material_stub_defines_slot_capacity_for_validation() {
+    let stubs = builtin_stubs();
+    let bindless_material = stubs
+        .iter()
+        .find(|stub| stub.entry.import_path == "zr_bindless_material.wgsl")
+        .expect("builtin bindless material stub should exist");
+    let source = shader_ide_stub_validation_source(bindless_material, &stubs)
+        .expect("bindless material Shader IDE dependencies should resolve");
+
+    assert!(source.contains("const ZR_BINDLESS_MATERIAL_SLOT_CAPACITY: u32 = 1u;"));
+    parse_shader_ide_wgsl_module(&bindless_material.entry.import_path, &source)
+        .expect("bindless material stub should parse with a validation slot capacity");
+}
+
 fn shader_ide_dependency_test_stub(import_path: &str, dependency: &str) -> ShaderIdeStub {
     let stub_path = format!("modules/{}.wgsl", import_path.replace("::", "/"));
     ShaderIdeStub {

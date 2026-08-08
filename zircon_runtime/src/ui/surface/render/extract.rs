@@ -1,6 +1,9 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use crate::ui::surface::{
     build_arranged_tree, component_state::UiSurfaceComponentStateStore, is_arranged_render_visible,
 };
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::surface::UiArrangedTree;
 use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiRenderExtract, UiRenderList};
 use zircon_runtime_interface::ui::tree::UiTree;
@@ -66,8 +69,8 @@ use super::text_prewarm::{
 };
 use crate::text::TextDocumentKey;
 use crate::ui::text::{
-    UiTextLayoutRequest, UiTextLayoutResolution, UiTextMeasureCache, UiTextViewport,
-    prepare_render_command_text_artifacts, resolve_text_layout,
+    prepare_render_command_text_artifacts, resolve_text_layout, UiTextLayoutRequest,
+    UiTextLayoutResolution, UiTextMeasureCache, UiTextViewport,
 };
 
 pub fn extract_ui_render_tree(tree: &UiTree) -> UiRenderExtract {
@@ -413,7 +416,53 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
     UiRenderExtract {
         tree_id: tree.tree_id.clone(),
         list: UiRenderList { commands },
+        raster_scale: 1.0,
     }
+}
+
+pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_text_measure_cache(
+    tree: &UiTree,
+    arranged_tree: &UiArrangedTree,
+    arranged_node_indices: &BTreeMap<UiNodeId, usize>,
+    changed_node_ids: &BTreeSet<UiNodeId>,
+    component_states: Option<&UiSurfaceComponentStateStore>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
+) -> Result<UiRenderExtract, ()> {
+    let mut partial_nodes = Vec::new();
+    let mut included = BTreeSet::new();
+    for node_id in changed_node_ids {
+        let mut current = Some(*node_id);
+        while let Some(current_id) = current {
+            let Some(index) = arranged_node_indices.get(&current_id).copied() else {
+                return Err(());
+            };
+            let Some(node) = arranged_tree.nodes.get(index) else {
+                return Err(());
+            };
+            if node.node_id != current_id || tree.node(current_id).is_none() {
+                return Err(());
+            }
+            current = node.parent;
+            if included.insert(current_id) {
+                partial_nodes.push(node.clone());
+            }
+        }
+    }
+    let partial_tree = UiArrangedTree {
+        tree_id: arranged_tree.tree_id.clone(),
+        roots: Vec::new(),
+        nodes: partial_nodes,
+        draw_order: changed_node_ids.iter().copied().collect(),
+        canvas_layers: Vec::new(),
+    };
+    Ok(
+        extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
+            tree,
+            &partial_tree,
+            component_states,
+            text_measure_cache,
+        ),
+    )
 }
 
 pub(super) fn resolve_text_layout_with_cache(

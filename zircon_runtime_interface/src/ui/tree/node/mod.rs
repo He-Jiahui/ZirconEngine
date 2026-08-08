@@ -15,5 +15,5 @@ pub use pointer_events::{UiCursor, UiPointerEvents};
 pub use template_node_metadata::UiTemplateNodeMetadata;
 pub use tree_error::UiTreeError;
 pub use tree_node::UiTreeNode;
-pub use ui_tree::UiTree;
+pub use ui_tree::{UiTree, UiTreeNodes};
 pub use visibility::UiVisibility;

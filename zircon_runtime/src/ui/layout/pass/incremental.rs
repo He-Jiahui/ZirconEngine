@@ -14,7 +14,7 @@ use super::{
     engine::UiLayoutPassEngineContext,
     measure::measure_node,
     pipeline::{assert_layout_pass_stage, UiLayoutPassStage},
-    responsive_mui::apply_mui_responsive_layout,
+    responsive_mui::{apply_mui_responsive_layout, apply_mui_responsive_layout_for_nodes},
     slot::slot_for_container_child,
 };
 
@@ -23,6 +23,7 @@ pub(crate) struct UiIncrementalLayoutStats {
     pub visited_node_count: usize,
     pub visited_node_ids: BTreeSet<UiNodeId>,
     pub geometry_changed_node_count: usize,
+    pub geometry_changed_node_ids: BTreeSet<UiNodeId>,
     pub skipped_node_count: usize,
     pub layout_engine_report: UiLayoutEngineSelectionReport,
 }
@@ -37,11 +38,20 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     tree: &mut UiTree,
     root_size: UiSize,
     mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    dirty_node_ids: &BTreeSet<UiNodeId>,
+    root_size_changed: bool,
+    slot_indices: &BTreeMap<UiNodeId, usize>,
 ) -> Result<UiIncrementalLayoutStats, UiTreeError> {
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
-    apply_mui_responsive_layout(tree, root_size)?;
+    let mut layout_dirty_node_ids = dirty_node_ids.clone();
+    if root_size_changed {
+        apply_mui_responsive_layout(tree, root_size)?;
+    } else {
+        apply_mui_responsive_layout_for_nodes(tree, root_size, dirty_node_ids, slot_indices)?;
+    }
+    layout_dirty_node_ids.extend(tree.pending_mutation_node_ids().iter().copied());
 
-    let roots = incremental_layout_roots(tree)?;
+    let roots = incremental_layout_roots(tree, &layout_dirty_node_ids)?;
     let mut visited = BTreeSet::new();
     for root_id in &roots {
         collect_subtree_nodes(tree, *root_id, &mut visited)?;
@@ -62,21 +72,22 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
         arrange_layout_root(tree, root_id, root_size, &mut engine_context)?;
     }
 
-    let geometry_changed_node_count = visited
+    let geometry_changed_node_ids = visited
         .iter()
-        .map(|node_id| {
+        .filter_map(|node_id| {
             let node = tree
                 .nodes
                 .get(node_id)
                 .expect("visited layout node must remain in the tree");
-            previous.get(node_id).copied().unwrap_or_default()
+            (previous.get(node_id).copied().unwrap_or_default()
                 != LayoutGeometry {
                     frame: node.layout_cache.frame,
                     clip_frame: node.layout_cache.clip_frame,
-                }
+                })
+            .then_some(*node_id)
         })
-        .filter(|changed| *changed)
-        .count();
+        .collect::<BTreeSet<_>>();
+    let geometry_changed_node_count = geometry_changed_node_ids.len();
 
     let visited_node_count = visited.len();
     let skipped_node_count = tree.nodes.len().saturating_sub(visited_node_count);
@@ -86,15 +97,19 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
         visited_node_count,
         visited_node_ids: visited,
         geometry_changed_node_count,
+        geometry_changed_node_ids,
         skipped_node_count,
         layout_engine_report: engine_context.finish(),
     })
 }
 
-fn incremental_layout_roots(tree: &UiTree) -> Result<Vec<UiNodeId>, UiTreeError> {
-    let candidates = tree
-        .nodes
-        .values()
+fn incremental_layout_roots(
+    tree: &UiTree,
+    dirty_node_ids: &BTreeSet<UiNodeId>,
+) -> Result<Vec<UiNodeId>, UiTreeError> {
+    let candidates = dirty_node_ids
+        .iter()
+        .filter_map(|node_id| tree.nodes.get(node_id))
         .filter(|node| {
             node.dirty.layout || node.dirty.style || node.dirty.text || node.dirty.visible_range
         })

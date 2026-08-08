@@ -1,7 +1,7 @@
-use crate::ui::retained_host::app::RetainedEditorHost;
 use crate::ui::retained_host::app::native_windows::{
-    NativeFloatingWindowTarget, collect_native_floating_window_targets,
+    collect_native_floating_window_targets, NativeFloatingWindowTarget,
 };
+use crate::ui::retained_host::app::RetainedEditorHost;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::workbench::model::WorkbenchViewModel;
 

@@ -13,7 +13,7 @@ name = "Sun"
 parent = 0
 active = true
 render_layer_mask = 1
-mobility = "Static"
+mobility = "Dynamic"
 transform = { translation = [0.0, 4.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
 directional_light = { direction = [-0.361772505316908, -0.904431263292269, -0.226107815823067], color = [1.0, 1.0, 1.0], intensity = 3.0 }
 
@@ -23,7 +23,7 @@ name = "Cube"
 parent = 0
 active = true
 render_layer_mask = 1
-mobility = "Static"
+mobility = "Dynamic"
 transform = { translation = [0.0, 0.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
 
 [entities.mesh.model]

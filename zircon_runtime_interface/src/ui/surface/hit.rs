@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::ui::dispatch::{UiPointerId, UiSurfaceId, UiUserId, UiWindowId};
 use crate::ui::event_ui::{UiNodeId, UiTreeId};
 use crate::ui::layout::{UiFrame, UiPoint};
+use crate::ui::tree::UiInputPolicy;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiVirtualPointerPosition {
@@ -275,6 +276,10 @@ pub struct UiHitTestEntry {
     pub z_index: i32,
     pub paint_order: u64,
     pub control_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_input_policy: Option<UiInputPolicy>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bubble_route: Vec<UiNodeId>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

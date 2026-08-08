@@ -1,3 +1,8 @@
+use std::{
+    cell::RefCell,
+    collections::{BTreeMap, BTreeSet},
+};
+
 use serde::{Deserialize, Serialize};
 
 use crate::ui::tree::{UiHitTestIndex, UiHitTestResult, UiRuntimeTreeRoutingExt};
@@ -12,7 +17,7 @@ use zircon_runtime_interface::ui::{
     surface::{
         UiArrangedTree, UiFocusPath, UiFocusState, UiHitTestDebugDump, UiHitTestQuery,
         UiNavigationState, UiRenderExtract, UiRenderList, UiSurfaceDebugOptions,
-        UiSurfaceDebugSnapshot, UiSurfaceFrame, UiSurfaceWindowState,
+        UiSurfaceDebugSnapshot, UiSurfaceWindowState,
     },
 };
 
@@ -22,6 +27,10 @@ use super::{
     debug_hit_test_surface_frame, debug_surface_frame, debug_surface_frame_for_pick,
     debug_surface_frame_for_selection, debug_surface_frame_with_options,
     input::UiSurfaceInputState,
+    invalidation::{
+        UiInvalidationCommit, UiInvalidationGenerations, UiInvalidationTransaction,
+        UiSurfaceInvalidationApplyError, UiSurfaceInvalidationState,
+    },
     node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport},
     property_mutation::{
         mutate_tree_property, UiPropertyMutationReport, UiPropertyMutationRequest,
@@ -34,16 +43,22 @@ use crate::ui::text::UiTextMeasureCache;
 
 mod default_interactions;
 mod event_routing;
+mod frame_publication;
 mod interaction_state;
 mod pointer_component_events;
 mod rebuild;
 
+use frame_publication::UiSurfaceFramePublication;
 pub use rebuild::UiSurfaceRebuildReport;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurface {
     pub tree: UiTree,
     pub arranged_tree: UiArrangedTree,
+    #[serde(default, skip)]
+    pub(super) arranged_node_indices: BTreeMap<UiNodeId, usize>,
+    #[serde(default, skip)]
+    pub(super) arranged_slot_indices: BTreeMap<UiNodeId, usize>,
     pub hit_test: UiHitTestIndex,
     pub focus: UiFocusState,
     #[serde(default)]
@@ -62,14 +77,33 @@ pub struct UiSurface {
     pub(crate) text_measure_cache: UiTextMeasureCache,
     #[serde(default)]
     pub node_pool: UiSurfaceNodePool,
+    #[serde(default)]
+    pub(super) invalidation: UiSurfaceInvalidationState,
+    #[serde(default, skip)]
+    pub(super) last_layout_geometry_changed_node_ids: BTreeSet<UiNodeId>,
+    #[serde(default, skip)]
+    pub(super) dirty_node_ids: BTreeSet<UiNodeId>,
+    #[serde(default, skip)]
+    pub(super) dirty_index_initialized: bool,
+    #[serde(default, skip)]
+    pub(super) last_layout_root_size: Option<zircon_runtime_interface::ui::layout::UiSize>,
     pub last_rebuild_report: UiSurfaceRebuildReport,
     #[serde(default)]
     pub layout_engine_report: UiLayoutEngineSelectionReport,
+    #[serde(default, skip)]
+    pub(super) layout_engine_selection_indices: BTreeMap<UiNodeId, usize>,
     #[serde(default)]
     pub(super) pending_pool_report: UiSurfaceNodePoolReport,
+    #[serde(default, skip)]
+    pub(super) frame_publication: RefCell<UiSurfaceFramePublication>,
 }
 
 impl UiSurface {
+    /// Returns the generation used by UI text measurement and shaping caches.
+    pub fn shared_font_database_generation() -> u64 {
+        crate::text::font::shared_font_database_generation()
+    }
+
     pub fn new(tree_id: UiTreeId) -> Self {
         Self {
             tree: UiTree::new(tree_id.clone()),
@@ -77,6 +111,8 @@ impl UiSurface {
                 tree_id: tree_id.clone(),
                 ..Default::default()
             },
+            arranged_node_indices: BTreeMap::new(),
+            arranged_slot_indices: BTreeMap::new(),
             hit_test: UiHitTestIndex::default(),
             focus: UiFocusState::default(),
             input: UiSurfaceInputState::default(),
@@ -86,14 +122,22 @@ impl UiSurface {
             render_extract: UiRenderExtract {
                 tree_id,
                 list: UiRenderList::default(),
+                raster_scale: 1.0,
             },
             window_state: UiSurfaceWindowState::default(),
             render_cache: UiSurfaceRenderCache::default(),
             text_measure_cache: UiTextMeasureCache::default(),
             node_pool: UiSurfaceNodePool::default(),
+            invalidation: UiSurfaceInvalidationState::default(),
+            last_layout_geometry_changed_node_ids: BTreeSet::new(),
+            dirty_node_ids: BTreeSet::new(),
+            dirty_index_initialized: true,
+            last_layout_root_size: None,
             last_rebuild_report: UiSurfaceRebuildReport::default(),
             layout_engine_report: UiLayoutEngineSelectionReport::default(),
+            layout_engine_selection_indices: BTreeMap::new(),
             pending_pool_report: UiSurfaceNodePoolReport::default(),
+            frame_publication: RefCell::new(UiSurfaceFramePublication::default()),
         }
     }
 
@@ -102,6 +146,44 @@ impl UiSurface {
         node_id: UiNodeId,
     ) -> Option<&zircon_runtime_interface::ui::component::UiComponentState> {
         self.component_states.get(node_id)
+    }
+
+    pub const fn invalidation_generations(&self) -> UiInvalidationGenerations {
+        self.invalidation.generations()
+    }
+
+    pub fn last_layout_geometry_changed_node_ids(&self) -> &BTreeSet<UiNodeId> {
+        &self.last_layout_geometry_changed_node_ids
+    }
+
+    pub fn last_invalidation_commit(&self) -> Option<&UiInvalidationCommit> {
+        self.invalidation.last_commit()
+    }
+
+    pub fn pending_invalidation_changed_node_count(&self) -> usize {
+        self.invalidation.pending_changed_node_count()
+    }
+
+    pub fn begin_invalidation_transaction(&self) -> UiInvalidationTransaction {
+        self.invalidation.begin_transaction()
+    }
+
+    pub fn apply_invalidation_transaction(
+        &mut self,
+        transaction: UiInvalidationTransaction,
+    ) -> Result<(), UiSurfaceInvalidationApplyError> {
+        self.invalidation.validate_transaction(&transaction)?;
+        for change in transaction.changes() {
+            if !self.tree.nodes.contains_key(&change.node_id) {
+                return Err(UiTreeError::MissingNode(change.node_id).into());
+            }
+        }
+
+        for change in transaction.changes().cloned().collect::<Vec<_>>() {
+            self.mark_node_dirty(change.node_id, change.dirty)?;
+            self.invalidation.record_change(&change);
+        }
+        Ok(())
     }
 
     pub(crate) fn set_runtime_style_index(&mut self, runtime_style: UiV2RuntimeStyleIndex) {
@@ -148,22 +230,6 @@ impl UiSurface {
     pub fn hit_test_with_query(&self, query: UiHitTestQuery) -> UiHitTestResult {
         self.hit_test
             .hit_test_arranged_with_query(&self.arranged_tree, query)
-    }
-
-    pub fn surface_frame(&self) -> UiSurfaceFrame {
-        UiSurfaceFrame {
-            tree_id: self.tree.tree_id.clone(),
-            window_state: self.window_state.clone(),
-            arranged_tree: self.arranged_tree.clone(),
-            render_extract: self.render_extract.clone(),
-            hit_grid: self.hit_test.grid.clone(),
-            focus_state: self.focus.clone(),
-            focus_path: self.focus_path(),
-            last_rebuild: self.last_rebuild_report.debug_stats(),
-            layout_engine_report: self.layout_engine_report.clone(),
-            pipeline_report: self.last_rebuild_report.pipeline_report(0),
-            ecs_projection: self.ui_ecs_projection(),
-        }
     }
 
     pub fn accessibility_snapshot(&self) -> UiAccessibilityTreeSnapshot {
@@ -280,6 +346,10 @@ impl UiSurface {
                 self.sync_popup_stack_for_node(node_id, open);
                 report.focus_change = self.apply_mui_modal_focus_transition(node_id, open)?;
             }
+        }
+        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
+            self.invalidation
+                .record_dirty(node_id, report.invalidation.dirty);
         }
         Ok(report)
     }

@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use toml::Value;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -25,24 +27,75 @@ pub(super) fn apply_mui_responsive_layout(
     root_size: UiSize,
 ) -> Result<(), UiTreeError> {
     let viewport = MuiResponsiveViewport::from_root_size(root_size);
-    apply_use_media_query_matches(tree, viewport)?;
-    apply_responsive_visibility(tree, viewport)?;
-    apply_responsive_containers(tree, viewport)?;
+    let node_ids = tree.nodes.keys().copied().collect::<Vec<_>>();
+    apply_use_media_query_matches(tree, viewport, &node_ids)?;
+    apply_responsive_visibility(tree, viewport, &node_ids)?;
+    apply_responsive_containers(tree, viewport, &node_ids)?;
     apply_responsive_grid_slots(tree, viewport)
+}
+
+pub(super) fn apply_mui_responsive_layout_for_nodes(
+    tree: &mut UiTree,
+    root_size: UiSize,
+    dirty_node_ids: &BTreeSet<UiNodeId>,
+    slot_indices: &BTreeMap<UiNodeId, usize>,
+) -> Result<(), UiTreeError> {
+    if slot_indices.len() != tree.slots.len() {
+        return apply_mui_responsive_layout(tree, root_size);
+    }
+
+    let viewport = MuiResponsiveViewport::from_root_size(root_size);
+    let node_ids = dirty_node_ids
+        .iter()
+        .copied()
+        .filter(|node_id| tree.node(*node_id).is_some())
+        .collect::<Vec<_>>();
+    let mut grid_item_ids = node_ids.iter().copied().collect::<BTreeSet<_>>();
+    for node_id in &node_ids {
+        let Some(node) = tree.node(*node_id) else {
+            continue;
+        };
+        grid_item_ids.extend(node.children.iter().copied());
+    }
+    apply_use_media_query_matches(tree, viewport, &node_ids)?;
+    apply_responsive_visibility(tree, viewport, &node_ids)?;
+    apply_responsive_containers(tree, viewport, &node_ids)?;
+
+    for child_id in grid_item_ids {
+        let Some(child) = tree.node(child_id) else {
+            continue;
+        };
+        let Some(parent_id) = child.parent else {
+            continue;
+        };
+        if !is_implicit_mui_grid_container(tree, parent_id)? {
+            continue;
+        }
+        let Some(slot_index) = slot_indices.get(&child_id).copied() else {
+            return apply_mui_responsive_layout(tree, root_size);
+        };
+        let Some(slot) = tree.slots.get(slot_index) else {
+            return apply_mui_responsive_layout(tree, root_size);
+        };
+        if slot.child_id != child_id || slot.parent_id != parent_id {
+            return apply_mui_responsive_layout(tree, root_size);
+        }
+        apply_responsive_grid_slot(tree, viewport, slot_index)?;
+    }
+    Ok(())
 }
 
 fn apply_use_media_query_matches(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
+    node_ids: &[UiNodeId],
 ) -> Result<(), UiTreeError> {
-    let node_ids = tree.nodes.keys().copied().collect::<Vec<_>>();
-    for node_id in node_ids {
+    for node_id in node_ids.iter().copied() {
         let Some(next_matches) = use_media_query_match_for_node(tree, node_id, viewport)? else {
             continue;
         };
         let node = tree
-            .nodes
-            .get_mut(&node_id)
+            .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         let Some(metadata) = node.template_metadata.as_mut() else {
             continue;
@@ -62,15 +115,14 @@ fn apply_use_media_query_matches(
 fn apply_responsive_visibility(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
+    node_ids: &[UiNodeId],
 ) -> Result<(), UiTreeError> {
-    let node_ids = tree.nodes.keys().copied().collect::<Vec<_>>();
-    for node_id in node_ids {
+    for node_id in node_ids.iter().copied() {
         let Some(next) = responsive_visibility_for_node(tree, node_id, viewport)? else {
             continue;
         };
         let node = tree
-            .nodes
-            .get_mut(&node_id)
+            .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         if node.visibility == next.visibility && node.state_flags.visible == next.state_visible_flag
         {
@@ -92,15 +144,14 @@ fn apply_responsive_visibility(
 fn apply_responsive_containers(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
+    node_ids: &[UiNodeId],
 ) -> Result<(), UiTreeError> {
-    let node_ids = tree.nodes.keys().copied().collect::<Vec<_>>();
-    for node_id in node_ids {
+    for node_id in node_ids.iter().copied() {
         let Some(container) = responsive_container_for_node(tree, node_id, viewport)? else {
             continue;
         };
         let node = tree
-            .nodes
-            .get_mut(&node_id)
+            .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         if node.container != container {
             node.container = container;
@@ -115,23 +166,32 @@ fn apply_responsive_grid_slots(
     viewport: MuiResponsiveViewport,
 ) -> Result<(), UiTreeError> {
     for index in 0..tree.slots.len() {
-        let (parent_id, child_id) = {
-            let slot = &tree.slots[index];
-            (slot.parent_id, slot.child_id)
-        };
-        if !is_implicit_mui_grid_container(tree, parent_id)? {
-            continue;
-        }
-        if child_has_explicit_slot_layout(tree, child_id)? {
-            continue;
-        }
-        let placement = responsive_grid_item_placement(tree, child_id, viewport)?;
-        let slot = &mut tree.slots[index];
-        if slot.kind != UiSlotKind::Grid || slot.grid_placement != placement {
-            slot.kind = UiSlotKind::Grid;
-            slot.grid_placement = placement;
-            mark_pair_layout_dirty(tree, parent_id, child_id);
-        }
+        apply_responsive_grid_slot(tree, viewport, index)?;
+    }
+    Ok(())
+}
+
+fn apply_responsive_grid_slot(
+    tree: &mut UiTree,
+    viewport: MuiResponsiveViewport,
+    slot_index: usize,
+) -> Result<(), UiTreeError> {
+    let Some(slot) = tree.slots.get(slot_index) else {
+        return Ok(());
+    };
+    let (parent_id, child_id) = (slot.parent_id, slot.child_id);
+    if !is_implicit_mui_grid_container(tree, parent_id)? {
+        return Ok(());
+    }
+    if child_has_explicit_slot_layout(tree, child_id)? {
+        return Ok(());
+    }
+    let placement = responsive_grid_item_placement(tree, child_id, viewport)?;
+    let slot = &mut tree.slots[slot_index];
+    if slot.kind != UiSlotKind::Grid || slot.grid_placement != placement {
+        slot.kind = UiSlotKind::Grid;
+        slot.grid_placement = placement;
+        mark_pair_layout_dirty(tree, parent_id, child_id);
     }
     Ok(())
 }
@@ -601,10 +661,10 @@ fn normalized_token(value: &str) -> String {
 }
 
 fn mark_pair_layout_dirty(tree: &mut UiTree, parent_id: UiNodeId, child_id: UiNodeId) {
-    if let Some(parent) = tree.nodes.get_mut(&parent_id) {
+    if let Some(parent) = tree.node_mut(parent_id) {
         mark_node_layout_dirty(parent);
     }
-    if let Some(child) = tree.nodes.get_mut(&child_id) {
+    if let Some(child) = tree.node_mut(child_id) {
         mark_node_layout_dirty(child);
     }
 }

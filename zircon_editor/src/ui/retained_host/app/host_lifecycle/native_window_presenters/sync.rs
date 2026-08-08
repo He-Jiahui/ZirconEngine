@@ -40,8 +40,10 @@ impl RetainedEditorHost {
         let active_preset_name = self.active_layout_preset.as_deref();
         let host_handle = self.self_handle.as_ref().and_then(Weak::upgrade);
         let viewport_toolbar_bridge = &mut self.viewport_toolbar_bridge;
-        if let Err(error) = self.native_window_presenters.sync_targets(
+        let source_generation = self.ui.get_host_presentation_generation().cursor();
+        if let Err(error) = self.native_window_presenters.sync_targets_with_generation(
             &targets,
+            source_generation,
             |ui, target| {
                 wire_native_window_presenter_callbacks(ui, target, host_handle.as_ref());
             },

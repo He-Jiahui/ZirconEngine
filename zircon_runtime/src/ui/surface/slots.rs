@@ -1,11 +1,10 @@
-use crate::ui::tree::UiRuntimeTreeLayoutExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{UiCanvasSlotPlacement, UiSlotKind},
     tree::{UiDirtyFlags, UiTreeError},
 };
 
-use super::UiSurface;
+use super::{UiInvalidationReason, UiSurface};
 
 impl UiSurface {
     pub fn set_overlay_slot_z_order(
@@ -62,7 +61,7 @@ impl UiSurface {
             slot.canvas_placement = Some(placement);
             slot.dirty_revision = slot.dirty_revision.saturating_add(1);
         }
-        self.tree.mark_layout_dirty(child_id)?;
+        self.invalidate_node(child_id, UiInvalidationReason::Layout)?;
         Ok(true)
     }
 
@@ -84,7 +83,13 @@ impl UiSurface {
             slot.z_order = z_order;
             slot.dirty_revision = slot.dirty_revision.saturating_add(1);
         }
-        self.mark_node_dirty(child_id, layering_slot_z_order_dirty_flags())?;
+        let dirty = layering_slot_z_order_dirty_flags();
+        self.mark_node_dirty(child_id, dirty)?;
+        self.invalidation.record_dirty_with_reason(
+            child_id,
+            dirty,
+            UiInvalidationReason::Structure,
+        );
         Ok(true)
     }
 

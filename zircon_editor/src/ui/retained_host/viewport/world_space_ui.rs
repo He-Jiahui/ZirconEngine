@@ -101,6 +101,7 @@ fn world_space_ui_render_extract(
     (!commands.is_empty()).then(|| UiRenderExtract {
         tree_id: UiTreeId::new(WORLD_SPACE_UI_TREE_ID),
         list: UiRenderList { commands },
+        raster_scale: 1.0,
     })
 }
 

@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
-use crate::ui::retained_host::UiHostWindow;
 use crate::ui::retained_host::app::native_windows::{
-    NativeFloatingWindowTarget, configure_native_floating_window_presentation,
+    configure_native_floating_window_presentation, NativeFloatingWindowTarget,
 };
 use crate::ui::retained_host::callback_dispatch;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::ui::apply_presentation;
+use crate::ui::retained_host::UiHostWindow;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;

@@ -357,6 +357,114 @@ impl UiLayoutEngineSelectionReport {
             .map(|(reason, count)| UiLayoutEngineFallbackReasonCount { reason, count })
             .collect();
     }
+
+    /// Replaces one stable node route while maintaining aggregate diagnostics in place.
+    ///
+    /// Returns `false` when the report is internally inconsistent or a saturated aggregate
+    /// cannot be reversed safely; callers can then rebuild the report conservatively.
+    pub fn replace_selection_at(
+        &mut self,
+        index: usize,
+        replacement: UiLayoutEngineSelection,
+    ) -> bool {
+        let Some(previous) = self.selections.get(index).cloned() else {
+            return false;
+        };
+        if previous == replacement {
+            return true;
+        }
+
+        let selected_count = match previous.selected_backend {
+            UiLayoutEngineBackend::Zircon => self.zircon_selected_count,
+            UiLayoutEngineBackend::Taffy => self.taffy_selected_count,
+        };
+        if selected_count == 0 {
+            return false;
+        }
+        let support_count = match previous.support {
+            UiLayoutEngineSupport::Native => None,
+            UiLayoutEngineSupport::Fallback => Some(self.fallback_count),
+            UiLayoutEngineSupport::Unsupported => Some(self.unsupported_count),
+        };
+        if support_count.is_some_and(|count| count == 0) {
+            return false;
+        }
+        let previous_reason_index = if previous.support == UiLayoutEngineSupport::Native {
+            None
+        } else {
+            let Some(index) = self
+                .fallback_reason_counts
+                .iter()
+                .position(|entry| entry.reason == previous.fallback_reason && entry.count > 0)
+            else {
+                return false;
+            };
+            Some(index)
+        };
+        if let Some(stats) = previous.taffy_tree_build {
+            if self.taffy_tree_build_count < stats.build_count
+                || self.taffy_tree_node_count < stats.node_count
+                || (stats.build_count > 0 && self.taffy_tree_build_count == u64::MAX)
+                || (stats.node_count > 0 && self.taffy_tree_node_count == u64::MAX)
+            {
+                return false;
+            }
+        }
+
+        match previous.selected_backend {
+            UiLayoutEngineBackend::Zircon => self.zircon_selected_count -= 1,
+            UiLayoutEngineBackend::Taffy => self.taffy_selected_count -= 1,
+        }
+        match previous.support {
+            UiLayoutEngineSupport::Native => {}
+            UiLayoutEngineSupport::Fallback => self.fallback_count -= 1,
+            UiLayoutEngineSupport::Unsupported => self.unsupported_count -= 1,
+        }
+        if let Some(index) = previous_reason_index {
+            self.fallback_reason_counts[index].count -= 1;
+            if self.fallback_reason_counts[index].count == 0 {
+                self.fallback_reason_counts.remove(index);
+            }
+        }
+        if let Some(stats) = previous.taffy_tree_build {
+            self.taffy_tree_build_count -= stats.build_count;
+            self.taffy_tree_node_count -= stats.node_count;
+        }
+
+        match replacement.selected_backend {
+            UiLayoutEngineBackend::Zircon => self.zircon_selected_count += 1,
+            UiLayoutEngineBackend::Taffy => self.taffy_selected_count += 1,
+        }
+        match replacement.support {
+            UiLayoutEngineSupport::Native => {}
+            UiLayoutEngineSupport::Fallback => self.fallback_count += 1,
+            UiLayoutEngineSupport::Unsupported => self.unsupported_count += 1,
+        }
+        if replacement.support != UiLayoutEngineSupport::Native {
+            match self
+                .fallback_reason_counts
+                .binary_search_by_key(&replacement.fallback_reason, |entry| entry.reason)
+            {
+                Ok(index) => self.fallback_reason_counts[index].count += 1,
+                Err(index) => self.fallback_reason_counts.insert(
+                    index,
+                    UiLayoutEngineFallbackReasonCount {
+                        reason: replacement.fallback_reason,
+                        count: 1,
+                    },
+                ),
+            }
+        }
+        if let Some(stats) = replacement.taffy_tree_build {
+            self.taffy_tree_build_count = self
+                .taffy_tree_build_count
+                .saturating_add(stats.build_count);
+            self.taffy_tree_node_count =
+                self.taffy_tree_node_count.saturating_add(stats.node_count);
+        }
+        self.selections[index] = replacement;
+        true
+    }
 }
 
 fn unsupported_reason(

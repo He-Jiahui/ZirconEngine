@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
@@ -35,7 +37,7 @@ pub(crate) struct PaneData {
     pub secondary_action_id: SharedString,
     pub secondary_hint: SharedString,
     pub show_toolbar: bool,
-    pub body_surface_frame: Option<UiSurfaceFrame>,
+    pub body_surface_frame: Option<Arc<UiSurfaceFrame>>,
     pub welcome: WelcomePaneData,
     pub viewport: SceneViewportChromeData,
     pub hierarchy: HierarchyPaneData,
