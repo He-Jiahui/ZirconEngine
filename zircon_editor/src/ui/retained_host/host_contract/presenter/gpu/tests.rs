@@ -96,7 +96,7 @@ fn gpu_presenter_records_upload_bytes_draw_calls_and_damage_diagnostics() {
             width: 2,
             height: 2,
             upload_bytes: 16,
-            rgba: Some(vec![128; 16]),
+            rgba: Some(vec![128; 16].into()),
             atlas_uv: None,
         },
     );
@@ -230,4 +230,55 @@ fn gpu_presenter_resize_invalidates_damage_cache() {
         .expect("surface presenter should receive the submitted draw list");
     assert_eq!(draw_list.surface_size, (128, 96));
     assert_eq!(draw_list.damage, None);
+}
+
+#[test]
+fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
+    let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (320, 200));
+
+    presenter.resize((300, 180)).unwrap();
+    presenter
+        .present_during_native_resize(
+            &HostWindowPresentationData::default(),
+            HostInvalidationDiagnostics::default(),
+        )
+        .unwrap();
+    presenter.resize((280, 160)).unwrap();
+    presenter
+        .present_during_native_resize(
+            &HostWindowPresentationData::default(),
+            HostInvalidationDiagnostics::default(),
+        )
+        .unwrap();
+
+    assert_eq!(presenter.native_resize_snapshot_build_count, 1);
+    assert_eq!(presenter.native_resize_snapshot_reuse_count, 1);
+    assert_eq!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("resize should submit the retained draw list")
+            .surface_size,
+        (280, 160)
+    );
+    assert_eq!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("resize should retain the generation projection")
+            .projection_size(),
+        (320, 200)
+    );
+
+    presenter
+        .present(
+            &HostWindowPresentationData::default(),
+            None,
+            HostInvalidationDiagnostics::default(),
+        )
+        .unwrap();
+
+    assert!(presenter.native_resize_draw_list.is_none());
 }

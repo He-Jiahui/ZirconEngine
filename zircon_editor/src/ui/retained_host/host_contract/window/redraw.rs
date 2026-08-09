@@ -11,6 +11,16 @@ use super::UiHostWindow;
 const MAX_RUNTIME_FRAME_WAKE_DELAY: Duration = Duration::from_secs(60);
 
 impl UiHostWindow {
+    pub(crate) fn background_event_wake_callback(
+        &self,
+    ) -> zircon_runtime::core::framework::channel::ChannelWakeCallback {
+        self.event_wake.callback()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn take_background_event_wake(&self) -> bool {
+        self.event_wake.take_request()
+    }
+
     /// Replaces the prior runtime request because each completed runtime tick owns the next wake.
     pub(crate) fn apply_runtime_frame_demand(
         &self,
@@ -62,6 +72,45 @@ impl UiHostWindow {
 
     pub(crate) fn request_frame_update(&self) {
         self.global::<UiHostContext>().invoke_frame_requested();
+    }
+
+    pub(crate) fn request_maintenance_frame_update(&self) {
+        self.state.borrow_mut().maintenance_frame_wake_deadline = None;
+        self.queue_external_redraw(HostRedrawRequest::frame_update_only_for_scenario(
+            UiPerfScenario::AssetRefresh,
+        ));
+    }
+
+    pub(crate) fn schedule_maintenance_frame_update(&self, deadline: Instant) {
+        self.state.borrow_mut().maintenance_frame_wake_deadline = Some(deadline);
+    }
+
+    pub(crate) fn clear_maintenance_frame_update(&self) {
+        self.state.borrow_mut().maintenance_frame_wake_deadline = None;
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn maintenance_frame_wake_deadline(
+        &self,
+    ) -> Option<Instant> {
+        self.state.borrow().maintenance_frame_wake_deadline
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn take_due_maintenance_frame_wake(
+        &self,
+        now: Instant,
+    ) -> bool {
+        let due = self
+            .state
+            .borrow()
+            .maintenance_frame_wake_deadline
+            .is_some_and(|deadline| deadline <= now);
+        if due {
+            self.state.borrow_mut().maintenance_frame_wake_deadline = None;
+            self.queue_external_redraw(HostRedrawRequest::frame_update_only_for_scenario(
+                UiPerfScenario::AssetRefresh,
+            ));
+        }
+        due
     }
 
     pub(crate) fn mark_completed_frame_update_scenario(&self, scenario: UiPerfScenario) {
@@ -167,5 +216,22 @@ mod tests {
             Some(now + Duration::from_secs(60)),
             "an extreme transport delay must remain a bounded native wake"
         );
+    }
+
+    #[test]
+    fn maintenance_wake_queues_a_frame_update_without_visual_damage() {
+        let host = super::UiHostWindow::new().expect("host window");
+        let now = Instant::now();
+        let deadline = now + Duration::from_millis(25);
+
+        host.schedule_maintenance_frame_update(deadline);
+        assert_eq!(host.maintenance_frame_wake_deadline(), Some(deadline));
+        assert!(!host.take_due_maintenance_frame_wake(now));
+        assert!(host.take_due_maintenance_frame_wake(deadline));
+
+        let redraw = host.take_external_redraw();
+        assert!(redraw.requires_frame_update());
+        assert!(!redraw.requires_present());
+        assert_eq!(host.maintenance_frame_wake_deadline(), None);
     }
 }

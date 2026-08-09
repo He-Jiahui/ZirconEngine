@@ -67,3 +67,17 @@ fn host_chrome_presenter_trait_accepts_boxed_backend() {
     assert_eq!(diagnostics.paint_only_request_count, 3);
     assert_eq!(presenter.diagnostics_snapshot().present_count, 1);
 }
+
+#[test]
+fn native_resize_present_has_a_conservative_backend_fallback() {
+    let mut presenter: Box<dyn HostChromePresenter> = Box::new(RecordingPresenter::new());
+
+    presenter
+        .present_during_native_resize(
+            &HostWindowPresentationData::default(),
+            HostInvalidationDiagnostics::default(),
+        )
+        .expect("backends without a resize cache should use an ordinary full present");
+
+    assert_eq!(presenter.diagnostics_snapshot().present_count, 1);
+}

@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
+use crate::scene::viewport::{CapturedFrame, RenderViewportHandle, RenderViewportProduct};
 
 #[derive(Clone, Default)]
 pub(crate) struct HostViewportImageData {
     pub(crate) resource_key: String,
     pub(crate) width: u32,
     pub(crate) height: u32,
-    pub(crate) rgba: Arc<[u8]>,
+    pub(crate) rgba: Option<Arc<[u8]>>,
 }
 
 impl HostViewportImageData {
@@ -22,9 +22,23 @@ impl HostViewportImageData {
             resource_key: viewport_image_resource_key(viewport, generation),
             width,
             height,
-            rgba: frame.rgba.into(),
+            rgba: Some(frame.rgba.into()),
         };
         image.is_valid().then_some(image)
+    }
+
+    pub(crate) fn from_viewport_product(product: RenderViewportProduct) -> Option<Self> {
+        let image = Self {
+            resource_key: product.resource_key().to_string(),
+            width: product.width(),
+            height: product.height(),
+            rgba: None,
+        };
+        (product.is_valid() && image.is_valid()).then_some(image)
+    }
+
+    pub(crate) fn rgba(&self) -> Option<&[u8]> {
+        self.rgba.as_deref()
     }
 
     pub(crate) fn is_valid(&self) -> bool {
@@ -33,7 +47,10 @@ impl HostViewportImageData {
         !self.resource_key.is_empty()
             && self.width > 0
             && self.height > 0
-            && self.rgba.len() == self.width as usize * self.height as usize * 4
+            && self
+                .rgba
+                .as_ref()
+                .is_none_or(|rgba| rgba.len() == self.width as usize * self.height as usize * 4)
     }
 }
 
@@ -63,7 +80,7 @@ mod tests {
             resource_key: String::new(),
             width: 1,
             height: 1,
-            rgba: vec![255, 255, 255, 255].into(),
+            rgba: Some(vec![255, 255, 255, 255].into()),
         };
 
         assert!(!image.is_valid());
@@ -74,7 +91,22 @@ mod tests {
         let image = viewport_image(3, 7, &[255, 0, 0, 255]);
         let cloned = image.clone();
 
-        assert!(Arc::ptr_eq(&image.rgba, &cloned.rgba));
+        assert!(Arc::ptr_eq(
+            image.rgba.as_ref().expect("capture payload"),
+            cloned.rgba.as_ref().expect("capture payload"),
+        ));
+    }
+
+    #[test]
+    fn viewport_product_keeps_the_gpu_resource_key_without_cpu_pixels() {
+        let product = RenderViewportProduct::new(RenderViewportHandle::new(3), 640, 360, 11);
+
+        let image = HostViewportImageData::from_viewport_product(product)
+            .expect("valid GPU product should transfer into host data");
+
+        assert_eq!(image.resource_key, "viewport:3:11");
+        assert!(image.rgba.is_none());
+        assert!(image.is_valid());
     }
 
     fn viewport_image(viewport: u64, generation: u64, rgba: &[u8]) -> HostViewportImageData {

@@ -1,11 +1,14 @@
+use std::sync::Arc;
+
 use crate::core::framework::render::{
     CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
     RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
     RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
-    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderViewportProduct, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
     RenderVisibleSpatialQuerySnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
+use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
 
 use super::super::capture_frame::{
     capture_frame, capture_frame_if_newer, poll_captured_frame_if_newer,
@@ -18,6 +21,7 @@ use super::super::graphics_debugger_capture::{
 use super::super::query_stats::query_stats;
 use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
 use super::super::query_visible_spatial_snapshot::query_visible_spatial_snapshot;
+use super::super::render_framework_state::WgpuViewportProductProvider;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
@@ -161,6 +165,35 @@ impl RenderFramework for WgpuRenderFramework {
         last_generation: Option<u64>,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         poll_captured_frame_if_newer(self, viewport, last_generation)
+    }
+
+    fn poll_viewport_product_if_newer(
+        &self,
+        viewport: RenderViewportHandle,
+        last_generation: Option<u64>,
+    ) -> Result<Option<RenderViewportProduct>, RenderFrameworkError> {
+        let products = Arc::clone(&self.lock_state().viewport_products);
+        Ok(products.poll_if_newer(viewport, last_generation))
+    }
+
+    fn create_ui_surface_presenter(
+        &self,
+        descriptor: UiSurfaceDescriptor,
+    ) -> Result<Box<dyn UiSurfacePresenter>, RenderFrameworkError> {
+        let _operation_guard = self.lock_operation();
+        let state = self.lock_state();
+        let context = state.renderer.ui_surface_context();
+        let provider = Arc::new(WgpuViewportProductProvider::new(Arc::clone(
+            &state.viewport_products,
+        )));
+        drop(state);
+        zr_rhi_wgpu::WgpuUiSurfacePresenter::new_with_context_and_external_images(
+            descriptor,
+            context,
+            Some(provider),
+        )
+        .map(|presenter| Box::new(presenter) as Box<dyn UiSurfacePresenter>)
+        .map_err(|error| RenderFrameworkError::Backend(error.to_string()))
     }
 
     fn set_quality_profile(

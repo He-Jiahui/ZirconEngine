@@ -1,7 +1,7 @@
 use super::super::super::super::chrome_command_stream::ChromeCommandStream;
 
 #[cfg(feature = "profiling")]
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 pub(in crate::ui::retained_host::host_contract) fn record_chrome_command_stream_counters(
     stream: &ChromeCommandStream,

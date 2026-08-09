@@ -14,6 +14,19 @@ pub(crate) struct RenderBackend {
 impl RenderBackend {
     pub(crate) const RETAINED_STATE_OWNER_COUNT: usize = 3;
 
+    /// Clones the negotiated WGPU state for a native UI surface on this backend's device.
+    ///
+    /// The clone keeps typed WGPU ownership rather than exposing native pointers. Callers can
+    /// therefore compose a renderer product and retained UI image through the same queue.
+    pub(crate) fn ui_surface_context(&self) -> zr_rhi_wgpu::WgpuUiSurfaceContext {
+        zr_rhi_wgpu::WgpuUiSurfaceContext::new(
+            self.instance.clone(),
+            self.adapter.clone(),
+            self.device.clone(),
+            self.queue.clone(),
+        )
+    }
+
     pub(crate) fn retained_state_owner_count(&self) -> usize {
         let _retained_state_owners = (&self.instance, &self.adapter, &self.config);
         Self::RETAINED_STATE_OWNER_COUNT
@@ -103,5 +116,25 @@ mod tests {
             !source.contains(&adapter_feature_call),
             "adapter availability must not be reported as negotiated device capability"
         );
+    }
+
+    #[test]
+    fn ui_surface_context_reuses_the_negotiated_backend_owners() {
+        let source = include_str!("render_backend.rs");
+        let context_source = source
+            .split("fn ui_surface_context")
+            .nth(1)
+            .and_then(|source| source.split("fn retained_state_owner_count").next())
+            .expect("render backend should expose a UI context from its negotiated device");
+
+        for owner in [
+            "self.instance.clone()",
+            "self.adapter.clone()",
+            "self.device.clone()",
+            "self.queue.clone()",
+        ] {
+            assert!(context_source.contains(owner));
+        }
+        assert!(!context_source.contains("request_device"));
     }
 }

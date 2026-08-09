@@ -219,6 +219,8 @@ impl UiSurfaceDescriptor {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiSurfaceDrawList {
     pub surface_size: (u32, u32),
+    projection_size: (u32, u32),
+    bypass_retained_surface_cache: bool,
     pub damage: Option<UiSurfaceRect>,
     pub commands: Vec<UiSurfaceCommand>,
     generation: Option<u64>,
@@ -232,8 +234,11 @@ impl UiSurfaceDrawList {
         damage: Option<UiSurfaceRect>,
         commands: Vec<UiSurfaceCommand>,
     ) -> Self {
+        let surface_size = (surface_size.0.max(1), surface_size.1.max(1));
         Self {
-            surface_size: (surface_size.0.max(1), surface_size.1.max(1)),
+            surface_size,
+            projection_size: surface_size,
+            bypass_retained_surface_cache: false,
             damage,
             commands,
             generation: None,
@@ -253,8 +258,11 @@ impl UiSurfaceDrawList {
         commands: Vec<UiSurfaceCommand>,
         generation: u64,
     ) -> Self {
+        let surface_size = (surface_size.0.max(1), surface_size.1.max(1));
         Self {
-            surface_size: (surface_size.0.max(1), surface_size.1.max(1)),
+            surface_size,
+            projection_size: surface_size,
+            bypass_retained_surface_cache: false,
             damage,
             commands,
             generation: Some(generation),
@@ -330,8 +338,11 @@ impl UiSurfaceDrawList {
         let (commands, compacted_image_resources) = compact_image_resources(commands);
         image_resources.extend(compacted_image_resources);
         let (commands, styles) = compact_commands(commands);
+        let surface_size = (surface_size.0.max(1), surface_size.1.max(1));
         Self {
-            surface_size: (surface_size.0.max(1), surface_size.1.max(1)),
+            surface_size,
+            projection_size: surface_size,
+            bypass_retained_surface_cache: false,
             damage,
             commands,
             generation,
@@ -368,6 +379,24 @@ impl UiSurfaceDrawList {
         self.generation
     }
 
+    /// Coordinate extent used to compile immutable geometry for this producer generation.
+    pub const fn projection_size(&self) -> (u32, u32) {
+        self.projection_size
+    }
+
+    /// Changes the current render target without changing the generation's coordinate space.
+    /// Native resize transactions use this to retain batch, vertex, and text projections.
+    #[doc(hidden)]
+    pub fn retarget_surface_size_preserving_projection(&mut self, surface_size: (u32, u32)) {
+        self.surface_size = (surface_size.0.max(1), surface_size.1.max(1));
+        self.bypass_retained_surface_cache = true;
+    }
+
+    #[doc(hidden)]
+    pub const fn bypasses_retained_surface_cache(&self) -> bool {
+        self.bypass_retained_surface_cache
+    }
+
     pub fn stats(&self) -> UiSurfacePresentStats {
         let mut stats = UiSurfacePresentStatsAccumulator::new(self);
         for command in &self.commands {
@@ -397,8 +426,8 @@ fn command_effective_rect(
     let surface = UiSurfaceRect::new(
         0.0,
         0.0,
-        draw_list.surface_size.0 as f32,
-        draw_list.surface_size.1 as f32,
+        draw_list.projection_size.0 as f32,
+        draw_list.projection_size.1 as f32,
     );
     let mut rect = rect_intersection(command.frame, surface)?;
     if let Some(clip) = command.clip {

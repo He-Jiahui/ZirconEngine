@@ -3,7 +3,7 @@ mod lifecycle;
 mod present;
 mod stats;
 
-use zircon_runtime::rhi::UiSurfacePresenter;
+use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresenter};
 
 use super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
@@ -17,6 +17,12 @@ pub(in crate::ui::retained_host::host_contract) struct GpuChromePresenter<P: UiS
     last_upload_bytes: u64,
     last_draw_calls: u64,
     surface_cache_initialized: bool,
+    native_resize_projection_size: (u32, u32),
+    native_resize_draw_list: Option<UiSurfaceDrawList>,
+    #[cfg(test)]
+    native_resize_snapshot_build_count: u64,
+    #[cfg(test)]
+    native_resize_snapshot_reuse_count: u64,
 }
 
 impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
@@ -31,6 +37,14 @@ impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
         GpuChromePresenter::present(self, presentation, damage, invalidation)
+    }
+
+    fn present_during_native_resize(
+        &mut self,
+        presentation: &HostWindowPresentationData,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        GpuChromePresenter::present_during_native_resize(self, presentation, invalidation)
     }
 
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {

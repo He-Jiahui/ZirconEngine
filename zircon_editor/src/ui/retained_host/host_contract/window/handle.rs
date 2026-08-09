@@ -19,11 +19,21 @@ pub(crate) struct HostWindowHandle {
 
 impl HostWindowHandle {
     pub(crate) fn set_position(&self, position: PhysicalPosition) {
-        self.state.borrow_mut().window_position = position;
+        let mut state = self.state.borrow_mut();
+        if state.window_position != position {
+            state.window_position = position;
+        }
     }
 
     pub(crate) fn set_size(&self, size: PhysicalSize) {
-        self.state.borrow_mut().window_size = size;
+        let mut state = self.state.borrow_mut();
+        if state.window_size != size {
+            state.window_size = size;
+        }
+    }
+
+    pub(crate) fn position(&self) -> PhysicalPosition {
+        self.state.borrow().window_position.clone()
     }
 
     pub(crate) fn size(&self) -> PhysicalSize {

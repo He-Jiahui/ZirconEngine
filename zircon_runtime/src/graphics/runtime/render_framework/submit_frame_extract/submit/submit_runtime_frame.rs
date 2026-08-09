@@ -130,15 +130,16 @@ fn submit_selected_runtime_frame(
     state
         .renderer
         .set_global_material_mip_bias(context.global_material_mip_bias());
-    let viewport_capture = owns_viewport_submission
-        .then(|| {
-            let generation = state.renderer.next_frame_generation();
-            state
-                .viewports
-                .get(&viewport)
-                .map(|record| record.async_capture_request(generation))
-        })
-        .flatten();
+    let viewport_capture = (owns_viewport_submission
+        && state.viewport_products.requires_async_capture(viewport))
+    .then(|| {
+        let generation = state.renderer.next_frame_generation();
+        state
+            .viewports
+            .get(&viewport)
+            .map(|record| record.async_capture_request(generation))
+    })
+    .flatten();
     let rendered_frame = {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
         match state
@@ -174,6 +175,14 @@ fn submit_selected_runtime_frame(
         Some(frame_generation),
         None,
     );
+    if owns_viewport_submission && state.viewport_products.has_direct_presenter() {
+        if let Some(texture) = state.renderer.latest_viewport_texture() {
+            let ui_context = state.renderer.ui_surface_context();
+            state
+                .viewport_products
+                .publish(viewport, texture, &ui_context);
+        }
+    }
     let runtime_feedback = {
         crate::profile_scope!("runtime", "render_framework", "collect_runtime_feedback");
         collect_runtime_feedback(

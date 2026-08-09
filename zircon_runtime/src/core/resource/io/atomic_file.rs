@@ -141,6 +141,27 @@ fn unique_sibling_path(directory: &Path, target: &Path, role: &str) -> PathBuf {
     }
 }
 
+pub(crate) fn is_atomic_write_transaction_path(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    if !file_name.starts_with('.') {
+        return false;
+    }
+    [".zr-staging-", ".zr-backup-"].into_iter().any(|marker| {
+        let Some((_, suffix)) = file_name.rsplit_once(marker) else {
+            return false;
+        };
+        let Some((process_id, sequence)) = suffix.split_once('-') else {
+            return false;
+        };
+        !process_id.is_empty()
+            && !sequence.is_empty()
+            && process_id.bytes().all(|byte| byte.is_ascii_digit())
+            && sequence.bytes().all(|byte| byte.is_ascii_digit())
+    })
+}
+
 fn rename_staging(staging_path: &Path, target: &Path) -> io::Result<()> {
     match fs::rename(staging_path, target) {
         Ok(()) => Ok(()),
@@ -446,8 +467,28 @@ fn should_fail_backup_sync(fault: AtomicWriteFault) -> bool {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::Path;
 
-    use super::{atomic_write_with_fault, AtomicWriteFault};
+    use super::{atomic_write_with_fault, is_atomic_write_transaction_path, AtomicWriteFault};
+
+    #[test]
+    fn atomic_transaction_path_recognizes_only_reserved_numeric_siblings() {
+        assert!(is_atomic_write_transaction_path(Path::new(
+            ".hero.zmeta.zr-staging-123-4"
+        )));
+        assert!(is_atomic_write_transaction_path(Path::new(
+            ".hero.zmeta.zr-backup-123-5"
+        )));
+        assert!(!is_atomic_write_transaction_path(Path::new(
+            ".zr-staging-guide.txt"
+        )));
+        assert!(!is_atomic_write_transaction_path(Path::new(
+            "hero.zmeta.zr-staging-123-4"
+        )));
+        assert!(!is_atomic_write_transaction_path(Path::new(
+            ".hero.zmeta.zr-staging-user-copy"
+        )));
+    }
 
     #[test]
     fn atomic_write_replaces_existing_file_and_cleans_transaction_files() {

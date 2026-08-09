@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
-use super::super::SoftbufferHostPresenter;
 use super::super::surface_io::{copy_rgba_to_softbuffer, softbuffer_damage_rect};
+use super::super::SoftbufferHostPresenter;
 
 pub(super) fn submit_presented_frame(
     presenter: &mut SoftbufferHostPresenter,

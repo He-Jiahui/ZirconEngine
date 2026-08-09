@@ -189,7 +189,7 @@ fn next_ui_vertex_buffer_capacity(required_bytes: u64) -> u64 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct UiDrawBufferCacheKey {
     generation: u64,
-    surface_size: (u32, u32),
+    projection_size: (u32, u32),
 }
 
 #[derive(Default)]
@@ -237,7 +237,7 @@ impl WgpuUiDrawBufferCache {
             .generation()
             .map(|generation| UiDrawBufferCacheKey {
                 generation,
-                surface_size: draw_list.surface_size,
+                projection_size: draw_list.projection_size(),
             })
     }
 }
@@ -263,6 +263,7 @@ pub(super) fn record_draw_ops_to_view(
     target_view: &wgpu::TextureView,
     initial_load: TargetLoad,
     surface_size: (u32, u32),
+    projection_size: (u32, u32),
     damage: Option<UiSurfaceRect>,
     draw_ops: &[DrawOp],
     buffers: &WgpuUiDrawBuffers,
@@ -277,7 +278,7 @@ pub(super) fn record_draw_ops_to_view(
     };
     if draw_ops.is_empty() {
         let mut pass = begin_ui_surface_pass(encoder, target_view, initial_load);
-        set_surface_viewport(&mut pass, surface_size);
+        set_surface_viewport(&mut pass, projection_size);
         pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
         return WgpuUiRecordedDrawStats {
             render_pass_count: 1,
@@ -301,7 +302,7 @@ pub(super) fn record_draw_ops_to_view(
             }
             let mut pass = begin_ui_surface_pass(encoder, target_view, load);
             stats.render_pass_count = stats.render_pass_count.saturating_add(1);
-            set_surface_viewport(&mut pass, surface_size);
+            set_surface_viewport(&mut pass, projection_size);
             pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
             if text.render_batch(draw.batch_index, &mut pass) {
                 stats.record_draw(draw.layer_index, draw.command_indices.len() as u32, 0, 0, 0);
@@ -322,7 +323,7 @@ pub(super) fn record_draw_ops_to_view(
         }
         let mut pass = begin_ui_surface_pass(encoder, target_view, load);
         stats.render_pass_count = stats.render_pass_count.saturating_add(1);
-        set_surface_viewport(&mut pass, surface_size);
+        set_surface_viewport(&mut pass, projection_size);
         pass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
         for run_index in op_index..run_end {
             match &draw_ops[run_index] {
@@ -526,6 +527,16 @@ mod tests {
         assert!(WgpuUiDrawBufferCache::cache_key(&versioned).is_some());
         assert!(WgpuUiDrawBufferCache::cache_key(&damaged).is_some());
         assert_eq!(WgpuUiDrawBufferCache::cache_key(&legacy), None);
+    }
+
+    #[test]
+    fn draw_buffer_cache_key_ignores_target_only_resize() {
+        let mut draw_list = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 9);
+        let original = WgpuUiDrawBufferCache::cache_key(&draw_list);
+
+        draw_list.retarget_surface_size_preserving_projection((32, 16));
+
+        assert_eq!(WgpuUiDrawBufferCache::cache_key(&draw_list), original);
     }
 
     #[test]

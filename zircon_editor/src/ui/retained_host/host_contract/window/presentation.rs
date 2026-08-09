@@ -9,6 +9,7 @@ use zircon_runtime::diagnostic_log::{
 };
 use zircon_runtime_interface::ui::layout::UiSize;
 
+use super::super::data::SceneViewportChromeData;
 use super::super::data::{
     FrameRect, HostMenuStateData, HostPaneInteractionStateData, HostPresentationGeneration,
     HostWindowPresentationData,
@@ -57,6 +58,19 @@ impl UiHostWindow {
         state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
         record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
         state.update_host_presentation(update)
+    }
+
+    pub(crate) fn patch_scene_viewport_chrome(
+        &self,
+        viewport: SceneViewportChromeData,
+        status_grid_text: &str,
+        status_snap_text: &str,
+    ) -> bool {
+        self.state.borrow_mut().patch_scene_viewport_chrome(
+            viewport,
+            status_grid_text,
+            status_snap_text,
+        )
     }
 
     pub(crate) fn get_host_presentation_generation(&self) -> HostPresentationGeneration {

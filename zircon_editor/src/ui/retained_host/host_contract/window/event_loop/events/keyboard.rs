@@ -1,8 +1,8 @@
 use winit::event::KeyEvent;
 use zircon_runtime_interface::ui::window::UiWindowInputPumpEvent;
 
-use super::super::UiHostWindowEventLoop;
 use super::super::platform_input::{platform_keyboard_input, platform_text_input};
+use super::super::UiHostWindowEventLoop;
 
 impl UiHostWindowEventLoop {
     pub(super) fn handle_keyboard_input(
@@ -10,6 +10,7 @@ impl UiHostWindowEventLoop {
         event: KeyEvent,
         platform_event: Option<UiWindowInputPumpEvent>,
     ) {
+        self.begin_input_latency_sample();
         let result = self
             .host
             .dispatch_keyboard_event(&event, platform_keyboard_input(platform_event));
@@ -18,9 +19,12 @@ impl UiHostWindowEventLoop {
     }
 
     pub(super) fn handle_ime_input(&mut self, platform_event: Option<UiWindowInputPumpEvent>) {
+        self.begin_input_latency_sample();
         if let Some(text) = platform_text_input(platform_event) {
             let result = self.host.dispatch_focused_text_insert(&text);
             self.dispatch_pointer_result(result);
+        } else {
+            self.cancel_input_latency_sample();
         }
     }
 }

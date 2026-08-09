@@ -232,7 +232,7 @@ fn draw_items_with_damage<'a>(
                 let Some(rect) = primitive_effective_rect(
                     command,
                     command.frame,
-                    draw_list.surface_size,
+                    draw_list.projection_size(),
                     damage,
                 ) else {
                     continue;
@@ -256,14 +256,14 @@ fn draw_items_with_damage<'a>(
                     vertices: image_vertices(
                         command.frame,
                         rect,
-                        draw_list.surface_size,
+                        draw_list.projection_size(),
                         payload.atlas_uv,
                     ),
                 }));
             }
             UiSurfaceResolvedCommandKind::Text { .. } => {
                 let Some(rect) =
-                    effective_rect(command, command.frame, draw_list.surface_size, damage)
+                    effective_rect(command, command.frame, draw_list.projection_size(), damage)
                 else {
                     continue;
                 };
@@ -300,21 +300,21 @@ fn push_solid_item(
     damage: Option<UiSurfaceRect>,
 ) {
     let Some(effective) =
-        effective_rect_with_clip_status(command, frame, draw_list.surface_size, damage)
+        effective_rect_with_clip_status(command, frame, draw_list.projection_size(), damage)
     else {
         return;
     };
     let rect = effective.rect;
     let geometry = if corner_radius.is_finite() && corner_radius > 0.0 {
-        let vertices = solid_vertices(frame, color, draw_list.surface_size, corner_radius);
+        let vertices = solid_vertices(frame, color, draw_list.projection_size(), corner_radius);
         let vertices = if effective.clipped {
-            clip_solid_triangles_to_rect(vertices, rect, draw_list.surface_size)
+            clip_solid_triangles_to_rect(vertices, rect, draw_list.projection_size())
         } else {
             vertices
         };
         SolidGeometry::Vertices(vertices)
     } else {
-        SolidGeometry::Instance(solid_instance(rect, color, draw_list.surface_size))
+        SolidGeometry::Instance(solid_instance(rect, color, draw_list.projection_size()))
     };
     items.push(DrawItem::Solid(SolidItem {
         order,
@@ -333,21 +333,24 @@ fn push_rounded_border_item(
     draw_list: &UiSurfaceDrawList,
     damage: Option<UiSurfaceRect>,
 ) {
-    let Some(effective) =
-        effective_rect_with_clip_status(command, command.frame, draw_list.surface_size, damage)
-    else {
+    let Some(effective) = effective_rect_with_clip_status(
+        command,
+        command.frame,
+        draw_list.projection_size(),
+        damage,
+    ) else {
         return;
     };
     let rect = effective.rect;
     let vertices = rounded_border_vertices(
         command.frame,
         color,
-        draw_list.surface_size,
+        draw_list.projection_size(),
         width,
         corner_radius,
     );
     let vertices = if effective.clipped {
-        clip_solid_triangles_to_rect(vertices, rect, draw_list.surface_size)
+        clip_solid_triangles_to_rect(vertices, rect, draw_list.projection_size())
     } else {
         vertices
     };
@@ -655,7 +658,7 @@ pub(super) fn command_effective_rect(
     effective_rect(
         command,
         command.frame,
-        draw_list.surface_size,
+        draw_list.projection_size(),
         draw_list.damage,
     )
 }
@@ -664,7 +667,7 @@ pub(super) fn full_projection_effective_rect(
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
 ) -> Option<UiSurfaceRect> {
-    effective_rect(command, command.frame, draw_list.surface_size, None)
+    effective_rect(command, command.frame, draw_list.projection_size(), None)
 }
 
 fn primitive_effective_rect(

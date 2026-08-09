@@ -8,7 +8,9 @@ use super::is_meta_sidecar::is_meta_sidecar;
 
 pub(super) fn collect_files(root: &Path, files: &mut Vec<PathBuf>) -> Result<(), AssetImportError> {
     collect_matching_files(root, files, |path| {
-        !is_meta_sidecar(path) && !is_auxiliary_source_file(path)
+        !is_meta_sidecar(path)
+            && !crate::core::resource::io::atomic_file::is_atomic_write_transaction_path(path)
+            && !is_auxiliary_source_file(path)
     })
 }
 
@@ -70,4 +72,36 @@ fn is_auxiliary_source_file(path: &Path) -> bool {
                 || extension.eq_ignore_ascii_case("woff")
                 || extension.eq_ignore_ascii_case("woff2")
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use super::collect_files;
+
+    static NEXT_TEST_ROOT: AtomicU64 = AtomicU64::new(1);
+
+    #[test]
+    fn source_collection_ignores_atomic_write_transaction_siblings() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_collect_files_atomic_siblings_{}_{}",
+            std::process::id(),
+            NEXT_TEST_ROOT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let source = root.join("material.zmaterial");
+        let staging = root.join(".material.zmaterial.zr-staging-123-4");
+        let backup = root.join(".material.zmaterial.zr-backup-123-5");
+        fs::write(&source, "source").unwrap();
+        fs::write(&staging, "staging").unwrap();
+        fs::write(&backup, "backup").unwrap();
+
+        let mut files = Vec::new();
+        collect_files(&root, &mut files).unwrap();
+
+        assert_eq!(files, vec![source]);
+        let _ = fs::remove_dir_all(root);
+    }
 }

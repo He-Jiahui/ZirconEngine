@@ -1,5 +1,5 @@
 use super::resources::resolve_startup_managers;
-use super::state::{StartupHostConstruction, construct_startup_host};
+use super::state::{construct_startup_host, StartupHostConstruction};
 use super::template_bridges::create_startup_template_bridges;
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
@@ -28,7 +28,10 @@ impl RetainedEditorHost {
         #[cfg(not(feature = "profiling"))]
         let _ = &runtime_gateway;
 
-        let startup_managers = resolve_startup_managers(&core)?;
+        ui.set_runtime_presenter_factory(viewport.runtime_presenter_factory());
+
+        let startup_managers =
+            resolve_startup_managers(&core, ui.background_event_wake_callback())?;
         let viewport_size = UVec2::new(1280, 720);
         let startup_session_state = resolve_startup_session_state(
             startup_managers.editor_manager.clone(),

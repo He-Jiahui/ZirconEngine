@@ -4,12 +4,12 @@ mod submit;
 use super::super::super::chrome_command_stream::build_chrome_command_stream;
 use super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
-use super::SoftbufferHostPresenter;
 use super::backbuffer::{can_region_repaint, repaint_backbuffer};
 use super::diagnostics::{plan_present_for_diagnostics, record_chrome_command_stream_counters};
 use super::lifecycle::resize_presenter;
 use super::surface_io::current_window_size;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use super::SoftbufferHostPresenter;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use log::write_verbose_present_log;
 use submit::submit_presented_frame;
 

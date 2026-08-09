@@ -56,6 +56,10 @@ impl WgpuRetainedSurfaceCache {
         self.initialized
     }
 
+    pub(super) fn invalidate(&mut self) {
+        self.initialized = false;
+    }
+
     pub(super) fn matches(&self, format: wgpu::TextureFormat, size: (u32, u32)) -> bool {
         self.format == format && self.size == (size.0.max(1), size.1.max(1))
     }
@@ -184,6 +188,7 @@ mod tests {
             cache.view(),
             TargetLoad::ClearBlack,
             TEST_SIZE,
+            TEST_SIZE,
             None,
             &seed_draw_plan.ops,
             &seed_buffers,
@@ -222,6 +227,7 @@ mod tests {
             &mut patch_encoder,
             cache.view(),
             TargetLoad::Load,
+            TEST_SIZE,
             TEST_SIZE,
             Some(damage),
             &patch_draw_plan.ops,
@@ -311,6 +317,7 @@ mod tests {
             &mut encoder,
             &target_view,
             TargetLoad::ClearBlack,
+            TEST_SIZE,
             TEST_SIZE,
             None,
             &full_redraw.plan.ops,

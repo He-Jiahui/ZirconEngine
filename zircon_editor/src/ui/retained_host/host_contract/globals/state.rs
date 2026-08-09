@@ -1,8 +1,8 @@
 use std::cell::RefCell;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
+use zircon_runtime::asset::project::ResolvedProjectPath;
 
 use crate::ui::retained_host::host_contract::paint_theme::{
     capture_host_paint_theme_snapshot, HostPaintThemeSnapshot,
@@ -18,9 +18,11 @@ use super::super::data::{
     HostPaneInteractionStateData, HostPresentationGeneration, HostResizeStateData,
     HostTextInputFocusData, HostViewportImageData, HostWindowPresentationData, WelcomePaneData,
 };
-use super::super::diagnostics::HostInvalidationDiagnostics;
+use super::super::diagnostics::{HostInvalidationDiagnostics, HostWindowDiagnosticQueue};
 use super::super::redraw::HostRedrawRequest;
 use super::callbacks::{PaneSurfaceCallbacks, UiHostCallbacks};
+
+mod viewport_chrome;
 
 pub(crate) trait HostContractGlobal: Sized {
     fn from_state(state: Rc<RefCell<HostContractState>>) -> Self;
@@ -33,8 +35,9 @@ pub(crate) struct HostContractState {
     pub(crate) window_visible: bool,
     pub(crate) exit_requested: bool,
     pub(crate) exit_after_first_presented_frame: bool,
-    pub(crate) first_presented_frame_capture_path: Option<PathBuf>,
+    pub(crate) first_presented_frame_capture_path: Option<ResolvedProjectPath>,
     pub(crate) first_presented_frame_capture_error: Option<String>,
+    pub(crate) host_window_diagnostics: HostWindowDiagnosticQueue,
     pub(crate) window_maximized: bool,
     pub(crate) close_requested: Option<Rc<dyn Fn() -> CloseRequestResponse>>,
     pub(crate) host_presentation: Arc<HostWindowPresentationData>,
@@ -53,6 +56,8 @@ pub(crate) struct HostContractState {
     pub(crate) external_redraw_drained_count: u64,
     pub(crate) external_redraw_coalesced_count: u64,
     pub(crate) runtime_frame_wake_deadline: Option<Instant>,
+    pub(crate) maintenance_frame_wake_deadline: Option<Instant>,
+    pub(crate) native_resize_reflow_pending: bool,
     pub(crate) completed_frame_update_scenario: Option<UiPerfScenario>,
     pub(crate) viewport_image: Option<Arc<HostViewportImageData>>,
     pub(crate) menu_state: Arc<HostMenuStateData>,
@@ -85,6 +90,7 @@ impl HostContractState {
             exit_after_first_presented_frame: false,
             first_presented_frame_capture_path: None,
             first_presented_frame_capture_error: None,
+            host_window_diagnostics: HostWindowDiagnosticQueue::default(),
             window_maximized: false,
             close_requested: None,
             host_presentation,
@@ -103,6 +109,8 @@ impl HostContractState {
             external_redraw_drained_count: 0,
             external_redraw_coalesced_count: 0,
             runtime_frame_wake_deadline: None,
+            maintenance_frame_wake_deadline: None,
+            native_resize_reflow_pending: false,
             completed_frame_update_scenario: None,
             viewport_image: None,
             menu_state: Arc::new(HostMenuStateData::default()),

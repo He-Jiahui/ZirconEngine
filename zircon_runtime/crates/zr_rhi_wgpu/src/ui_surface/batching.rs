@@ -94,7 +94,7 @@ pub(super) struct ImageUploadSource {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct BatchPlanCacheKey {
     generation: u64,
-    surface_size: (u32, u32),
+    projection_size: (u32, u32),
 }
 
 /// Retains immutable geometry and overlap topology for a producer-owned UI generation.
@@ -138,7 +138,7 @@ impl CompiledUiBatchPlanCache {
         };
         let key = BatchPlanCacheKey {
             generation,
-            surface_size: draw_list.surface_size,
+            projection_size: draw_list.projection_size(),
         };
         let use_full_draw_list_stats = force_full_projection || draw_list.damage.is_none();
         if self.key == Some(key) {

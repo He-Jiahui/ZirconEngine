@@ -1,12 +1,12 @@
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::write_log;
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::diagnostics::HostWindowDiagnosticSeverity;
 use crate::ui::retained_host::host_contract::profiling_artifacts::{
     profile_capture_enabled, queue_present_artifacts,
 };
 use crate::ui::retained_host::ui_perf::{
-    UiPerfCounter, UiPerfScenario, enter_ui_perf_scenario, record_current_ui_perf_counter,
+    enter_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
 };
 
 use super::super::UiHostWindowEventLoop;
@@ -27,7 +27,12 @@ pub(super) fn present_redraw(
     let invalidation = event_loop_state.host.refresh_invalidation_diagnostics();
     #[cfg(feature = "profiling")]
     let damage_started_at = event_loop_state.pending_damage_started_at.take();
-    match presenter.present(presentation, damage_region, invalidation) {
+    let present_result = if event_loop_state.host.native_resize_reflow_pending() {
+        presenter.present_during_native_resize(presentation, invalidation)
+    } else {
+        presenter.present(presentation, damage_region, invalidation)
+    };
+    match present_result {
         Ok(diagnostics) => {
             #[cfg(feature = "profiling")]
             if let Some(started_at) = damage_started_at {
@@ -70,6 +75,7 @@ pub(super) fn present_redraw(
             }
             exit_after_presented_frame(
                 event_loop_state.host.exit_after_first_presented_frame(),
+                &event_loop_state.host,
                 event_loop,
             );
         }
@@ -93,9 +99,13 @@ fn should_queue_profile_artifacts(capture_enabled: bool, already_requested: bool
     capture_enabled && !already_requested
 }
 
-fn exit_after_presented_frame(enabled: bool, event_loop: &dyn ActiveEventLoop) {
+fn exit_after_presented_frame(
+    enabled: bool,
+    host: &super::super::super::UiHostWindow,
+    event_loop: &dyn ActiveEventLoop,
+) {
     if let Some(diagnostic) = first_presented_frame_diagnostic(enabled) {
-        write_log("editor_host_window", diagnostic);
+        host.record_host_diagnostic(HostWindowDiagnosticSeverity::Info, diagnostic);
         event_loop.exit();
     }
 }

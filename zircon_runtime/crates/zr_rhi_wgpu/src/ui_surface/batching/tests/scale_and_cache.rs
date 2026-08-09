@@ -182,6 +182,30 @@ fn compiled_plan_cache_reuses_an_explicit_unchanged_generation() {
 }
 
 #[test]
+fn compiled_plan_cache_reuses_a_generation_across_target_only_resize() {
+    let mut draw_list = UiSurfaceDrawList::with_generation(
+        (100, 100),
+        None,
+        vec![quad(
+            0,
+            UiSurfaceRect::new(60.0, 60.0, 20.0, 20.0),
+            [255, 0, 0, 255],
+        )],
+        41,
+    );
+    let mut cache = CompiledUiBatchPlanCache::default();
+
+    let first = cache.resolve(&draw_list, false);
+    draw_list.retarget_surface_size_preserving_projection((50, 50));
+    let resized = cache.resolve(&draw_list, false);
+
+    assert_eq!(resized.batch_plan_build_count, 0);
+    assert_eq!(resized.batch_plan_cache_hit_count, 1);
+    assert!(Arc::ptr_eq(&first.plan, &resized.plan));
+    assert_eq!(resized.plan.stats.visible_draw_item_count, 1);
+}
+
+#[test]
 fn compiled_plan_cache_requires_an_explicit_generation() {
     let draw_list = UiSurfaceDrawList::new(
         (100, 100),

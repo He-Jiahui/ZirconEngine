@@ -3,26 +3,21 @@ use std::fmt;
 
 use zircon_runtime::rhi::RhiError;
 
-pub(in crate::ui::retained_host::host_contract) type HostPresenterResult<T> =
-    Result<T, HostPresenterError>;
+pub(crate) type HostPresenterResult<T> = Result<T, HostPresenterError>;
 
 #[derive(Debug)]
-pub(in crate::ui::retained_host::host_contract) enum HostPresenterError {
+pub(crate) enum HostPresenterError {
     Softbuffer(String),
     GpuUnavailable(String),
     Rhi(RhiError),
 }
 
 impl HostPresenterError {
-    pub(in crate::ui::retained_host::host_contract) fn softbuffer(
-        error: softbuffer::SoftBufferError,
-    ) -> Self {
+    pub(crate) fn softbuffer(error: softbuffer::SoftBufferError) -> Self {
         Self::Softbuffer(error.to_string())
     }
 
-    pub(in crate::ui::retained_host::host_contract) fn gpu_unavailable(
-        reason: impl Into<String>,
-    ) -> Self {
+    pub(crate) fn gpu_unavailable(reason: impl Into<String>) -> Self {
         Self::GpuUnavailable(reason.into())
     }
 }

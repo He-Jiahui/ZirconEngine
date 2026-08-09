@@ -785,6 +785,72 @@ fn wgpu_ui_surface_marks_the_complete_present_submission_for_renderdoc() {
 }
 
 #[test]
+fn wgpu_ui_surface_shared_context_path_does_not_request_a_second_device() {
+    let source = include_str!("../ui_surface.rs");
+    let shared_constructor = source
+        .split("fn new_with_context(\n        descriptor: UiSurfaceDescriptor,\n        context: WgpuUiSurfaceContext,")
+        .nth(1)
+        .and_then(|source| source.split("fn from_surface(").next())
+        .expect("native renderer should expose the shared-context construction path");
+
+    assert!(shared_constructor.contains("create_surface(&context.instance, target)?"));
+    assert!(!shared_constructor.contains("request_device"));
+}
+
+#[test]
+fn wgpu_ui_surface_external_image_path_uses_the_shared_texture_without_cpu_upload() {
+    let source = include_str!("../ui_surface/image_cache.rs");
+    let external_prepare = source
+        .split("fn prepare_external_image(")
+        .nth(1)
+        .and_then(|source| source.split("fn admit(").next())
+        .expect("native renderer should prepare external images independently");
+
+    assert!(external_prepare.contains("WgpuUiImageResource::from_external"));
+    assert!(!external_prepare.contains("queue.write_texture"));
+    assert!(external_prepare.contains("image_payload_layout"));
+    assert!(external_prepare.contains("layout.expected_len as u64"));
+
+    let presenter_source = include_str!("../ui_surface.rs");
+    let confirm = presenter_source
+        .split("let image_resource_stats = self.image_cache.prepare(")
+        .nth(1)
+        .expect("native presenter should prepare image resources");
+    assert!(confirm.contains("provider.confirm_resident"));
+}
+
+#[test]
+fn wgpu_ui_surface_copies_shared_products_to_generation_stable_textures() {
+    let source = include_str!("../ui_surface.rs");
+    let copy = source
+        .split("fn copy_texture_for_external_image")
+        .nth(1)
+        .expect("shared WGPU context should expose a GPU-only product copy");
+
+    assert!(copy.contains("create_texture"));
+    assert!(copy.contains("copy_texture_to_texture"));
+    assert!(copy.contains("self.queue.submit"));
+    assert!(copy.contains("byte_space_sample_view_format"));
+    assert!(copy.contains("view_formats"));
+}
+
+#[test]
+fn wgpu_ui_surface_samples_srgb_products_as_byte_space_images() {
+    assert_eq!(
+        super::byte_space_sample_view_format(wgpu::TextureFormat::Rgba8UnormSrgb),
+        Some(wgpu::TextureFormat::Rgba8Unorm)
+    );
+    assert_eq!(
+        super::byte_space_sample_view_format(wgpu::TextureFormat::Bgra8UnormSrgb),
+        Some(wgpu::TextureFormat::Bgra8Unorm)
+    );
+    assert_eq!(
+        super::byte_space_sample_view_format(wgpu::TextureFormat::Rgba8Unorm),
+        None
+    );
+}
+
+#[test]
 fn wgpu_ui_surface_presents_submitted_frame_before_readback_error() {
     let source = include_str!("../ui_surface.rs");
     let map_error = source.find("let readback_map_error").unwrap_or_default();

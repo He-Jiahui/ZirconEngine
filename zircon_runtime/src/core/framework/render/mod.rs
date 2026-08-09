@@ -39,6 +39,7 @@ mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 mod virtual_geometry_execution_draw;
 mod visible_spatial_query;
+mod viewport_product;
 mod viewport_highlight_store;
 
 pub use advanced::{
@@ -172,6 +173,7 @@ pub use frame_profile::{
 pub use highlight_set::{HighlightRenderAttributes, HighlightSet};
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
+pub use viewport_product::RenderViewportProduct;
 pub use image::{
     default_color_space_for_texture_usage, default_compression_for_texture_usage,
     default_mip_filter_for_texture_usage, validate_texture_metadata, RenderImageAssetUsage,

@@ -1,7 +1,7 @@
 use zircon_runtime::rhi::{UiSurfacePresentStats, UiSurfacePresenter};
 
 use super::GpuChromePresenter;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 pub(super) fn record_present_stats<P: UiSurfacePresenter>(
     presenter: &mut GpuChromePresenter<P>,

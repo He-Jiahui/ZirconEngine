@@ -2,9 +2,10 @@ use super::{
     CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFrameworkError,
     RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderSubmissionConfig,
     RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
-    RenderVirtualGeometryDebugSnapshot, RenderVisibleSpatialQuerySnapshot,
+    RenderViewportProduct, RenderVirtualGeometryDebugSnapshot, RenderVisibleSpatialQuerySnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
+use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
 
 pub trait RenderFramework: Send + Sync {
     fn create_viewport(
@@ -134,6 +135,25 @@ pub trait RenderFramework: Send + Sync {
         _last_generation: Option<u64>,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         Ok(None)
+    }
+
+    /// Returns an already-produced GPU presentation identity without requesting readback.
+    fn poll_viewport_product_if_newer(
+        &self,
+        _viewport: RenderViewportHandle,
+        _last_generation: Option<u64>,
+    ) -> Result<Option<RenderViewportProduct>, RenderFrameworkError> {
+        Ok(None)
+    }
+
+    /// Creates a native UI presenter that can directly sample products from this backend.
+    fn create_ui_surface_presenter(
+        &self,
+        _descriptor: UiSurfaceDescriptor,
+    ) -> Result<Box<dyn UiSurfacePresenter>, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "shared GPU UI surface presentation".to_string(),
+        })
     }
 
     fn set_quality_profile(

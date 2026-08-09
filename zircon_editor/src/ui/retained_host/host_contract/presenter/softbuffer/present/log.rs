@@ -1,11 +1,11 @@
 use zircon_runtime::diagnostic_log::{
-    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 
 use super::super::super::super::data::HostWindowPresentationData;
-use super::super::SoftbufferHostPresenter;
 use super::super::backbuffer::RepaintOutcome;
 use super::super::diagnostics::{frame_summary, presentation_summary};
+use super::super::SoftbufferHostPresenter;
 
 pub(super) fn write_verbose_present_log(
     presenter: &mut SoftbufferHostPresenter,

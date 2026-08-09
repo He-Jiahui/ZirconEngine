@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 const SHELL_SCALE_FACTOR_EPSILON: f32 = 0.001;
 
@@ -26,6 +26,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn sync_shell_size(&mut self) {
+        if self.ui.native_resize_reflow_pending() {
+            return;
+        }
         let bootstrap = self.ui.get_host_window_bootstrap();
         let next = ShellSizePx::new(
             bootstrap.shell_frame.width.max(1.0),
@@ -49,5 +52,32 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn publish_refresh_invalidation_diagnostics(&self) {
         self.ui
             .set_host_refresh_invalidation_diagnostics(self.invalidation.diagnostics_snapshot());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn shell_size_sync_cannot_bypass_the_native_resize_debounce_gate() {
+        let source = include_str!("shell_metrics.rs");
+        let function = source
+            .split("pub(in crate::ui::retained_host::app) fn sync_shell_size")
+            .nth(1)
+            .and_then(|body| {
+                body.split("pub(in crate::ui::retained_host::app) fn publish")
+                    .next()
+            })
+            .expect("sync_shell_size implementation");
+        let gate = function
+            .find("self.ui.native_resize_reflow_pending()")
+            .expect("shell-size sync must observe the native resize gate");
+        let bootstrap = function
+            .find("self.ui.get_host_window_bootstrap()")
+            .expect("shell-size sync should read committed window metrics");
+
+        assert!(
+            gate < bootstrap,
+            "the resize gate must run before metrics are read"
+        );
     }
 }

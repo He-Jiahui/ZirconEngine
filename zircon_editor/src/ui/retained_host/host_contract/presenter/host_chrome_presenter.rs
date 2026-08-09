@@ -15,5 +15,13 @@ pub(in crate::ui::retained_host::host_contract) trait HostChromePresenter {
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics>;
 
+    fn present_during_native_resize(
+        &mut self,
+        presentation: &HostWindowPresentationData,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        self.present(presentation, None, invalidation)
+    }
+
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics;
 }

@@ -92,6 +92,9 @@ impl UiHostWindowEventLoop {
             .take_completed_frame_update_scenario()
             .unwrap_or(redraw_scenario);
         drop(redraw_scenario_guard);
+        if !redraw.requires_present() {
+            return;
+        }
         present_redraw(
             self,
             event_loop,

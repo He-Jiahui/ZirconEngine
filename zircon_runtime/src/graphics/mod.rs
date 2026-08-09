@@ -30,7 +30,8 @@ pub mod runtime_builtin_graphics;
 // facade remains reviewable while implementation modules stay crate-private.
 pub use extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot};
 pub use feature::{
-    BuiltinRenderFeature, RenderFeature, RenderFeatureCapabilityRequirement,
+    COMPUTE_GENERIC_EXECUTOR_ID, BuiltinRenderFeature, ComputePassDescriptor, ComputeShaderSource,
+    RenderFeature, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
     RenderFeatureResourceDescriptor, RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
 };

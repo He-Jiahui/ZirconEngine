@@ -18,7 +18,9 @@ use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
 use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
 #[cfg(test)]
 use crate::graphics::shader::ShaderVariantCacheDisk;
-use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
+use crate::graphics::types::{
+    GraphicsError, ViewportFrame, ViewportFrameTextureHandle, ViewportRenderFrame,
+};
 use crate::graphics::visibility::HzbOcclusionCullReport;
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
@@ -501,6 +503,29 @@ impl SceneRenderer {
             ),
         )
         .map(Some)
+    }
+
+    /// Returns the GPU-resident output of the most recently submitted viewport frame.
+    ///
+    /// This is a presentation product, not a capture API: cloning the texture keeps its resource
+    /// alive for the consumer but performs neither staging allocation nor CPU readback. Explicit
+    /// screenshot and pixel-test callers must continue through [`Self::capture_latest_frame`].
+    pub(crate) fn latest_viewport_texture(&self) -> Option<ViewportFrameTextureHandle> {
+        let target = self.target.as_ref()?;
+        (self.generation != 0).then(|| ViewportFrameTextureHandle {
+            width: target.size.x,
+            height: target.size.y,
+            texture: target.final_color.clone(),
+            format: crate::graphics::scene::scene_renderer::FINAL_COLOR_FORMAT,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::TEXTURE_BINDING,
+            generation: self.generation,
+        })
+    }
+
+    pub(crate) fn ui_surface_context(&self) -> zr_rhi_wgpu::WgpuUiSurfaceContext {
+        self.backend.ui_surface_context()
     }
 
     pub(crate) fn poll_readback_completions(&mut self) {

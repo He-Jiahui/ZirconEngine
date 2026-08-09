@@ -1,27 +1,141 @@
+use crate::scene::viewport::{CapturedFrame, RenderViewportHandle};
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::diagnostics::{
-    HostInvalidationDiagnostics, HostRefreshDiagnostics,
+    HostInvalidationDiagnostics, HostRefreshDiagnostics, HostWindowDiagnosticSeverity,
 };
+use crate::ui::retained_host::host_contract::PaneSurfaceHostContext;
 use crate::ui::retained_host::primitives::CloseRequestResponse;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use std::time::{SystemTime, UNIX_EPOCH};
+use zircon_runtime::asset::project::ProjectPaths;
 
 use super::UiHostWindow;
+
+#[test]
+fn presentation_generation_reuses_structure_until_a_structural_publish() {
+    let host = UiHostWindow::new().expect("host window should construct for generation test");
+
+    let initial = host.get_host_presentation_generation();
+    let stable = host.get_host_presentation_generation();
+
+    assert!(initial.shares_structure_with(&stable));
+    assert!(initial.shares_theme_with(&stable));
+    assert_eq!(
+        initial.structure_generation(),
+        stable.structure_generation()
+    );
+
+    host.set_host_presentation(initial.structure().clone());
+    let published = host.get_host_presentation_generation();
+
+    assert!(!initial.shares_structure_with(&published));
+    assert!(published.structure_generation() > initial.structure_generation());
+    assert_eq!(
+        initial.hit_test_generation(),
+        published.hit_test_generation()
+    );
+}
+
+#[test]
+fn hover_updates_only_the_interaction_generation_and_skip_equal_values() {
+    let host = UiHostWindow::new().expect("host window should construct for generation test");
+    let baseline = host.get_host_presentation_generation();
+    let frame = FrameRect {
+        x: 12.0,
+        y: 24.0,
+        width: 96.0,
+        height: 20.0,
+    };
+
+    host.set_hovered_template_node_for_pointer_move("toolbar.play".into(), frame.clone());
+    let hovered = host.get_host_presentation_generation();
+
+    assert!(baseline.shares_structure_with(&hovered));
+    assert_eq!(
+        baseline.structure_generation(),
+        hovered.structure_generation()
+    );
+    assert_eq!(
+        baseline.hit_test_generation(),
+        hovered.hit_test_generation()
+    );
+    assert!(hovered.interaction_generation() > baseline.interaction_generation());
+    assert_eq!(
+        hovered
+            .materialize()
+            .pane_interaction_state
+            .hovered_template_control_id
+            .as_str(),
+        "toolbar.play"
+    );
+
+    host.set_hovered_template_node_for_pointer_move("toolbar.play".into(), frame);
+    let repeated = host.get_host_presentation_generation();
+
+    assert_eq!(
+        repeated.interaction_generation(),
+        hovered.interaction_generation()
+    );
+    assert!(hovered.shares_structure_with(&repeated));
+}
+
+#[test]
+fn viewport_capture_advances_only_the_viewport_generation() {
+    let host = UiHostWindow::new().expect("host window should construct for generation test");
+    let baseline = host.get_host_presentation_generation();
+
+    assert!(host
+        .global::<PaneSurfaceHostContext>()
+        .set_viewport_capture(
+            RenderViewportHandle::new(7),
+            CapturedFrame::new(1, 1, vec![255, 0, 0, 255], 11),
+        ));
+    let captured = host.get_host_presentation_generation();
+
+    assert!(baseline.shares_structure_with(&captured));
+    assert!(captured.structure().viewport_image.is_none());
+    assert_eq!(
+        baseline.structure_generation(),
+        captured.structure_generation()
+    );
+    assert_eq!(
+        baseline.interaction_generation(),
+        captured.interaction_generation()
+    );
+    assert!(captured.viewport_generation() > baseline.viewport_generation());
+    assert_eq!(
+        captured
+            .materialize()
+            .viewport_image
+            .expect("capture should materialize")
+            .resource_key,
+        "viewport:7:11"
+    );
+}
 
 #[test]
 fn host_window_refresh_diagnostics_update_state_overlay_text() {
     let host = UiHostWindow::new().expect("host window should construct for state test");
     host.set_host_presentation(HostWindowPresentationData::default());
+    let baseline = host.get_host_presentation_generation();
 
     let mut diagnostics = HostRefreshDiagnostics::default();
     diagnostics.record_present(96, false, true);
-    host.set_host_refresh_diagnostics_overlay(diagnostics.with_invalidation_diagnostics(
+    host.set_host_refresh_diagnostics_overlay(diagnostics.clone().with_invalidation_diagnostics(
         HostInvalidationDiagnostics {
             slow_path_rebuild_count: 2,
             render_rebuild_count: 3,
             paint_only_request_count: 4,
         },
     ));
+
+    let updated = host.get_host_presentation_generation();
+    assert!(baseline.shares_structure_with(&updated));
+    assert_eq!(
+        baseline.structure_generation(),
+        updated.structure_generation()
+    );
+    assert!(updated.diagnostics_generation() > baseline.diagnostics_generation());
 
     let presentation = host.get_host_presentation();
     let overlay = presentation.host_shell.debug_refresh_rate.as_str();
@@ -32,6 +146,42 @@ fn host_window_refresh_diagnostics_update_state_overlay_text() {
     assert!(overlay.contains("slow 2"));
     assert!(overlay.contains("render 3"));
     assert!(overlay.contains("paint-only 4"));
+
+    let generation = updated.diagnostics_generation();
+    host.set_host_refresh_diagnostics_overlay(diagnostics.with_invalidation_diagnostics(
+        HostInvalidationDiagnostics {
+            slow_path_rebuild_count: 2,
+            render_rebuild_count: 3,
+            paint_only_request_count: 4,
+        },
+    ));
+    assert_eq!(
+        host.get_host_presentation_generation()
+            .diagnostics_generation(),
+        generation
+    );
+}
+
+#[test]
+fn host_window_diagnostics_preserve_fifo_order_and_severity_until_composition() {
+    let host = UiHostWindow::new().expect("host window should construct for diagnostic test");
+
+    host.record_host_diagnostic(HostWindowDiagnosticSeverity::Info, "first frame ready");
+    host.record_host_diagnostic(HostWindowDiagnosticSeverity::Warning, "gpu fallback active");
+
+    let diagnostics = host.take_host_diagnostics();
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(diagnostics[0].message(), "first frame ready");
+    assert_eq!(
+        diagnostics[0].severity(),
+        HostWindowDiagnosticSeverity::Info
+    );
+    assert_eq!(diagnostics[1].message(), "gpu fallback active");
+    assert_eq!(
+        diagnostics[1].severity(),
+        HostWindowDiagnosticSeverity::Warning
+    );
+    assert!(host.take_host_diagnostics().is_empty());
 }
 
 #[test]
@@ -91,6 +241,19 @@ fn completed_frame_update_scenario_is_one_shot() {
 }
 
 #[test]
+fn native_resize_reflow_gate_is_explicitly_staged_and_committed() {
+    let host = UiHostWindow::new().expect("host window should construct for resize gate test");
+
+    assert!(!host.native_resize_reflow_pending());
+
+    host.defer_native_resize_reflow();
+    assert!(host.native_resize_reflow_pending());
+
+    host.commit_native_resize_reflow();
+    assert!(!host.native_resize_reflow_pending());
+}
+
+#[test]
 fn first_presented_frame_exit_policy_defaults_off_and_can_be_enabled() {
     let host = UiHostWindow::new().expect("host window should construct for policy test");
 
@@ -114,12 +277,13 @@ fn first_presented_frame_capture_writes_one_png_and_consumes_its_request() {
     ));
     let _ = std::fs::remove_file(&path);
 
-    host.set_first_presented_frame_capture_path(Some(path.clone()));
+    let resolved_path = ProjectPaths::resolve_path(&path).unwrap();
+    host.set_first_presented_frame_capture_path(Some(resolved_path.clone()));
 
     let written = host
         .capture_first_presented_frame()
         .expect("first frame capture should succeed");
-    assert_eq!(written, Some(path.clone()));
+    assert_eq!(written, Some(resolved_path));
     let png = std::fs::read(&path).expect("capture should create a PNG");
     assert!(png.starts_with(b"\x89PNG\r\n\x1a\n"));
     assert_eq!(
@@ -127,6 +291,15 @@ fn first_presented_frame_capture_writes_one_png_and_consumes_its_request() {
             .expect("capture request should be consumed"),
         None
     );
+    let diagnostics = host.take_host_diagnostics();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].severity(),
+        HostWindowDiagnosticSeverity::Info
+    );
+    assert!(diagnostics[0]
+        .message()
+        .contains("editor_product_frame_capture_written"));
 
     std::fs::remove_file(path).expect("capture artifact should be removable");
 }
@@ -145,16 +318,16 @@ fn first_presented_frame_capture_reports_an_unwritable_parent_to_the_app_boundar
     let _ = std::fs::remove_file(&parent_file);
     std::fs::write(&parent_file, b"not a directory")
         .expect("capture test should create a blocking parent file");
-    host.set_first_presented_frame_capture_path(Some(parent_file.join("capture.png")));
+    host.set_first_presented_frame_capture_path(Some(
+        ProjectPaths::resolve_path(parent_file.join("capture.png")).unwrap(),
+    ));
 
     let error = host
         .capture_first_presented_frame()
         .expect_err("a file cannot become the capture directory");
-    assert!(
-        error
-            .to_string()
-            .contains("failed to create editor first-frame capture directory")
-    );
+    assert!(error
+        .to_string()
+        .contains("failed to create editor first-frame capture directory"));
     host.record_first_presented_frame_capture_error(&error);
     assert_eq!(
         host.take_first_presented_frame_capture_error(),
@@ -180,6 +353,14 @@ fn host_window_retains_the_first_fatal_event_loop_failure() {
         "presenter creation failed: device lost",
         "verify the graphics adapter and restart zircon_editor",
     );
+    let diagnostics = host.take_host_diagnostics();
+    assert_eq!(diagnostics.len(), 2);
+    assert!(diagnostics
+        .iter()
+        .all(|diagnostic| { diagnostic.severity() == HostWindowDiagnosticSeverity::Error }));
+    assert!(diagnostics[0]
+        .message()
+        .contains("native window creation failed"));
 
     assert_eq!(
         host.take_fatal_failure().unwrap().to_string(),

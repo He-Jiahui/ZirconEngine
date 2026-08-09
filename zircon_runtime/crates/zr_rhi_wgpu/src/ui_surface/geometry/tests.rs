@@ -127,6 +127,38 @@ fn wgpu_ui_surface_draw_items_sort_by_stable_z_order() {
 }
 
 #[test]
+fn target_only_resize_keeps_projection_geometry_and_offscreen_items() {
+    let mut draw_list = UiSurfaceDrawList::with_generation(
+        (100, 100),
+        None,
+        vec![UiSurfaceCommand {
+            z_index: 0,
+            frame: UiSurfaceRect::new(60.0, 60.0, 20.0, 20.0),
+            clip: None,
+            kind: UiSurfaceCommandKind::Quad {
+                color: [255, 255, 255, 255],
+                corner_radius: 0.0,
+            },
+        }],
+        7,
+    );
+    let before = solid_items(&draw_list)
+        .pop()
+        .and_then(|item| item.instance())
+        .expect("projection contains the quad");
+
+    draw_list.retarget_surface_size_preserving_projection((50, 50));
+    let after = solid_items(&draw_list)
+        .pop()
+        .and_then(|item| item.instance())
+        .expect("target clipping is deferred to the render scissor");
+
+    assert_eq!(after.min_position, before.min_position);
+    assert_eq!(after.max_position, before.max_position);
+    assert_eq!(after.color, before.color);
+}
+
+#[test]
 fn wgpu_ui_surface_generates_rounded_solid_vertices_for_quad_and_border() {
     let draw_list = UiSurfaceDrawList::new(
         (100, 100),

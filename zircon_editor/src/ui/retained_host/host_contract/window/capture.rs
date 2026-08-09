@@ -1,14 +1,15 @@
 use std::ffi::OsString;
 use std::fs;
 use std::io::{BufWriter, Write};
-use std::path::{Path, PathBuf};
+#[cfg(windows)]
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use image::ImageEncoder;
-use zircon_runtime::diagnostic_log::write_log;
-
 use super::UiHostWindow;
+use crate::ui::retained_host::host_contract::diagnostics::HostWindowDiagnosticSeverity;
 use crate::ui::retained_host::primitives::PlatformError;
+use image::ImageEncoder;
+use zircon_runtime::asset::project::ResolvedProjectPath;
 
 static NEXT_EDITOR_CAPTURE_STAGING_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -26,7 +27,7 @@ impl UiHostWindow {
     /// Saves the host presentation only after a native presenter reports success.
     pub(in crate::ui::retained_host::host_contract) fn capture_first_presented_frame(
         &self,
-    ) -> Result<Option<PathBuf>, PlatformError> {
+    ) -> Result<Option<ResolvedProjectPath>, PlatformError> {
         let Some(path) = self
             .state
             .borrow_mut()
@@ -42,11 +43,11 @@ impl UiHostWindow {
             snapshot.height(),
             snapshot.as_bytes(),
         )?;
-        write_log(
-            "editor_host_window",
+        self.record_host_diagnostic(
+            HostWindowDiagnosticSeverity::Info,
             format!(
                 "editor_product_frame_capture_written path={}",
-                path.display()
+                path.display_path().display()
             ),
         );
         Ok(Some(path))
@@ -54,7 +55,7 @@ impl UiHostWindow {
 }
 
 fn write_editor_frame_png(
-    path: &Path,
+    path: &ResolvedProjectPath,
     width: u32,
     height: u32,
     rgba: &[u8],
@@ -75,13 +76,19 @@ fn write_editor_frame_png(
         )));
     }
     if let Some(parent) = path
+        .operation_path()
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
     {
+        let display_parent = path
+            .display_path()
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or(path.display_path());
         fs::create_dir_all(parent).map_err(|error| {
             editor_capture_error(format!(
                 "failed to create editor first-frame capture directory '{}': {error}",
-                parent.display()
+                display_parent.display()
             ))
         })?;
     }
@@ -95,8 +102,8 @@ fn write_editor_frame_png(
             &staging_path,
             editor_capture_error(format!(
                 "failed to commit editor first-frame capture '{}' from '{}': {error}",
-                path.display(),
-                staging_path.display()
+                path.display_path().display(),
+                staging_path.display_path().display()
             )),
         ));
     }
@@ -104,15 +111,18 @@ fn write_editor_frame_png(
 }
 
 fn commit_editor_capture_staging_file(
-    staging_path: &Path,
-    final_path: &Path,
+    staging_path: &ResolvedProjectPath,
+    final_path: &ResolvedProjectPath,
 ) -> std::io::Result<()> {
     #[cfg(windows)]
-    if final_path.exists() {
-        return replace_existing_editor_capture_file(staging_path, final_path);
+    if final_path.operation_path().exists() {
+        return replace_existing_editor_capture_file(
+            staging_path.operation_path(),
+            final_path.operation_path(),
+        );
     }
 
-    fs::rename(staging_path, final_path)
+    fs::rename(staging_path.operation_path(), final_path.operation_path())
 }
 
 #[cfg(windows)]
@@ -162,13 +172,15 @@ fn replace_existing_editor_capture_file(
     }
 }
 
-fn reserve_editor_capture_staging_file(path: &Path) -> Result<(PathBuf, fs::File), PlatformError> {
+fn reserve_editor_capture_staging_file(
+    path: &ResolvedProjectPath,
+) -> Result<(ResolvedProjectPath, fs::File), PlatformError> {
     const MAX_STAGING_ATTEMPTS: usize = 64;
 
-    let file_name = path.file_name().ok_or_else(|| {
+    let file_name = path.operation_path().file_name().ok_or_else(|| {
         editor_capture_error(format!(
             "editor first-frame capture path '{}' has no file name",
-            path.display()
+            path.display_path().display()
         ))
     })?;
     for _ in 0..MAX_STAGING_ATTEMPTS {
@@ -179,27 +191,27 @@ fn reserve_editor_capture_staging_file(path: &Path) -> Result<(PathBuf, fs::File
         match fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(&staging_path)
+            .open(staging_path.operation_path())
         {
             Ok(file) => return Ok((staging_path, file)),
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(error) => {
                 return Err(editor_capture_error(format!(
                     "failed to create editor first-frame capture staging file '{}': {error}",
-                    staging_path.display()
+                    staging_path.display_path().display()
                 )));
             }
         }
     }
     Err(editor_capture_error(format!(
         "could not reserve an editor first-frame capture staging file beside '{}' after {MAX_STAGING_ATTEMPTS} attempts",
-        path.display()
+        path.display_path().display()
     )))
 }
 
 fn encode_editor_capture_staging_file(
     staging_file: fs::File,
-    final_path: &Path,
+    final_path: &ResolvedProjectPath,
     width: u32,
     height: u32,
     rgba: &[u8],
@@ -210,7 +222,7 @@ fn encode_editor_capture_staging_file(
         .map_err(|error| {
             editor_capture_error(format!(
                 "failed to encode editor first-frame capture '{}': {error}",
-                final_path.display()
+                final_path.display_path().display()
             ))
         })?;
     // The evidence is publishable only after buffered and filesystem writes both succeed.
@@ -221,38 +233,38 @@ fn encode_editor_capture_staging_file(
 
 fn flush_editor_capture_writer(
     writer: &mut impl Write,
-    final_path: &Path,
+    final_path: &ResolvedProjectPath,
 ) -> Result<(), PlatformError> {
     writer.flush().map_err(|error| {
         editor_capture_error(format!(
             "failed to flush editor first-frame capture '{}': {error}",
-            final_path.display()
+            final_path.display_path().display()
         ))
     })
 }
 
 fn sync_editor_capture_writer(
     writer: &impl EditorCaptureSync,
-    final_path: &Path,
+    final_path: &ResolvedProjectPath,
 ) -> Result<(), PlatformError> {
     writer.sync_editor_capture().map_err(|error| {
         editor_capture_error(format!(
             "failed to sync editor first-frame capture '{}': {error}",
-            final_path.display()
+            final_path.display_path().display()
         ))
     })
 }
 
 fn remove_editor_staging_after_failure(
-    staging_path: &Path,
+    staging_path: &ResolvedProjectPath,
     failure: PlatformError,
 ) -> PlatformError {
-    match fs::remove_file(staging_path) {
+    match fs::remove_file(staging_path.operation_path()) {
         Ok(()) => failure,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => failure,
         Err(error) => editor_capture_error(format!(
             "{failure}; cleanup editor first-frame capture staging file '{}' failed: {error}",
-            staging_path.display()
+            staging_path.display_path().display()
         )),
     }
 }
@@ -264,11 +276,13 @@ fn editor_capture_error(message: impl Into<String>) -> PlatformError {
 #[cfg(test)]
 mod tests {
     use std::io::Write;
+    use std::path::Path;
 
     use super::{
-        EditorCaptureSync, flush_editor_capture_writer, sync_editor_capture_writer,
-        write_editor_frame_png,
+        flush_editor_capture_writer, sync_editor_capture_writer, write_editor_frame_png,
+        EditorCaptureSync,
     };
+    use zircon_runtime::asset::project::{ProjectPaths, ResolvedProjectPath};
 
     struct FlushFailureWriter;
 
@@ -288,6 +302,10 @@ mod tests {
         fn sync_editor_capture(&self) -> std::io::Result<()> {
             Err(std::io::Error::other("sync unavailable"))
         }
+    }
+
+    fn resolve_capture_path(path: &Path) -> ResolvedProjectPath {
+        ProjectPaths::resolve_path(path).expect("capture path should resolve")
     }
 
     fn capture_test_root(case_name: &str) -> std::path::PathBuf {
@@ -318,8 +336,10 @@ mod tests {
         let path = root.join("editor-first-frame.png");
         let _ = std::fs::remove_dir_all(&root);
         let rgba = [255, 0, 0, 255, 0, 255, 0, 128];
+        let resolved_path = resolve_capture_path(&path);
 
-        write_editor_frame_png(&path, 2, 1, &rgba).expect("frame capture PNG should encode");
+        write_editor_frame_png(&resolved_path, 2, 1, &rgba)
+            .expect("frame capture PNG should encode");
         let decoded = image::open(&path)
             .expect("written editor capture PNG should decode")
             .to_rgba8();
@@ -335,8 +355,9 @@ mod tests {
         let root = capture_test_root("mismatched-rgba");
         let path = root.join("editor-first-frame.png");
         let _ = std::fs::remove_dir_all(&root);
+        let resolved_path = resolve_capture_path(&path);
 
-        let error = write_editor_frame_png(&path, 2, 1, &[255, 0, 0, 255])
+        let error = write_editor_frame_png(&resolved_path, 2, 1, &[255, 0, 0, 255])
             .expect_err("truncated RGBA frame must not produce PNG evidence");
 
         assert!(error.to_string().contains("does not match 2x1 output"));
@@ -349,15 +370,14 @@ mod tests {
         let path = root.join("editor-first-frame.png");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
+        let resolved_path = resolve_capture_path(&path);
 
-        let error = write_editor_frame_png(&path, 0, 1, &[])
+        let error = write_editor_frame_png(&resolved_path, 0, 1, &[])
             .expect_err("zero-width PNG evidence must fail during encoding");
 
-        assert!(
-            error
-                .to_string()
-                .contains("failed to encode editor first-frame capture")
-        );
+        assert!(error
+            .to_string()
+            .contains("failed to encode editor first-frame capture"));
         assert!(!path.exists());
         assert_eq!(partial_capture_files(&root), Vec::new());
         std::fs::remove_dir_all(root).unwrap();
@@ -369,15 +389,14 @@ mod tests {
         let path = root.join("editor-first-frame.png");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&path).unwrap();
+        let resolved_path = resolve_capture_path(&path);
 
-        let error = write_editor_frame_png(&path, 1, 1, &[255, 0, 0, 255])
+        let error = write_editor_frame_png(&resolved_path, 1, 1, &[255, 0, 0, 255])
             .expect_err("a directory cannot be committed as PNG evidence");
 
-        assert!(
-            error
-                .to_string()
-                .contains("failed to commit editor first-frame capture")
-        );
+        assert!(error
+            .to_string()
+            .contains("failed to commit editor first-frame capture"));
         assert!(path.is_dir(), "failed commit must preserve the destination");
         assert_eq!(partial_capture_files(&root), Vec::new());
         std::fs::remove_dir_all(root).unwrap();
@@ -390,8 +409,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(&path, b"stale evidence").unwrap();
+        let resolved_path = resolve_capture_path(&path);
 
-        write_editor_frame_png(&path, 1, 1, &[1, 2, 3, 255])
+        write_editor_frame_png(&resolved_path, 1, 1, &[1, 2, 3, 255])
             .expect("complete PNG should replace stale evidence");
         let decoded = image::open(&path).unwrap().to_rgba8();
 
@@ -403,17 +423,19 @@ mod tests {
 
     #[test]
     fn editor_frame_capture_flush_and_sync_failures_are_not_reported_as_success() {
-        let path = std::path::Path::new("editor-first-frame.png");
-        let flush_error = flush_editor_capture_writer(&mut FlushFailureWriter, path)
+        let path = resolve_capture_path(Path::new("editor-first-frame.png"));
+        let flush_error = flush_editor_capture_writer(&mut FlushFailureWriter, &path)
             .expect_err("flush failure must block frame capture commit");
-        let sync_error = sync_editor_capture_writer(&SyncFailureWriter, path)
+        let sync_error = sync_editor_capture_writer(&SyncFailureWriter, &path)
             .expect_err("sync failure must block frame capture commit");
 
-        assert!(flush_error.to_string().contains(
-            "flush editor first-frame capture 'editor-first-frame.png': flush unavailable"
-        ));
-        assert!(sync_error.to_string().contains(
-            "sync editor first-frame capture 'editor-first-frame.png': sync unavailable"
-        ));
+        assert!(flush_error
+            .to_string()
+            .contains("flush editor first-frame capture"));
+        assert!(flush_error.to_string().contains("flush unavailable"));
+        assert!(sync_error
+            .to_string()
+            .contains("sync editor first-frame capture"));
+        assert!(sync_error.to_string().contains("sync unavailable"));
     }
 }

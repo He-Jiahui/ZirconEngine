@@ -197,6 +197,18 @@ fn draw_list_generation_is_opt_in_for_compiled_presenters() {
 }
 
 #[test]
+fn retargeted_surface_preserves_the_generation_projection_extent() {
+    let mut draw_list = UiSurfaceDrawList::with_generation((320, 200), None, Vec::new(), 9);
+
+    draw_list.retarget_surface_size_preserving_projection((160, 100));
+
+    assert_eq!(draw_list.surface_size, (160, 100));
+    assert_eq!(draw_list.projection_size(), (320, 200));
+    assert_eq!(draw_list.generation(), Some(9));
+    assert!(draw_list.bypasses_retained_surface_cache());
+}
+
+#[test]
 fn compact_draw_list_interns_repeated_solid_and_text_styles() {
     let draw_list = UiSurfaceDrawList::with_generation_and_compact_styles(
         (128, 64),

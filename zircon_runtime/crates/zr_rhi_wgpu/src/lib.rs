@@ -1,8 +1,10 @@
 //! `wgpu` capability mapping and native UI presentation support.
 //!
-//! Scene/offscreen device ownership lives in `graphics::backend`; the native retained-UI surface
-//! owns its surface-compatible device here. Both use the shared timer implementation below with
-//! real `wgpu` objects. The deterministic host-mirror device exists only for RHI contract tests.
+//! Scene/offscreen device ownership lives in `graphics::backend`. A native retained-UI surface
+//! either owns a surface-compatible device for standalone fallback or receives a cloned runtime
+//! WGPU context for same-device product composition. Both use the shared timer implementation
+//! below with real `wgpu` objects. The deterministic host-mirror device exists only for RHI
+//! contract tests.
 
 #[cfg(test)]
 mod bind_group_validation;
@@ -37,7 +39,10 @@ pub use gpu_pipeline_statistics::{
 pub use gpu_readback_queue::{
     GpuReadbackQueue, ReadbackCallback, ReadbackError, ReadbackPollStats, ReadbackTicket,
 };
-pub use ui_surface::WgpuUiSurfacePresenter;
+pub use ui_surface::{
+    WgpuUiExternalImage, WgpuUiSurfaceContext, WgpuUiSurfaceExternalImageProvider,
+    WgpuUiSurfacePresenter,
+};
 
 #[cfg(test)]
 use device::{DeterministicRhiContractCommandList, DeterministicRhiContractDevice};

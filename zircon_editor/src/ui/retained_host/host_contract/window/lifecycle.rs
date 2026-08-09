@@ -1,13 +1,16 @@
 use std::cell::RefCell;
-use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use winit::event_loop::EventLoop;
+use zircon_runtime::asset::project::ResolvedProjectPath;
 
-use super::UiHostWindow;
+use super::super::presenter::RuntimeUiSurfacePresenterFactory;
 use super::constants::{DEFAULT_HOST_WINDOW_HEIGHT, DEFAULT_HOST_WINDOW_WIDTH};
 use super::handle::HostWindowHandle;
 use super::metadata::platform_error;
+use super::UiHostWindow;
+use crate::ui::retained_host::host_contract::diagnostics::HostWindowDiagnosticSeverity;
 use crate::ui::retained_host::host_contract::globals::{HostContractGlobal, HostContractState};
 use crate::ui::retained_host::primitives::{CloseRequestResponse, PhysicalSize, PlatformError};
 
@@ -18,12 +21,39 @@ impl UiHostWindow {
                 DEFAULT_HOST_WINDOW_WIDTH,
                 DEFAULT_HOST_WINDOW_HEIGHT,
             )))),
+            event_wake: Default::default(),
             fatal_failure: Rc::new(RefCell::new(None)),
+            runtime_presenter_factory: Rc::new(RefCell::new(None)),
+            direct_viewport_products_active: Rc::new(std::cell::Cell::new(false)),
         })
     }
 
     pub(crate) fn clone_strong(&self) -> Self {
         self.clone()
+    }
+
+    pub(in crate::ui::retained_host) fn set_runtime_presenter_factory(
+        &self,
+        factory: Arc<dyn RuntimeUiSurfacePresenterFactory>,
+    ) {
+        *self.runtime_presenter_factory.borrow_mut() = Some(factory);
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn runtime_presenter_factory(
+        &self,
+    ) -> Option<Arc<dyn RuntimeUiSurfacePresenterFactory>> {
+        self.runtime_presenter_factory.borrow().clone()
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn set_direct_viewport_products_active(
+        &self,
+        active: bool,
+    ) {
+        self.direct_viewport_products_active.set(active);
+    }
+
+    pub(in crate::ui::retained_host) fn direct_viewport_products_active(&self) -> bool {
+        self.direct_viewport_products_active.get()
     }
 
     pub(crate) fn show(&self) -> Result<(), PlatformError> {
@@ -38,8 +68,11 @@ impl UiHostWindow {
 
     pub(crate) fn run(&self) -> Result<(), PlatformError> {
         let event_loop = EventLoop::new().map_err(platform_error)?;
+        self.event_wake.install_proxy(event_loop.create_proxy());
         let app = super::event_loop::UiHostWindowEventLoop::new(self.clone_strong());
-        event_loop.run_app(app).map_err(platform_error)
+        let result = event_loop.run_app(app).map_err(platform_error);
+        self.event_wake.clear_proxy();
+        result
     }
 
     pub(crate) fn window(&self) -> HostWindowHandle {
@@ -75,7 +108,7 @@ impl UiHostWindow {
         self.state.borrow_mut().exit_after_first_presented_frame = exit;
     }
 
-    pub(crate) fn set_first_presented_frame_capture_path(&self, path: Option<PathBuf>) {
+    pub(crate) fn set_first_presented_frame_capture_path(&self, path: Option<ResolvedProjectPath>) {
         self.state.borrow_mut().first_presented_frame_capture_path = path;
     }
 
@@ -101,7 +134,7 @@ impl UiHostWindow {
     ) {
         let failure =
             super::failure::EditorHostWindowFailure::new(component, requested, cause, recovery);
-        zircon_runtime::diagnostic_log::write_error(component, failure.to_string());
+        self.record_host_diagnostic(HostWindowDiagnosticSeverity::Error, failure.to_string());
         let mut recorded_failure = self.fatal_failure.borrow_mut();
         if recorded_failure.is_none() {
             *recorded_failure = Some(failure);

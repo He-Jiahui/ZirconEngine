@@ -10,6 +10,7 @@ pub(crate) enum UiPerfScenario {
     Click,
     Drag,
     DrawerResize,
+    WindowResize,
     AssetRefresh,
     ViewportImage,
 }
@@ -352,6 +353,7 @@ fn counter_name(scenario: UiPerfScenario, counter: UiPerfCounter) -> &'static st
         UiPerfScenario::Click => counter_name_for_prefix!(counter, "ui.click"),
         UiPerfScenario::Drag => counter_name_for_prefix!(counter, "ui.drag"),
         UiPerfScenario::DrawerResize => counter_name_for_prefix!(counter, "ui.drawer_resize"),
+        UiPerfScenario::WindowResize => counter_name_for_prefix!(counter, "ui.window_resize"),
         UiPerfScenario::AssetRefresh => counter_name_for_prefix!(counter, "ui.asset_refresh"),
         UiPerfScenario::ViewportImage => counter_name_for_prefix!(counter, "ui.viewport_image"),
     }

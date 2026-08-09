@@ -38,4 +38,6 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
     pub(in crate::graphics::runtime::render_framework) memory_budget: RenderMemoryBudget,
     pub(in crate::graphics::runtime::render_framework) degrade_ladder: BudgetDegradeLadder,
     pub(in crate::graphics::runtime::render_framework) graphics_debugger: GraphicsDebuggerState,
+    pub(in crate::graphics::runtime::render_framework) viewport_products:
+        Arc<super::ViewportProductRegistry>,
 }

@@ -3,11 +3,11 @@ use winit::event::MouseScrollDelta;
 use zircon_runtime_interface::ui::surface::UiPointerEventKind;
 use zircon_runtime_interface::ui::window::UiWindowInputPumpEvent;
 
-use super::super::UiHostWindowEventLoop;
 use super::super::platform_input::{platform_pointer_input, platform_pointer_move_point};
+use super::super::UiHostWindowEventLoop;
 use crate::ui::retained_host::host_contract::native_pointer::{
-    NativePointerButtonState, dispatch_native_pointer_button, dispatch_native_pointer_move,
-    dispatch_native_pointer_scroll,
+    dispatch_native_pointer_button, dispatch_native_pointer_move, dispatch_native_pointer_scroll,
+    NativePointerButtonState,
 };
 
 impl UiHostWindowEventLoop {
@@ -16,6 +16,7 @@ impl UiHostWindowEventLoop {
         platform_event: Option<UiWindowInputPumpEvent>,
         fallback_position: PhysicalPosition<f64>,
     ) {
+        self.begin_input_latency_sample();
         let point = platform_pointer_move_point(platform_event).unwrap_or_else(|| {
             zircon_runtime_interface::ui::layout::UiPoint::new(
                 fallback_position.x as f32,
@@ -31,13 +32,17 @@ impl UiHostWindowEventLoop {
         platform_event: Option<UiWindowInputPumpEvent>,
         fallback_position: PhysicalPosition<f64>,
     ) {
+        self.begin_input_latency_sample();
         let Some(pointer) = platform_pointer_input(platform_event) else {
+            self.cancel_input_latency_sample();
             return;
         };
         if pointer.metadata.pointer_source.is_touch_like() {
+            self.cancel_input_latency_sample();
             return;
         }
         let Some(state) = pointer_button_state(pointer.event.kind) else {
+            self.cancel_input_latency_sample();
             return;
         };
         let point = pointer.event.point;
@@ -69,8 +74,10 @@ impl UiHostWindowEventLoop {
         platform_event: Option<UiWindowInputPumpEvent>,
         _fallback_delta: MouseScrollDelta,
     ) {
+        self.begin_input_latency_sample();
         if let Some(pointer) = platform_pointer_input(platform_event) {
             if !matches!(pointer.event.kind, UiPointerEventKind::Scroll) {
+                self.cancel_input_latency_sample();
                 return;
             }
             let (x, y) = self.last_pointer_position.unwrap_or((0.0, 0.0));
@@ -80,6 +87,8 @@ impl UiHostWindowEventLoop {
                 y,
                 pointer.event.scroll_delta,
             ));
+        } else {
+            self.cancel_input_latency_sample();
         }
     }
 }

@@ -1,4 +1,4 @@
-use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresenter};
+use zircon_runtime::rhi::{UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePresenter};
 
 use super::super::super::chrome_command_stream::{
     build_chrome_command_stream_with_residency,
@@ -20,6 +20,8 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        self.native_resize_draw_list = None;
+        self.native_resize_projection_size = self.size;
         let stream_damage = damage.as_ref().filter(|_| self.surface_cache_initialized);
         let stream = build_chrome_command_stream_with_residency(
             presentation,
@@ -48,6 +50,69 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             damage.as_ref(),
             invalidation,
         )
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn present_during_native_resize(
+        &mut self,
+        presentation: &HostWindowPresentationData,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        let reused_snapshot = self.native_resize_draw_list.is_some();
+        if !reused_snapshot {
+            let stream = build_chrome_command_stream_with_residency(
+                presentation,
+                self.native_resize_projection_size,
+                None,
+                true,
+                |resource_key, generation| {
+                    self.surface
+                        .is_image_resource_resident(resource_key, generation)
+                },
+            );
+            let mut draw_list =
+                ui_surface_draw_list_from_owned_stream_with_generation_and_residency(
+                    stream,
+                    invalidation.slow_path_rebuild_count,
+                    |resource_key, generation| {
+                        self.surface
+                            .is_image_resource_resident(resource_key, generation)
+                    },
+                );
+            draw_list.retarget_surface_size_preserving_projection(self.size);
+            self.native_resize_draw_list = Some(draw_list);
+            #[cfg(test)]
+            {
+                self.native_resize_snapshot_build_count =
+                    self.native_resize_snapshot_build_count.saturating_add(1);
+            }
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.window_resize.command_snapshot_build_count",
+                1_u8
+            );
+        } else {
+            #[cfg(test)]
+            {
+                self.native_resize_snapshot_reuse_count =
+                    self.native_resize_snapshot_reuse_count.saturating_add(1);
+            }
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.window_resize.command_snapshot_reuse_count",
+                1_u8
+            );
+        }
+
+        let mut draw_list = self
+            .native_resize_draw_list
+            .take()
+            .expect("native resize draw list is initialized above");
+        draw_list.retarget_surface_size_preserving_projection(self.size);
+        draw_list.damage = None;
+        let stats = self.surface.present(&draw_list);
+        self.native_resize_draw_list = Some(draw_list);
+        let stats = stats?;
+        self.finish_present(stats, self.size, false, None, invalidation)
     }
 
     pub(in crate::ui::retained_host::host_contract) fn present_stream(
@@ -88,6 +153,23 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
         let stats = self.surface.present_owned(draw_list)?;
+        self.finish_present(
+            stats,
+            surface_size,
+            region_present,
+            diagnostic_damage,
+            invalidation,
+        )
+    }
+
+    fn finish_present(
+        &mut self,
+        stats: UiSurfacePresentStats,
+        surface_size: (u32, u32),
+        region_present: bool,
+        diagnostic_damage: Option<&FrameRect>,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> HostPresenterResult<HostRefreshDiagnostics> {
         record_present_stats(self, &stats, region_present);
         self.surface_cache_initialized = true;
 

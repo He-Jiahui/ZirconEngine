@@ -24,7 +24,7 @@ pub(super) struct WgpuUiTextPrepareStats {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct TextBatchCacheKey {
     generation: u64,
-    surface_size: (u32, u32),
+    projection_size: (u32, u32),
 }
 
 pub(super) struct WgpuUiTextRenderer {
@@ -65,11 +65,11 @@ impl WgpuUiTextRenderer {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        surface_size: (u32, u32),
+        projection_size: (u32, u32),
         draw_list: &UiSurfaceDrawList,
         draw_ops: &[DrawOp],
     ) -> WgpuUiTextPrepareStats {
-        let cache_key = text_batch_cache_key(draw_list, surface_size);
+        let cache_key = text_batch_cache_key(draw_list, projection_size);
         if let Some(cache_key) = cache_key {
             if self.batch_cache_key == Some(cache_key) {
                 return WgpuUiTextPrepareStats {
@@ -86,8 +86,8 @@ impl WgpuUiTextRenderer {
         self.viewport.update(
             queue,
             Resolution {
-                width: surface_size.0.max(1),
-                height: surface_size.1.max(1),
+                width: projection_size.0.max(1),
+                height: projection_size.1.max(1),
             },
         );
         self.batches.clear();
@@ -224,11 +224,11 @@ fn text_has_visible_content(text: &str) -> bool {
 
 fn text_batch_cache_key(
     draw_list: &UiSurfaceDrawList,
-    surface_size: (u32, u32),
+    projection_size: (u32, u32),
 ) -> Option<TextBatchCacheKey> {
     draw_list.generation().map(|generation| TextBatchCacheKey {
         generation,
-        surface_size,
+        projection_size,
     })
 }
 
@@ -344,6 +344,19 @@ mod tests {
     }
 
     #[test]
+    fn text_batch_cache_key_ignores_target_only_resize() {
+        let mut draw_list = UiSurfaceDrawList::with_generation((64, 32), None, Vec::new(), 9);
+        let original = text_batch_cache_key(&draw_list, draw_list.projection_size());
+
+        draw_list.retarget_surface_size_preserving_projection((32, 16));
+
+        assert_eq!(
+            text_batch_cache_key(&draw_list, draw_list.projection_size()),
+            original
+        );
+    }
+
+    #[test]
     fn text_preparation_skips_content_that_cannot_produce_visible_glyphs() {
         assert!(!text_has_visible_content(""));
         assert!(!text_has_visible_content(" \t\r\n"));
@@ -354,7 +367,7 @@ mod tests {
     fn text_prepare_failure_does_not_publish_the_generation_cache_key() {
         let cache_key = Some(TextBatchCacheKey {
             generation: 7,
-            surface_size: (320, 240),
+            projection_size: (320, 240),
         });
 
         assert_eq!(committed_text_batch_cache_key(cache_key, 0), cache_key);

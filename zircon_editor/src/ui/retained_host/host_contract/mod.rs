@@ -21,13 +21,13 @@ pub(in crate::ui::retained_host) use paint_template_nodes::{
 };
 mod paint_text;
 pub(crate) mod paint_theme;
-mod search_field_clear_action;
 mod paint_workbench;
 mod paint_workbench_renderer;
 mod presenter;
 mod profiling_artifacts;
 mod profiling_hit_routes;
 mod redraw;
+mod search_field_clear_action;
 mod surface_hit_test;
 mod template_activation_semantics;
 mod template_component_family;
@@ -38,14 +38,22 @@ mod window;
 mod workbench_context_menu;
 
 pub(crate) use data::*;
-pub(crate) use diagnostics::{HostInvalidationDiagnostics, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY};
+pub(crate) use diagnostics::{
+    HostInvalidationDiagnostics, HostWindowDiagnostic, HostWindowDiagnosticSeverity,
+    STARTUP_REFRESH_DIAGNOSTICS_OVERLAY,
+};
 pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
 pub(crate) use menu_popup_metrics::menu_popup_text_width;
-pub(crate) use paint_text::measure_runtime_text_width;
-pub(in crate::ui::retained_host) use paint_theme::{HostControlMetrics, METRICS, current_host_metrics};
+pub(crate) use paint_text::{measure_runtime_text_width, runtime_text_metrics_generation};
 pub(crate) use paint_theme::{
-    apply_host_appearance_from_tokens, apply_host_metrics_from_tokens, apply_host_palette_from_tokens,
-    apply_host_text_preferences, project_host_text_preferences,
+    apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
+    apply_host_palette_from_tokens, apply_host_text_preferences, project_host_text_preferences,
+};
+pub(in crate::ui::retained_host) use paint_theme::{
+    current_host_metrics, HostControlMetrics, METRICS,
+};
+pub(crate) use presenter::{
+    runtime_factory_error, HostPresenterResult, RuntimeUiSurfacePresenterFactory,
 };
 pub(crate) use search_field_clear_action::{
     search_field_clear_action_frame, search_field_clear_action_hit_test,
