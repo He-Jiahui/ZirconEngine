@@ -2,8 +2,9 @@
 fn review_f5_native_host_api_adapter_uses_typed_error() {
     let host_api_adapter =
         include_str!("../../../../../../plugin/native_plugin_loader/host_api_adapter.rs");
-    let host_api_adapter_tests =
-        include_str!("../../../../../../plugin/native_plugin_loader/host_api_adapter/tests.rs");
+    let host_api_adapter_abi_decode_tests = include_str!(
+        "../../../../../../plugin/native_plugin_loader/host_api_adapter/abi_decode/tests.rs"
+    );
     let native_boundary =
         include_str!("../../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
     let review_findings =
@@ -69,6 +70,11 @@ fn review_f5_native_host_api_adapter_uses_typed_error() {
     }
 
     assert!(
+        host_api_adapter.contains("mod abi_decode;"),
+        "native host API adapter root should mount the canonical ABI decoding owner"
+    );
+
+    assert!(
         host_api_adapter.contains("Self::new_result(registry, module_name).map_err(|error| error.to_string())")
             && host_api_adapter.contains("Err(_) => status(ZrStatusCode::Error),"),
         "native host API adapter should keep string/status diagnostics only at public construction and C ABI callback boundaries"
@@ -79,8 +85,8 @@ fn review_f5_native_host_api_adapter_uses_typed_error() {
         "native_host_api_adapter_utf8_error_preserves_source",
     ] {
         assert!(
-            host_api_adapter_tests.contains(required_test),
-            "native host API adapter tests should contain `{required_test}`"
+            host_api_adapter_abi_decode_tests.contains(required_test),
+            "native host API adapter ABI decode tests should contain `{required_test}`"
         );
     }
 }

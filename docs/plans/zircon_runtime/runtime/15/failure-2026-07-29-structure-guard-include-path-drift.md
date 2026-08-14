@@ -155,3 +155,34 @@ mesh parent-module export and native-plugin compile boundaries no longer block
 the lib-test binary. Text03/Text09 exact tests and the fresh WGPU product
 framebuffer remain separate required gates; no product capture, output record,
 or commit is claimed here.
+
+### 2026-08-14 native host API adapter split-test hard cut
+
+Runtime09/UI12 source-bound validation identified a second instance of this
+failure class before Cargo: the Runtime15 typed-error absorption guard still
+read the deleted `plugin/native_plugin_loader/host_api_adapter/tests.rs` file.
+The production root has already hard-cut into the five canonical owners
+`abi_decode`, `bridge_scope`, `context_handles`, `ecs_registration`, and
+`registration_policy`; restoring an aggregate test file would create a stale
+parallel owner.
+
+- `typed_error_convergence/native_plugin_loader/abi_surfaces/host_adapter.rs`
+  now reads `host_api_adapter/abi_decode/tests.rs`. It retains the unknown-stage
+  and invalid-UTF-8 typed-error assertions and verifies that the root mounts
+  `abi_decode`.
+- The Runtime15 production-file-budget guard now reads each canonical child
+  test source, verifies the five root module mounts, checks the relevant V3,
+  V4, bridge, context-generation, and ABI-decode behavior anchors in their
+  respective owners, and keeps a coverage floor instead of the retired
+  one-parent/one-child fixed count. It explicitly rejects reintroducing
+  `mod tests;` at the root.
+- Static evidence: Rust 1.94.1 `rustfmt --check` and scoped `git diff --check`
+  passed for both guards; all seven canonical child read targets resolved; a
+  runtime-absorption scan found zero `host_api_adapter/tests.rs` references;
+  the five current leaf files contain 38 `#[test]` anchors. A repository-local
+  source scan also resolved every literal `include_str!` target in all 1,049
+  Runtime absorption Rust files, with zero missing resources.
+
+This is a forward structure repair only. No Cargo test ran, no UI12/Runtime09
+test is claimed, and this failure remains `open` until a fresh source-bound
+managed validation crosses the repaired guards.
