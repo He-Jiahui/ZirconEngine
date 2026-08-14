@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import io
 import os
 import subprocess
 import threading
@@ -13,6 +14,14 @@ from typing import Callable, Mapping
 from .cargo_jobs import CargoJobService
 from .database import Database
 from .models import CoordinatorError, utc_text
+from .processes import popen_process_creation_time
+from .windows_job_process import (
+    close_process_job,
+    create_atomic_kill_on_close_process,
+    resume_popen_process,
+    terminate_and_close_process_job,
+    wait_for_process_job_terminal,
+)
 
 
 MAX_LOG_TAIL_BYTES = 64 * 1024
@@ -41,6 +50,14 @@ class CargoRun:
         }
 
 
+@dataclass(slots=True)
+class _PipeReaderGroup:
+    threads: tuple[threading.Thread, ...]
+    errors: list[tuple[str, BaseException]]
+    error_lock: threading.Lock
+    read_failed: threading.Event
+
+
 class CargoJobRunner:
     """Owns managed Cargo child processes so caller lifetime cannot orphan them."""
 
@@ -51,15 +68,25 @@ class CargoJobRunner:
         *,
         repo_root: str | Path,
         log_root: str | Path,
-        popen: Callable[..., subprocess.Popen] = subprocess.Popen,
+        popen: Callable[..., subprocess.Popen] | None = None,
+        atomic_popen: Callable[..., tuple[subprocess.Popen, int]] | None = None,
+        resume_process: Callable[[subprocess.Popen], None] = resume_popen_process,
+        terminate_process_job: Callable[[int | None], None] = terminate_and_close_process_job,
+        wait_process_job: Callable[..., None] = wait_for_process_job_terminal,
     ):
         self.database = database
         self.cargo_jobs = cargo_jobs
         self.repo_root = Path(repo_root).resolve()
         self.log_root = Path(log_root).resolve()
         self.popen = popen
+        self.atomic_popen = atomic_popen or create_atomic_kill_on_close_process
+        self._atomic_popen_injected = atomic_popen is not None
+        self.resume_process = resume_process
+        self.terminate_process_job = terminate_process_job
+        self.wait_process_job = wait_process_job
         self._running_lock = threading.Lock()
         self._running: dict[str, subprocess.Popen] = {}
+        self._collecting: set[str] = set()
 
     def start(
         self,
@@ -100,75 +127,183 @@ class CargoJobRunner:
         stderr_path = run_root / "stderr.log"
         started_at = utc_text()
         process: subprocess.Popen | None = None
-        try:
-            with stdout_path.open("w", encoding="utf-8", errors="replace") as stdout_file, stderr_path.open(
-                "w", encoding="utf-8", errors="replace"
-            ) as stderr_file:
-                environment = os.environ.copy()
-                environment["CARGO_TARGET_DIR"] = job.target_dir
-                environment.update(environment_values)
-                process = self.popen(
-                    command_tuple,
-                    cwd=working_root,
-                    env=environment,
-                    stdout=stdout_file,
-                    stderr=stderr_file,
-                    text=True,
+        process_job: int | None = None
+        reader_group: _PipeReaderGroup | None = None
+        collector_decision = threading.Event()
+        collector_authorized = threading.Event()
+        authorized = False
+        process_registered = False
+        with self.cargo_jobs.managed_start_registration():
+            try:
+                self.cargo_jobs.authorize_managed_start(
+                    job_id,
+                    session_id=session_id,
+                    command=command_tuple,
                 )
-            self.cargo_jobs.start(
-                job_id,
-                session_id=session_id,
-                pid=int(process.pid),
-                command=command_tuple,
-                root_is_supervisor=True,
-            )
-            with self.database.transaction() as connection:
-                connection.execute(
-                    """
-                    INSERT INTO cargo_job_runs(
-                        run_id, job_id, session_id, command_json, environment_json, status,
-                        stdout_path, stderr_path, started_at
-                    ) VALUES (?, ?, ?, ?, ?, 'running', ?, ?, ?)
-                    """,
-                    (
-                        run_id,
-                        job_id,
-                        session_id,
-                        json.dumps(command_tuple),
-                        json.dumps(environment_values, sort_keys=True),
-                        str(stdout_path),
-                        str(stderr_path),
-                        started_at,
-                    ),
+                authorized = True
+                child_environment = os.environ.copy()
+                child_environment["CARGO_TARGET_DIR"] = job.target_dir
+                child_environment.update(environment_values)
+                use_atomic_launch = self.popen is None and (
+                    os.name == "nt" or self._atomic_popen_injected
                 )
-            with self._running_lock:
-                self._running[job_id] = process
-            threading.Thread(
-                target=self._finish,
-                args=(run_id, job_id, session_id, process, stdout_path, stderr_path),
-                name=f"zircon-cargo-{job_id[:12]}",
-                daemon=True,
-            ).start()
-        except BaseException:
-            cleanup_error: BaseException | None = None
-            if process is not None:
-                try:
-                    if process.poll() is None:
-                        process.kill()
-                        process.wait(timeout=5)
-                except BaseException as error:
-                    cleanup_error = error
-            if cleanup_error is not None and process is not None:
+                if use_atomic_launch:
+                    process, process_job = self.atomic_popen(
+                        command_tuple,
+                        cwd=working_root,
+                        env=child_environment,
+                    )
+                    root_creation_time = popen_process_creation_time(process)
+                else:
+                    popen = self.popen or subprocess.Popen
+                    with stdout_path.open(
+                        "w", encoding="utf-8", errors="replace"
+                    ) as stdout_file, stderr_path.open(
+                        "w", encoding="utf-8", errors="replace"
+                    ) as stderr_file:
+                        process = popen(
+                            command_tuple,
+                            cwd=working_root,
+                            env=child_environment,
+                            stdout=stdout_file,
+                            stderr=stderr_file,
+                            text=True,
+                        )
+                    root_creation_time = None
+                self.cargo_jobs.register_authorized_managed_run(
+                    job_id,
+                    session_id=session_id,
+                    pid=int(process.pid),
+                    command=command_tuple,
+                    run_id=run_id,
+                    environment=environment_values,
+                    stdout_path=stdout_path,
+                    stderr_path=stderr_path,
+                    started_at=started_at,
+                    root_process_creation_time=root_creation_time,
+                )
+                process_registered = True
+                if process_job is not None:
+                    reader_group = self._start_pipe_readers(
+                        process,
+                        stdout_path=stdout_path,
+                        stderr_path=stderr_path,
+                    )
+                    with reader_group.error_lock:
+                        setup_error = next(
+                            (
+                                error
+                                for kind, error in reader_group.errors
+                                if kind == "setup"
+                            ),
+                            None,
+                        )
+                    if setup_error is not None:
+                        raise CoordinatorError(
+                            "cargo_atomic_launch_log_open_failed",
+                            "Cargo log output could not be opened before process resume",
+                            details={"errorType": type(setup_error).__name__},
+                        ) from setup_error
                 with self._running_lock:
                     self._running[job_id] = process
-                raise CoordinatorError(
-                    "cargo_launch_cleanup_unproven",
-                    "Spawned Cargo process could not be confirmed stopped after launch setup failed",
-                    details={"jobId": job_id, "pid": int(process.pid)},
-                ) from cleanup_error
-            with self._running_lock:
-                self._running.pop(job_id, None)
-            raise
+                    self._collecting.add(job_id)
+                try:
+                    self.cargo_jobs.register_managed_collector(job_id)
+
+                    def finish_after_launch_decision() -> None:
+                        collector_decision.wait()
+                        if collector_authorized.is_set():
+                            self._finish(
+                                run_id,
+                                job_id,
+                                session_id,
+                                process,
+                                process_job,
+                                reader_group,
+                                stdout_path,
+                                stderr_path,
+                            )
+
+                    threading.Thread(
+                        target=finish_after_launch_decision,
+                        name=f"zircon-cargo-{job_id[:12]}",
+                        daemon=True,
+                    ).start()
+                    if process_job is not None:
+                        self.resume_process(process)
+                        self.cargo_jobs.mark_authorized_managed_run_resumed(
+                            run_id, job_id=job_id, session_id=session_id
+                        )
+                    collector_authorized.set()
+                    collector_decision.set()
+                except BaseException:
+                    collector_decision.set()
+                    with self._running_lock:
+                        self._collecting.discard(job_id)
+                    self.cargo_jobs.unregister_managed_collector(job_id)
+                    raise
+            except BaseException as launch_error:
+                cleanup_error: BaseException | None = None
+                if process is not None:
+                    try:
+                        if process_job is not None:
+                            self.terminate_process_job(process_job)
+                            process_job = None
+                            process.wait(timeout=5)
+                        elif process.poll() is None:
+                            process.kill()
+                            process.wait(timeout=5)
+                    except BaseException as error:
+                        cleanup_error = error
+                if cleanup_error is not None and process is not None:
+                    rejection_code = (
+                        launch_error.code
+                        if isinstance(launch_error, CoordinatorError)
+                        else "cargo_launch_failed"
+                    )
+                    try:
+                        self.cargo_jobs.record_cleanup_unproven_spawn(
+                            run_id=run_id,
+                            job_id=job_id,
+                            session_id=session_id,
+                            command=command_tuple,
+                            environment=environment_values,
+                            stdout_path=stdout_path,
+                            stderr_path=stderr_path,
+                            started_at=started_at,
+                            pid=int(process.pid),
+                            rejection_code=rejection_code,
+                        )
+                    except BaseException as registration_error:
+                        durable_registration_error = type(registration_error).__name__
+                    else:
+                        durable_registration_error = None
+                    with self._running_lock:
+                        self._running[job_id] = process
+                    raise CoordinatorError(
+                        "cargo_launch_cleanup_unproven",
+                        "Spawned Cargo process could not be confirmed stopped after launch setup failed",
+                        details={
+                            "jobId": job_id,
+                            "pid": int(process.pid),
+                            "durableRegistrationError": durable_registration_error,
+                        },
+                    ) from cleanup_error
+                if authorized and not process_registered:
+                    self.cargo_jobs.rollback_managed_start_authorization(
+                        job_id,
+                        session_id=session_id,
+                        command=command_tuple,
+                    )
+                with self._running_lock:
+                    self._running.pop(job_id, None)
+                    self._collecting.discard(job_id)
+                for reader in reader_group.threads if reader_group is not None else ():
+                    reader.join(timeout=5)
+                close_process = getattr(process, "close", None)
+                if close_process is not None:
+                    close_process()
+                raise
         return CargoRun(run_id, job_id, session_id, "running", process.pid, str(stdout_path), str(stderr_path))
 
     def status(self, job_id: str, *, session_id: str) -> dict[str, object]:
@@ -181,7 +316,10 @@ class CargoJobRunner:
         if row["session_id"] != session_id:
             raise CoordinatorError("cargo_job_owner_mismatch", f"Cargo job {job_id} belongs to another Session")
         if row["status"] == "running":
-            self.reconcile_terminal_runs(job_id=job_id)
+            with self._running_lock:
+                locally_collected = job_id in self._collecting
+            if not locally_collected:
+                self.reconcile_terminal_runs(job_id=job_id)
             with self.database.connect() as connection:
                 row = connection.execute(
                     "SELECT * FROM cargo_job_runs WHERE job_id=?", (job_id,)
@@ -214,7 +352,8 @@ class CargoJobRunner:
 
         with self.database.connect() as connection:
             rows = connection.execute(
-                """SELECT run.run_id, run.stdout_path, run.stderr_path,
+                """SELECT run.run_id, run.job_id, run.stdout_path, run.stderr_path,
+                          run.error_code AS run_error_code,
                           job.status AS job_status, job.exit_code, job.finished_at,
                           job.released_at, job.process_tree_live_pids_json
                    FROM cargo_job_runs AS run
@@ -238,28 +377,41 @@ class CargoJobRunner:
         reconciled: list[str] = []
         with self.database.transaction() as connection:
             for row in rows:
+                suspended_before_resume = (
+                    row["run_error_code"] == "cargo_run_suspended_before_resume"
+                )
                 job_status = str(row["job_status"])
-                if job_status == "orphaned":
+                if suspended_before_resume:
+                    projected_status = "launch_failed"
+                    error_code = "cargo_launch_interrupted_before_resume"
+                elif job_status == "orphaned":
+                    projected_status = "completed"
                     error_code = "cargo_run_reconciled_from_orphaned_job"
                 elif row["exit_code"] is None:
+                    projected_status = "completed"
                     error_code = "cargo_run_reconciled_from_released_job_missing_exit_code"
                 else:
+                    projected_status = "completed"
                     error_code = "cargo_run_reconciled_from_terminal_job"
-                updated = connection.execute(
-                    """UPDATE cargo_job_runs
-                       SET status='completed', exit_code=?, stdout_tail=?, stderr_tail=?,
-                           error_code=?,
-                           completed_at=?
-                       WHERE run_id=? AND status='running'""",
-                    (
-                        int(row["exit_code"]) if row["exit_code"] is not None else None,
-                        self._read_tail(Path(row["stdout_path"])),
-                        self._read_tail(Path(row["stderr_path"])),
-                        error_code,
-                        row["released_at"] or row["finished_at"] or completed_at,
-                        row["run_id"],
-                    ),
-                ).rowcount
+                with self._running_lock:
+                    if str(row["job_id"]) in self._collecting:
+                        continue
+                    updated = connection.execute(
+                        """UPDATE cargo_job_runs
+                           SET status=?, exit_code=?, stdout_tail=?, stderr_tail=?,
+                               error_code=?,
+                               completed_at=?
+                           WHERE run_id=? AND status='running'""",
+                        (
+                            projected_status,
+                            int(row["exit_code"]) if row["exit_code"] is not None else None,
+                            self._read_tail(Path(row["stdout_path"])),
+                            self._read_tail(Path(row["stderr_path"])),
+                            error_code,
+                            row["released_at"] or row["finished_at"] or completed_at,
+                            row["run_id"],
+                        ),
+                    ).rowcount
                 if updated:
                     reconciled.append(str(row["run_id"]))
         return tuple(reconciled)
@@ -270,36 +422,100 @@ class CargoJobRunner:
         job_id: str,
         session_id: str,
         process: subprocess.Popen,
+        process_job: int | None,
+        reader_group: _PipeReaderGroup | None,
         stdout_path: Path,
         stderr_path: Path,
     ) -> None:
-        exit_code = int(process.wait())
-        error_code: str | None = None
-        status = "completed"
         try:
-            # A wrapper can return before a Cargo child exits. Keep the runner,
-            # not the originating shell, responsible for the final transition.
-            finished = False
-            for _ in range(120):
-                try:
-                    if not finished:
-                        self.cargo_jobs.finish(job_id, session_id=session_id, exit_code=exit_code)
-                        finished = True
-                    self.cargo_jobs.release(job_id, session_id=session_id)
-                    break
-                except CoordinatorError as error:
-                    if error.code != "cargo_process_tree_alive":
-                        raise
-                    if not finished:
-                        self.cargo_jobs.heartbeat(job_id, session_id=session_id)
-                    time.sleep(1)
-            else:
+            job_tree_error: str | None = None
+            if process_job is not None:
+                deadline = time.monotonic() + 120.0
+                while process_job is not None:
+                    if reader_group is not None and reader_group.read_failed.is_set():
+                        try:
+                            self.terminate_process_job(process_job)
+                        except BaseException:
+                            job_tree_error = "cargo_process_job_termination_failed"
+                        finally:
+                            process_job = None
+                        break
+                    try:
+                        self.wait_process_job(process_job, timeout_seconds=0.1)
+                    except TimeoutError:
+                        if time.monotonic() >= deadline:
+                            job_tree_error = "cargo_process_tree_alive"
+                            close_process_job(process_job)
+                            process_job = None
+                    except OSError:
+                        job_tree_error = "cargo_process_job_wait_failed"
+                        close_process_job(process_job)
+                        process_job = None
+                    else:
+                        close_process_job(process_job)
+                        process_job = None
+            try:
+                exit_code = int(
+                    process.wait(timeout=10 if job_tree_error is not None else None)
+                )
+            except (subprocess.TimeoutExpired, TimeoutError):
+                exit_code = -1
+                job_tree_error = "cargo_process_root_termination_failed"
+            if process_job is not None:
+                # Defensive fallback for a future Job wait implementation that
+                # can return without consuming the handle.
+                if reader_group is not None and reader_group.read_failed.is_set():
+                    try:
+                        self.terminate_process_job(process_job)
+                    except BaseException:
+                        job_tree_error = "cargo_process_job_termination_failed"
+                    finally:
+                        process_job = None
+                else:
+                    close_process_job(process_job)
+                    process_job = None
+            for reader in reader_group.threads if reader_group is not None else ():
+                reader.join()
+            error_code: str | None = None
+            status = "completed"
+            if job_tree_error is not None:
                 status = "finish_blocked"
-                error_code = "cargo_process_tree_alive"
-        except CoordinatorError as error:
-            status = "finish_blocked"
-            error_code = error.code
-        finally:
+                error_code = job_tree_error
+            if reader_group is not None:
+                with reader_group.error_lock:
+                    reader_error_kinds = {kind for kind, _error in reader_group.errors}
+                if "read" in reader_error_kinds:
+                    status = "finish_blocked"
+                    error_code = "cargo_run_log_read_failed"
+                elif "write" in reader_error_kinds:
+                    status = "finish_blocked"
+                    error_code = "cargo_run_log_write_failed"
+            try:
+                # A wrapper can return before a Cargo child exits. Keep the runner,
+                # not the originating shell, responsible for the final transition.
+                finished = False
+                if job_tree_error is None:
+                    for _ in range(120):
+                        try:
+                            if not finished:
+                                self.cargo_jobs.finish(
+                                    job_id, session_id=session_id, exit_code=exit_code
+                                )
+                                finished = True
+                            self.cargo_jobs.release(job_id, session_id=session_id)
+                            break
+                        except CoordinatorError as error:
+                            if error.code != "cargo_process_tree_alive":
+                                raise
+                            if not finished:
+                                self.cargo_jobs.heartbeat(job_id, session_id=session_id)
+                            time.sleep(1)
+                    else:
+                        status = "finish_blocked"
+                        error_code = "cargo_process_tree_alive"
+            except CoordinatorError as error:
+                status = "finish_blocked"
+                error_code = error.code
             with self.database.transaction() as connection:
                 connection.execute(
                     """
@@ -318,8 +534,113 @@ class CargoJobRunner:
                         run_id,
                     ),
                 )
+        finally:
+            close_process_job(process_job)
+            close_process = getattr(process, "close", None)
+            if close_process is not None:
+                close_process()
+            self.cargo_jobs.unregister_managed_collector(job_id)
             with self._running_lock:
                 self._running.pop(job_id, None)
+                self._collecting.discard(job_id)
+
+    def _start_pipe_readers(
+        self,
+        process: subprocess.Popen,
+        *,
+        stdout_path: Path,
+        stderr_path: Path,
+    ) -> _PipeReaderGroup:
+        readers: list[threading.Thread] = []
+        ready_events: list[threading.Event] = []
+        reader_errors: list[tuple[str, BaseException]] = []
+        error_lock = threading.Lock()
+        read_failed = threading.Event()
+        for stream, path, label in (
+            (getattr(process, "stdout", None), stdout_path, "stdout"),
+            (getattr(process, "stderr", None), stderr_path, "stderr"),
+        ):
+            if stream is None:
+                raise CoordinatorError(
+                    "cargo_atomic_launch_pipe_missing",
+                    f"Atomic Cargo launch did not retain its {label} pipe",
+                )
+            ready = threading.Event()
+            reader = threading.Thread(
+                target=self._drain_stream,
+                args=(
+                    stream,
+                    path,
+                    ready,
+                    reader_errors,
+                    error_lock,
+                    read_failed,
+                ),
+                name=f"zircon-cargo-{label}",
+                daemon=True,
+            )
+            reader.start()
+            readers.append(reader)
+            ready_events.append(ready)
+        for ready in ready_events:
+            if not ready.wait(timeout=5):
+                raise CoordinatorError(
+                    "cargo_atomic_launch_pipe_reader_timeout",
+                    "Cargo log reader did not become ready before process resume",
+                )
+        return _PipeReaderGroup(
+            tuple(readers), reader_errors, error_lock, read_failed
+        )
+
+    @staticmethod
+    def _drain_stream(
+        stream: io.TextIOBase,
+        path: Path,
+        ready: threading.Event,
+        errors: list[tuple[str, BaseException]],
+        error_lock: threading.Lock,
+        read_failed: threading.Event,
+    ) -> None:
+        output: io.TextIOBase | None = None
+        try:
+            try:
+                output = path.open("w", encoding="utf-8", errors="replace")
+            except BaseException as error:
+                with error_lock:
+                    errors.append(("setup", error))
+                ready.set()
+                return
+            else:
+                ready.set()
+            while True:
+                try:
+                    chunk = stream.read(8192)
+                except BaseException as error:
+                    with error_lock:
+                        errors.append(("read", error))
+                    read_failed.set()
+                    return
+                if not chunk:
+                    return
+                if output is not None:
+                    try:
+                        output.write(chunk)
+                    except BaseException as error:
+                        with error_lock:
+                            errors.append(("write", error))
+                        try:
+                            output.close()
+                        except BaseException:
+                            pass
+                        output = None
+        finally:
+            ready.set()
+            if output is not None:
+                try:
+                    output.close()
+                except BaseException as error:
+                    with error_lock:
+                        errors.append(("write", error))
 
     @staticmethod
     def _read_tail(path: Path) -> str:

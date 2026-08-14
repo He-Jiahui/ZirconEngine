@@ -16,6 +16,11 @@ from typing import Callable, Iterator
 from .baselines import BaselineService, hash_file
 from .database import Database
 from .failures import WORKFLOW_NODE_ID
+from .git_index_lock import (
+    IndexLockRecovery,
+    IndexLockRecoveryRefused,
+    recover_stale_index_lock,
+)
 from .models import CoordinatorError, SessionStatus, parse_utc, utc_now, utc_text
 from .plans import PlanRepository
 from .sessions import SessionService
@@ -307,6 +312,7 @@ class GitFinalizeService:
         sessions: SessionService,
         plans: PlanRepository | None = None,
         failures: "FailureGraphService | None" = None,
+        index_lock_recoverer: Callable[[Path], IndexLockRecovery | None] | None = None,
     ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
@@ -314,6 +320,7 @@ class GitFinalizeService:
         self.sessions = sessions
         self.plans = plans or PlanRepository(self.repo_root)
         self.failures = failures
+        self.index_lock_recoverer = index_lock_recoverer or recover_stale_index_lock
 
     def preview(
         self,
@@ -441,6 +448,9 @@ class GitFinalizeService:
                         session_id, preview.paths, maintenance=maintenance
                     )
                     if maintenance:
+                        self._recover_index_lock(
+                            preview.request_id, session_id, index_path
+                        )
                         self._git("read-tree", self.baselines.current().head_commit)
                     else:
                         self._require_index_scope(preview.paths)
@@ -730,10 +740,32 @@ class GitFinalizeService:
                     "Local Session state cannot enter a managed commit",
                     details={"paths": list(local_session_state)},
                 )
-            self._require_attribution(session_id, normalized, maintenance=False)
+            coordinator_state_proof = tuple(
+                path for path in normalized if self._is_coordinator_state(path)
+            )
+            if coordinator_state_proof and (
+                not allow_proof_only_paths or precommit_guard is None
+            ):
+                raise CoordinatorError(
+                    "milestone_ignored_path_forbidden",
+                    "Coordinator state requires an immutable Failure closeout proof guard",
+                    details={"paths": list(coordinator_state_proof)},
+                )
+            committable_proof = tuple(
+                path for path in normalized if path not in coordinator_state_proof
+            )
+            differing_from_head = self._worktree_paths_differing_from_head(
+                committable_proof
+            )
+            material_paths = tuple(
+                path
+                for path in committable_proof
+                if path in differing_from_head
+            )
+            self._require_attribution(session_id, material_paths, maintenance=False)
             commit_paths = self._require_owned_scope(
                 session_id,
-                normalized,
+                committable_proof,
                 maintenance=False,
                 allow_proof_only_paths=allow_proof_only_paths,
             )
@@ -752,7 +784,7 @@ class GitFinalizeService:
             )
             self._require_plan_outputs(session, normalized, maintenance=False)
             acceptance_guard(session, normalized)
-            self._require_live_owned_leases(session_id, normalized)
+            self._require_live_owned_leases(session_id, commit_paths)
             self._require_no_pending_patches(session_id)
             with self.database.transaction() as connection:
                 connection.execute(
@@ -787,15 +819,16 @@ class GitFinalizeService:
                 # Build the commit tree from HEAD and this manifest only. The
                 # shared index is restored afterwards so another Session's
                 # staged work remains intact and cannot enter this commit.
+                self._recover_index_lock(request_id, session_id, index_path)
                 self._git("read-tree", expected_head)
                 self._git_add_partition(ordinary_paths, force_add_paths)
                 self._require_index_scope(commit_paths)
                 self._require_post_stage_attribution(
-                    session_id, normalized, maintenance=False
+                    session_id, commit_paths, maintenance=False
                 )
                 self._require_index_matches_worktree(commit_paths)
                 self._require_post_stage_attribution(
-                    session_id, normalized, maintenance=False
+                    session_id, commit_paths, maintenance=False
                 )
                 expected_blobs = self._staged_blobs(commit_paths)
                 self._require_no_staged_secrets()
@@ -810,7 +843,7 @@ class GitFinalizeService:
                 self._require_index_scope(commit_paths)
                 self._require_staged_attribution(expected_blobs, maintenance=False)
                 self._require_no_staged_secrets()
-                self._require_live_owned_leases(session_id, normalized)
+                self._require_live_owned_leases(session_id, commit_paths)
                 acceptance_guard(session, normalized)
                 if precommit_guard is not None:
                     precommit_guard()
@@ -2002,6 +2035,11 @@ class GitFinalizeService:
     def _is_local_session_state(path: str) -> bool:
         return path.replace("\\", "/").casefold().startswith(".codex/sessions/")
 
+    @staticmethod
+    def _is_coordinator_state(path: str) -> bool:
+        normalized = path.replace("\\", "/").casefold()
+        return normalized == ".codex/state" or normalized.startswith(".codex/state/")
+
     def _git_add_paths(self, paths: tuple[str, ...], *, force: bool = False) -> None:
         if not paths:
             return
@@ -2159,6 +2197,47 @@ class GitFinalizeService:
         value = self._git("rev-parse", "--git-path", "index")
         path = Path(value)
         return path if path.is_absolute() else self.repo_root / path
+
+    def _recover_index_lock(
+        self, request_id: str, session_id: str, index_path: Path
+    ) -> None:
+        lock_path = index_path.with_name(index_path.name + ".lock")
+        try:
+            recovery = self.index_lock_recoverer(lock_path)
+        except IndexLockRecoveryRefused as error:
+            details: dict[str, object] = {
+                "lock_path": self._display_git_path(lock_path),
+                "reason": error.reason,
+                **error.details,
+            }
+            if error.active_pids:
+                details["active_git_pids"] = list(error.active_pids)
+            raise CoordinatorError(
+                "finalize_index_lock_recovery_refused",
+                "Git index lock cannot be recovered safely",
+                details=details,
+            ) from error
+        if recovery is None:
+            return
+        payload: dict[str, object] = {
+            "request_id": request_id,
+            "lock_path": self._display_git_path(lock_path),
+            **recovery.to_event_payload(),
+        }
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO events(session_id, event_type, payload_json, created_at)
+                VALUES (?, 'git.index_lock_recovered', ?, ?)
+                """,
+                (session_id, json.dumps(payload, sort_keys=True), utc_text()),
+            )
+
+    def _display_git_path(self, path: Path) -> str:
+        try:
+            return path.resolve().relative_to(self.repo_root).as_posix()
+        except ValueError:
+            return str(path.resolve())
 
     @staticmethod
     def _restore_index(path: Path, existed: bool, content: bytes) -> None:

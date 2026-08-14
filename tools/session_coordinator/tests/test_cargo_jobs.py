@@ -5,8 +5,10 @@ import os
 import sqlite3
 import subprocess
 import tempfile
+import threading
 import time
 import unittest
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -23,7 +25,7 @@ from tools.session_coordinator.cargo_jobs import (
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
-from tools.session_coordinator.models import CoordinatorError, SessionStatus
+from tools.session_coordinator.models import CoordinatorError, SessionStatus, utc_text
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -101,6 +103,32 @@ class CargoJobTests(unittest.TestCase):
 
         self.assertEqual(CargoJobStatus.LEASED, first.status)
         self.assertEqual("cargo_lane_occupied", occupied.exception.code)
+
+    def test_failed_cleanup_blocks_overlapping_target_reacquire(self) -> None:
+        requested = self.target_root / "failed-cleanup"
+        prior = self.service.acquire(
+            "session-a", CargoLaneKind.CHECK, requested_target=requested
+        )
+        self.service.release(prior.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_jobs
+                SET cleanup_status='failed', cleanup_error='delete outcome unknown'
+                WHERE job_id=?
+                """,
+                (prior.job_id,),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.acquire(
+                "session-a",
+                CargoLaneKind.TEST,
+                requested_target=requested / "child",
+            )
+
+        self.assertEqual("cargo_lane_cleanup_failed", rejected.exception.code)
+        self.assertEqual(prior.job_id, rejected.exception.details["jobId"])
 
     def test_reconcile_scans_processes_outside_the_database_write_transaction(self) -> None:
         """A slow process-tree probe must not freeze unrelated coordinator writes."""
@@ -329,6 +357,602 @@ class CargoJobTests(unittest.TestCase):
             [tuple(row) for row in rows],
         )
 
+    def test_runner_reconciles_uncollected_cleanup_unproven_process(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        log_root = Path(self.temporary_directory.name) / "cleanup-unproven-run-logs"
+        run_root = log_root / job.job_id / "run-cleanup-unproven"
+        run_root.mkdir(parents=True)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=log_root,
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE cargo_jobs
+                   SET status='orphaned', process_tree_live_pids_json='[]'
+                   WHERE job_id=?""",
+                (job.job_id,),
+            )
+            connection.execute(
+                """INSERT INTO cargo_job_runs(
+                       run_id, job_id, session_id, command_json, environment_json, status,
+                       stdout_path, stderr_path, started_at
+                   ) VALUES ('run-cleanup-unproven', ?, 'session-a', '[]', '{}', 'running',
+                             ?, ?, '2026-07-16T11:00:00+00:00')""",
+                (
+                    job.job_id,
+                    str(run_root / "stdout.log"),
+                    str(run_root / "stderr.log"),
+                ),
+            )
+        with runner._running_lock:
+            runner._running[job.job_id] = object()
+
+        self.assertEqual(
+            ("run-cleanup-unproven",), runner.reconcile_terminal_runs(job_id=job.job_id)
+        )
+        self.assertEqual(
+            "completed", runner.status(job.job_id, session_id="session-a")["status"]
+        )
+
+    def test_runner_rechecks_collector_registration_before_projection(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "collector-race-run-logs",
+        )
+        reconcile_query_entered = threading.Event()
+        allow_reconcile_query = threading.Event()
+        release_entered = threading.Event()
+        allow_release = threading.Event()
+        original_connect = runner.database.connect
+        original_release = runner.cargo_jobs.release
+        reconciled: list[tuple[str, ...]] = []
+
+        @contextmanager
+        def blocked_reconcile_connect():
+            if threading.current_thread().name == "stale-reconcile":
+                reconcile_query_entered.set()
+                if not allow_reconcile_query.wait(timeout=5):
+                    self.fail("reconcile query was not released")
+            with original_connect() as connection:
+                yield connection
+
+        def delayed_release(*args, **kwargs):
+            release_entered.set()
+            if not allow_release.wait(timeout=5):
+                self.fail("runner did not allow the delayed release to complete")
+            return original_release(*args, **kwargs)
+
+        def reconcile() -> None:
+            reconciled.append(runner.reconcile_terminal_runs(job_id=job.job_id))
+
+        with patch.object(runner.database, "connect", new=blocked_reconcile_connect), patch.object(
+            runner.cargo_jobs, "release", side_effect=delayed_release
+        ):
+            reconcile_thread = threading.Thread(target=reconcile, name="stale-reconcile")
+            reconcile_thread.start()
+            self.assertTrue(reconcile_query_entered.wait(timeout=5))
+            runner.start(
+                session_id="session-a",
+                job_id=job.job_id,
+                command=(os.fspath(Path(os.sys.executable)), "-c", "raise SystemExit(0)"),
+            )
+            self.assertTrue(release_entered.wait(timeout=5))
+            allow_reconcile_query.set()
+            reconcile_thread.join(timeout=5)
+            self.assertFalse(reconcile_thread.is_alive())
+            projected_while_release_blocked = runner.status(
+                job.job_id, session_id="session-a"
+            )["status"]
+            allow_release.set()
+            deadline = datetime.now(UTC) + timedelta(seconds=5)
+            state = runner.status(job.job_id, session_id="session-a")
+            while state["status"] == "running" and datetime.now(UTC) < deadline:
+                time.sleep(0.02)
+                state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual([()], reconciled)
+        self.assertEqual("running", projected_while_release_blocked)
+        self.assertEqual("completed", state["status"])
+
+    def test_runner_registers_collector_before_running_state_is_visible(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "collector-registration-logs",
+        )
+        registration_entered = threading.Event()
+        allow_registration = threading.Event()
+        original_lock = runner._running_lock
+        start_result: list[object] = []
+        start_errors: list[BaseException] = []
+        maintenance_entered = threading.Event()
+        orphaned: list[object] = []
+        reconciled: list[tuple[str, ...]] = []
+
+        class RegistrationGate:
+            def __enter__(self):
+                if threading.current_thread().name == "gapped-start":
+                    registration_entered.set()
+                    if not allow_registration.wait(timeout=5):
+                        raise AssertionError("collector registration was not released")
+                return original_lock.__enter__()
+
+            def __exit__(self, *args):
+                return original_lock.__exit__(*args)
+
+        runner._running_lock = RegistrationGate()
+
+        def start() -> None:
+            try:
+                start_result.append(
+                    runner.start(
+                        session_id="session-a",
+                        job_id=job.job_id,
+                        command=(
+                            os.fspath(Path(os.sys.executable)),
+                            "-c",
+                            "raise SystemExit(0)",
+                        ),
+                    )
+                )
+            except BaseException as error:
+                start_errors.append(error)
+
+        def maintain() -> None:
+            maintenance_entered.set()
+            orphaned.extend(self.service.reconcile_orphans())
+            reconciled.append(runner.reconcile_terminal_runs(job_id=job.job_id))
+
+        start_thread = threading.Thread(target=start, name="gapped-start")
+        start_thread.start()
+        self.assertTrue(registration_entered.wait(timeout=5))
+        maintenance_thread = threading.Thread(target=maintain, name="start-maintenance")
+        maintenance_thread.start()
+        self.assertTrue(maintenance_entered.wait(timeout=5))
+        try:
+            time.sleep(0.2)
+            self.assertTrue(maintenance_thread.is_alive())
+        finally:
+            allow_registration.set()
+        start_thread.join(timeout=5)
+        maintenance_thread.join(timeout=5)
+        self.assertFalse(start_thread.is_alive())
+        self.assertFalse(maintenance_thread.is_alive())
+        self.assertEqual([], start_errors)
+        self.assertEqual(1, len(start_result))
+        deadline = datetime.now(UTC) + timedelta(seconds=5)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual([], orphaned)
+        self.assertEqual([()], reconciled)
+        self.assertEqual("completed", state["status"])
+
+    def test_runner_does_not_spawn_while_orphan_reconcile_owns_start_guard(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        reconcile_entered = threading.Event()
+        allow_reconcile = threading.Event()
+        popen_entered = threading.Event()
+        start_result: list[object] = []
+        start_errors: list[BaseException] = []
+        original_reconcile = self.service._reconcile_orphans
+
+        def blocked_reconcile(*args, **kwargs):
+            reconcile_entered.set()
+            if not allow_reconcile.wait(timeout=5):
+                raise AssertionError("orphan reconciliation was not released")
+            return original_reconcile(*args, **kwargs)
+
+        def observed_popen(*args, **kwargs):
+            popen_entered.set()
+            return subprocess.Popen(*args, **kwargs)
+
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "spawn-guard-run-logs",
+            popen=observed_popen,
+        )
+
+        def start() -> None:
+            try:
+                start_result.append(
+                    runner.start(
+                        session_id="session-a",
+                        job_id=job.job_id,
+                        command=(
+                            os.fspath(Path(os.sys.executable)),
+                            "-c",
+                            "import time; time.sleep(0.5)",
+                        ),
+                    )
+                )
+            except BaseException as error:
+                start_errors.append(error)
+
+        with patch.object(self.service, "_reconcile_orphans", side_effect=blocked_reconcile):
+            maintenance_thread = threading.Thread(
+                target=self.service.reconcile_orphans,
+                name="guarded-reconcile",
+            )
+            maintenance_thread.start()
+            self.assertTrue(reconcile_entered.wait(timeout=5))
+            start_thread = threading.Thread(target=start, name="guarded-start")
+            start_thread.start()
+            try:
+                time.sleep(0.2)
+                spawned_while_blocked = popen_entered.is_set()
+            finally:
+                allow_reconcile.set()
+            maintenance_thread.join(timeout=5)
+            start_thread.join(timeout=5)
+        self.assertFalse(spawned_while_blocked)
+        self.assertFalse(maintenance_thread.is_alive())
+        self.assertFalse(start_thread.is_alive())
+        self.assertEqual([], start_errors)
+        self.assertEqual(1, len(start_result))
+
+        deadline = datetime.now(UTC) + timedelta(seconds=5)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+        self.assertEqual("completed", state["status"])
+
+    def test_runner_rejects_non_executable_owner_before_spawn(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE sessions SET status=? WHERE session_id=?",
+                (SessionStatus.STALE.value, "session-a"),
+            )
+        process = unittest.mock.Mock()
+        process.pid = 4242
+        process.poll.return_value = None
+        spawn = unittest.mock.Mock(return_value=process)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "stale-owner-run-logs",
+            popen=spawn,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            runner.start(
+                session_id="session-a",
+                job_id=job.job_id,
+                command=("cargo", "test"),
+            )
+
+        self.assertEqual("cargo_session_not_executable", rejected.exception.code)
+        spawn.assert_not_called()
+        persisted = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.LEASED, persisted.status)
+        self.assertIsNone(persisted.pid)
+
+    def test_runner_rejects_reserved_command_mismatch_before_spawn(self) -> None:
+        compatibility = self.compatibility()
+        reservation = self.service.reserve_cpu(
+            "session-a",
+            compatibility=compatibility,
+            command=("cargo", "test", "--lib"),
+        )
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        self.assertIsNone(reservation["jobId"])
+        process = unittest.mock.Mock()
+        process.pid = 4242
+        process.poll.return_value = None
+        spawn = unittest.mock.Mock(return_value=process)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "command-mismatch-run-logs",
+            popen=spawn,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            runner.start(
+                session_id="session-a",
+                job_id=job.job_id,
+                command=("cargo", "test", "--workspace"),
+            )
+
+        self.assertEqual("cargo_cpu_reservation_command_mismatch", rejected.exception.code)
+        spawn.assert_not_called()
+        persisted = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.LEASED, persisted.status)
+        self.assertIsNone(persisted.pid)
+
+    def test_restart_reconciles_authorized_start_without_spawn_identity(self) -> None:
+        compatibility = self.compatibility()
+        command = ("cargo", "test", "--lib")
+        reservation = self.service.reserve_cpu(
+            "session-a", compatibility=compatibility, command=command
+        )
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+
+        authorized = self.service.authorize_managed_start(
+            job.job_id,
+            session_id="session-a",
+            command=command,
+        )
+        self.assertEqual(CargoJobStatus.RUNNING, authorized.status)
+        self.assertIsNone(authorized.pid)
+
+        successor = CargoJobService(
+            self.database,
+            self.policy,
+            repo_root=self.repo,
+            free_space=lambda _path: 200 * 1024**3,
+            process_alive=lambda _pid: False,
+        )
+        orphaned = successor.reconcile_orphans()
+        self.assertEqual((job.job_id,), tuple(item.job_id for item in orphaned))
+        self.assertEqual(CargoJobStatus.ORPHANED, successor.get(job.job_id).status)
+        with self.database.connect() as connection:
+            persisted_reservation = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+        self.assertEqual("expired", persisted_reservation["status"])
+
+    def test_atomic_runner_persists_pid_and_run_before_resuming_child(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        process = unittest.mock.Mock()
+        process.pid = 4242
+        process.stdout = unittest.mock.Mock()
+        process.stdout.read.return_value = ""
+        process.stderr = unittest.mock.Mock()
+        process.stderr.read.return_value = ""
+        released = threading.Event()
+
+        def wait(*_args, **_kwargs):
+            self.assertTrue(released.wait(timeout=5))
+            return 0
+
+        process.wait.side_effect = wait
+        process.poll.return_value = None
+        resume_observation: list[tuple[object, ...]] = []
+
+        def observe_resume(_process) -> None:
+            with self.database.connect() as connection:
+                persisted_job = connection.execute(
+                    "SELECT status, pid FROM cargo_jobs WHERE job_id=?",
+                    (job.job_id,),
+                ).fetchone()
+                run_count = connection.execute(
+                    "SELECT COUNT(*) FROM cargo_job_runs WHERE job_id=? AND status='running'",
+                    (job.job_id,),
+                ).fetchone()[0]
+            with runner._running_lock:
+                collecting = job.job_id in runner._collecting
+            resume_observation.append(
+                (persisted_job["status"], persisted_job["pid"], run_count, collecting)
+            )
+            released.set()
+
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "atomic-resume-run-logs",
+            atomic_popen=lambda *_args, **_kwargs: (process, 9001),
+            resume_process=observe_resume,
+            terminate_process_job=lambda _handle: None,
+            wait_process_job=lambda _handle, **_kwargs: None,
+        )
+        with patch(
+            "tools.session_coordinator.cargo_runner.popen_process_creation_time",
+            return_value="stable:4242",
+        ):
+            runner.start(
+                session_id="session-a",
+                job_id=job.job_id,
+                command=("cargo", "test"),
+            )
+
+        deadline = datetime.now(UTC) + timedelta(seconds=5)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+        self.assertEqual([("running", 4242, 1, True)], resume_observation)
+        self.assertEqual("completed", state["status"])
+
+    @unittest.skipUnless(os.name == "nt", "Atomic Cargo runner uses Windows Job Objects")
+    def test_atomic_windows_runner_resumes_captures_and_releases_job_tree(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "atomic-windows-run-logs",
+        )
+        run = runner.start(
+            session_id="session-a",
+            job_id=job.job_id,
+            command=(
+                os.fspath(Path(os.sys.executable)),
+                "-c",
+                "print('atomic cargo output')",
+            ),
+        )
+
+        deadline = datetime.now(UTC) + timedelta(seconds=10)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual("completed", state["status"])
+        self.assertEqual(0, state["exitCode"])
+        self.assertIn("atomic cargo output", state["stdoutTail"])
+        self.assertEqual(CargoJobStatus.RELEASED, self.service.get(job.job_id).status)
+        self.assertTrue(Path(run.stdout_path).is_file())
+
+    def test_restart_projects_unresumed_atomic_run_as_launch_failed(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        command = ("cargo", "test")
+        run_id = "atomic-unresumed-run"
+        run_root = Path(self.temporary_directory.name) / "unresumed-run"
+        run_root.mkdir()
+        self.service.authorize_managed_start(
+            job.job_id, session_id="session-a", command=command
+        )
+        self.service.register_authorized_managed_run(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=command,
+            run_id=run_id,
+            environment={},
+            stdout_path=run_root / "stdout.log",
+            stderr_path=run_root / "stderr.log",
+            started_at=utc_text(),
+            root_process_creation_time="stable:4242",
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_jobs
+                SET status='orphaned', finished_at=?,
+                    process_tree_live_pids_json='[]', process_tree_exited_at=?
+                WHERE job_id=?
+                """,
+                (utc_text(), utc_text(), job.job_id),
+            )
+        successor = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "unresumed-logs",
+        )
+
+        self.assertEqual((run_id,), successor.reconcile_terminal_runs())
+        state = successor.status(job.job_id, session_id="session-a")
+        self.assertEqual("launch_failed", state["status"])
+        self.assertEqual("cargo_launch_interrupted_before_resume", state["errorCode"])
+
+    def test_atomic_runner_never_resumes_when_log_reader_cannot_open(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        process = unittest.mock.Mock()
+        process.pid = 4242
+        process.stdout = unittest.mock.Mock()
+        process.stderr = unittest.mock.Mock()
+        process.poll.return_value = None
+        resumed = unittest.mock.Mock()
+        terminated: list[int | None] = []
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "reader-failure-logs",
+            atomic_popen=lambda *_args, **_kwargs: (process, 9001),
+            resume_process=resumed,
+            terminate_process_job=terminated.append,
+        )
+        with patch(
+            "tools.session_coordinator.cargo_runner.popen_process_creation_time",
+            return_value="stable:4242",
+        ), patch.object(Path, "open", side_effect=OSError("log open failed")):
+            with self.assertRaises(CoordinatorError) as rejected:
+                runner.start(
+                    session_id="session-a",
+                    job_id=job.job_id,
+                    command=("cargo", "test"),
+                )
+
+        self.assertEqual("cargo_atomic_launch_log_open_failed", rejected.exception.code)
+        resumed.assert_not_called()
+        self.assertEqual([9001], terminated)
+
+    def test_runner_durably_blocks_target_when_rejected_spawn_cannot_be_stopped(self) -> None:
+        job = self.service.acquire(
+            "session-a",
+            CargoLaneKind.TEST,
+            requested_target=self.target_root / "unproven-rejected-spawn",
+        )
+
+        class UnkillableProcess:
+            pid = 4242
+
+            @staticmethod
+            def poll():
+                return None
+
+            @staticmethod
+            def kill():
+                raise OSError("simulated kill failure")
+
+            @staticmethod
+            def wait(*, timeout=None):
+                raise TimeoutError(f"still alive after {timeout}")
+
+        self.service.process_tree_pids = lambda pid: (pid,)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "rejected-spawn-run-logs",
+            popen=lambda *_args, **_kwargs: UnkillableProcess(),
+        )
+        command = ("cargo", "test")
+        with patch.object(
+            self.service,
+            "register_authorized_managed_run",
+            side_effect=CoordinatorError("simulated_start_rejection", "rejected"),
+        ), self.assertRaises(CoordinatorError) as rejected:
+            runner.start(session_id="session-a", job_id=job.job_id, command=command)
+
+        self.assertEqual("cargo_launch_cleanup_unproven", rejected.exception.code)
+        persisted = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.RUNNING, persisted.status)
+        self.assertEqual(4242, persisted.pid)
+        self.assertEqual("stable:4242", persisted.root_process_creation_time)
+        self.assertEqual(command, persisted.command)
+        self.assertEqual(
+            (),
+            self.service.reconcile_orphans(now=datetime.now(UTC) + timedelta(minutes=6)),
+        )
+        successor = CargoJobService(
+            self.database,
+            self.policy,
+            repo_root=self.repo,
+            free_space=lambda _path: 200 * 1024**3,
+            process_alive=lambda pid: pid == 4242,
+            process_tree_pids=lambda pid: (pid,),
+            supervisor_cargo_pids=lambda pid: (pid,),
+            process_creation_time=lambda pid: f"stable:{pid}",
+        )
+        self.assertEqual(
+            (),
+            successor.reconcile_orphans(now=datetime.now(UTC) + timedelta(minutes=6)),
+        )
+        with self.assertRaises(CoordinatorError) as occupied:
+            successor.acquire(
+                "session-b",
+                CargoLaneKind.TEST,
+                requested_target=Path(job.target_dir),
+            )
+        self.assertEqual("cargo_lane_occupied", occupied.exception.code)
+
     def test_runner_releases_bound_cpu_reservation_after_owner_becomes_stale(self) -> None:
         compatibility = self.compatibility()
         command = (
@@ -349,13 +973,31 @@ class CargoJobTests(unittest.TestCase):
             log_root=Path(self.temporary_directory.name) / "bound-run-logs",
         )
 
-        runner.start(session_id="session-a", job_id=job.job_id, command=command)
-        self.sessions.set_status("session-a", SessionStatus.STALE)
-        deadline = datetime.now(UTC) + timedelta(seconds=5)
-        state = runner.status(job.job_id, session_id="session-a")
-        while state["status"] == "running" and datetime.now(UTC) < deadline:
-            time.sleep(0.02)
+        release_entered = threading.Event()
+        allow_release = threading.Event()
+        original_release = runner.cargo_jobs.release
+
+        def delayed_release(*args, **kwargs):
+            release_entered.set()
+            if not allow_release.wait(timeout=5):
+                self.fail("runner did not allow the delayed release to complete")
+            return original_release(*args, **kwargs)
+
+        with patch.object(runner.cargo_jobs, "release", side_effect=delayed_release):
+            runner.start(session_id="session-a", job_id=job.job_id, command=command)
+            self.sessions.set_status("session-a", SessionStatus.STALE)
+            self.assertTrue(release_entered.wait(timeout=5))
+            try:
+                self.assertEqual(
+                    "running", runner.status(job.job_id, session_id="session-a")["status"]
+                )
+            finally:
+                allow_release.set()
+            deadline = datetime.now(UTC) + timedelta(seconds=5)
             state = runner.status(job.job_id, session_id="session-a")
+            while state["status"] == "running" and datetime.now(UTC) < deadline:
+                time.sleep(0.02)
+                state = runner.status(job.job_id, session_id="session-a")
 
         self.assertEqual("completed", state["status"])
         self.assertEqual(CargoJobStatus.RELEASED, self.service.get(job.job_id).status)

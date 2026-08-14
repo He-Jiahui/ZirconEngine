@@ -376,18 +376,22 @@ class ReservedCargoStartService:
                     return False
                 registered_run = connection.execute(
                     """
-                    SELECT run_id FROM cargo_job_runs
+                    SELECT run_id, status, error_code FROM cargo_job_runs
                     WHERE job_id=? AND session_id=?
                     ORDER BY started_at DESC, run_id DESC LIMIT 1
                     """,
                     (row["job_id"], row["session_id"]),
                 ).fetchone()
                 job = connection.execute(
-                    "SELECT pid, started_at FROM cargo_jobs WHERE job_id=?", (row["job_id"],)
+                    "SELECT status, pid, started_at FROM cargo_jobs WHERE job_id=?",
+                    (row["job_id"],),
                 ).fetchone()
                 if (
                     recover_registered
                     and registered_run is not None
+                    and registered_run["status"] != "launch_failed"
+                    and registered_run["error_code"]
+                    != "cargo_run_suspended_before_resume"
                     and job is not None
                     and job["pid"] is not None
                     and job["started_at"] is not None
@@ -412,7 +416,22 @@ class ReservedCargoStartService:
                         },
                     )
                     return False
-                cleanup_unproven = code == "cargo_launch_cleanup_unproven"
+                interrupted_after_spawn_identity = (
+                    registered_run is None
+                    and job is not None
+                    and job["status"] == "running"
+                    and job["pid"] is not None
+                )
+                if interrupted_after_spawn_identity:
+                    code = "cargo_launch_interrupted_after_spawn_identity"
+                    message = (
+                        "Coordinator restarted after a Cargo process identity was registered "
+                        "but before its managed run projection was committed"
+                    )
+                cleanup_unproven = (
+                    code == "cargo_launch_cleanup_unproven"
+                    or interrupted_after_spawn_identity
+                )
                 if registered_run is not None and not cleanup_unproven:
                     connection.execute(
                         """

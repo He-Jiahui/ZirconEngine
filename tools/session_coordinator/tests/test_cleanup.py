@@ -73,6 +73,37 @@ class CleanupTests(unittest.TestCase):
             ),
         )
 
+    def cleanup_events(self, event_type: str) -> list[dict[str, object]]:
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                "SELECT payload_json FROM events WHERE event_type=? ORDER BY event_id",
+                (event_type,),
+            ).fetchall()
+        return [json.loads(row["payload_json"]) for row in rows]
+
+    def assert_deletion_evidence(
+        self,
+        event_type: str,
+        *,
+        trigger: str,
+        target_dir: str,
+        owner_job_id: str,
+        result: str = "deleted",
+    ) -> None:
+        payload = self.cleanup_events(event_type)[-1]
+        self.assertEqual(trigger, payload["trigger"])
+        self.assertEqual(target_dir, payload["target_dir"])
+        self.assertEqual(owner_job_id, payload["owner_job_id"])
+        self.assertEqual(result, payload["result"])
+        self.assertEqual(target_dir.replace("/", "\\").casefold(), payload["target_key"])
+        self.assertRegex(str(payload["deletion_id"]), r"^[0-9a-f]{32}$")
+        self.assertEqual(owner_job_id, payload["before"]["owner_job_id"])
+        self.assertIsInstance(payload["before"]["target_exists"], bool)
+        self.assertIn("job_status", payload["before"])
+        self.assertIn("process_alive", payload["before"])
+        self.assertIsInstance(payload["executor"]["process_id"], int)
+        self.assertTrue(payload["executor"]["thread_name"])
+
     def test_active_pid_and_lease_are_never_cleanup_candidates(self) -> None:
         job = self.acquire_reusable(CargoLaneKind.TEST)
         (Path(job.target_dir) / "artifact").write_text("live", encoding="utf-8")
@@ -109,6 +140,12 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual((job.target_dir,), result.deleted)
         self.assertFalse(Path(job.target_dir).exists())
         self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+        self.assert_deletion_evidence(
+            "cleanup.target_deletion_completed",
+            trigger="prompt_cleanup",
+            target_dir=job.target_dir,
+            owner_job_id=job.job_id,
+        )
 
     def test_superseded_ephemeral_record_never_deletes_a_retained_pool(self) -> None:
         ephemeral = self.jobs.acquire(
@@ -190,12 +227,50 @@ class CleanupTests(unittest.TestCase):
             failed = self.cleanup.cleanup_job_now(job.job_id)
         self.assertEqual("failed", self.jobs.get(job.job_id).cleanup_status.value)
         self.assertTrue(failed.denied)
+        self.assert_deletion_evidence(
+            "cleanup.target_deletion_completed",
+            trigger="prompt_cleanup",
+            target_dir=job.target_dir,
+            owner_job_id=job.job_id,
+            result="failed",
+        )
 
         with patch("tools.session_coordinator.cleanup.shutil.rmtree", side_effect=original):
             retried = self.cleanup.retry_pending_jobs()
 
         self.assertEqual((job.job_id,), retried)
         self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
+    def test_prompt_cleanup_keeps_reservation_on_unexpected_delete_error(self) -> None:
+        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=RuntimeError("unexpected prompt failure"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unexpected prompt failure"):
+                self.cleanup.cleanup_job_now(job.job_id)
+
+        self.assert_unknown_delete_failure(job.target_dir, job.job_id)
+
+    def test_missing_ephemeral_target_is_observed_without_claiming_a_deletion(self) -> None:
+        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        __import__("shutil").rmtree(job.target_dir)
+
+        result = self.cleanup.cleanup_job_now(job.job_id)
+
+        self.assertEqual((), result.deleted)
+        self.assert_deletion_evidence(
+            "cleanup.target_deletion_completed",
+            trigger="prompt_cleanup",
+            target_dir=job.target_dir,
+            owner_job_id=job.job_id,
+            result="already_missing",
+        )
+        payload = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertFalse(payload["before"]["target_exists"])
 
     def test_async_cleanup_drains_release_requested_during_running_pass(self) -> None:
         first_pass_entered = threading.Event()
@@ -289,6 +364,12 @@ class CleanupTests(unittest.TestCase):
         self.assertFalse(Path(oldest.target_dir).exists())
         self.assertTrue(Path(newest.target_dir).exists())
         self.assertEqual("deleted", self.jobs.get(oldest.job_id).cleanup_status.value)
+        self.assert_deletion_evidence(
+            "cleanup.target_deletion_completed",
+            trigger="pressure_eviction",
+            target_dir=oldest.target_dir,
+            owner_job_id=oldest.job_id,
+        )
 
     def test_pressure_eviction_never_deletes_an_active_pool(self) -> None:
         active = self.acquire_reusable(CargoLaneKind.TEST)
@@ -299,6 +380,166 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual((), result.deleted)
         self.assertTrue(Path(active.target_dir).exists())
         self.assertTrue(any(item.code == "active_lease" for item in result.denied))
+
+    def test_pressure_cleanup_keeps_reservation_on_unexpected_delete_error(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        self.cleanup.free_space = lambda _path: 40 * 1024**3
+
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=RuntimeError("unexpected pressure failure"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unexpected pressure failure"):
+                self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assert_unknown_delete_failure(job.target_dir, job.job_id)
+
+    def test_failed_reusable_cleanup_blocks_reuse_until_retry_succeeds(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        self.cleanup.free_space = lambda _path: 40 * 1024**3
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=OSError("locked reusable pool"),
+        ):
+            failed = self.cleanup.evict_idle_pools_under_pressure()
+        self.assertTrue(failed.denied)
+        self.assertEqual("failed", self.jobs.get(job.job_id).cleanup_status.value)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.jobs.acquire(
+                "session-a",
+                CargoLaneKind.TEST,
+                requested_target=Path(job.target_dir) / "child",
+            )
+        self.assertEqual("cargo_lane_cleanup_failed", rejected.exception.code)
+
+        retried = self.cleanup.retry_pending_jobs()
+
+        self.assertEqual((job.job_id,), retried)
+        self.assertFalse(Path(job.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+        replacement = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.TEST,
+            requested_target=Path(job.target_dir) / "child",
+        )
+        self.assertEqual("leased", replacement.status.value)
+        completed = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertEqual("retry_failed_cleanup", completed["trigger"])
+        self.assertEqual("deleted", completed["result"])
+
+    def test_failed_cleanup_retry_accepts_succeeded_unreleased_pool(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET status='succeeded', released_at=NULL WHERE job_id=?",
+                (job.job_id,),
+            )
+        self.cleanup.free_space = lambda _path: 40 * 1024**3
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=OSError("locked succeeded pool"),
+        ):
+            failed = self.cleanup.evict_idle_pools_under_pressure()
+        self.assertTrue(failed.denied)
+        self.assertEqual("failed", self.jobs.get(job.job_id).cleanup_status.value)
+
+        retried = self.cleanup.retry_pending_jobs()
+
+        self.assertEqual((job.job_id,), retried)
+        self.assertFalse(Path(job.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
+    def test_successful_retry_settles_mixed_exact_target_history_once(self) -> None:
+        pending = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "mixed-history",
+        )
+        self.jobs.release(pending.job_id, session_id="session-a")
+        failed = self.acquire_reusable(
+            CargoLaneKind.TEST,
+            requested_target=Path(pending.target_dir),
+        )
+        self.jobs.release(failed.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_jobs SET cleanup_status='failed', cleanup_error='unknown'
+                WHERE job_id=?
+                """,
+                (failed.job_id,),
+            )
+
+        retried = self.cleanup.retry_pending_jobs()
+
+        self.assertEqual((pending.job_id,), retried)
+        self.assertFalse(Path(pending.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(pending.job_id).cleanup_status.value)
+        self.assertEqual("deleted", self.jobs.get(failed.job_id).cleanup_status.value)
+        replacement = self.jobs.acquire(
+            "session-a",
+            CargoLaneKind.TEST,
+            requested_target=Path(pending.target_dir) / "child",
+        )
+        self.assertEqual("leased", replacement.status.value)
+
+    def test_pressure_eviction_revalidates_acquire_to_start_window(self) -> None:
+        idle = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "acquire-window",
+        )
+        self.jobs.release(idle.job_id, session_id="session-a")
+        free_space_calls = 0
+        acquired = None
+
+        def free_space(_root: Path) -> int:
+            nonlocal free_space_calls, acquired
+            free_space_calls += 1
+            if free_space_calls == 1:
+                acquired = self.acquire_reusable(
+                    CargoLaneKind.TEST,
+                    build_config="profile=test;features=concurrent-acquire",
+                    requested_target=Path(idle.target_dir) / "child",
+                )
+            return 40 * 1024**3
+
+        self.cleanup.free_space = free_space
+
+        result = self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assertIsNotNone(acquired)
+        self.assertEqual((), result.deleted)
+        self.assertTrue(Path(idle.target_dir).exists())
+        self.assertTrue(any(item.code == "active_lease" for item in result.denied))
+
+    def test_pressure_eviction_never_deletes_running_overlapping_pool(self) -> None:
+        idle = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            requested_target=self.target_root / "running-window",
+        )
+        self.jobs.release(idle.job_id, session_id="session-a")
+        running = self.acquire_reusable(
+            CargoLaneKind.TEST,
+            build_config="profile=test;features=concurrent-running",
+            requested_target=Path(idle.target_dir) / "child",
+        )
+        self.jobs.start(
+            running.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["cargo", "test"],
+        )
+        self.cleanup.free_space = lambda _path: 40 * 1024**3
+
+        result = self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assertEqual((), result.deleted)
+        self.assertTrue(Path(idle.target_dir).exists())
+        self.assertTrue(any(item.code == "active_process" for item in result.denied))
 
     def test_pressure_eviction_never_deletes_pool_with_live_recorded_process(self) -> None:
         released = self.acquire_reusable(CargoLaneKind.TEST)
@@ -383,6 +624,133 @@ class CleanupTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(0, remaining)
 
+    def test_service_restart_preserves_artifact_cleanup_reservation(self) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cleanup_reservations(
+                       target_key, target_dir, reserved_at, reservation_kind,
+                       filesystem_identity
+                   ) VALUES (?, ?, datetime('now'), 'artifact', 'identity')""",
+                ("artifact-target", str(self.target_root / "artifact-target")),
+            )
+
+        self.assertEqual(0, self.cleanup.recover_reservations())
+
+        with self.database.connect() as connection:
+            remaining = connection.execute(
+                """SELECT COUNT(*) FROM cleanup_reservations
+                   WHERE reservation_kind='artifact'"""
+            ).fetchone()[0]
+        self.assertEqual(1, remaining)
+
+    def test_service_restart_finishes_interrupted_deletion_evidence(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        deletion_id = "a" * 32
+        payload = {
+            "deletion_id": deletion_id,
+            "trigger": "pressure_eviction",
+            "target_key": job.target_dir.replace("/", "\\").casefold(),
+            "target_dir": job.target_dir,
+            "owner_job_id": job.job_id,
+            "owner_session_id": "session-a",
+            "before": {
+                "owner_job_id": job.job_id,
+                "job_status": "released",
+                "cleanup_status": "retained",
+                "pid": None,
+                "process_alive": False,
+                "overlapping_jobs": [],
+            },
+            "executor": {"process_id": 10, "thread_name": "cleanup-worker"},
+            "result": "reserved",
+            "error": None,
+        }
+        with self.database.transaction() as connection:
+            connection.execute(
+                "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
+                (payload["target_key"], job.target_dir, utc_text()),
+            )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "cleanup.target_deletion_started",
+                    json.dumps(payload, sort_keys=True),
+                    utc_text(),
+                ),
+            )
+        self.assertEqual(1, self.cleanup.recover_reservations())
+
+        completed = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertEqual(deletion_id, completed["deletion_id"])
+        self.assertEqual("deleted_after_restart", completed["result"])
+        self.assertTrue(completed["recovered"])
+        self.assertFalse(Path(job.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
+    def test_service_restart_keeps_reservation_when_interrupted_deletion_fails(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        deletion_id = "b" * 32
+        payload = {
+            "deletion_id": deletion_id,
+            "trigger": "pressure_eviction",
+            "target_key": job.target_dir.replace("/", "\\").casefold(),
+            "target_dir": job.target_dir,
+            "owner_job_id": job.job_id,
+            "owner_session_id": "session-a",
+            "before": {
+                "owner_job_id": job.job_id,
+                "target_exists": True,
+                "job_status": "released",
+                "cleanup_status": "retained",
+                "pid": None,
+                "process_alive": False,
+                "overlapping_jobs": [],
+            },
+            "executor": {"process_id": 10, "thread_name": "cleanup-worker"},
+            "result": "reserved",
+            "error": None,
+        }
+        with self.database.transaction() as connection:
+            connection.execute(
+                "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
+                (payload["target_key"], job.target_dir, utc_text()),
+            )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "cleanup.target_deletion_started",
+                    json.dumps(payload, sort_keys=True),
+                    utc_text(),
+                ),
+            )
+
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=OSError("locked during recovery"),
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.cleanup.recover_reservations()
+
+        self.assertEqual("cleanup_recovery_failed", rejected.exception.code)
+        with self.database.connect() as connection:
+            remaining = connection.execute(
+                "SELECT COUNT(*) FROM cleanup_reservations WHERE target_key=?",
+                (payload["target_key"],),
+            ).fetchone()[0]
+        self.assertEqual(1, remaining)
+        self.assertEqual("failed", self.jobs.get(job.job_id).cleanup_status.value)
+        completed = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertEqual("failed_after_restart", completed["result"])
+
+        self.assertEqual(1, self.cleanup.recover_reservations())
+        self.assertFalse(Path(job.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+        completed = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertEqual(deletion_id, completed["deletion_id"])
+        self.assertEqual("deleted_after_restart", completed["result"])
+
     def test_persisted_plan_still_refuses_untracked_managed_directory(self) -> None:
         untracked = self.target_root / "untracked"
         untracked.mkdir(parents=True)
@@ -463,6 +831,46 @@ class CleanupTests(unittest.TestCase):
             applied = self.cleanup.apply(reviewed, now=cleanup_time)
 
         self.assertEqual((job.target_dir,), applied.deleted)
+        self.assert_deletion_evidence(
+            "cleanup.target_deletion_completed",
+            trigger="explicit_plan",
+            target_dir=job.target_dir,
+            owner_job_id=job.job_id,
+        )
+
+    def test_explicit_cleanup_keeps_reservation_on_unexpected_delete_error(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        cleanup_time = datetime.now(UTC) + timedelta(days=2)
+        plan = self.cleanup.plan(now=cleanup_time, older_than_hours=1)
+
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=RuntimeError("unexpected explicit failure"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unexpected explicit failure"):
+                self.cleanup.apply(plan, now=cleanup_time)
+
+        self.assert_unknown_delete_failure(job.target_dir, job.job_id)
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM cleanup_plans WHERE plan_id=?",
+                (plan.plan_id,),
+            ).fetchone()[0]
+        self.assertEqual("applying", status)
+
+    def assert_unknown_delete_failure(self, target_dir: str, job_id: str) -> None:
+        self.assertTrue(Path(target_dir).exists())
+        self.assertEqual("failed", self.jobs.get(job_id).cleanup_status.value)
+        completed = self.cleanup_events("cleanup.target_deletion_completed")[-1]
+        self.assertEqual("failed", completed["result"])
+        self.assertIn("unexpected", completed["error"])
+        with self.database.connect() as connection:
+            reservations = connection.execute(
+                "SELECT COUNT(*) FROM cleanup_reservations WHERE target_dir=?",
+                (target_dir,),
+            ).fetchone()[0]
+        self.assertEqual(1, reservations)
 
 
 if __name__ == "__main__":

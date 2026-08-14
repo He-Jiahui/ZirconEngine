@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-import os
 import shutil
 import subprocess
 import tarfile
@@ -15,9 +14,26 @@ from pathlib import Path
 from typing import Callable, ContextManager, Mapping
 
 from .baselines import hash_file
+from .benchmark_validation_grants import (
+    benchmark_child_environment,
+    benchmark_run_environment,
+    require_benchmark_launch_grant,
+)
+from .cargo_jobs import overlapping_cleanup_reservation, target_identity
 from .database import Database
 from .models import CoordinatorError, utc_text
-from .processes import process_is_alive
+from .processes import (
+    confirm_kill_on_close_job_terminated,
+    popen_process_creation_time,
+    process_is_alive,
+    terminate_process_tree,
+)
+from .windows_job_process import (
+    close_process_job,
+    create_atomic_kill_on_close_process,
+    resume_popen_process,
+    terminate_and_close_process_job,
+)
 from .validation_copies import CargoInputClosurePlanner, ExternalGitSource
 from .workspace_copy_terminal import (
     ValidationCopyTerminalLifecycle,
@@ -25,8 +41,6 @@ from .workspace_copy_terminal import (
 )
 
 _ARCHIVE_PATH_ARGUMENT_LIMIT = 512
-
-
 def _is_managed_validation_root(root: Path) -> bool:
     return root.name.casefold() == "cargo-targets" and root.parent == Path(root.anchor)
 
@@ -108,6 +122,7 @@ class WorkspaceCopyService:
         self._running_lock = threading.Lock()
         self._active_run_jobs: set[str] = set()
         self._running_processes: dict[str, subprocess.Popen[str]] = {}
+        self._running_process_jobs: dict[str, int] = {}
         self._materialization_lock = threading.Lock()
         self._active_materialization_jobs: set[str] = set()
         self._materialization_worker_id = uuid.uuid4().hex
@@ -137,8 +152,18 @@ class WorkspaceCopyService:
 
     def _release_local_run(self, job_id: str) -> None:
         with self._running_lock:
-            self._running_processes.pop(job_id, None)
+            process = self._running_processes.pop(job_id, None)
+            job_handle = self._running_process_jobs.pop(job_id, None)
             self._active_run_jobs.discard(job_id)
+        close_process_job(job_handle)
+        close_process = getattr(process, "close", None)
+        if close_process is not None:
+            close_process()
+
+    def _terminate_running_process_job(self, job_id: str) -> None:
+        with self._running_lock:
+            job_handle = self._running_process_jobs.pop(job_id, None)
+        terminate_and_close_process_job(job_handle)
 
     def _reserve_local_materialization(self, job_id: str) -> bool:
         with self._materialization_lock:
@@ -262,6 +287,7 @@ class WorkspaceCopyService:
         external_payloads = tuple(source.to_payload() for source in pinned_sources)
         head_commit = self._git_text("rev-parse", "HEAD")
         with self.database.transaction() as connection:
+            self._require_cleanup_available(connection, job_root)
             connection.execute(
                 """
                 INSERT INTO validation_copies(
@@ -678,6 +704,7 @@ class WorkspaceCopyService:
         source_root = job_root / "source"
         target_root = job_root / "target"
         with self.database.transaction() as connection:
+            self._require_cleanup_available(connection, job_root)
             connection.execute(
                 """
                 INSERT INTO validation_copies(
@@ -707,6 +734,18 @@ class WorkspaceCopyService:
             (),
             "materializing",
             materialization_phase="accepted",
+        )
+
+    def _require_cleanup_available(self, connection, job_root: Path) -> None:
+        reservation = overlapping_cleanup_reservation(
+            connection, target_identity(job_root)
+        )
+        if reservation is None:
+            return
+        raise CoordinatorError(
+            "validation_copy_cleanup_reserved",
+            "Validation copy overlaps a target with deletion already in progress",
+            details={"reservedTarget": str(reservation["target_dir"])},
         )
 
     def _spawn_cargo_materialization_worker(self, job_id: str, *, metadata_runner=None) -> None:
@@ -874,6 +913,7 @@ class WorkspaceCopyService:
         head_commit = self._git_text("rev-parse", "HEAD")
         gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
         with gate, self.database.transaction() as connection:
+            self._require_cleanup_available(connection, job_root)
             cursor = connection.execute(
                 """
                 UPDATE validation_copies
@@ -1012,8 +1052,7 @@ class WorkspaceCopyService:
                     "validation_copy_path_not_managed",
                     "Validation-copy run roots escaped the job root",
                 )
-            environment = os.environ.copy()
-            environment["CARGO_TARGET_DIR"] = str(target_root)
+            environment = benchmark_child_environment(target_root)
             process = subprocess.Popen(
                 command_tuple,
                 cwd=source_root,
@@ -1029,7 +1068,8 @@ class WorkspaceCopyService:
                 self._running_processes[job_id] = process
             with self.database.transaction() as connection:
                 cursor = connection.execute(
-                    "UPDATE validation_copies SET run_pid = ? WHERE job_id = ? AND status = 'running'",
+                    """UPDATE validation_copies SET run_pid = ?
+                       WHERE job_id = ? AND status = 'running'""",
                     (process.pid, job_id),
                 )
                 if cursor.rowcount != 1:
@@ -1037,7 +1077,9 @@ class WorkspaceCopyService:
                         "validation_copy_terminal_state_changed",
                         "Validation copy changed state while registering its process",
                     )
-            exit_code, stdout, stderr = self._terminal.collect(process)
+            exit_code, stdout, stderr = self._terminal.collect(
+                process,
+            )
             evidence = self._terminal.persist(
                 run_id=run_id,
                 job_id=job_id,
@@ -1087,6 +1129,8 @@ class WorkspaceCopyService:
         *,
         command: tuple[str, ...] | list[str],
         run_id: str | None = None,
+        benchmark_grant_id: str | None = None,
+        environment: Mapping[str, str] | None = None,
     ) -> dict[str, object]:
         """Launch a managed validation and return after the process is registered."""
         command_tuple = tuple(str(part) for part in command if str(part))
@@ -1094,6 +1138,7 @@ class WorkspaceCopyService:
             raise CoordinatorError(
                 "validation_copy_command_empty", "Validation command cannot be empty"
             )
+        run_id = run_id or uuid.uuid4().hex
         self._reserve_local_run(job_id)
         try:
             with self.database.transaction() as connection:
@@ -1104,11 +1149,37 @@ class WorkspaceCopyService:
                     raise CoordinatorError(
                         "validation_copy_not_found", f"Unknown validation-copy job: {job_id}"
                     )
-                if row["session_id"] != session_id:
-                    raise CoordinatorError(
-                        "validation_copy_foreign_session",
-                        "Validation copy belongs to another Session",
+                environment_values = benchmark_run_environment(
+                    environment, input_manifest_hash=row["input_manifest_hash"]
+                )
+                if benchmark_grant_id is None:
+                    if row["session_id"] != session_id:
+                        raise CoordinatorError(
+                            "validation_copy_foreign_session",
+                            "Validation copy belongs to another Session",
+                        )
+                    if environment is not None:
+                        raise CoordinatorError(
+                            "validation_copy_benchmark_grant_required",
+                            "Benchmark child identity requires a Coordinator-issued grant",
+                        )
+                else:
+                    require_benchmark_launch_grant(
+                        connection,
+                        grant_id=benchmark_grant_id,
+                        session_id=session_id,
+                        job_id=job_id,
+                        copy_row=row,
+                        command=command_tuple,
+                        environment=environment_values,
+                        validation_run_id=run_id,
+                        required_copy_status="materialized",
                     )
+                expected_input_manifest_hash = (
+                    str(row["input_manifest_hash"])
+                    if benchmark_grant_id is not None
+                    else None
+                )
                 cursor = connection.execute(
                     """UPDATE validation_copies SET status = 'running', run_pid = NULL
                        WHERE job_id = ? AND status = 'materialized'""",
@@ -1122,9 +1193,15 @@ class WorkspaceCopyService:
         except BaseException:
             self._release_local_run(job_id)
             raise
-        run_id = run_id or uuid.uuid4().hex
         started_at = utc_text()
         process: subprocess.Popen[str] | None = None
+        root_process_creation_time: str | None = None
+        process_job: int | None = None
+        process_job_registered = False
+        collector_decision = threading.Event()
+        collector_authorized = threading.Event()
+        collector_thread: threading.Thread | None = None
+        collector_started = False
         try:
             source_root = Path(row["source_root"]).resolve()
             target_root = Path(row["target_root"]).resolve()
@@ -1135,21 +1212,83 @@ class WorkspaceCopyService:
                     "validation_copy_path_not_managed",
                     "Validation-copy run roots escaped the job root",
                 )
-            environment = os.environ.copy()
-            environment["CARGO_TARGET_DIR"] = str(target_root)
-            process = subprocess.Popen(
-                command_tuple,
-                cwd=source_root,
-                env=environment,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
+            child_environment = benchmark_child_environment(
+                target_root, benchmark_environment=environment_values
             )
+            if expected_input_manifest_hash is not None:
+                current_input_manifest_hash = self._input_manifest_hash_for_roots(
+                    job_root, target_root
+                )
+                if current_input_manifest_hash != expected_input_manifest_hash:
+                    raise CoordinatorError(
+                        "validation_copy_benchmark_manifest_stale",
+                        "Materialized benchmark copy changed after its immutable identity was recorded",
+                    )
+            if benchmark_grant_id is not None:
+                process, process_job = create_atomic_kill_on_close_process(
+                    command_tuple,
+                    cwd=source_root,
+                    env=child_environment,
+                )
+                root_process_creation_time = popen_process_creation_time(process)
+                if not root_process_creation_time or root_process_creation_time == "unknown":
+                    raise CoordinatorError(
+                        "validation_copy_benchmark_process_identity_unavailable",
+                        "Benchmark root process creation time could not be recorded",
+                    )
+            else:
+                process = subprocess.Popen(
+                    command_tuple,
+                    cwd=source_root,
+                    env=child_environment,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
             with self._running_lock:
                 self._running_processes[job_id] = process
+                if process_job is not None:
+                    self._running_process_jobs[job_id] = process_job
+                    process_job_registered = True
+
+            def finish_after_launch_decision() -> None:
+                collector_decision.wait()
+                if collector_authorized.is_set():
+                    self._finish_started_run(
+                        session_id,
+                        job_id,
+                        run_id,
+                        command_tuple,
+                        started_at,
+                        process,
+                        benchmark_grant_id is not None,
+                    )
+
+            collector_thread = threading.Thread(
+                target=finish_after_launch_decision,
+                name=f"zircon-validation-{job_id[:12]}",
+                daemon=True,
+            )
+            collector_thread.start()
+            collector_started = True
             with self.database.transaction() as connection:
+                registered_copy = connection.execute(
+                    "SELECT * FROM validation_copies WHERE job_id=?", (job_id,)
+                ).fetchone()
+                if benchmark_grant_id is not None:
+                    require_benchmark_launch_grant(
+                        connection,
+                        grant_id=benchmark_grant_id,
+                        session_id=session_id,
+                        job_id=job_id,
+                        copy_row=registered_copy,
+                        command=command_tuple,
+                        environment=environment_values,
+                        validation_run_id=run_id,
+                        required_copy_status="running",
+                    )
                 cursor = connection.execute(
                     "UPDATE validation_copies SET run_pid = ? WHERE job_id = ? AND status = 'running'",
                     (process.pid, job_id),
@@ -1159,37 +1298,179 @@ class WorkspaceCopyService:
                         "validation_copy_terminal_state_changed",
                         "Validation copy changed state while registering its process",
                     )
-            threading.Thread(
-                target=self._finish_started_run,
-                args=(session_id, job_id, run_id, command_tuple, started_at, process),
-                name=f"zircon-validation-{job_id[:12]}",
-                daemon=True,
-            ).start()
-        except BaseException:
-            if process is not None and process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
-            try:
-                with self.database.transaction() as connection:
-                    cursor = connection.execute(
-                        "UPDATE validation_copies SET status = 'materialized', run_pid = NULL "
-                        "WHERE job_id = ? AND status = 'running'",
-                        (job_id,),
+                if benchmark_grant_id is not None:
+                    binding_cursor = connection.execute(
+                        """UPDATE workflow_validation_bindings
+                           SET root_pid=?, root_process_creation_time=?
+                           WHERE validation_run_id=? AND benchmark_grant_id=?
+                             AND job_id=? AND session_id=? AND root_pid IS NULL
+                             AND root_process_creation_time IS NULL""",
+                        (
+                            process.pid,
+                            root_process_creation_time,
+                            run_id,
+                            benchmark_grant_id,
+                            job_id,
+                            session_id,
+                        ),
                     )
-                    if cursor.rowcount != 1:
+                    if binding_cursor.rowcount != 1:
                         raise CoordinatorError(
-                            "validation_copy_terminal_state_changed",
-                            "Validation copy changed state while rolling back its launch",
+                            "validation_copy_benchmark_binding_changed",
+                            "Benchmark workflow binding changed while registering its process",
                         )
+                    grant_cursor = connection.execute(
+                        """UPDATE benchmark_validation_grants
+                           SET status='consumed', consumed_at=?, validation_run_id=?,
+                               root_pid=?, root_process_creation_time=?, job_isolated=?
+                           WHERE grant_id=? AND status='launching'
+                             AND job_id=? AND target_session_id=?""",
+                        (
+                            utc_text(),
+                            run_id,
+                            process.pid,
+                            root_process_creation_time,
+                            1 if process_job is not None else 0,
+                            benchmark_grant_id,
+                            job_id,
+                            session_id,
+                        ),
+                    )
+                    if grant_cursor.rowcount != 1:
+                        raise CoordinatorError(
+                            "validation_copy_benchmark_grant_changed",
+                            "Benchmark grant changed while registering its process",
+                        )
+            if benchmark_grant_id is not None:
+                resume_popen_process(process)
+            collector_authorized.set()
+            collector_decision.set()
+        except BaseException:
+            try:
+                try:
+                    if benchmark_grant_id is not None and process_job_registered:
+                        self._terminate_running_process_job(job_id)
+                    elif process is not None and process.poll() is None:
+                        process.kill()
+                        process.wait(timeout=5)
+                finally:
+                    collector_decision.set()
+                    if collector_started and collector_thread is not None:
+                        collector_thread.join()
+                    with self.database.transaction() as connection:
+                        cursor = connection.execute(
+                            "UPDATE validation_copies SET status = 'materialized', run_pid = NULL "
+                            "WHERE job_id = ? AND status = 'running'",
+                            (job_id,),
+                        )
+                        if cursor.rowcount != 1:
+                            raise CoordinatorError(
+                                "validation_copy_terminal_state_changed",
+                                "Validation copy changed state while rolling back its launch",
+                            )
+                        if benchmark_grant_id is not None:
+                            connection.execute(
+                                """UPDATE benchmark_validation_grants
+                                   SET status='launching', consumed_at=NULL,
+                                       validation_run_id=NULL, root_pid=NULL,
+                                       root_process_creation_time=NULL, job_isolated=0
+                                   WHERE grant_id=? AND status='consumed'
+                                     AND validation_run_id=?""",
+                                (benchmark_grant_id, run_id),
+                            )
+                            connection.execute(
+                                """UPDATE workflow_validation_bindings
+                                   SET root_pid=NULL, root_process_creation_time=NULL
+                                   WHERE validation_run_id=?
+                                     AND benchmark_grant_id=?""",
+                                (run_id, benchmark_grant_id),
+                            )
             finally:
                 self._release_local_run(job_id)
+                if process_job is not None and not process_job_registered:
+                    close_process_job(process_job)
             raise
-        return {
+        result: dict[str, object] = {
             "jobId": job_id,
             "runId": run_id,
             "pid": process.pid,
             "status": "running",
         }
+        if root_process_creation_time is not None:
+            result["processCreationTime"] = root_process_creation_time
+        return result
+
+    def terminate_interrupted_benchmark(
+        self,
+        *,
+        grant_id: str,
+        job_id: str,
+        root_pid: int,
+        process_creation_time: str,
+        job_isolated: bool,
+    ) -> None:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT copy.status, copy.run_pid, grant.job_isolated
+                   FROM benchmark_validation_grants grant
+                   JOIN validation_copies copy ON copy.job_id=grant.job_id
+                   WHERE grant.grant_id=? AND grant.job_id=?
+                     AND grant.status='consumed' AND grant.root_pid=?
+                     AND grant.root_process_creation_time=?""",
+                (grant_id, job_id, root_pid, process_creation_time),
+            ).fetchone()
+        if row is None or bool(row["job_isolated"]) != job_isolated:
+            raise CoordinatorError(
+                "benchmark_validation_recovery_state_changed",
+                "Interrupted benchmark no longer matches its durable launch state",
+            )
+        status = str(row["status"])
+        run_pid = int(row["run_pid"] or 0)
+        recoverable_state = (
+            (status == "running" and run_pid == root_pid)
+            or (status == "materialized" and run_pid == 0)
+            or (job_isolated and status == "failed" and run_pid == 0)
+        )
+        if not recoverable_state:
+            raise CoordinatorError(
+                "benchmark_validation_recovery_state_changed",
+                "Interrupted benchmark copy no longer matches its durable process state",
+            )
+        try:
+            if job_isolated:
+                confirm_kill_on_close_job_terminated(root_pid, process_creation_time)
+            else:
+                terminate_process_tree(root_pid, process_creation_time)
+        except (OSError, subprocess.SubprocessError, TimeoutError, ValueError) as error:
+            raise CoordinatorError(
+                "benchmark_validation_recovery_termination_failed",
+                "Interrupted benchmark process identity could not be terminated safely",
+            ) from error
+        with self.database.transaction() as connection:
+            cursor = connection.execute(
+                """UPDATE validation_copies
+                   SET status='materialized', run_pid=NULL
+                   WHERE job_id=? AND status='running' AND run_pid=?""",
+                (job_id, root_pid),
+            )
+            if cursor.rowcount == 0:
+                current = connection.execute(
+                    "SELECT status, run_pid FROM validation_copies WHERE job_id=?",
+                    (job_id,),
+                ).fetchone()
+                current_is_preserved_terminal = (
+                    current is not None
+                    and current["run_pid"] is None
+                    and (
+                        current["status"] == "materialized"
+                        or (job_isolated and current["status"] == "failed")
+                    )
+                )
+                if not current_is_preserved_terminal:
+                    raise CoordinatorError(
+                        "benchmark_validation_recovery_state_changed",
+                        "Validation copy changed state during benchmark recovery",
+                    )
 
     def _finish_started_run(
         self,
@@ -1199,14 +1480,23 @@ class WorkspaceCopyService:
         command: tuple[str, ...],
         started_at: str,
         process: subprocess.Popen[str],
+        preserve_copy: bool = False,
     ) -> None:
-        job_root = Path(
-            self._validation_copy_row(job_id)["job_root"]
-        ).resolve()
+        job_root: Path | None = None
         evidence_persisted = False
         completion_succeeded = False
         try:
-            exit_code, stdout, stderr = self._terminal.collect(process)
+            job_root = Path(
+                self._validation_copy_row(job_id)["job_root"]
+            ).resolve()
+            exit_code, stdout, stderr = self._terminal.collect(
+                process,
+                after_root_exit=(
+                    lambda: self._terminate_running_process_job(job_id)
+                    if preserve_copy
+                    else None
+                ),
+            )
             self._terminal.persist(
                 run_id=run_id,
                 job_id=job_id,
@@ -1222,9 +1512,16 @@ class WorkspaceCopyService:
             self._terminal.finalize_success(job_id)
             completion_succeeded = True
         except BaseException as error:
-            if process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
+            try:
+                if preserve_copy:
+                    self._terminate_running_process_job(job_id)
+                elif process.poll() is None:
+                    process.kill()
+                    process.wait(timeout=5)
+            except BaseException:
+                # Terminal recovery below must remain authoritative even when
+                # process cleanup reports a secondary failure.
+                pass
             if evidence_persisted:
                 self._terminal.preserve_completion_failure(
                     error=error,
@@ -1238,7 +1535,7 @@ class WorkspaceCopyService:
                 evidence_persisted=evidence_persisted,
             )
         finally:
-            if completion_succeeded:
+            if completion_succeeded and not preserve_copy and job_root is not None:
                 self._cleanup_terminal_copy(session_id, job_root)
             self._release_local_run(job_id)
 
@@ -1247,9 +1544,29 @@ class WorkspaceCopyService:
             row = connection.execute(
                 "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
             ).fetchone()
+            active_benchmark = (
+                connection.execute(
+                    """SELECT grant.target_session_id
+                       FROM benchmark_validation_grants grant
+                       WHERE grant.job_id=? AND grant.status='consumed'
+                         AND grant.root_pid=?
+                         AND NOT EXISTS (
+                             SELECT 1 FROM validation_copy_runs run
+                             WHERE run.run_id=grant.validation_run_id
+                         )""",
+                    (job_id, row["run_pid"]),
+                ).fetchone()
+                if row is not None and row["status"] == "running"
+                else None
+            )
         if row is None:
             raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
-        if row["session_id"] != session_id:
+        authorized_session_id = (
+            str(active_benchmark["target_session_id"])
+            if active_benchmark is not None
+            else str(row["session_id"])
+        )
+        if authorized_session_id != session_id:
             raise CoordinatorError(
                 "validation_copy_foreign_session", "Validation copy belongs to another Session"
             )
@@ -1823,15 +2140,22 @@ class WorkspaceCopyService:
 
     @staticmethod
     def _input_manifest_hash(record: WorkspaceCopyRecord) -> str:
+        return WorkspaceCopyService._input_manifest_hash_for_roots(
+            record.job_root, record.target_root
+        )
+
+    @staticmethod
+    def _input_manifest_hash_for_roots(job_root: Path, target_root: Path) -> str:
         entries: list[dict[str, str]] = []
-        target_root = record.target_root.resolve()
-        for path in record.job_root.rglob("*"):
+        resolved_job_root = job_root.resolve()
+        resolved_target_root = target_root.resolve()
+        for path in resolved_job_root.rglob("*"):
             resolved = path.resolve()
-            if not path.is_file() or resolved.is_relative_to(target_root):
+            if not path.is_file() or resolved.is_relative_to(resolved_target_root):
                 continue
             entries.append(
                 {
-                    "path": path.relative_to(record.job_root).as_posix(),
+                    "path": path.relative_to(resolved_job_root).as_posix(),
                     "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 }
             )

@@ -69,7 +69,12 @@ class ValidationCopyTerminalLifecycle:
         self._database = database
         self._mutation_gate = mutation_gate
 
-    def collect(self, process: subprocess.Popen[str]) -> tuple[int, str, str]:
+    def collect(
+        self,
+        process: subprocess.Popen[str],
+        *,
+        after_root_exit: Callable[[], None] | None = None,
+    ) -> tuple[int, str, str]:
         stdout_tail = _BoundedTextTail(_CAPTURED_STREAM_CHARACTER_LIMIT)
         stderr_tail = _BoundedTextTail(_CAPTURED_STREAM_CHARACTER_LIMIT)
         errors: list[BaseException] = []
@@ -109,8 +114,12 @@ class ValidationCopyTerminalLifecycle:
         for reader in readers:
             reader.start()
         waited_exit_code = process.wait()
-        for reader in readers:
-            reader.join()
+        try:
+            if after_root_exit is not None:
+                after_root_exit()
+        finally:
+            for reader in readers:
+                reader.join()
         if errors:
             error = errors[0]
             raise CoordinatorError(

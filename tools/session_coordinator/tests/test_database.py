@@ -36,6 +36,107 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual("wal", journal_mode.lower())
             self.assertTrue({"sessions", "events", "baseline_epochs", "leases", "patches"} <= tables)
 
+    def test_latest_schema_persists_benchmark_grants_and_dual_manifest_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+
+            with database.connect() as connection:
+                grant_columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(benchmark_validation_grants)"
+                    )
+                }
+                binding_columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(workflow_validation_bindings)"
+                    )
+                }
+
+            self.assertTrue(
+                {
+                    "grant_id",
+                    "job_id",
+                    "target_session_id",
+                    "input_manifest_hash",
+                    "scoped_manifest_hash",
+                    "benchmark_name",
+                    "cargo_profile",
+                    "fifo_sequence",
+                    "status",
+                    "root_pid",
+                    "root_process_creation_time",
+                    "job_isolated",
+                    "validation_run_id",
+                }
+                <= grant_columns
+            )
+            self.assertTrue(
+                {
+                    "copy_input_manifest_hash",
+                    "benchmark_name",
+                    "cargo_profile",
+                    "benchmark_grant_id",
+                    "root_pid",
+                    "root_process_creation_time",
+                }
+                <= binding_columns
+            )
+
+    def test_latest_schema_distinguishes_artifact_cleanup_reservations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+
+            with database.connect() as connection:
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(cleanup_reservations)"
+                    )
+                }
+
+            self.assertIn("reservation_kind", columns)
+            self.assertIn("filesystem_identity", columns)
+
+    def test_schema_60_upgrades_existing_cleanup_reservations_as_cargo(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            with database.transaction() as connection:
+                connection.execute("DELETE FROM schema_version WHERE version=60")
+                connection.execute(
+                    """CREATE TABLE cleanup_reservations_v59(
+                           target_key TEXT PRIMARY KEY,
+                           target_dir TEXT NOT NULL,
+                           reserved_at TEXT NOT NULL
+                       )"""
+                )
+                connection.execute(
+                    """INSERT INTO cleanup_reservations_v59
+                       SELECT target_key, target_dir, reserved_at
+                       FROM cleanup_reservations"""
+                )
+                connection.execute("DROP TABLE cleanup_reservations")
+                connection.execute(
+                    "ALTER TABLE cleanup_reservations_v59 RENAME TO cleanup_reservations"
+                )
+                connection.execute(
+                    """INSERT INTO cleanup_reservations
+                       VALUES ('legacy', 'D:\\cargo-targets\\legacy', 'now')"""
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                row = connection.execute(
+                    """SELECT reservation_kind, filesystem_identity
+                       FROM cleanup_reservations WHERE target_key='legacy'"""
+                ).fetchone()
+            self.assertEqual(("cargo", None), tuple(row))
+
     def test_latest_schema_persists_optional_failure_workflow_node(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

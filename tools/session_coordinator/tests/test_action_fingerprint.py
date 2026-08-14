@@ -184,6 +184,55 @@ class ActionFingerprintTests(unittest.TestCase):
         ).digest
         self.assertEqual(before, after)
 
+    def test_benchmark_grant_fingerprint_tracks_source_copy_state(self) -> None:
+        self.sessions.register(
+            session_id="source-session",
+            plan_path="docs/plans/runtime/01-feature.md",
+        )
+        self.sessions.set_status("source-session", SessionStatus.ACTIVE)
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_runs(
+                       run_id, session_id, workflow_key, plan_path, state,
+                       created_at, updated_at
+                   ) VALUES ('benchmark-run', 'session-a', 'benchmark',
+                             'docs/plans/runtime/01-feature.md', 'active',
+                             'now', 'now')"""
+            )
+            connection.execute(
+                """INSERT INTO validation_copies(
+                       job_id, session_id, job_root, source_root, target_root,
+                       head_commit, manifest_json, status, created_at,
+                       input_manifest_hash
+                   ) VALUES ('benchmark-copy', 'source-session', 'job', 'source',
+                             'target', 'head', '[]', 'materialized', 'now', ?)""",
+                ("a" * 64,),
+            )
+        spec = action_spec(ActionKind.BENCHMARK_GRANT_ISSUE.value)
+        parameters = spec.parse_parameters(
+            {
+                "sessionId": "session-a",
+                "sourceSessionId": "source-session",
+                "runId": "benchmark-run",
+                "milestoneId": "M1",
+                "benchmarkName": "native_host_context_lookup_1_thread_benchmark",
+                "cargoProfile": "release",
+            }
+        )
+
+        before = self.fingerprinter.capture(
+            spec, parameters, bound_session_id="session-a"
+        ).digest
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status='running' WHERE job_id='benchmark-copy'"
+            )
+        after = self.fingerprinter.capture(
+            spec, parameters, bound_session_id="session-a"
+        ).digest
+
+        self.assertNotEqual(before, after)
+
     def test_milestone_reconciliation_fingerprint_tracks_both_run_evidence(self) -> None:
         plan_path = "docs/plans/runtime/01-feature.md"
         plan = self.repo / plan_path

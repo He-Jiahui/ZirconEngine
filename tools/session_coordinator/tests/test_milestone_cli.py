@@ -164,6 +164,57 @@ class MilestoneCliTests(unittest.TestCase):
 
         self.assertEqual("runtime14-rust-focused", arguments.template)
 
+    def test_native_plugin_benchmark_template_requires_named_profiled_case(self) -> None:
+        arguments = cli._parser().parse_args(
+            [
+                "milestone",
+                "validate",
+                "--session-id",
+                "session-a",
+                "--run-id",
+                "run-a",
+                "--milestone",
+                "M1",
+                "--template",
+                "native-plugin-benchmark",
+                "--benchmark-name",
+                "native_callback_atomic_lease_1_thread_benchmark",
+                "--cargo-profile",
+                "release",
+            ]
+        )
+
+        self.assertEqual("native-plugin-benchmark", arguments.template)
+        self.assertEqual(
+            "native_callback_atomic_lease_1_thread_benchmark",
+            arguments.benchmark_name,
+        )
+        self.assertEqual("release", arguments.cargo_profile)
+
+    def test_benchmark_grant_cli_has_no_job_id_surface(self) -> None:
+        arguments = cli._parser().parse_args(
+            [
+                "milestone",
+                "grant-benchmark",
+                "--session-id",
+                "target-session",
+                "--source-session-id",
+                "source-session",
+                "--run-id",
+                "workflow-run",
+                "--milestone",
+                "M1",
+                "--benchmark-name",
+                "native_host_context_lookup_1_thread_benchmark",
+                "--cargo-profile",
+                "release",
+            ]
+        )
+
+        self.assertEqual("grant-benchmark", arguments.milestone_command)
+        self.assertEqual("source-session", arguments.source_session_id)
+        self.assertFalse(hasattr(arguments, "job_id"))
+
     @mock.patch("tools.session_coordinator.cli.CoordinatorClient.from_runtime")
     def test_failure_deferral_cli_uses_one_durable_typed_command(self, from_runtime) -> None:
         client = from_runtime.return_value

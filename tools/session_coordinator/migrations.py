@@ -5,6 +5,7 @@ from collections.abc import Callable
 from sqlite3 import Connection
 
 from .database import Database
+from .benchmark_validation_schema import migrate_benchmark_validation_schema
 from .event_payloads import (
     MAX_CONTROL_EVENT_PAYLOAD_BYTES,
     encode_oversized_event_payload,
@@ -13,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 58
+LATEST_SCHEMA_VERSION = 61
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2541,6 +2542,61 @@ def _migration_58(connection: Connection) -> None:
     )
 
 
+def _migration_59(connection: Connection) -> None:
+    """Bind native benchmark validation to a durable, one-shot copy grant."""
+    migrate_benchmark_validation_schema(connection)
+
+
+def _migration_60(connection: Connection) -> None:
+    """Distinguish Cargo cleanup from handle-bound unmanaged artifact deletion."""
+    connection.executescript(
+        """
+        ALTER TABLE cleanup_reservations
+            ADD COLUMN reservation_kind TEXT NOT NULL DEFAULT 'cargo'
+                CHECK (reservation_kind IN ('cargo', 'artifact'));
+        ALTER TABLE cleanup_reservations
+            ADD COLUMN filesystem_identity TEXT;
+        CREATE INDEX cleanup_reservations_kind_reserved
+            ON cleanup_reservations(reservation_kind, reserved_at, target_key);
+        """
+    )
+
+
+def _migration_61(connection: Connection) -> None:
+    """Bind a produced viewer binary to one managed validation-copy run."""
+    connection.executescript(
+        """
+        CREATE TABLE managed_artifact_receipts (
+            receipt_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            job_id TEXT NOT NULL REFERENCES validation_copies(job_id),
+            validation_ticket_id TEXT NOT NULL REFERENCES validation_tickets(ticket_id),
+            artifact_kind TEXT NOT NULL CHECK (artifact_kind IN ('shader-pbr-viewer')),
+            status TEXT NOT NULL CHECK (status IN ('pending', 'passed', 'rejected')),
+            requested_input_manifest_hash TEXT NOT NULL,
+            source_manifest_hash TEXT NOT NULL,
+            run_id TEXT REFERENCES validation_copy_runs(run_id),
+            target_relative_path TEXT,
+            artifact_path TEXT,
+            sha256 TEXT,
+            byte_length INTEGER,
+            command_json TEXT,
+            command_sha256 TEXT,
+            error_code TEXT,
+            requested_at TEXT NOT NULL,
+            completed_at TEXT,
+            UNIQUE(job_id, validation_ticket_id, artifact_kind)
+        );
+        CREATE INDEX managed_artifact_receipts_job_status
+            ON managed_artifact_receipts(job_id, status, requested_at, receipt_id);
+        CREATE INDEX managed_artifact_receipts_ticket_status
+            ON managed_artifact_receipts(
+                validation_ticket_id, status, requested_at, receipt_id
+            );
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2600,6 +2656,9 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     56: _migration_56,
     57: _migration_57,
     58: _migration_58,
+    59: _migration_59,
+    60: _migration_60,
+    61: _migration_61,
 }
 
 

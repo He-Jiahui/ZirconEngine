@@ -241,7 +241,7 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual([], complete)
         self.assertEqual(["sound-lock-closure"], [node.summary_slug for node in piggybacked])
 
-    def test_import_uses_one_snapshot_for_scope_metadata_and_validation(self) -> None:
+    def test_import_rejects_scope_drift_after_parsing_one_snapshot(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/02-editor.md")
         fixing = self.fixture.add_plan("docs/plans/plugins/02-sound.md")
         failure = self.fixture.add_handoff(origin, fixing, "immutable-scope")
@@ -269,9 +269,11 @@ class FailureGraphTests(unittest.TestCase):
             parse_handoff_records=parse_then_mutate,
             validate_repository=validator.validate_repository,
         )
-        audit = self.service.import_repository()
+        with self.assertRaises(CoordinatorError) as stale:
+            self.service.import_repository()
 
-        self.assertEqual(("Cargo.lock",), audit.nodes[0].related_code)
+        self.assertEqual("failure_snapshot_stale", stale.exception.code)
+        self.assertEqual(0, self.service.audit().node_count)
 
     def test_pre45_failure_rows_fail_closed_until_an_import_refreshes_scope(self) -> None:
         legacy_database = Database(self.root / "state/pre45.sqlite3")
@@ -339,7 +341,24 @@ class FailureGraphTests(unittest.TestCase):
 
         self.assertEqual("action_state_changed", changed.exception.code)
 
-    def test_controlled_import_parses_the_same_bytes_that_were_hashed(self) -> None:
+    def test_prepared_import_rejects_failure_snapshot_drift_inside_transaction(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        handoff = self.fixture.add_handoff(origin, fixing, "prepared")
+        prepared = self.service.prepare_import_snapshot()
+        handoff.write_text(
+            handoff.read_text(encoding="utf-8") + "\nchanged after preparation\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(CoordinatorError) as stale:
+            with self.database.transaction() as connection:
+                self.service.import_prepared_snapshot(prepared, connection=connection)
+
+        self.assertEqual("failure_snapshot_stale", stale.exception.code)
+        self.assertEqual(0, self.service.audit().node_count)
+
+    def test_controlled_import_rejects_live_drift_after_parsing_captured_bytes(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
         fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
         handoff = self.fixture.add_handoff(origin, fixing, "approved")
@@ -359,9 +378,11 @@ class FailureGraphTests(unittest.TestCase):
             parse_handoff_records=mutate_then_parse,
             validate_repository=validator.validate_repository,
         )
-        audit = self.service.import_repository(expected_artifacts=expected)
+        with self.assertRaises(CoordinatorError) as stale:
+            self.service.import_repository(expected_artifacts=expected)
 
-        self.assertEqual(["approved"], [node.summary_slug for node in audit.nodes])
+        self.assertEqual("failure_snapshot_stale", stale.exception.code)
+        self.assertEqual(0, self.service.audit().node_count)
 
     def test_cycle_self_edge_and_duplicate_lifecycle_are_reported(self) -> None:
         plan_a = self.fixture.add_plan("docs/plans/a/01-a.md")

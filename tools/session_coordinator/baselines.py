@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 import tarfile
+import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -497,7 +500,7 @@ class BaselineService:
                 """,
                 (
                     head_commit or self._git_output("rev-parse", "HEAD"),
-                    self._git_output("write-tree"),
+                    self._isolated_index_tree(),
                     health.value,
                     json.dumps(manifest, sort_keys=True),
                     now,
@@ -522,6 +525,32 @@ class BaselineService:
             )
         self._workspace_capture_epochs[epoch_id] = capture_mode == "workspace"
         return self.current()
+
+    def _isolated_index_tree(self) -> str:
+        """Read the shared index through a private copy without taking its lock."""
+        raw_index_path = Path(self._git_output("rev-parse", "--git-path", "index"))
+        index_path = (
+            raw_index_path
+            if raw_index_path.is_absolute()
+            else self.repo_root / raw_index_path
+        ).resolve()
+        if not index_path.is_file():
+            return self._git_output("rev-parse", "HEAD^{tree}")
+        with tempfile.TemporaryDirectory(prefix="zircon-baseline-index-") as temporary:
+            isolated_index = Path(temporary) / "index"
+            shutil.copyfile(index_path, isolated_index)
+            environment = os.environ.copy()
+            environment["GIT_INDEX_FILE"] = str(isolated_index)
+            environment["GIT_OPTIONAL_LOCKS"] = "0"
+            result = subprocess.run(
+                ["git", "write-tree"],
+                cwd=self.repo_root,
+                check=True,
+                capture_output=True,
+                text=True,
+                env=environment,
+            )
+        return result.stdout.strip()
 
     def _is_workspace_capture_epoch(self, epoch_id: int) -> bool:
         if epoch_id in self._workspace_capture_epochs:

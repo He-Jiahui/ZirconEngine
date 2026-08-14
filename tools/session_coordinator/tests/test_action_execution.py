@@ -14,6 +14,8 @@ from tools.session_coordinator.control_plane.actions.fingerprint import ActionFi
 from tools.session_coordinator.control_plane.actions.models import (
     ActionContext,
     ActionKind,
+    NativePluginBenchmarkName,
+    NativePluginBenchmarkProfile,
     SessionParameters,
     ValidationStartParameters,
     ValidationTemplate,
@@ -435,6 +437,330 @@ class ActionExecutionTests(unittest.TestCase):
             run_id=mock.ANY,
         )
         self.assertEqual("copy-runtime14", result["copy"]["jobId"])
+
+    def test_native_benchmark_parameters_are_closed_and_profile_bound(self) -> None:
+        parameters = ValidationStartParameters.parse(
+            {
+                "sessionId": "session-a",
+                "template": "native-plugin-benchmark",
+                "runId": "workflow-run",
+                "milestoneId": "M1",
+                "benchmarkName": "native_host_context_lookup_16_thread_benchmark",
+                "cargoProfile": "profiling",
+            }
+        )
+
+        self.assertEqual(
+            NativePluginBenchmarkName.NATIVE_HOST_CONTEXT_LOOKUP_16_THREAD,
+            parameters.benchmark_name,
+        )
+        self.assertEqual(NativePluginBenchmarkProfile.PROFILING, parameters.cargo_profile)
+        with self.assertRaises(CoordinatorError) as missing:
+            ValidationStartParameters.parse(
+                {
+                    "sessionId": "session-a",
+                    "template": "native-plugin-benchmark",
+                    "runId": "workflow-run",
+                    "milestoneId": "M1",
+                }
+            )
+        self.assertEqual("action_parameters_invalid", missing.exception.code)
+        with self.assertRaises(CoordinatorError) as malformed:
+            ValidationStartParameters.parse(
+                {
+                    "sessionId": "session-a",
+                    "template": "native-plugin-benchmark",
+                    "runId": "workflow-run",
+                    "milestoneId": "M1",
+                    "benchmarkName": "native_host_context_lookup_16_thread_benchmark",
+                    "cargoProfile": "development",
+                }
+            )
+        self.assertEqual("action_parameters_invalid", malformed.exception.code)
+
+    def test_native_benchmark_command_is_one_named_ignored_profiled_case(self) -> None:
+        release = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.NATIVE_PLUGIN_BENCHMARK,
+            "workflow-run",
+            "M1",
+            NativePluginBenchmarkName.NATIVE_CALLBACK_ATOMIC_LEASE_64_THREAD,
+            NativePluginBenchmarkProfile.RELEASE,
+        )
+        profiling = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.NATIVE_PLUGIN_BENCHMARK,
+            "workflow-run",
+            "M1",
+            NativePluginBenchmarkName.NATIVE_RUNTIME_BROADCAST_32_PLUGIN,
+            NativePluginBenchmarkProfile.PROFILING,
+        )
+
+        release_command = ActionExecutor._validation_command(release)
+        profiling_command = ActionExecutor._validation_command(profiling)
+
+        self.assertIn("native_callback_atomic_lease_64_thread_benchmark", release_command)
+        self.assertEqual(1, release_command.count("--release"))
+        self.assertNotIn("--profile", release_command)
+        self.assertIn("native_runtime_broadcast_32_plugin_benchmark", profiling_command)
+        self.assertEqual(("--profile", "profiling"), profiling_command[6:8])
+        for command, benchmark_name in (
+            (release_command, "native_callback_atomic_lease_64_thread_benchmark"),
+            (profiling_command, "native_runtime_broadcast_32_plugin_benchmark"),
+        ):
+            separator = command.index("--")
+            self.assertEqual(benchmark_name, command[separator - 1])
+            self.assertIn("--exact", command[separator + 1 :])
+            self.assertEqual(1, command.count("--exact"))
+            self.assertEqual(1, command.count("--ignored"))
+            self.assertEqual(1, command.count("--nocapture"))
+            self.assertEqual(1, command.count("--test-threads=1"))
+
+    def test_native_benchmark_injects_materialized_identity_only_at_start(self) -> None:
+        workspace_copy = mock.Mock()
+        grant = SimpleNamespace(
+            grant_id="grant-a",
+            job_id="copy-benchmark",
+            input_manifest_hash="a" * 64,
+            scoped_manifest_hash="b" * 64,
+            source_session_id="source-session",
+            target_session_id="session-a",
+            benchmark_name="native_host_context_lookup_1_thread_benchmark",
+            cargo_profile="release",
+            command=(),
+        )
+        benchmark_grants = mock.Mock()
+        benchmark_grants.acquire.return_value = grant
+        workspace_copy.scoped_manifest_hash.return_value = "b" * 64
+        workspace_copy.start.return_value = {
+            "jobId": "copy-benchmark",
+            "runId": "validation-run",
+            "pid": 4242,
+            "processCreationTime": "111222",
+            "status": "running",
+        }
+        milestones = mock.Mock()
+        executor = ActionExecutor(
+            sessions=self.sessions,
+            leases=self.leases,
+            patches=self.executor.patches,
+            failures=self.executor.failures,
+            workspace_copy=workspace_copy,
+            workflows=None,
+            milestones=milestones,
+            benchmark_grants=benchmark_grants,
+        )
+        parameters = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.NATIVE_PLUGIN_BENCHMARK,
+            "workflow-run",
+            "M1",
+            NativePluginBenchmarkName.NATIVE_HOST_CONTEXT_LOOKUP_1_THREAD,
+            NativePluginBenchmarkProfile.RELEASE,
+        )
+
+        result = executor._start_validation(
+            parameters,
+            ("src/feature.py",),
+            actor="reviewer",
+            action_id="action-benchmark",
+        )
+
+        workspace_copy.start.assert_called_once_with(
+            "session-a",
+            "copy-benchmark",
+            command=ActionExecutor._validation_command(parameters),
+            run_id=mock.ANY,
+            benchmark_grant_id="grant-a",
+            environment={
+                "ZR_BENCHMARK_SOURCE_MANIFEST": "a" * 64,
+                "ZR_BENCHMARK_CARGO_PROFILE": "release",
+            },
+        )
+        workspace_copy.materialize_cargo.assert_not_called()
+        workspace_copy.scoped_manifest_hash.assert_called_once_with(
+            "copy-benchmark", ("src/feature.py",)
+        )
+        self.assertEqual("b" * 64, milestones.bind_validation.call_args.kwargs["source_manifest_hash"])
+        self.assertEqual(
+            "a" * 64,
+            milestones.bind_validation.call_args.kwargs["copy_input_manifest_hash"],
+        )
+        milestones.record_validation_process_identity.assert_called_once_with(
+            mock.ANY, root_pid=4242, process_creation_time="111222"
+        )
+        self.assertEqual(
+            {
+                "rootPid": 4242,
+                "rootProcessCreationTime": "111222",
+                "runId": "validation-run",
+                "sourceManifestHash": "a" * 64,
+                "milestoneManifestHash": "b" * 64,
+                "cargoProfile": "release",
+                "benchmarkName": "native_host_context_lookup_1_thread_benchmark",
+                "grantId": "grant-a",
+            },
+            result["benchmarkIdentity"],
+        )
+
+    def test_benchmark_grant_issue_selects_copy_and_binds_current_scoped_hash(self) -> None:
+        workspace_copy = mock.Mock()
+        workspace_copy.scoped_manifest_hash.return_value = "b" * 64
+        milestones = mock.Mock()
+        milestones.milestone_paths.return_value = ("src/feature.py",)
+        milestones.attributed_changes.return_value = ("src/feature.py",)
+        milestones.current_milestone_manifest_hash.return_value = "b" * 64
+        benchmark_grants = mock.Mock()
+        benchmark_grants.select_candidate.return_value = SimpleNamespace(
+            job_id="server-selected-copy"
+        )
+        benchmark_grants.issue.return_value = SimpleNamespace(
+            to_dict=lambda: {"grantId": "grant-a"}
+        )
+        executor = ActionExecutor(
+            sessions=self.sessions,
+            leases=self.leases,
+            patches=self.executor.patches,
+            failures=self.executor.failures,
+            workspace_copy=workspace_copy,
+            workflows=None,
+            milestones=milestones,
+            benchmark_grants=benchmark_grants,
+        )
+        spec = action_spec(ActionKind.BENCHMARK_GRANT_ISSUE.value)
+        parameters = spec.parse_parameters(
+            {
+                "sessionId": "session-a",
+                "sourceSessionId": "source-session",
+                "runId": "workflow-run",
+                "milestoneId": "M1",
+                "benchmarkName": "native_host_context_lookup_1_thread_benchmark",
+                "cargoProfile": "release",
+            }
+        )
+
+        result = executor.execute(
+            spec,
+            parameters,
+            resource_snapshot={},
+            action_id="grant-action",
+            actor="maintainer",
+        )
+
+        benchmark_grants.select_candidate.assert_called_once_with(
+            source_session_id="source-session", target_session_id="session-a"
+        )
+        workspace_copy.scoped_manifest_hash.assert_called_once_with(
+            "server-selected-copy", ("src/feature.py",)
+        )
+        self.assertEqual(
+            "b" * 64, benchmark_grants.issue.call_args.kwargs["scoped_manifest_hash"]
+        )
+        workspace_copy.materialize_cargo.assert_not_called()
+        self.assertEqual({"grantId": "grant-a"}, result["benchmarkGrant"])
+
+    def test_native_benchmark_rejects_missing_or_malformed_materialized_hash(self) -> None:
+        parameters = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.NATIVE_PLUGIN_BENCHMARK,
+            "workflow-run",
+            "M1",
+            NativePluginBenchmarkName.NATIVE_HOST_CONTEXT_LOOKUP_1_THREAD,
+            NativePluginBenchmarkProfile.RELEASE,
+        )
+        for value, code in (
+            (None, "validation_benchmark_manifest_missing"),
+            ("not-a-sha", "validation_benchmark_manifest_invalid"),
+        ):
+            with self.subTest(value=value):
+                workspace_copy = mock.Mock()
+                benchmark_grants = mock.Mock()
+                benchmark_grants.acquire.return_value = SimpleNamespace(
+                    grant_id="grant-a",
+                    job_id="copy-benchmark",
+                    input_manifest_hash=value,
+                    scoped_manifest_hash="b" * 64,
+                    source_session_id="source-session",
+                    target_session_id="session-a",
+                    benchmark_name="native_host_context_lookup_1_thread_benchmark",
+                    cargo_profile="release",
+                    command=(),
+                )
+                executor = ActionExecutor(
+                    sessions=self.sessions,
+                    leases=self.leases,
+                    patches=self.executor.patches,
+                    failures=self.executor.failures,
+                    workspace_copy=workspace_copy,
+                    workflows=None,
+                    milestones=mock.Mock(),
+                    benchmark_grants=benchmark_grants,
+                )
+
+                with self.assertRaises(CoordinatorError) as rejected:
+                    executor._start_validation(
+                        parameters,
+                        ("src/feature.py",),
+                        actor="reviewer",
+                        action_id="action-benchmark",
+                    )
+
+                self.assertEqual(code, rejected.exception.code)
+                workspace_copy.materialize_cargo.assert_not_called()
+                workspace_copy.start.assert_not_called()
+
+    def test_native_benchmark_denies_grant_without_mutating_copy_on_stale_bind(self) -> None:
+        workspace_copy = mock.Mock()
+        workspace_copy.scoped_manifest_hash.return_value = "b" * 64
+        benchmark_grants = mock.Mock()
+        benchmark_grants.acquire.return_value = SimpleNamespace(
+            grant_id="grant-a",
+            job_id="copy-benchmark",
+            input_manifest_hash="a" * 64,
+            scoped_manifest_hash="b" * 64,
+            source_session_id="source-session",
+            target_session_id="session-a",
+            benchmark_name="native_host_context_lookup_1_thread_benchmark",
+            cargo_profile="release",
+            command=(),
+        )
+        milestones = mock.Mock()
+        milestones.bind_validation.side_effect = CoordinatorError(
+            "validation_copy_manifest_stale", "stale"
+        )
+        executor = ActionExecutor(
+            sessions=self.sessions,
+            leases=self.leases,
+            patches=self.executor.patches,
+            failures=self.executor.failures,
+            workspace_copy=workspace_copy,
+            workflows=None,
+            milestones=milestones,
+            benchmark_grants=benchmark_grants,
+        )
+        parameters = ValidationStartParameters(
+            "session-a",
+            ValidationTemplate.NATIVE_PLUGIN_BENCHMARK,
+            "workflow-run",
+            "M1",
+            NativePluginBenchmarkName.NATIVE_HOST_CONTEXT_LOOKUP_1_THREAD,
+            NativePluginBenchmarkProfile.RELEASE,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            executor._start_validation(
+                parameters,
+                ("src/feature.py",),
+                actor="reviewer",
+                action_id="action-benchmark",
+            )
+
+        self.assertEqual("validation_copy_manifest_stale", rejected.exception.code)
+        benchmark_grants.deny.assert_called_once_with(
+            "grant-a", error_code="validation_copy_manifest_stale"
+        )
+        workspace_copy.materialize_cargo.assert_not_called()
+        workspace_copy.start.assert_not_called()
 
     def test_non_cargo_validation_keeps_declared_dependency_materialization(self) -> None:
         workspace_copy = mock.Mock()

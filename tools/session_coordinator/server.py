@@ -31,13 +31,14 @@ from .manifest_retention import ManifestRetentionService
 from .ownership_matrix import OwnershipMatrixService
 from .ownership_transfers import OwnershipTransferService
 from .validation_tickets import ValidationTicketService
+from .artifact_receipts import ManagedArtifactReceiptService
 from .validation_ticket_worker import ValidationTicketWorker
 from .leases import LeaseService, PathPolicy, lease_paths_overlap
 from .migrations import LATEST_SCHEMA_VERSION, migrate
 from .models import CoordinatorError, SessionStatus, SupervisionState, utc_text
 from .sessions import SessionService
 from .patches import PatchService, PatchStatus
-from .failures import FailureGraphService, FailureResolution
+from .failures import FailureGraphService, FailureImportSnapshot, FailureResolution
 from .plans import PlanRepository
 from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
@@ -51,6 +52,7 @@ from .processes import current_process_identity, process_is_alive
 from .git_finalize import GitFinalizeService
 from .git_guard import remove_commit_guard
 from .workspace_copy import WorkspaceCopyService
+from .benchmark_validation_grants import BenchmarkValidationGrantService
 from .legacy import LegacyMigrationService
 from .audit import RolloutAuditService
 from .control_plane.auth import WebControlAuth
@@ -281,6 +283,7 @@ class CoordinatorApplication:
             "cargo.run_status",
             "cleanup.plan",
             "validation_copy.status",
+            "validation.artifact_receipt.status",
             "legacy.report",
             "retention.show",
             "governance.retention.preview",
@@ -346,6 +349,7 @@ class CoordinatorApplication:
         self.config = config
         self.instance_id = instance_id or uuid.uuid4().hex
         self.started_at = started_at or utc_text()
+        self.branch = self._branch()
         self.database = Database(config.database_path)
         migrate(self.database)
         self.command_requests = CommandRequestJournal(self.database)
@@ -392,6 +396,9 @@ class CoordinatorApplication:
         self.governance = StateConvergenceService(self.database, config.repo_root)
         self.manifest_retention = ManifestRetentionService(self.database, config.state_root)
         self.validation_tickets = ValidationTicketService(self.database)
+        self.artifact_receipts = ManagedArtifactReceiptService(
+            self.database, config.state_root / "managed-artifacts"
+        )
         self.integration_candidates = IntegrationCandidateService(
             self.database, config.repo_root, self.leases
         )
@@ -416,6 +423,8 @@ class CoordinatorApplication:
             if config.unmanaged_artifact_sweep_enabled and config.enabled_target_roots
             else None
         )
+        if self.artifact_governance is not None and not self.read_only:
+            self.artifact_governance.recover_reservations()
         if config.enabled_target_roots:
             self.cargo_jobs: CargoJobService | None = CargoJobService(
                 self.database,
@@ -428,18 +437,20 @@ class CoordinatorApplication:
                 repo_root=config.repo_root,
                 log_root=config.cargo_run_log_root,
             )
-            # Orphan detection owns the live PID-tree observation. Reconcile it
-            # before closing run projections so an abandoned runner cannot stay
-            # "running" until another coordinator restart.
-            self.cargo_jobs.reconcile_orphans()
-            self.cargo_runner.reconcile_terminal_runs()
+            if not self.read_only:
+                # Orphan detection owns the live PID-tree observation. Reconcile it
+                # before closing run projections so an abandoned runner cannot stay
+                # "running" until another coordinator restart.
+                self.cargo_jobs.reconcile_orphans()
+                self.cargo_runner.reconcile_terminal_runs()
             self.cleanup: CleanupService | None = CleanupService(
                 self.database,
                 self.cargo_jobs,
                 process_alive=process_is_alive,
             )
-            self.cleanup.recover_reservations()
-            self._record_startup_gpu_lane_audit()
+            if not self.read_only:
+                self.cleanup.recover_reservations()
+                self._record_startup_gpu_lane_audit()
             self.workspace_copy: WorkspaceCopyService | None = WorkspaceCopyService(
                 self.database,
                 config.repo_root,
@@ -453,7 +464,8 @@ class CoordinatorApplication:
             self.workspace_copy.set_cargo_materialization_preflight(
                 lambda: self._require_artifact_governance_clean()
             )
-            self.workspace_copy.recover_interrupted_jobs()
+            if not self.read_only:
+                self.workspace_copy.recover_interrupted_jobs()
             self.validation_ticket_worker: ValidationTicketWorker | None = (
                 ValidationTicketWorker(
                     self.database,
@@ -478,7 +490,6 @@ class CoordinatorApplication:
             legacy=self.legacy,
             target_roots=config.enabled_target_roots,
         )
-        self.branch = self._branch()
         self.process_identity = current_process_identity()
         self.repository_identity = repository_identity(config.repo_root)
         self.supervision = SupervisionService(
@@ -538,6 +549,9 @@ class CoordinatorApplication:
             full_interval_seconds=config.codex_full_interval_seconds,
         )
         self.lifecycle = LifecycleService(self.supervision)
+        self.benchmark_validation_grants = BenchmarkValidationGrantService(
+            self.database
+        )
         self.workflow_projections = WorkflowProjectionService()
         self.topology_importer = TopologyImporter(self.database, config.repo_root)
         self.notifications = WeComNotificationService(self.database)
@@ -568,9 +582,14 @@ class CoordinatorApplication:
         self.milestone_workflows.recover_pending_commits()
         if self.workspace_copy is not None:
             self.workspace_copy.set_completion_hook(
-                self.milestone_workflows.import_validation_result
+                self._complete_validation_run
             )
-            self.milestone_workflows.recover_validation_results()
+            if not self.read_only:
+                self.benchmark_validation_grants.reconcile_interrupted_consumed(
+                    self.milestone_workflows.reject_validation_launch,
+                    terminate_interrupted=self.workspace_copy.terminate_interrupted_benchmark,
+                )
+                self.milestone_workflows.recover_validation_results()
         self.workflows.synchronize_sessions(self.sessions.list(include_archived=True))
         self.web_auth = WebControlAuth(self.database)
         self.control_actions = ActionService(
@@ -593,6 +612,7 @@ class CoordinatorApplication:
                 lifecycle=self.lifecycle,
                 git_finalize=self.finalize,
                 codex_wake=self.codex_worker.wake,
+                benchmark_grants=self.benchmark_validation_grants,
             ),
             daemon_instance_id=self.instance_id,
             mutation_gate=self.supervision.require_mutation_allowed,
@@ -819,6 +839,12 @@ class CoordinatorApplication:
     def _execute_session_registration_request(
         self, arguments: dict[str, Any], *, request_id: str
     ) -> dict[str, Any]:
+        prepared_failures: FailureImportSnapshot | None = None
+
+        def prepare_failures() -> None:
+            nonlocal prepared_failures
+            prepared_failures = self.failures.prepare_import_snapshot()
+
         def admit(connection: sqlite3.Connection):
             if self.read_only:
                 raise CoordinatorError(
@@ -828,19 +854,38 @@ class CoordinatorApplication:
             self.supervision.require_mutation_allowed_in_connection(
                 connection, self._mutation_operation("session.register", arguments)
             )
+            if prepared_failures is None:  # pragma: no cover - journal contract guard
+                raise CoordinatorError(
+                    "failure_snapshot_missing",
+                    "Session registration failure snapshot was not prepared",
+                )
             return (
                 self._session_registration_response(
-                    arguments, connection=connection
+                    arguments,
+                    open_failures=self._session_registration_open_failures(
+                        arguments,
+                        connection=connection,
+                        prepared_snapshot=prepared_failures,
+                    ),
+                    connection=connection,
                 ),
                 None,
             )
 
         return self.command_requests.execute_accepted_transactionally(
-            request_id, "session.register", arguments, admit
+            request_id,
+            "session.register",
+            arguments,
+            admit,
+            before_admission=prepare_failures,
         )
 
     def _session_registration_open_failures(
-        self, arguments: dict[str, Any], *, connection: sqlite3.Connection | None = None
+        self,
+        arguments: dict[str, Any],
+        *,
+        connection: sqlite3.Connection | None = None,
+        prepared_snapshot: FailureImportSnapshot | None = None,
     ) -> list[Any]:
         session_id = str(arguments["session_id"])
         requested_plan = arguments.get("plan_path")
@@ -857,7 +902,12 @@ class CoordinatorApplication:
         effective_plan = requested_plan or (existing.plan_path if existing else None)
         if not effective_plan:
             return []
-        self.failures.import_repository(connection=connection)
+        if prepared_snapshot is None:
+            self.failures.import_repository(connection=connection)
+        else:
+            self.failures.import_prepared_snapshot(
+                prepared_snapshot, connection=connection
+            )
         return self.failures.open_for_plan(str(effective_plan), connection=connection)
 
     def _session_registration_response(
@@ -1333,6 +1383,21 @@ class CoordinatorApplication:
         if name == "validation.status":
             ticket = self.validation_tickets.get(str(arguments["ticket_id"]))
             return {"ticket": asdict(ticket)}
+        if name == "validation.artifact_receipt.request":
+            receipt = self.artifact_receipts.request(
+                session_id=str(arguments["session_id"]),
+                job_id=str(arguments["job_id"]),
+                validation_ticket_id=str(arguments["ticket_id"]),
+                artifact_kind=str(arguments["artifact_kind"]),
+            )
+            return {"artifactReceipt": receipt.to_dict()}
+        if name == "validation.artifact_receipt.status":
+            raw_session_id = arguments.get("session_id")
+            receipt = self.artifact_receipts.get(
+                str(arguments["receipt_id"]),
+                session_id=(str(raw_session_id) if raw_session_id is not None else None),
+            )
+            return {"artifactReceipt": receipt.to_dict()}
         if name == "integration.submit":
             candidate = self.integration_candidates.submit(
                 session_id=str(arguments["session_id"]),
@@ -2121,6 +2186,12 @@ class CoordinatorApplication:
             )
         return self.workspace_copy
 
+    def _complete_validation_run(self, run_id: str) -> None:
+        # Artifact receipts must seal target output before the validation copy
+        # is cleaned and before a milestone can project the terminal result.
+        self.artifact_receipts.finalize_run(run_id)
+        self.milestone_workflows.import_validation_result(run_id)
+
     def _require_artifact_governance(self) -> ArtifactGovernanceService:
         if self.artifact_governance is None:
             raise CoordinatorError(
@@ -2220,7 +2291,7 @@ class CoordinatorApplication:
                 cleanup_plan_id = cleanup_plan.plan_id
                 if bool(arguments.get("apply_cleanup")) and cleanup_plan.candidates:
                     self.cleanup.apply(cleanup_plan)
-            if self.artifact_governance is not None:
+            if self.artifact_governance is not None and not self.read_only:
                 unmanaged_artifacts_deleted = list(self.artifact_governance.cleanup().deleted)
             for batch_id in self.manifest_retention.pending_compactions():
                 self.manifest_retention.compact(batch_id, actor="maintenance")
@@ -2513,7 +2584,7 @@ class RunningCoordinator:
             )
             if not application.read_only:
                 remove_commit_guard(config.repo_root)
-            if application.cargo_jobs is not None:
+            if application.cargo_jobs is not None and not application.read_only:
                 reservation_reconciliation = (
                     application.cargo_jobs.reconcile_pending_reservations()
                 )
@@ -2670,6 +2741,22 @@ class RunningCoordinator:
         )
 
     @staticmethod
+    def _record_maintenance_failure(
+        application: CoordinatorApplication, event_type: str, error: Exception
+    ) -> bool:
+        """Record a diagnostic without terminating the long-lived worker on DB busy."""
+        try:
+            with application.database.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO events(event_type, payload_json, created_at) "
+                    "VALUES (?, ?, datetime('now'))",
+                    (event_type, json.dumps({"error": str(error)}, sort_keys=True)),
+                )
+        except Exception:  # pragma: no cover - best-effort diagnostic boundary
+            return False
+        return True
+
+    @staticmethod
     def _maintenance_loop(
         application: CoordinatorApplication,
         watch_interval_seconds: float,
@@ -2686,17 +2773,12 @@ class RunningCoordinator:
             except Exception as error:  # pragma: no cover - defensive long-lived boundary
                 if stop_event.is_set():
                     break
-                with application.database.transaction() as connection:
-                    connection.execute(
-                        "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                        (
-                            "watch.scan_failed",
-                            json.dumps({"error": str(error)}, sort_keys=True),
-                            ),
-                        )
+                RunningCoordinator._record_maintenance_failure(
+                    application, "watch.scan_failed", error
+                )
             if stop_event.is_set():
                 break
-            if application.cargo_jobs is not None:
+            if application.cargo_jobs is not None and not application.read_only:
                 try:
                     orphaned = application.cargo_jobs.reconcile_orphans()
                     reconciled_runs = (
@@ -2745,33 +2827,23 @@ class RunningCoordinator:
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
                     if stop_event.is_set():
                         break
-                    with application.database.transaction() as connection:
-                        connection.execute(
-                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                            (
-                                "cargo.reconcile_failed",
-                                json.dumps({"error": str(error)}, sort_keys=True),
-                            ),
-                        )
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "cargo.reconcile_failed", error
+                    )
             if stop_event.is_set():
                 break
-            if application.artifact_governance is not None:
+            if application.artifact_governance is not None and not application.read_only:
                 try:
                     application.artifact_governance.cleanup()
                 except Exception as error:  # pragma: no cover - defensive maintenance boundary
                     if stop_event.is_set():
                         break
-                    with application.database.transaction() as connection:
-                        connection.execute(
-                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                            (
-                                "artifact.governance_failed",
-                                json.dumps({"error": str(error)}, sort_keys=True),
-                            ),
-                        )
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "artifact.governance_failed", error
+                    )
             if stop_event.is_set():
                 break
-            if application.workspace_copy is not None:
+            if application.workspace_copy is not None and not application.read_only:
                 try:
                     recovered_running, recovered_cleanup = (
                         application.workspace_copy.recover_interrupted_jobs(startup=False)
@@ -2794,15 +2866,10 @@ class RunningCoordinator:
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
                     if stop_event.is_set():
                         break
-                    with application.database.transaction() as connection:
-                        connection.execute(
-                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                            (
-                                "validation_copy.recovery_failed",
-                                json.dumps({"error": str(error)}, sort_keys=True),
-                            ),
-                        )
-            if application.validation_ticket_worker is not None:
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "validation_copy.recovery_failed", error
+                    )
+            if application.validation_ticket_worker is not None and not application.read_only:
                 try:
                     ticket_result = application.validation_ticket_worker.tick()
                     if any(ticket_result.values()):
@@ -2817,14 +2884,9 @@ class RunningCoordinator:
                 except Exception as error:  # pragma: no cover - defensive worker boundary
                     if stop_event.is_set():
                         break
-                    with application.database.transaction() as connection:
-                        connection.execute(
-                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                            (
-                                "validation.ticket_worker_failed",
-                                json.dumps({"error": str(error)}, sort_keys=True),
-                            ),
-                        )
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "validation.ticket_worker_failed", error
+                    )
             if stop_event.is_set():
                 break
             if time.monotonic() >= next_maintenance:
@@ -2833,14 +2895,9 @@ class RunningCoordinator:
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
                     if stop_event.is_set():
                         break
-                    with application.database.transaction() as connection:
-                        connection.execute(
-                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
-                            (
-                                "maintenance.tick_failed",
-                                json.dumps({"error": str(error)}, sort_keys=True),
-                            ),
-                        )
+                    RunningCoordinator._record_maintenance_failure(
+                        application, "maintenance.tick_failed", error
+                    )
                 finally:
                     next_maintenance = time.monotonic() + maintenance_interval
 

@@ -272,6 +272,31 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
         self.assertEqual("internal_error", terminal["error"]["code"])
         self.assertEqual(4, transaction_attempts)
 
+    def test_accepted_request_replay_skips_pre_admission_preparation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            journal = CommandRequestJournal(database)
+            preparations: list[str] = []
+
+            first = journal.execute_accepted_transactionally(
+                "6" * 32,
+                "session.register",
+                {"session_id": "session-a"},
+                lambda _connection: ({"session": {"session_id": "session-a"}}, None),
+                before_admission=lambda: preparations.append("prepared"),
+            )
+            replay = journal.execute_accepted_transactionally(
+                "6" * 32,
+                "session.register",
+                {"session_id": "session-a"},
+                lambda _connection: self.fail("replay invoked admission callback"),
+                before_admission=lambda: self.fail("replay invoked preparation callback"),
+            )
+
+        self.assertEqual(["prepared"], preparations)
+        self.assertEqual(first, replay)
+
     def test_maintenance_tick_retries_deferred_terminalization(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -410,7 +435,7 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(1, executions)
 
-    def test_plan_backed_duplicate_does_not_reimport_failure_graph(self) -> None:
+    def test_plan_backed_duplicate_does_not_reprepare_or_reimport_failure_graph(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             config = CoordinatorConfig.for_repo(
@@ -424,17 +449,25 @@ class SessionRegisterDurabilityTests(unittest.TestCase):
             )
             with RunningCoordinator.start(config) as running:
                 application = running.httpd.application
-                with mock.patch.object(
-                    application.failures,
-                    "import_repository",
-                    wraps=application.failures.import_repository,
-                ) as imported:
+                with (
+                    mock.patch.object(
+                        application.failures,
+                        "prepare_import_snapshot",
+                        wraps=application.failures.prepare_import_snapshot,
+                    ) as prepared,
+                    mock.patch.object(
+                        application.failures,
+                        "import_prepared_snapshot",
+                        wraps=application.failures.import_prepared_snapshot,
+                    ) as imported,
+                ):
                     first = self._request(running.base_url, "POST", "/command", payload)
                     second = self._request(running.base_url, "POST", "/command", payload)
 
         first.pop("_httpStatus")
         second.pop("_httpStatus")
         self.assertEqual(first, second)
+        self.assertEqual(1, prepared.call_count)
         self.assertEqual(1, imported.call_count)
 
     def test_rejected_plan_backed_registration_does_not_import_failure_graph(self) -> None:

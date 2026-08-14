@@ -28,6 +28,7 @@ class ActionCatalogTests(unittest.TestCase):
                 ActionKind.SERVICE_FORCE_STOP,
                 ActionKind.MAINTENANCE_CLEANUP,
                 ActionKind.MILESTONE_RECONCILE,
+                ActionKind.BENCHMARK_GRANT_ISSUE,
             },
             enabled_red,
         )
@@ -43,6 +44,23 @@ class ActionCatalogTests(unittest.TestCase):
         with self.assertRaises(CoordinatorError) as rejected:
             action_spec("shell.execute")
         self.assertEqual("action_kind_unknown", rejected.exception.code)
+
+    def test_benchmark_grant_issue_is_maintainer_only_and_forbids_job_id(self) -> None:
+        spec = action_spec(ActionKind.BENCHMARK_GRANT_ISSUE.value)
+        payload = {
+            "sessionId": "target-session",
+            "sourceSessionId": "source-session",
+            "runId": "workflow-run",
+            "milestoneId": "M1",
+            "benchmarkName": "native_host_context_lookup_1_thread_benchmark",
+            "cargoProfile": "release",
+        }
+
+        self.assertEqual(WebControlRole.MAINTAINER, spec.required_role)
+        self.assertEqual(payload, spec.parse_parameters(payload).to_payload())
+        with self.assertRaises(CoordinatorError) as rejected:
+            spec.parse_parameters({**payload, "jobId": "caller-controlled"})
+        self.assertEqual("action_parameters_invalid", rejected.exception.code)
 
     def test_parameter_parser_rejects_browser_paths_and_commands(self) -> None:
         spec = action_spec(ActionKind.LEASE_CLAIM.value)

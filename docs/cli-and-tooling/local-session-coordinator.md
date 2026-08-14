@@ -19,6 +19,8 @@ related_code:
   - tools/session_coordinator/failures.py
   - tools/session_coordinator/cargo_reservations.py
   - tools/session_coordinator/cargo_jobs.py
+  - tools/session_coordinator/cargo_run_registration.py
+  - tools/session_coordinator/cargo_runner.py
   - tools/session_coordinator/cleanup.py
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
@@ -71,6 +73,8 @@ implementation_files:
   - tools/session_coordinator/failures.py
   - tools/session_coordinator/cargo_reservations.py
   - tools/session_coordinator/cargo_jobs.py
+  - tools/session_coordinator/cargo_run_registration.py
+  - tools/session_coordinator/cargo_runner.py
   - tools/session_coordinator/cleanup.py
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
@@ -537,6 +541,24 @@ controls that later fail.
 
 `validate-matrix.ps1` performs the Windows lifecycle automatically: register the caller, derive the compatibility document, acquire the primary pool with the wrapper PID, immediately enter `try/finally`, record the process command line and root creation identity at start, run validation, record the exit code, and owner-checked release. It marks that PowerShell PID as a **supervisor**, so finish/release ignore the still-live wrapper itself after its sequential Cargo calls have returned but still reject any live Cargo/rustc descendant. Direct `cargo start` jobs remain Cargo-root jobs and retain their live root check. Every observation compares the current root creation identity before traversing descendants: a different identity means Windows has reused the PID, so that unrelated process and its descendants cannot retain the old Cargo target. A matching root—or a known descendant after the matching root exits—continues to protect the target. Pre-identity `orphaned` rows retain their historical terminal state rather than treating a later reused PID as Cargo. WSL Cargo is permitted only through a coordinator-aware Windows host wrapper that acquires with `platform=wsl`, remains alive and heartbeats while its `wsl.exe` child runs, and translates only the granted path to its mounted equivalent; direct unleased WSL Cargo is forbidden. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy and cannot create an alternate primary directory. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned` and immediately retries pending ephemeral cleanup.
 
+Managed `cargo run` authorizes the current Session, exact reservation command, target owner,
+and CPU FIFO in one durable transaction before it creates a child process. The transaction
+records a short-lived `running` launch intent with no PID. On Windows, the runner then creates
+the child suspended inside a non-inheritable kill-on-close Job Object, atomically binds its PID,
+creation identity, and run record to that exact intent, starts both log readers, and resumes the
+child only after each reader reports that its output file is open. A spawn or pre-resume setup
+failure closes the Job and rolls the intent and reservation back to `leased`. If the coordinator
+stops between authorization and spawn, startup reconciliation expires the PID-less intent
+without replaying the command; an interrupted suspended run projects as `launch_failed` rather
+than pretending it executed. Runtime log writes continue draining after a local file failure.
+A runtime pipe read failure is only signalled by the reader; the collector remains the sole Job
+handle owner and terminates the complete tree before waiting for the root or publishing terminal
+evidence. If a child exists but cleanup cannot prove termination, the coordinator atomically
+records the job, reservation, run, PID, creation identity, and original rejection code so restart
+continues to block overlapping target use. An active local collector also holds terminal run
+projection until the complete Job tree, job finish, and reservation release have completed;
+restart-only reconciliation handles runs with no surviving collector.
+
 ## Cleanup and Service-Owned Maintenance
 
 Cleanup is deliberately two-phase:
@@ -547,7 +569,7 @@ Cleanup is deliberately two-phase:
 .\tools\cleanup-stale-targets.ps1 -Apply
 ```
 
-Reusable caches use the reviewed two-phase retention path. Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, managed-root realpath, overlapping live PID, active lease and positive retention. Under disk pressure, the daemon evicts idle reusable pools oldest-first until the free-space reserve is restored; active pools remain protected. Ephemeral lanes bypass only the age delay, never the path/identity/process/lease checks. A short SQLite transaction writes a cleanup reservation; deletion runs outside the global writer lock; a final short transaction records success/failure and clears the reservation. New Cargo acquisition observes the reservation, and daemon restart recovers abandoned reservations.
+Reusable caches use the reviewed two-phase retention path. Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, managed-root realpath, overlapping live PID, active lease and positive retention. Under disk pressure, the daemon evicts idle reusable pools oldest-first until the free-space reserve is restored; active pools remain protected. Ephemeral lanes bypass only the age delay, never the path/identity/process/lease checks. A short SQLite transaction writes a cleanup reservation and `cleanup.target_deletion_started`; deletion runs outside the global writer lock; a final short transaction writes `cleanup.target_deletion_completed`, records success/failure and clears the reservation. Both events share a random `deletion_id` and record the trigger (`prompt_cleanup`, `pressure_eviction`, or `explicit_plan`), canonical target identity, owner job/Session, pre-delete job/process state, executing process/thread, result and error. New Cargo acquisition observes every overlapping parent/child reservation. Daemon restart settles an interrupted deletion from the durable start event and current disk fact as `deleted_before_restart` or `retained_after_restart` before releasing the abandoned reservation, so a missing target is never explained only by `cleanup_status=deleted`.
 
 The coordinator also governs every physical directory beneath the nine approved D/E/F roots. A path is protected only when it belongs to a recorded Cargo job, validation-copy job, or workflow artifact. `artifact audit` reports every other directory; `artifact cleanup` removes one revalidated candidate per invocation and records `delete_started`, `deleted`, or `delete_failed` events. The daemon runs the same sweep on its 30-second loop. Before Cargo acquisition or validation-copy work starts, the service fails closed with `unmanaged_artifacts_detected` while any unknown directory remains. Therefore Sessions must register a Cargo lane or validation copy before it creates an output directory; raw Cargo targets, RenderDoc captures, or ad-hoc `ZirconBuilds` folders are not supported execution paths.
 
@@ -576,7 +598,7 @@ Cutover writes a durable `preparing` record before the first startup mutation, j
 
 ## M4 Validation
 
-M4 adds unit coverage for direct-child and junction/symlink escapes, unavailable roots, case aliases, nested legacy overlap, explicit reuse, foreign-session mutation, running/pre-start orphan reconciliation, positive retention, reviewed-plan non-expansion, reservation/acquire concurrency and transaction-free deletion. The PowerShell smoke also validates the scheduled-task plan, while validator tests assert that command-line/environment overrides cannot bypass the service and pre-start failures release their job.
+M4 adds unit coverage for direct-child and junction/symlink escapes, unavailable roots, case aliases, nested legacy overlap, explicit reuse, foreign-session mutation, running/pre-start orphan reconciliation, positive retention, reviewed-plan non-expansion, reservation/acquire/start concurrency, transaction-free deletion, deletion evidence and interrupted-deletion settlement. The PowerShell smoke also validates the scheduled-task plan, while validator tests assert that command-line/environment overrides cannot bypass the service and pre-start failures release their job.
 
 ## Explicit Git Finalize
 
@@ -602,6 +624,53 @@ An accepted milestone must use the workflow-aware local action path, which keeps
 .\tools\zircon-session.ps1 milestone commit --session-id <session-id> --run-id <run-id> --milestone M2 --summary "add variable shaping visibility diagnostics"
 ```
 
+Native-plugin performance validation uses a separate one-time authorization before the
+validation action. The target Session names the benchmark and profile, while the
+Coordinator selects the only eligible `materialized` copy owned by the same numbered
+source plan; callers cannot provide a job ID, grant ID, Cargo filter, or environment:
+
+```powershell
+.\tools\zircon-session.ps1 milestone grant-benchmark `
+  --session-id <target-session-id> `
+  --source-session-id <source-session-id> `
+  --run-id <run-id> `
+  --milestone M1 `
+  --benchmark-name native_runtime_broadcast_8_plugin_benchmark `
+  --cargo-profile release
+
+.\tools\zircon-session.ps1 milestone validate `
+  --session-id <target-session-id> `
+  --run-id <run-id> `
+  --milestone M1 `
+  --template native-plugin-benchmark `
+  --benchmark-name native_runtime_broadcast_8_plugin_benchmark `
+  --cargo-profile release
+```
+
+The durable grant binds the source and target Sessions, FIFO reservation, named case,
+profile, server-generated command, milestone-scoped manifest and the complete immutable
+copy input manifest. Validation rechecks both manifest domains independently, consumes
+only the target Session's FIFO head, and records the root PID with the grant and workflow
+binding before terminal collection. `ZR_BENCHMARK_SOURCE_MANIFEST` and
+`ZR_BENCHMARK_CARGO_PROFILE` are derived from that binding and injected only into the
+benchmark child. Ordinary synchronous and asynchronous validation children remove any
+inherited values for those keys.
+
+On Windows, the benchmark root is created suspended and atomically assigned to a
+non-inheritable kill-on-close Job Object before its first instruction. The Coordinator
+persists the root PID and creation time before resume and keeps the Job handle until the
+root and all descendants are terminal. Root exit alone is not terminal evidence: the
+collector terminates and waits for the complete Job before draining EOF, importing the
+workflow result, or releasing the preserved copy. This prevents an exited intermediate
+process from orphaning a grandchild that can still mutate the copy.
+
+Startup reconciliation denies an unregistered `launching` grant so it cannot wedge the
+FIFO. A `consumed` grant without terminal evidence is process-identity checked, its
+workflow validation is rejected, and its copy is preserved. A collector or evidence
+failure may leave the copy explicitly `failed`; recovery accepts that durable failed/no-run
+state without rewriting or deleting its contents. Cancellation authority follows the
+active grant's target Session rather than the source Session that owns the preserved copy.
+
 The local CLI treats `previewed` and `executing` controlled actions as non-terminal. After one preview and one confirmation, it polls `GET /control/v1/actions/{action_id}` until the same durable action reaches a terminal state, then returns that action's result to the milestone command. Materialization-heavy actions such as `validation.start` therefore keep one action and one validation copy: an initial `executing` response with `result: null` is not reported as `invalid_response` and never triggers a duplicate preview or validation job. Polling uses the command deadline; exceeding it reports `command_timeout` with the action identity so callers can inspect the existing action instead of retrying it blindly.
 
 `milestone commit` requires a concrete `--summary`. `MilestoneWorkflowService` combines it with the registered plan module and actual manifest class to build a specific plain Conventional Commit subject, such as `feat(frameworks): add render dependency diagnostics`; generic `workflow`, `milestone`, and `complete M2 milestone` summaries are rejected. It rechecks live gate state under the Git mutex, commits the exact service-bound manifest, records the accepted node, and sends WeCom exactly once after the commit SHA exists. For the example plan under `docs/plans/zircon_runtime/frameworks/`, the service uses `frameworks` on the WeCom first line as `核心内容摘要：【frameworks】M2 · <title>：<summary>`; the committed subject and the notification's fourth line remain unprefixed. A notification failure is recorded but never rolls back the commit or auto-retries delivery.
@@ -614,7 +683,9 @@ Milestone commit paths must have live leases owned by the Session and current-ha
 
 Owned-scope eligibility is Session-relative, not global-baseline-relative. Attribution proves that the requesting Session owns the exact current file bytes; the coordinator separately compares those bytes with the current `HEAD` checkout to prove that the manifest contains a real commit delta. A later global baseline capture may absorb a dirty hash for shared health tracking, but it cannot erase an already attributed tracked change that still differs from `HEAD`. The unchanged-path gate remains active for content that truly matches `HEAD`, and omitted-owned-path, live-lease, staged-blob, Failure and secret gates are unchanged.
 
-Every requested path must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
+Every material path requested by an ordinary finalize must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
+
+A Failure closeout may additionally bind immutable proof under `.codex/state/` into its exact snapshot manifest. Coordinator state remains unleaseable and is never staged or committed: it is revalidated by the closeout acceptance gate and again by the under-mutex precommit snapshot guard. Attribution and live leases still apply to every material path that enters the commit, while a changed state proof, an ordinary unattributed dirty path, or a closeout without that guard fails closed.
 
 Before index mutation, the service requires the baseline `HEAD` to remain current, rejects an active Git mutex, foreign leases, queued or `needs_rebase` patches, foreign staged paths, protected/global plan output, output outside the registered numbered child plan, and an unresolved Failure routed to the Session plan. A degraded baseline is retained as a workspace-health observation rather than a global finalization gate: an exactly attributed, scope-complete Session may commit without waiting for unrelated worktree changes to be reconciled. Staged added lines are scanned for maintenance capabilities and generic credentials. An intentional Enterprise WeChat webhook URL or `WECOM_WEBHOOK_KEY` configuration may enter a service-managed Git commit, but its value remains absent from coordinator persistence and error output.
 
@@ -697,7 +768,7 @@ Validation copies provide a stable source view without a branch, worktree or rep
 
 `materialize` creates its durable job and returns before copying files. The detached worker performs filesystem I/O outside the foreground mutation mutex, so Session heartbeats, leases and Cargo `finish`/`release` requests cannot wait behind a large manifest. Its status is `materializing` until terminal `materialized` or `failed`; a materializing job cannot be run, cancelled or cleaned up. Planning pins one HEAD SHA. The worker extracts all unowned tracked files from that exact commit through one Git archive stream, then overlays only the requesting Session's current-hash-attributed paths from the worktree. This avoids per-file Git processes and prevents concurrent finalization from creating a mixed-version copy. Unowned untracked paths, `.git`, coordinator state and repository build output are rejected. The resolved `verify` root and job root are revalidated during plan, materialize, run and cleanup; junction/symlink escapes fail closed.
 
-Validation commands acquire the job's `running` state and run with `CARGO_TARGET_DIR` fixed to the adjacent `{job-root}\target`; a second run and cleanup are rejected until execution returns to `materialized`. Exit code and bounded stdout/stderr evidence are stored in SQLite. After terminal evidence is imported, the coordinator automatically reserves `cleanup_pending` and removes the single job tree. Artifact-producing raw Cargo commands are rejected by the repository `PreToolUse` Hook; the Hook writes only a sanitized local denial record and is a workflow guardrail rather than a credential boundary.
+Validation commands acquire the job's `running` state and run with `CARGO_TARGET_DIR` fixed to the adjacent `{job-root}\target`; a second run and cleanup are rejected until execution returns to `materialized`. Exit code and bounded stdout/stderr evidence are stored in SQLite. Ordinary validation reserves `cleanup_pending` and removes the single job tree after terminal evidence is imported. An authorized native-plugin benchmark instead returns the pre-existing copy to `materialized` so the Coordinator-selected source tree remains intact; denied, stale, foreign, replayed, or out-of-FIFO launches do not mutate it. Artifact-producing raw Cargo commands are rejected by the repository `PreToolUse` Hook; the Hook writes only a sanitized local denial record and is a workflow guardrail rather than a credential boundary.
 
 Cleanup accepts only a job root already recorded by the service and only when its resolved path is a direct child of an allowlisted `verify` root. It removes that single job tree, including the adjacent target, then records the removal.
 

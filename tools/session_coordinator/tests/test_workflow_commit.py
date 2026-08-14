@@ -9,6 +9,9 @@ from unittest import mock
 from pathlib import Path
 
 from tools.session_coordinator.baselines import BaselineService
+from tools.session_coordinator.benchmark_validation_grants import (
+    BenchmarkValidationGrantService,
+)
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.failures import FailureGraphService
@@ -1149,6 +1152,237 @@ class WorkflowCommitTests(unittest.TestCase):
         self.assertEqual("accepted", row["decision"])
         self.assertEqual("action-a", row["action_id"])
         self.assertEqual(f"{self.run_id}:M1", row["node_id"])
+
+    def test_benchmark_binding_persists_distinct_scoped_and_full_copy_manifests(self) -> None:
+        service = self._service()
+        paths = ["src/runtime.py"]
+        target = self.repo / paths[0]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("milestone content\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", paths).acquired)
+        self.baselines.attribute("session-a", paths)
+        source = self.repo.parent / "cargo-closure-source"
+        copied = source / paths[0]
+        copied.parent.mkdir(parents=True, exist_ok=True)
+        copied.write_bytes(target.read_bytes())
+        (source / "Cargo.lock").write_text("closure-only\n", encoding="utf-8")
+        scoped_hash = service.prepare_context(
+            self.run_id,
+            paths,
+            failure_workflow_node_keys=service._failure_node_keys(self.run_id, "M1"),
+        ).manifest_hash
+        full_hash = "f" * 64
+        self.assertNotEqual(scoped_hash, full_hash)
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_milestone_manifests(
+                       manifest_id, run_id, topology_version_id, node_id,
+                       session_id, paths_json, manifest_hash, actor, action_id,
+                       created_at
+                   ) VALUES ('benchmark-manifest', ?, ?, ?, 'session-a', ?, ?,
+                             'operator-a', 'action-a',
+                             '2026-08-11T00:00:00+00:00')""",
+                (
+                    self.run_id,
+                    self.topology_version_id,
+                    f"{self.run_id}:M1",
+                    json.dumps(paths),
+                    scoped_hash,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO validation_copies(
+                       job_id, session_id, job_root, source_root, target_root,
+                       head_commit, manifest_json, status, created_at,
+                       input_manifest_hash
+                   ) VALUES ('benchmark-copy', 'session-a', ?, ?, ?, 'head', ?,
+                             'materialized', '2026-08-11T00:00:00+00:00', ?)""",
+                (
+                    str(source.parent),
+                    str(source),
+                    str(source.parent / "target"),
+                    json.dumps([*paths, "Cargo.lock"]),
+                    full_hash,
+                ),
+            )
+
+        service.bind_validation(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M1",
+            validation_run_id="benchmark-validation",
+            job_id="benchmark-copy",
+            template="native-plugin-benchmark",
+            source_manifest_hash=scoped_hash,
+            copy_input_manifest_hash=full_hash,
+            benchmark_name="native_host_context_lookup_1_thread_benchmark",
+            cargo_profile="release",
+            benchmark_grant_id="grant-a",
+            actor="operator-a",
+            action_id="action-a",
+        )
+        service.record_validation_process_identity(
+            "benchmark-validation",
+            root_pid=4242,
+            process_creation_time="111222",
+        )
+
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM workflow_validation_bindings WHERE validation_run_id=?",
+                ("benchmark-validation",),
+            ).fetchone()
+        self.assertEqual(scoped_hash, row["source_manifest_hash"])
+        self.assertEqual(full_hash, row["copy_input_manifest_hash"])
+        self.assertEqual(4242, row["root_pid"])
+        self.assertEqual("release", row["cargo_profile"])
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET input_manifest_hash=? WHERE job_id='benchmark-copy'",
+                ("e" * 64,),
+            )
+            connection.execute(
+                """INSERT INTO validation_copy_runs(
+                       run_id, job_id, session_id, command_json, exit_code,
+                       stdout_text, stderr_text, started_at, completed_at
+                   ) VALUES ('benchmark-validation', 'benchmark-copy', 'session-a',
+                             '["cargo","test"]', 0, 'ok', '',
+                             '2026-08-11T00:00:00+00:00',
+                             '2026-08-11T00:01:00+00:00')"""
+            )
+        self.assertTrue(service.import_validation_result("benchmark-validation"))
+        with self.database.connect() as connection:
+            rejected = connection.execute(
+                """SELECT terminal_status, terminal_code
+                   FROM workflow_validation_bindings
+                   WHERE validation_run_id='benchmark-validation'"""
+            ).fetchone()
+        self.assertEqual("rejected", rejected["terminal_status"])
+        self.assertEqual(
+            "validation_copy_input_manifest_changed", rejected["terminal_code"]
+        )
+
+    def test_restart_rejects_consumed_benchmark_without_terminal_evidence(self) -> None:
+        service = self._service()
+        paths = ["src/runtime.py"]
+        target = self.repo / paths[0]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("milestone content\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", paths).acquired)
+        self.baselines.attribute("session-a", paths)
+        scoped_hash = service.prepare_context(
+            self.run_id,
+            paths,
+            failure_workflow_node_keys=service._failure_node_keys(self.run_id, "M1"),
+        ).manifest_hash
+        full_hash = "f" * 64
+        copy_root = self.repo.parent / "interrupted-benchmark"
+        source_root = copy_root / "source"
+        copied = source_root / paths[0]
+        copied.parent.mkdir(parents=True)
+        copied.write_bytes(target.read_bytes())
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_milestone_manifests(
+                       manifest_id, run_id, topology_version_id, node_id,
+                       session_id, paths_json, manifest_hash, actor, action_id,
+                       created_at
+                   ) VALUES ('restart-benchmark-manifest', ?, ?, ?, 'session-a',
+                             ?, ?, 'operator-a', 'action-a',
+                             '2026-08-11T00:00:00+00:00')""",
+                (
+                    self.run_id,
+                    self.topology_version_id,
+                    f"{self.run_id}:M1",
+                    json.dumps(paths),
+                    scoped_hash,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO validation_copies(
+                       job_id, session_id, job_root, source_root, target_root,
+                       head_commit, manifest_json, status, created_at,
+                       input_manifest_hash, run_pid
+                   ) VALUES ('restart-benchmark-copy', 'session-a', ?, ?, ?,
+                             'head', ?, 'running',
+                             '2026-08-11T00:00:00+00:00', ?, 4242)""",
+                (
+                    str(copy_root),
+                    str(source_root),
+                    str(copy_root / "target"),
+                    json.dumps(paths),
+                    full_hash,
+                ),
+            )
+
+        service.bind_validation(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M1",
+            validation_run_id="restart-benchmark-validation",
+            job_id="restart-benchmark-copy",
+            template="native-plugin-benchmark",
+            source_manifest_hash=scoped_hash,
+            copy_input_manifest_hash=full_hash,
+            benchmark_name="native_host_context_lookup_1_thread_benchmark",
+            cargo_profile="release",
+            benchmark_grant_id="restart-grant",
+            actor="operator-a",
+            action_id="action-a",
+        )
+        service.record_validation_process_identity(
+            "restart-benchmark-validation",
+            root_pid=4242,
+            process_creation_time="111222",
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO benchmark_validation_grants(
+                       grant_id, job_id, source_session_id, target_session_id,
+                       run_id, milestone_id, input_manifest_hash,
+                       scoped_manifest_hash, benchmark_name, cargo_profile,
+                       command_json, status, issued_at, acquired_at, consumed_at,
+                       validation_run_id, root_pid, root_process_creation_time
+                   ) VALUES ('restart-grant', 'restart-benchmark-copy',
+                             'session-a', 'session-a', ?, 'M1', ?, ?,
+                             'native_host_context_lookup_1_thread_benchmark',
+                             'release', '["cargo","test"]', 'consumed',
+                             '2026-08-11T00:00:00+00:00',
+                             '2026-08-11T00:00:01+00:00',
+                             '2026-08-11T00:00:02+00:00',
+                             'restart-benchmark-validation', 4242, '111222')""",
+                (self.run_id, full_hash, scoped_hash),
+            )
+
+        recovered = BenchmarkValidationGrantService(
+            self.database
+        ).reconcile_interrupted_consumed(
+            service.reject_validation_launch,
+            terminate_interrupted=mock.Mock(),
+        )
+
+        self.assertEqual(("restart-benchmark-validation",), recovered)
+        with self.database.connect() as connection:
+            binding = connection.execute(
+                """SELECT terminal_status, terminal_code, imported_at
+                   FROM workflow_validation_bindings
+                   WHERE validation_run_id='restart-benchmark-validation'"""
+            ).fetchone()
+            gate = connection.execute(
+                """SELECT decision, decision_code
+                   FROM workflow_gate_evidence
+                   WHERE source_revision='restart-benchmark-validation'
+                     AND gate_kind='validation'"""
+            ).fetchone()
+        self.assertEqual("rejected", binding["terminal_status"])
+        self.assertEqual(
+            "benchmark_validation_collector_interrupted", binding["terminal_code"]
+        )
+        self.assertIsNotNone(binding["imported_at"])
+        self.assertEqual(
+            ("rejected", "benchmark_validation_collector_interrupted"), tuple(gate)
+        )
 
     def test_validation_copy_mutation_after_binding_is_rejected(self) -> None:
         service = self._service()

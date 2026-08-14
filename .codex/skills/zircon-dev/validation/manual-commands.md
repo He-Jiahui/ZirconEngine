@@ -53,6 +53,22 @@ Reserve for execution-wave closeout, release candidates, or root manifest/lockfi
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -VerboseOutput
 ```
 
+## Cargo Profiles
+
+Omitting `-CargoProfile` preserves the historical development behavior and reads artifacts from the Cargo `debug` directory. Use the release profile for throughput, power, or shippable artifacts:
+
+```powershell
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -CargoProfile release
+```
+
+Use the workspace `profiling` profile only when symbolized CPU or ETW stack attribution is required. It inherits release optimization, retains debug information, emits `--profile profiling`, and reads artifacts from the Cargo `profiling` directory:
+
+```powershell
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -CargoProfile profiling
+```
+
+The selected profile is part of the coordinator compatibility identity. Do not compare development, release, and profiling binaries as though they came from the same immutable build.
+
 ## Export Platform Contract
 
 To mirror the CI export-platform policy matrix locally without running unrelated tests, use the validator. The current platform set is `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, `wasm`, and `headless`:

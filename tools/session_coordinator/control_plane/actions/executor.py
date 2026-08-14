@@ -11,11 +11,13 @@ from .models import (
     ActionKind,
     ActionParameters,
     ActionSpec,
+    BenchmarkGrantIssueParameters,
     SessionParameters,
     GoalCloseoutParameters,
     MilestoneCommitParameters,
     MilestoneParameters,
     LifecycleParameters,
+    NativePluginBenchmarkProfile,
     ValidationCancelParameters,
     ValidationStartParameters,
     ValidationTemplate,
@@ -42,6 +44,7 @@ class ActionExecutor:
         lifecycle=None,
         git_finalize=None,
         codex_wake=None,
+        benchmark_grants=None,
     ):
         self.sessions = sessions
         self.leases = leases
@@ -54,6 +57,7 @@ class ActionExecutor:
         self.lifecycle = lifecycle
         self.git_finalize = git_finalize
         self.codex_wake = codex_wake
+        self.benchmark_grants = benchmark_grants
         self._deferred_completion: Callable[..., None] | None = None
 
     def set_deferred_completion(self, callback: Callable[..., None]) -> None:
@@ -151,31 +155,77 @@ class ActionExecutor:
                     for item in records
                 ]
             }
+        if kind is ActionKind.BENCHMARK_GRANT_ISSUE:
+            if (
+                self.workspace_copy is None
+                or self.milestones is None
+                or self.benchmark_grants is None
+            ):
+                raise CoordinatorError(
+                    "action_unavailable", "Benchmark grant services are unavailable"
+                )
+            value = self._typed(parameters, BenchmarkGrantIssueParameters)
+            paths = self._milestone_validation_paths(
+                session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_id=value.milestone_id,
+                actor=actor,
+                action_id=action_id,
+            )
+            candidate = self.benchmark_grants.select_candidate(
+                source_session_id=value.source_session_id,
+                target_session_id=value.session_id,
+            )
+            copy_scoped_hash = self.workspace_copy.scoped_manifest_hash(
+                candidate.job_id, paths
+            )
+            current_scoped_hash = self.milestones.current_milestone_manifest_hash(
+                session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_key=value.milestone_id,
+                paths=paths,
+            )
+            if copy_scoped_hash != current_scoped_hash:
+                raise CoordinatorError(
+                    "validation_copy_manifest_stale",
+                    "Existing benchmark copy does not match the current milestone manifest",
+                    details={
+                        "copyManifestHash": copy_scoped_hash,
+                        "currentManifestHash": current_scoped_hash,
+                    },
+                )
+            validation = ValidationStartParameters(
+                value.session_id,
+                ValidationTemplate.NATIVE_PLUGIN_BENCHMARK,
+                value.run_id,
+                value.milestone_id,
+                value.benchmark_name,
+                value.cargo_profile,
+            )
+            grant = self.benchmark_grants.issue(
+                candidate=candidate,
+                target_session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_id=value.milestone_id,
+                benchmark_name=value.benchmark_name.value,
+                cargo_profile=value.cargo_profile.value,
+                command=self._validation_command(validation),
+                scoped_manifest_hash=current_scoped_hash,
+            )
+            return {"benchmarkGrant": grant.to_dict()}
         if kind is ActionKind.VALIDATION_START:
             if self.workspace_copy is None:
                 raise CoordinatorError("action_unavailable", "Validation-copy service is unavailable")
             value = self._typed(parameters, ValidationStartParameters)
             if self.milestones is None:
                 raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
-            paths = self.milestones.milestone_paths(value.run_id, value.milestone_id)
-            if not paths:
-                paths = self.milestones.bind_manifest(
-                    session_id=value.session_id,
-                    run_id=value.run_id,
-                    milestone_key=value.milestone_id,
-                    actor=actor or "controlled-action",
-                    action_id=action_id,
-                )
-            unattributed = sorted(
-                set(paths) - set(self.milestones.attributed_changes(value.session_id)),
-                key=str.casefold,
+            paths = self._milestone_validation_paths(
+                session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_id=value.milestone_id,
+                actor=actor,
+                action_id=action_id,
             )
-            if unattributed:
-                raise CoordinatorError(
-                    "milestone_manifest_not_attributed",
-                    "The immutable milestone manifest no longer belongs to this Session",
-                    details={"paths": unattributed},
-                )
             if action_id is None or self._deferred_completion is None:
                 return self._start_validation(value, paths, actor=actor, action_id=action_id)
             return {
@@ -410,7 +460,102 @@ class ActionExecutor:
     ) -> dict[str, object]:
         if self.workspace_copy is None or self.milestones is None:
             raise CoordinatorError("action_unavailable", "Validation services are unavailable")
-        command = self._validation_command(value.template)
+        command = self._validation_command(value)
+        if value.template is ValidationTemplate.NATIVE_PLUGIN_BENCHMARK:
+            if self.benchmark_grants is None:
+                raise CoordinatorError(
+                    "action_unavailable", "Benchmark grant service is unavailable"
+                )
+            assert value.benchmark_name is not None
+            assert value.cargo_profile is not None
+            grant = self.benchmark_grants.acquire(
+                target_session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_id=value.milestone_id,
+                benchmark_name=value.benchmark_name.value,
+                cargo_profile=value.cargo_profile.value,
+                command=command,
+            )
+            launched = False
+            binding_created = False
+            validation_run_id = uuid.uuid4().hex
+            try:
+                benchmark_environment = self._benchmark_environment(value, grant)
+                scoped_manifest_hash = self.workspace_copy.scoped_manifest_hash(
+                    grant.job_id, paths
+                )
+                if scoped_manifest_hash != grant.scoped_manifest_hash:
+                    raise CoordinatorError(
+                        "validation_copy_manifest_stale",
+                        "Granted benchmark copy no longer matches its milestone manifest",
+                        details={
+                            "copyManifestHash": scoped_manifest_hash,
+                            "grantManifestHash": grant.scoped_manifest_hash,
+                        },
+                    )
+                self.milestones.bind_validation(
+                    session_id=value.session_id,
+                    run_id=value.run_id,
+                    milestone_key=value.milestone_id,
+                    validation_run_id=validation_run_id,
+                    job_id=grant.job_id,
+                    template=value.template.value,
+                    source_manifest_hash=scoped_manifest_hash,
+                    copy_input_manifest_hash=grant.input_manifest_hash,
+                    benchmark_name=value.benchmark_name.value,
+                    cargo_profile=value.cargo_profile.value,
+                    benchmark_grant_id=grant.grant_id,
+                    actor=actor or "controlled-action",
+                    action_id=action_id,
+                )
+                binding_created = True
+                started = self.workspace_copy.start(
+                    value.session_id,
+                    grant.job_id,
+                    command=command,
+                    run_id=validation_run_id,
+                    benchmark_grant_id=grant.grant_id,
+                    environment=benchmark_environment,
+                )
+                launched = True
+                self.milestones.record_validation_process_identity(
+                    validation_run_id,
+                    root_pid=int(started["pid"]),
+                    process_creation_time=str(started["processCreationTime"]),
+                )
+            except BaseException as error:
+                if not launched:
+                    error_code = (
+                        error.code
+                        if isinstance(error, CoordinatorError)
+                        else "benchmark_validation_launch_failed"
+                    )
+                    if binding_created:
+                        try:
+                            self.milestones.reject_validation_launch(
+                                validation_run_id, error_code=error_code
+                            )
+                        except Exception:
+                            pass
+                    self.benchmark_grants.deny(grant.grant_id, error_code=error_code)
+                raise
+            return {
+                "copy": {
+                    "jobId": grant.job_id,
+                    "inputManifestHash": grant.input_manifest_hash,
+                },
+                "validation": started,
+                "benchmarkIdentity": {
+                    "rootPid": started["pid"],
+                    "rootProcessCreationTime": started["processCreationTime"],
+                    "runId": started["runId"],
+                    "sourceManifestHash": grant.input_manifest_hash,
+                    "milestoneManifestHash": scoped_manifest_hash,
+                    "cargoProfile": value.cargo_profile.value,
+                    "benchmarkName": value.benchmark_name.value,
+                    "grantId": grant.grant_id,
+                },
+            }
         if value.template is ValidationTemplate.RUNTIME14_RUST_FOCUSED:
             record = self.workspace_copy.materialize_cargo(
                 value.session_id,
@@ -425,7 +570,9 @@ class ActionExecutor:
                 overlay_paths=paths,
             )
         validation_run_id = uuid.uuid4().hex
-        source_manifest_hash = self.workspace_copy.scoped_manifest_hash(record.job_id, paths)
+        source_manifest_hash = self.workspace_copy.scoped_manifest_hash(
+            record.job_id, paths
+        )
         self.milestones.bind_validation(
             session_id=value.session_id,
             run_id=value.run_id,
@@ -444,6 +591,37 @@ class ActionExecutor:
             run_id=validation_run_id,
         )
         return {"copy": record.to_dict(), "validation": started}
+
+    def _milestone_validation_paths(
+        self,
+        *,
+        session_id: str,
+        run_id: str,
+        milestone_id: str,
+        actor: str | None,
+        action_id: str | None,
+    ) -> tuple[str, ...]:
+        paths = self.milestones.milestone_paths(run_id, milestone_id)
+        if not paths:
+            paths = self.milestones.bind_manifest(
+                session_id=session_id,
+                run_id=run_id,
+                milestone_key=milestone_id,
+                actor=actor or "controlled-action",
+                action_id=action_id,
+            )
+        paths = tuple(paths)
+        unattributed = sorted(
+            set(paths) - set(self.milestones.attributed_changes(session_id)),
+            key=str.casefold,
+        )
+        if unattributed:
+            raise CoordinatorError(
+                "milestone_manifest_not_attributed",
+                "The immutable milestone manifest no longer belongs to this Session",
+                details={"paths": unattributed},
+            )
+        return paths
 
     def _start_validation_thread(
         self,
@@ -484,7 +662,12 @@ class ActionExecutor:
         return parameters
 
     @staticmethod
-    def _validation_command(template: ValidationTemplate) -> tuple[str, ...]:
+    def _validation_command(
+        value: ValidationStartParameters | ValidationTemplate,
+    ) -> tuple[str, ...]:
+        template = (
+            value.template if isinstance(value, ValidationStartParameters) else value
+        )
         if template is ValidationTemplate.COORDINATOR_ACTIONS:
             return (
                 sys.executable,
@@ -516,7 +699,72 @@ class ActionExecutor:
                 "--nocapture",
                 "--test-threads=1",
             )
+        if template is ValidationTemplate.NATIVE_PLUGIN_BENCHMARK:
+            if not isinstance(value, ValidationStartParameters):
+                raise CoordinatorError(
+                    "action_parameters_invalid",
+                    "Native plugin benchmark command requires typed validation parameters",
+                )
+            if value.benchmark_name is None or value.cargo_profile is None:
+                raise CoordinatorError(
+                    "action_parameters_invalid",
+                    "Native plugin benchmark requires a name and optimized Cargo profile",
+                )
+            profile_arguments = (
+                ("--release",)
+                if value.cargo_profile is NativePluginBenchmarkProfile.RELEASE
+                else ("--profile", "profiling")
+            )
+            return (
+                "cargo",
+                "+1.94.1",
+                "test",
+                "-p",
+                "zircon_runtime",
+                "--lib",
+                *profile_arguments,
+                "--locked",
+                "--jobs",
+                "1",
+                value.benchmark_name.value,
+                "--",
+                "--ignored",
+                "--exact",
+                "--nocapture",
+                "--test-threads=1",
+            )
         raise CoordinatorError("action_validation_template_unknown", "Unknown validation template")
+
+    @staticmethod
+    def _benchmark_environment(
+        value: ValidationStartParameters, record: object
+    ) -> dict[str, str] | None:
+        if value.template is not ValidationTemplate.NATIVE_PLUGIN_BENCHMARK:
+            return None
+        if value.cargo_profile is None:
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Native plugin benchmark Cargo profile is missing",
+            )
+        manifest = getattr(record, "input_manifest_hash", None)
+        if manifest is None:
+            raise CoordinatorError(
+                "validation_benchmark_manifest_missing",
+                "Materialized benchmark input manifest is missing",
+            )
+        if (
+            not isinstance(manifest, str)
+            or len(manifest) != 64
+            or any(character not in "0123456789abcdef" for character in manifest)
+        ):
+            raise CoordinatorError(
+                "validation_benchmark_manifest_invalid",
+                "Materialized benchmark input manifest is invalid",
+            )
+        return {
+            "ZR_BENCHMARK_SOURCE_MANIFEST": manifest,
+            "ZR_BENCHMARK_CARGO_PROFILE": value.cargo_profile.value,
+        }
 
     @staticmethod
     def _validation_dependency_roots(template: ValidationTemplate) -> tuple[str, ...]:

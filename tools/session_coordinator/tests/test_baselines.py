@@ -71,6 +71,36 @@ class BaselineTests(unittest.TestCase):
         self.assertIn("second.txt", second.manifest)
         self.assertEqual(BaselineHealth.HEALTHY, second.health)
 
+    def test_head_refresh_preserves_shared_index_and_stale_lock(self) -> None:
+        first = self.service.initialize()
+        (self.repo / "second.txt").write_text("second\n", encoding="utf-8")
+        subprocess.run(["git", "add", "second.txt"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: advance locked baseline"],
+            cwd=self.repo,
+            check=True,
+        )
+        (self.repo / "README.md").write_text("preserved staged\n", encoding="utf-8")
+        subprocess.run(["git", "add", "README.md"], cwd=self.repo, check=True)
+        expected_tree = subprocess.run(
+            ["git", "write-tree"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        index_path = self.repo / ".git/index"
+        index_before = index_path.read_bytes()
+        lock_path = self.repo / ".git/index.lock"
+        lock_path.write_bytes(b"")
+
+        second = self.service.refresh_for_head_change()
+
+        self.assertGreater(second.epoch_id, first.epoch_id)
+        self.assertEqual(expected_tree, second.index_tree)
+        self.assertEqual(index_before, index_path.read_bytes())
+        self.assertTrue(lock_path.exists())
+
     def test_head_refresh_hashes_only_changed_paths_instead_of_archiving_head(self) -> None:
         self.service.initialize()
         for index in range(3):

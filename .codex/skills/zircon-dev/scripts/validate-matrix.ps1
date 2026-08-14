@@ -14,12 +14,15 @@ param(
     [string]$Bin,
     [string]$ArtifactOutputDirectory,
     [string[]]$PublishArtifact,
+    [switch]$MvpProductInputArtifactOutput,
     [string]$TestFilter,
     [switch]$IgnoredTests,
     [switch]$RunExportPlatformContract,
     [string]$ExportContractPlatform,
     [switch]$RunProfileFeatureContract,
     [string]$ProfileFeatureContractLabel,
+    [ValidateSet("development", "release", "profiling")]
+    [string]$CargoProfile = "development",
     [switch]$NoLocked,
     [switch]$VerboseOutput,
     [switch]$DryRun
@@ -165,8 +168,9 @@ function Resolve-WorkspaceManifest {
     }
 
     return [pscustomobject]@{
-        RelativePath = $candidate.Substring($resolvedRoot.Length).TrimStart('\', '/').Replace('\', '/')
-        Directory    = Split-Path -Parent $candidateResolution.DisplayPath
+        RelativePath           = $candidate.Substring($resolvedRoot.Length).TrimStart('\', '/').Replace('\', '/')
+        Directory              = Split-Path -Parent $candidateResolution.DisplayPath
+        InvocationManifestPath = [System.IO.Path]::GetFileName($candidateResolution.DisplayPath)
     }
 }
 
@@ -212,6 +216,8 @@ function New-CargoCompatibilityJson {
     param(
         [string]$ResolvedRepoRoot,
         [string]$WorkspaceManifest = "Cargo.toml",
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development",
         [switch]$DryRunMode
     )
 
@@ -225,8 +231,10 @@ function New-CargoCompatibilityJson {
         } else { "off" }
         rustflags = [string]$env:RUSTFLAGS
         cargo_incremental = [string]$env:CARGO_INCREMENTAL
+        cargo_profile = $CargoProfile
         dev_debug = [string]$env:CARGO_PROFILE_DEV_DEBUG
         release_debug = [string]$env:CARGO_PROFILE_RELEASE_DEBUG
+        profiling_debug = [string]$env:CARGO_PROFILE_PROFILING_DEBUG
     }
     $compatibility = [ordered]@{
         platform = "windows"
@@ -327,6 +335,8 @@ function Resolve-CoordinatorCargoTarget {
         [string]$ManualTargetDir,
         [string]$LaneKind,
         [string]$WorkspaceManifest,
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development",
         [switch]$EphemeralLane,
         [switch]$DryRunMode
     )
@@ -335,6 +345,7 @@ function Resolve-CoordinatorCargoTarget {
     $compatibilityJson = New-CargoCompatibilityJson `
         -ResolvedRepoRoot $RepoRoot `
         -WorkspaceManifest $WorkspaceManifest `
+        -CargoProfile $CargoProfile `
         -DryRunMode:$DryRunMode
     $registered = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
         "session", "register", "--session-id", $ownerId,
@@ -568,11 +579,31 @@ function Get-CargoCleanArgs {
     return $args.ToArray()
 }
 
+function Add-CargoProfileArguments {
+    param(
+        [System.Collections.Generic.List[string]]$Arguments,
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development"
+    )
+
+    switch ($CargoProfile) {
+        "release" {
+            $Arguments.Add("--release") | Out-Null
+        }
+        "profiling" {
+            $Arguments.Add("--profile") | Out-Null
+            $Arguments.Add("profiling") | Out-Null
+        }
+    }
+}
+
 function Get-CargoArgs {
     param(
         [string]$Subcommand,
         [string]$ResolvedTargetDir,
-        [string]$WorkspaceManifest
+        [string]$WorkspaceManifest,
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development"
     )
 
     $args = [System.Collections.Generic.List[string]]::new()
@@ -612,6 +643,8 @@ function Get-CargoArgs {
         $args.Add("--verbose") | Out-Null
     }
 
+    Add-CargoProfileArguments -Arguments $args -CargoProfile $CargoProfile
+
     if ($Subcommand -eq "test") {
         if ($LibTests) {
             $args.Add("--lib") | Out-Null
@@ -639,7 +672,8 @@ function Get-CargoArgs {
 function Assert-ArtifactOutputDirectory {
     param(
         [Parameter(Mandatory)]
-        [string]$Path
+        [string]$Path,
+        [switch]$MvpProductInputArtifactOutput
     )
 
     $resolution = Resolve-ZirconWindowsPath -Path $Path
@@ -649,11 +683,34 @@ function Assert-ArtifactOutputDirectory {
     if ($driveRoot -notmatch "^[A-Za-z]:\\$") {
         throw "-ArtifactOutputDirectory must resolve to a local drive: $displayPath"
     }
+    if ($MvpProductInputArtifactOutput) {
+        if ($displayPath -notmatch '^[D-F]:\\ZirconBuilds\\mvp-product-inputs-(?:[A-Za-z0-9][A-Za-z0-9._-]*)(?:\\|$)') {
+            throw "-ArtifactOutputDirectory MVP product input artifact output must resolve under D:\ZirconBuilds\mvp-product-inputs-*: $displayPath"
+        }
+        return $resolvedPath
+    }
     if ($driveRoot -in @("D:\", "E:\", "F:\")) {
         throw "-ArtifactOutputDirectory must be outside coordinator-governed D/E/F roots: $displayPath"
     }
 
     return $resolvedPath
+}
+
+function Get-ManagedFileSha256 {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return [System.BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace("-", "")
+    }
+    finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
 }
 
 function Publish-BuildArtifacts {
@@ -663,12 +720,22 @@ function Publish-BuildArtifacts {
         [Parameter(Mandatory)]
         [string]$ArtifactOutputDirectory,
         [Parameter(Mandatory)]
-        [string[]]$ArtifactName
+        [string[]]$ArtifactName,
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development",
+        [switch]$MvpProductInputArtifactOutput
     )
 
     $resolvedTargetDirectory = (Resolve-ZirconWindowsPath -Path $TargetDirectory).OperationalPath
-    $resolvedArtifactOutputDirectory = Assert-ArtifactOutputDirectory -Path $ArtifactOutputDirectory
-    $debugDirectory = Join-ZirconWindowsPath -Path $resolvedTargetDirectory -ChildPath "debug"
+    $resolvedArtifactOutputDirectory = Assert-ArtifactOutputDirectory `
+        -Path $ArtifactOutputDirectory `
+        -MvpProductInputArtifactOutput:$MvpProductInputArtifactOutput
+    $profileDirectoryName = switch ($CargoProfile) {
+        "development" { "debug" }
+        "release" { "release" }
+        "profiling" { "profiling" }
+    }
+    $profileDirectory = Join-ZirconWindowsPath -Path $resolvedTargetDirectory -ChildPath $profileDirectoryName
     [System.IO.Directory]::CreateDirectory($resolvedArtifactOutputDirectory) | Out-Null
 
     foreach ($name in $ArtifactName) {
@@ -677,7 +744,7 @@ function Publish-BuildArtifacts {
             throw "Published artifact names must be plain file names: '$name'."
         }
 
-        $sourcePath = Join-ZirconWindowsPath -Path $debugDirectory -ChildPath $name
+        $sourcePath = Join-ZirconWindowsPath -Path $profileDirectory -ChildPath $name
         $destinationPath = Join-ZirconWindowsPath -Path $resolvedArtifactOutputDirectory -ChildPath $name
         if (-not [System.IO.File]::Exists($sourcePath)) {
             throw "Declared build artifact was not produced: $sourcePath"
@@ -687,8 +754,8 @@ function Publish-BuildArtifacts {
         }
 
         [System.IO.File]::Copy($sourcePath, $destinationPath, $false)
-        $sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
-        $destinationHash = (Get-FileHash -LiteralPath $destinationPath -Algorithm SHA256).Hash
+        $sourceHash = Get-ManagedFileSha256 -Path $sourcePath
+        $destinationHash = Get-ManagedFileSha256 -Path $destinationPath
         if ($sourceHash -ne $destinationHash) {
             throw "Published build artifact hash does not match source: $name"
         }
@@ -704,7 +771,9 @@ function Publish-BuildArtifacts {
 
 function Get-ExportPlatformContractArgs {
     param(
-        [string]$ResolvedTargetDir
+        [string]$ResolvedTargetDir,
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development"
     )
 
     $args = [System.Collections.Generic.List[string]]::new()
@@ -721,6 +790,8 @@ function Get-ExportPlatformContractArgs {
         $args.Add("--verbose") | Out-Null
     }
 
+    Add-CargoProfileArguments -Arguments $args -CargoProfile $CargoProfile
+
     $args.Add("--target-dir") | Out-Null
     $args.Add($ResolvedTargetDir) | Out-Null
 
@@ -730,7 +801,9 @@ function Get-ExportPlatformContractArgs {
 function Get-ProfileFeatureContractArgs {
     param(
         [object]$Case,
-        [string]$ResolvedTargetDir
+        [string]$ResolvedTargetDir,
+        [ValidateSet("development", "release", "profiling")]
+        [string]$CargoProfile = "development"
     )
 
     $args = [System.Collections.Generic.List[string]]::new()
@@ -753,6 +826,8 @@ function Get-ProfileFeatureContractArgs {
     if ($VerboseOutput) {
         $args.Add("--verbose") | Out-Null
     }
+
+    Add-CargoProfileArguments -Arguments $args -CargoProfile $CargoProfile
 
     $args.Add("--target-dir") | Out-Null
     $args.Add($ResolvedTargetDir) | Out-Null
@@ -888,7 +963,9 @@ function Invoke-ValidateMatrixMain {
         }
     }
     if ($requestedPublishedArtifacts.Count -gt 0) {
-        $ArtifactOutputDirectory = Assert-ArtifactOutputDirectory -Path $ArtifactOutputDirectory
+        $ArtifactOutputDirectory = Assert-ArtifactOutputDirectory `
+            -Path $ArtifactOutputDirectory `
+            -MvpProductInputArtifactOutput:$MvpProductInputArtifactOutput
     }
     if (-not [string]::IsNullOrWhiteSpace($TestTarget) -and [string]::IsNullOrWhiteSpace($Package)) {
         throw "-TestTarget requires -Package."
@@ -935,6 +1012,7 @@ function Invoke-ValidateMatrixMain {
         -ManualTargetDir $TargetDir `
         -LaneKind $laneKind `
         -WorkspaceManifest $resolvedWorkspace.RelativePath `
+        -CargoProfile $CargoProfile `
         -EphemeralLane:$Ephemeral `
         -DryRunMode:$DryRun
 
@@ -947,6 +1025,7 @@ function Invoke-ValidateMatrixMain {
     Write-Host "Cargo working directory: $($resolvedWorkspace.Directory)"
     Write-Host ("Scope: {0}" -f $(if ([string]::IsNullOrWhiteSpace($Package)) { "workspace" } else { "package $Package" }))
     Write-Host ("Locked mode: {0}" -f $(if ($NoLocked) { "off" } else { "on" }))
+    Write-Host "Cargo profile: $CargoProfile"
     Write-Host ("Dry run: {0}" -f $(if ($DryRun) { "on" } else { "off" }))
     Write-Host ("Target dir: {0} ({1})" -f $resolvedTarget.TargetDir, $resolvedTarget.Reason)
 
@@ -970,7 +1049,7 @@ function Invoke-ValidateMatrixMain {
             Invoke-Step "Cargo clean" {
                 Invoke-Cargo -Arguments (Get-CargoCleanArgs `
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
-                    -WorkspaceManifest $resolvedWorkspace.RelativePath)
+                    -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath)
             }
 
             if (($Results | Select-Object -Last 1).ExitCode -ne 0) {
@@ -983,7 +1062,8 @@ function Invoke-ValidateMatrixMain {
                 Invoke-Cargo -Arguments (Get-CargoArgs `
                     -Subcommand "build" `
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
-                    -WorkspaceManifest $resolvedWorkspace.RelativePath)
+                    -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath `
+                    -CargoProfile $CargoProfile)
             }
 
             if (($Results | Select-Object -Last 1).ExitCode -eq 0 -and $requestedPublishedArtifacts.Count -gt 0) {
@@ -991,7 +1071,9 @@ function Invoke-ValidateMatrixMain {
                     Publish-BuildArtifacts `
                         -TargetDirectory $resolvedTarget.TargetDir `
                         -ArtifactOutputDirectory $ArtifactOutputDirectory `
-                        -ArtifactName $requestedPublishedArtifacts | ForEach-Object {
+                        -ArtifactName $requestedPublishedArtifacts `
+                        -CargoProfile $CargoProfile `
+                        -MvpProductInputArtifactOutput:$MvpProductInputArtifactOutput | ForEach-Object {
                         Write-Host ("Published {0} ({1}, SHA256 {2})" -f $_.Name, (Format-ByteCount -Bytes $_.Bytes), $_.Sha256)
                     }
                 }
@@ -1003,7 +1085,8 @@ function Invoke-ValidateMatrixMain {
                 Invoke-Cargo -Arguments (Get-CargoArgs `
                     -Subcommand "test" `
                     -ResolvedTargetDir $resolvedTarget.TargetDir `
-                    -WorkspaceManifest $resolvedWorkspace.RelativePath)
+                    -WorkspaceManifest $resolvedWorkspace.InvocationManifestPath `
+                    -CargoProfile $CargoProfile)
             }
         }
 
@@ -1011,7 +1094,9 @@ function Invoke-ValidateMatrixMain {
             foreach ($platform in (Get-SelectedExportContractPlatforms -Platform $ExportContractPlatform)) {
                 Invoke-Step "Export platform contract ($platform)" {
                     Invoke-CargoWithEnvironment `
-                        -Arguments (Get-ExportPlatformContractArgs -ResolvedTargetDir $resolvedTarget.TargetDir) `
+                        -Arguments (Get-ExportPlatformContractArgs `
+                            -ResolvedTargetDir $resolvedTarget.TargetDir `
+                            -CargoProfile $CargoProfile) `
                         -Environment @{ ZR_EXPORT_CONTRACT_PLATFORM = $platform }
                 }
             }
@@ -1022,7 +1107,8 @@ function Invoke-ValidateMatrixMain {
                 Invoke-Step "Profile feature contract ($($case.Label))" {
                     Invoke-Cargo -Arguments (Get-ProfileFeatureContractArgs `
                         -Case $case `
-                        -ResolvedTargetDir $resolvedTarget.TargetDir)
+                        -ResolvedTargetDir $resolvedTarget.TargetDir `
+                        -CargoProfile $CargoProfile)
                 }
             }
         }

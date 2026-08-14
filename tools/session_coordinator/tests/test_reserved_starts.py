@@ -22,6 +22,7 @@ from tools.session_coordinator.cargo_runner import CargoJobRunner
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -268,6 +269,138 @@ class ReservedStartTests(unittest.TestCase):
         self.assertEqual("running", persisted_job["status"])
         self.assertEqual("running", persisted_reservation["status"])
         self.assertEqual(("running", None), tuple(persisted_run))
+
+    def test_rejected_spawn_with_unproven_cleanup_is_durably_contained(self) -> None:
+        command = ("cargo", "test")
+        reservation, job = self._reserved_job(command)
+        request_id = "7" * 32
+        self.starts.accept(
+            request_id=request_id,
+            reservation_id=reservation["reservationId"],
+            job_id=job.job_id,
+            session_id="session-a",
+            command=command,
+        )
+
+        class UnkillableProcess:
+            pid = os.getpid()
+
+            @staticmethod
+            def poll():
+                return None
+
+            @staticmethod
+            def kill():
+                raise OSError("simulated kill failure")
+
+            @staticmethod
+            def wait(*, timeout=None):
+                raise TimeoutError(f"still alive after {timeout}")
+
+        self.runner.popen = lambda *_args, **_kwargs: UnkillableProcess()
+        with mock.patch.object(
+            self.cargo_jobs,
+            "register_authorized_managed_run",
+            side_effect=CoordinatorError("simulated_start_rejection", "rejected"),
+        ):
+            self.scheduled.pop()()
+
+        status = self.starts.status(request_id)
+        with self.database.connect() as connection:
+            persisted_job = connection.execute(
+                "SELECT status, pid, root_process_creation_time FROM cargo_jobs WHERE job_id=?",
+                (job.job_id,),
+            ).fetchone()
+            persisted_reservation = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+            persisted_run = connection.execute(
+                "SELECT status, exit_code FROM cargo_job_runs WHERE job_id=?",
+                (job.job_id,),
+            ).fetchone()
+            event = connection.execute(
+                "SELECT payload_json FROM events WHERE event_type='cargo.spawn_cleanup_unproven' "
+                "AND session_id='session-a' ORDER BY event_id DESC LIMIT 1"
+            ).fetchone()
+
+        self.assertEqual("launch_failed", status["status"])
+        self.assertEqual("cargo_launch_cleanup_unproven", status["errorCode"])
+        self.assertEqual("running", persisted_job["status"])
+        self.assertEqual(os.getpid(), persisted_job["pid"])
+        self.assertIsNotNone(persisted_job["root_process_creation_time"])
+        self.assertEqual("running", persisted_reservation["status"])
+        self.assertEqual(("running", None), tuple(persisted_run))
+        self.assertEqual(
+            "simulated_start_rejection",
+            json.loads(event["payload_json"])["rejectionCode"],
+        )
+
+    def test_restart_never_releases_live_pid_without_run_projection(self) -> None:
+        command = ("cargo", "test")
+        reservation, job = self._reserved_job(command)
+        request_id = "8" * 32
+        self.starts.accept(
+            request_id=request_id,
+            reservation_id=reservation["reservationId"],
+            job_id=job.job_id,
+            session_id="session-a",
+            command=command,
+        )
+        self.cargo_jobs.authorize_managed_start(
+            job.job_id, session_id="session-a", command=command
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_jobs
+                SET pid=?, root_process_creation_time=?, process_tree_live_pids_json=?
+                WHERE job_id=? AND status='running' AND pid IS NULL
+                """,
+                (4242, "stable:4242", "[4242]", job.job_id),
+            )
+
+        successor_jobs = CargoJobService(
+            self.database,
+            TargetPathPolicy([self.target_root]),
+            repo_root=self.repo,
+            free_space=lambda _path: 200 * 1024**3,
+            process_alive=lambda pid: pid == 4242,
+            process_tree_pids=lambda pid: (pid,),
+            supervisor_cargo_pids=lambda pid: (pid,),
+            process_creation_time=lambda pid: f"stable:{pid}",
+        )
+        successor_starts = type(self.starts)(
+            self.database,
+            successor_jobs,
+            self.runner,
+            proof_guard=lambda *_args: None,
+            scheduler=lambda _callback: None,
+            start_deadline_seconds=900,
+        )
+
+        self.assertEqual((request_id,), successor_starts.reconcile_interrupted())
+        status = successor_starts.status(request_id)
+        self.assertEqual("launch_failed", status["status"])
+        self.assertEqual(
+            "cargo_launch_interrupted_after_spawn_identity", status["errorCode"]
+        )
+        persisted = successor_jobs.get(job.job_id)
+        self.assertEqual(CargoJobStatus.RUNNING, persisted.status)
+        self.assertEqual(4242, persisted.pid)
+        with self.database.connect() as connection:
+            persisted_reservation = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+        self.assertEqual("running", persisted_reservation["status"])
+        with self.assertRaises(CoordinatorError) as occupied:
+            successor_jobs.acquire(
+                "session-a",
+                CargoLaneKind.TEST,
+                requested_target=Path(job.target_dir),
+            )
+        self.assertEqual("cargo_cpu_reservation_consumed", occupied.exception.code)
 
     def test_dedicated_deadline_terminalizes_pending_launch(self) -> None:
         command = (os.fspath(Path(os.sys.executable)), "-c", "raise SystemExit(0)")

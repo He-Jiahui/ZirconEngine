@@ -468,25 +468,64 @@ Describe "Cargo compatibility identity" {
         $compatibility.workspace | Should Be "zircon_plugins/Cargo.toml"
     }
 
-    It "resolves a nested manifest and keeps root commands manifest-free" {
+    It "keeps default development release and profiling Cargo profiles in distinct compatibility identities" {
+        $development = New-CargoCompatibilityJson `
+            -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
+            -DryRunMode | ConvertFrom-Json
+        $explicitDevelopment = New-CargoCompatibilityJson `
+            -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
+            -CargoProfile "development" `
+            -DryRunMode | ConvertFrom-Json
+        $release = New-CargoCompatibilityJson `
+            -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
+            -CargoProfile "release" `
+            -DryRunMode | ConvertFrom-Json
+        $profiling = New-CargoCompatibilityJson `
+            -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
+            -CargoProfile "profiling" `
+            -DryRunMode | ConvertFrom-Json
+
+        $development.build_config | Should Match '"cargo_profile":"development"'
+        $explicitDevelopment.build_config | Should Be $development.build_config
+        $release.build_config | Should Match '"cargo_profile":"release"'
+        $profiling.build_config | Should Match '"cargo_profile":"profiling"'
+        $release.build_config | Should Not Be $development.build_config
+        $profiling.build_config | Should Not Be $development.build_config
+        $profiling.build_config | Should Not Be $release.build_config
+    }
+
+    It "resolves a nested manifest relative to its Cargo working directory" {
         $workspace = Resolve-WorkspaceManifest `
             -RepoRoot $script:ValidateMatrixTestRepoRoot `
             -RequestedManifestPath "zircon_plugins/Cargo.toml"
         $workspace.RelativePath | Should Be "zircon_plugins/Cargo.toml"
         $workspace.Directory | Should Match "zircon_plugins$"
+        $workspace.InvocationManifestPath | Should Be "Cargo.toml"
 
         $nestedArgs = Get-CargoArgs `
             -Subcommand "build" `
             -ResolvedTargetDir "E:\cargo-targets\pester-manifest" `
-            -WorkspaceManifest $workspace.RelativePath
-        ($nestedArgs -join " ") | Should Match "--manifest-path"
-        ($nestedArgs -join " ") | Should Match "zircon_plugins/Cargo.toml"
+            -WorkspaceManifest $workspace.InvocationManifestPath
+        ($nestedArgs -join " ") | Should Not Match "--manifest-path"
+        ($nestedArgs -join " ") | Should Not Match "zircon_plugins/Cargo.toml"
 
         $rootArgs = Get-CargoArgs `
             -Subcommand "build" `
             -ResolvedTargetDir "E:\cargo-targets\pester-root" `
             -WorkspaceManifest "Cargo.toml"
         ($rootArgs -join " ") | Should Not Match "--manifest-path"
+    }
+}
+
+Describe "Cargo profiling workspace contract" {
+    It "keeps root and plugin workspaces on the same symbolized profiling profile" {
+        $expectedProfile = '(?ms)^\[profile\.profiling\]\s*$.*?^inherits\s*=\s*"release"\s*$.*?^debug\s*=\s*true\s*$.*?^strip\s*=\s*false\s*$'
+
+        foreach ($manifest in @("Cargo.toml", "zircon_plugins/Cargo.toml")) {
+            $content = Get-Content -Raw -Encoding UTF8 `
+                (Join-Path $script:ValidateMatrixTestRepoRoot $manifest)
+            $content | Should Match $expectedProfile
+        }
     }
 }
 
@@ -589,6 +628,121 @@ Describe "Product binary Cargo arguments" {
             }
         }
     }
+
+    It "maps every Cargo profile exactly once for every compiling command builder" {
+        $previousPackage = $script:Package
+        try {
+            $script:Package = "zircon_runtime"
+            $development = @(Get-CargoArgs `
+                -Subcommand "build" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development" `
+                -WorkspaceManifest "Cargo.toml")
+            $explicitDevelopment = @(Get-CargoArgs `
+                -Subcommand "build" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development" `
+                -WorkspaceManifest "Cargo.toml" `
+                -CargoProfile "development")
+            $developmentTest = @(Get-CargoArgs `
+                -Subcommand "test" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development-test" `
+                -WorkspaceManifest "Cargo.toml")
+            $explicitDevelopmentTest = @(Get-CargoArgs `
+                -Subcommand "test" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development-test" `
+                -WorkspaceManifest "Cargo.toml" `
+                -CargoProfile "development")
+            $developmentExportContract = @(Get-ExportPlatformContractArgs `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development-export")
+            $explicitDevelopmentExportContract = @(Get-ExportPlatformContractArgs `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development-export" `
+                -CargoProfile "development")
+            $developmentProfileContract = @(Get-ProfileFeatureContractArgs `
+                -Case ([pscustomobject]@{
+                    Package = "zircon_runtime"
+                    Features = "target-server"
+                    Bin = $null
+                }) `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development-profile")
+            $explicitDevelopmentProfileContract = @(Get-ProfileFeatureContractArgs `
+                -Case ([pscustomobject]@{
+                    Package = "zircon_runtime"
+                    Features = "target-server"
+                    Bin = $null
+                }) `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\development-profile" `
+                -CargoProfile "development")
+            $releaseBuild = @(Get-CargoArgs `
+                -Subcommand "build" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\release-build" `
+                -WorkspaceManifest "Cargo.toml" `
+                -CargoProfile "release")
+            $releaseTest = @(Get-CargoArgs `
+                -Subcommand "test" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\release-test" `
+                -WorkspaceManifest "Cargo.toml" `
+                -CargoProfile "release")
+            $releaseExportContract = @(Get-ExportPlatformContractArgs `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\release-export" `
+                -CargoProfile "release")
+            $releaseProfileContract = @(Get-ProfileFeatureContractArgs `
+                -Case ([pscustomobject]@{
+                    Package = "zircon_runtime"
+                    Features = "target-server"
+                    Bin = $null
+                }) `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\release-profile" `
+                -CargoProfile "release")
+            $profilingBuild = @(Get-CargoArgs `
+                -Subcommand "build" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\profiling-build" `
+                -WorkspaceManifest "Cargo.toml" `
+                -CargoProfile "profiling")
+            $profilingTest = @(Get-CargoArgs `
+                -Subcommand "test" `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\profiling-test" `
+                -WorkspaceManifest "Cargo.toml" `
+                -CargoProfile "profiling")
+            $profilingExportContract = @(Get-ExportPlatformContractArgs `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\profiling-export" `
+                -CargoProfile "profiling")
+            $profilingProfileContract = @(Get-ProfileFeatureContractArgs `
+                -Case ([pscustomobject]@{
+                    Package = "zircon_runtime"
+                    Features = "target-server"
+                    Bin = $null
+                }) `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\profiling-profile" `
+                -CargoProfile "profiling")
+            $cleanup = @(Get-CargoCleanArgs `
+                -ResolvedTargetDir "D:\cargo-targets\zircon-engine\pool\release-clean" `
+                -WorkspaceManifest "Cargo.toml")
+
+            (@($development | Where-Object { $_ -eq "--release" })).Count | Should Be 0
+            (@($development | Where-Object { $_ -eq "--profile" })).Count | Should Be 0
+            ($explicitDevelopment -join " ") | Should Be ($development -join " ")
+            ($explicitDevelopmentTest -join " ") | Should Be ($developmentTest -join " ")
+            ($explicitDevelopmentExportContract -join " ") | Should Be ($developmentExportContract -join " ")
+            ($explicitDevelopmentProfileContract -join " ") | Should Be ($developmentProfileContract -join " ")
+            (@($releaseBuild | Where-Object { $_ -eq "--release" })).Count | Should Be 1
+            (@($releaseTest | Where-Object { $_ -eq "--release" })).Count | Should Be 1
+            (@($releaseExportContract | Where-Object { $_ -eq "--release" })).Count | Should Be 1
+            (@($releaseProfileContract | Where-Object { $_ -eq "--release" })).Count | Should Be 1
+            ($profilingBuild -join " ") | Should Match '--profile profiling'
+            ($profilingTest -join " ") | Should Match '--profile profiling'
+            ($profilingExportContract -join " ") | Should Match '--profile profiling'
+            ($profilingProfileContract -join " ") | Should Match '--profile profiling'
+            (@($profilingBuild | Where-Object { $_ -eq "--profile" })).Count | Should Be 1
+            (@($profilingTest | Where-Object { $_ -eq "--profile" })).Count | Should Be 1
+            (@($profilingExportContract | Where-Object { $_ -eq "--profile" })).Count | Should Be 1
+            (@($profilingProfileContract | Where-Object { $_ -eq "--profile" })).Count | Should Be 1
+            (@($profilingBuild | Where-Object { $_ -eq "--release" })).Count | Should Be 0
+            (@($cleanup | Where-Object { $_ -eq "--release" })).Count | Should Be 0
+            (@($cleanup | Where-Object { $_ -eq "--profile" })).Count | Should Be 0
+        }
+        finally {
+            $script:Package = $previousPackage
+        }
+    }
 }
 
 Describe "Published artifact path resolution" {
@@ -605,6 +759,131 @@ Describe "Published artifact path resolution" {
         $resolved | Should Be $resolution.OperationalPath
         $resolution.DisplayPath | Should Be (Join-Path $targetDirectory "published")
     }
+
+    It "allows the dedicated MVP product-input root only when explicitly requested" {
+        $requestedPath = "D:\ZirconBuilds\mvp-product-inputs-contract-$([guid]::NewGuid().ToString('N'))"
+
+        $resolved = Assert-ArtifactOutputDirectory -Path $requestedPath -MvpProductInputArtifactOutput
+        $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
+
+        $resolved | Should Be $resolution.OperationalPath
+        $resolution.DisplayPath | Should Match '^D:\\ZirconBuilds\\mvp-product-inputs-'
+    }
+
+    It "does not allow the MVP product-input exception outside its physical root" {
+        $message = $null
+        try {
+            Assert-ArtifactOutputDirectory -Path 'D:\ZirconBuilds\unscoped-product-artifacts' -MvpProductInputArtifactOutput
+        }
+        catch {
+            $message = $_.Exception.Message
+        }
+
+        $message | Should Match 'MVP product input artifact output must resolve under'
+    }
+}
+
+Describe "Published artifact hashing" {
+    It "uses the managed SHA-256 implementation for artifact bytes" {
+        $artifactPath = Join-Path $TestDrive "managed-hash-empty.bin"
+        [System.IO.File]::WriteAllBytes($artifactPath, [byte[]]@())
+
+        Get-ManagedFileSha256 -Path $artifactPath | Should Be "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    }
+}
+
+Describe "Release artifact publication" {
+    It "publishes omitted-profile artifacts from the development debug directory" {
+        $targetDirectory = Join-Path $TestDrive "development-target"
+        $debugDirectory = Join-Path $targetDirectory "debug"
+        $artifactOutputDirectory = Join-Path $TestDrive "development-published"
+        $explicitArtifactOutputDirectory = Join-Path $TestDrive "explicit-development-published"
+        [System.IO.Directory]::CreateDirectory($debugDirectory) | Out-Null
+        [System.IO.File]::WriteAllBytes(
+            (Join-Path $debugDirectory "zircon_runtime.exe"),
+            [byte[]](0, 1, 2, 3)
+        )
+
+        $published = @(Publish-BuildArtifacts `
+            -TargetDirectory $targetDirectory `
+            -ArtifactOutputDirectory $artifactOutputDirectory `
+            -ArtifactName @("zircon_runtime.exe"))
+        $explicitPublished = @(Publish-BuildArtifacts `
+            -TargetDirectory $targetDirectory `
+            -ArtifactOutputDirectory $explicitArtifactOutputDirectory `
+            -ArtifactName @("zircon_runtime.exe") `
+            -CargoProfile "development")
+
+        $published.Count | Should Be 1
+        $explicitPublished.Count | Should Be 1
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($published[0].Path)) |
+            Should Be ([Convert]::ToBase64String([byte[]](0, 1, 2, 3)))
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($explicitPublished[0].Path)) |
+            Should Be ([Convert]::ToBase64String([byte[]](0, 1, 2, 3)))
+    }
+
+    It "publishes release artifacts from the release profile directory" {
+        $targetDirectory = Join-Path $TestDrive "release-target"
+        $releaseDirectory = Join-Path $targetDirectory "release"
+        $artifactOutputDirectory = Join-Path $TestDrive "release-published"
+        [System.IO.Directory]::CreateDirectory($releaseDirectory) | Out-Null
+        [System.IO.File]::WriteAllBytes(
+            (Join-Path $releaseDirectory "zircon_runtime.exe"),
+            [byte[]](1, 2, 3, 4)
+        )
+
+        $published = @(Publish-BuildArtifacts `
+            -TargetDirectory $targetDirectory `
+            -ArtifactOutputDirectory $artifactOutputDirectory `
+            -ArtifactName @("zircon_runtime.exe") `
+            -CargoProfile "release")
+
+        $published.Count | Should Be 1
+        $published[0].Path | Should Be (
+            Resolve-ZirconWindowsPath -Path (Join-Path $artifactOutputDirectory "zircon_runtime.exe")
+        ).OperationalPath
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($published[0].Path)) |
+            Should Be ([Convert]::ToBase64String([byte[]](1, 2, 3, 4)))
+    }
+
+    It "publishes profiling artifacts from the profiling profile directory" {
+        $targetDirectory = Join-Path $TestDrive "profiling-target"
+        $profilingDirectory = Join-Path $targetDirectory "profiling"
+        $artifactOutputDirectory = Join-Path $TestDrive "profiling-published"
+        [System.IO.Directory]::CreateDirectory($profilingDirectory) | Out-Null
+        [System.IO.File]::WriteAllBytes(
+            (Join-Path $profilingDirectory "zircon_runtime.exe"),
+            [byte[]](4, 3, 2, 1)
+        )
+
+        $published = @(Publish-BuildArtifacts `
+            -TargetDirectory $targetDirectory `
+            -ArtifactOutputDirectory $artifactOutputDirectory `
+            -ArtifactName @("zircon_runtime.exe") `
+            -CargoProfile "profiling")
+
+        $published.Count | Should Be 1
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($published[0].Path)) |
+            Should Be ([Convert]::ToBase64String([byte[]](4, 3, 2, 1)))
+    }
+}
+
+Describe "Cargo profile CLI validation" {
+    It "rejects an unknown Cargo profile before it acquires a managed lane" {
+        $result = Invoke-ValidateMatrixCli -Arguments @(
+            "-DryRun",
+            "-SkipBuild",
+            "-SkipTest",
+            "-CargoProfile",
+            "benchmark"
+        )
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "CargoProfile"
+        $result.Output | Should Match "development,release,profiling"
+        $result.Output | Should Not Match "Target dir:"
+        $result.Output | Should Not Match "cargo "
+    }
 }
 
 Describe "Validate matrix CLI dry-run parsing" {
@@ -616,10 +895,27 @@ Describe "Validate matrix CLI dry-run parsing" {
         )
 
         $result.ExitCode | Should Be 0
+        $result.Output | Should Match "Cargo profile: development"
         $result.Output | Should Match "Dry run: on"
         $result.Output | Should Match "Target dir: $($script:ManagedPoolRegex) \(coordinator managed workspace lane\)"
         $result.Output | Should Match "No stages selected"
         $result.Output | Should Not Match "target\\manual-check"
+    }
+
+    It "dry-runs the symbolized profiling profile through the managed lane" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
+            "-DryRun",
+            "-Package",
+            "zircon_runtime",
+            "-SkipTest",
+            "-CargoProfile",
+            "profiling"
+        )
+
+        $result.ExitCode | Should Be 0
+        $result.Output | Should Match "Cargo profile: profiling"
+        $result.Output | Should Match "cargo build -p zircon_runtime --locked --profile profiling --target-dir $($script:ManagedPoolRegex)"
+        $result.Output | Should Not Match "--release"
     }
 
     It "dry-runs a package through an explicit subworkspace manifest" {
@@ -635,7 +931,8 @@ Describe "Validate matrix CLI dry-run parsing" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Workspace manifest: zircon_plugins/Cargo.toml"
         $result.Output | Should Match "Cargo working directory: .*zircon_plugins"
-        $result.Output | Should Match "cargo build --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_editor --locked --target-dir $($script:ManagedPoolRegex)"
+        $result.Output | Should Match "cargo build -p zircon_plugin_ai_editor --locked --target-dir $($script:ManagedPoolRegex)"
+        $result.Output | Should Not Match "--manifest-path zircon_plugins/Cargo.toml"
     }
 
     It "runs only an explicitly filtered ignored test through the managed lane" {

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import json
+import os
 import sqlite3
 import sys
 import tarfile
@@ -13,13 +15,20 @@ from pathlib import Path
 import subprocess
 
 from tools.session_coordinator.baselines import BaselineService
+from tools.session_coordinator.benchmark_validation_grants import (
+    BenchmarkValidationGrantService,
+)
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.processes import process_is_alive
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.validation_copies import CargoInputClosure
+from tools.session_coordinator.windows_job_process import (
+    create_atomic_kill_on_close_process,
+)
 from tools.session_coordinator.workspace_copy import WorkspaceCopyService
 
 
@@ -33,7 +42,12 @@ class WorkspaceCopyTests(unittest.TestCase):
         config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(config.database_path)
         migrate(self.database)
-        SessionService(self.database, self.repo).register(session_id="session-a")
+        sessions = SessionService(self.database, self.repo)
+        for session_id in ("session-a", "session-b"):
+            sessions.register(
+                session_id=session_id,
+                plan_path="docs/plans/plugins/01-plugin.md",
+            )
         self.baselines = BaselineService(self.database, self.repo)
         self.baselines.initialize()
         with mock.patch(
@@ -46,6 +60,18 @@ class WorkspaceCopyTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
+
+    def _reserve_artifact_tree(self, path: Path) -> None:
+        target_dir = str(path.resolve(strict=False))
+        target_key = target_dir.replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cleanup_reservations(
+                       target_key, target_dir, reserved_at,
+                       reservation_kind, filesystem_identity
+                   ) VALUES (?, ?, '2026-08-13T00:00:00+00:00', 'artifact', 'identity')""",
+                (target_key, target_dir),
+            )
 
     def _run_with_mocked_streams(
         self,
@@ -75,6 +101,171 @@ class WorkspaceCopyTests(unittest.TestCase):
                 (evidence.run_id,),
             ).fetchone()
         return evidence, row
+
+    def test_plan_rejects_artifact_cleanup_reservation_overlap(self) -> None:
+        self._reserve_artifact_tree(self.target_root / "verify")
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.plan("session-a", include_paths=("README.md",))
+
+        self.assertEqual("validation_copy_cleanup_reserved", rejected.exception.code)
+        with self.database.connect() as connection:
+            count = connection.execute("SELECT COUNT(*) FROM validation_copies").fetchone()[0]
+        self.assertEqual(0, count)
+
+    def test_async_cargo_plan_rejects_artifact_cleanup_reservation_overlap(self) -> None:
+        self._reserve_artifact_tree(self.target_root / "verify")
+
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker") as spawn:
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service.materialize_cargo_async(
+                    "session-a",
+                    command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+                )
+
+        self.assertEqual("validation_copy_cleanup_reserved", rejected.exception.code)
+        spawn.assert_not_called()
+        with self.database.connect() as connection:
+            count = connection.execute("SELECT COUNT(*) FROM validation_copies").fetchone()[0]
+        self.assertEqual(0, count)
+
+    def test_async_cargo_worker_rechecks_reservation_on_selected_root(self) -> None:
+        second_root = self.target_root.parent / "zircon-engine-second"
+        second_root.mkdir()
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            service = WorkspaceCopyService(
+                self.database,
+                self.repo,
+                (self.target_root, second_root),
+            )
+        self._reserve_artifact_tree(second_root / "verify")
+        with mock.patch.object(service, "_spawn_cargo_materialization_worker"):
+            accepted = service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+        self.assertIsNotNone(service._claim_cargo_materialization(accepted.job_id))
+
+        with (
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.shutil.disk_usage",
+                side_effect=(mock.Mock(free=1), mock.Mock(free=2)),
+            ),
+            mock.patch.object(service, "_git_text", return_value="head"),
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                service._prepare_cargo_materialization_root(accepted.job_id)
+
+        self.assertEqual("validation_copy_cleanup_reserved", rejected.exception.code)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT job_root, materialization_phase FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()
+        self.assertEqual(str(self.target_root / "verify" / accepted.job_id), row["job_root"])
+        self.assertEqual("closure_planning", row["materialization_phase"])
+
+    def _insert_launching_benchmark_grant(
+        self,
+        *,
+        job_id: str,
+        command: tuple[str, ...],
+        cargo_profile: str = "release",
+        grant_id: str = "benchmark-grant",
+        target_session_id: str = "session-a",
+        include_binding: bool = True,
+    ) -> tuple[str, str]:
+        workflow_run_id = f"benchmark-workflow-{grant_id}"
+        topology_version_id = f"benchmark-topology-{grant_id}"
+        node_id = f"benchmark-node-{grant_id}"
+        validation_run_id = f"benchmark-validation-{grant_id}"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_runs(
+                       run_id, session_id, workflow_key, state, created_at,
+                       updated_at
+                   ) VALUES (?, ?, ?, 'active',
+                             '2026-08-11T00:00:00+00:00',
+                             '2026-08-11T00:00:00+00:00')""",
+                (workflow_run_id, target_session_id, f"benchmark-{grant_id}"),
+            )
+            connection.execute(
+                """INSERT INTO workflow_topology_versions(
+                       topology_version_id, run_id, version_number, plan_path,
+                       plan_id, schema_version, source_kind, content_hash,
+                       topology_hash, topology_json, created_at
+                   ) VALUES (?, ?, 1, 'docs/plans/plugins/01-plugin.md',
+                             'plugins-01', 1, 'headings', ?, ?, '{}',
+                             '2026-08-11T00:00:00+00:00')""",
+                (topology_version_id, workflow_run_id, grant_id, f"topology-{grant_id}"),
+            )
+            connection.execute(
+                """INSERT INTO workflow_nodes(
+                       node_id, run_id, node_key, kind, title, stage, state,
+                       owner_session_id, created_at, updated_at
+                   ) VALUES (?, ?, 'M1', 'milestone', 'M1', 'M1', 'running', ?,
+                             '2026-08-11T00:00:00+00:00',
+                             '2026-08-11T00:00:00+00:00')""",
+                (node_id, workflow_run_id, target_session_id),
+            )
+            copy = connection.execute(
+                "SELECT input_manifest_hash FROM validation_copies WHERE job_id=?",
+                (job_id,),
+            ).fetchone()
+            connection.execute(
+                """INSERT INTO benchmark_validation_grants(
+                       grant_id, job_id, source_session_id, target_session_id,
+                       run_id, milestone_id, input_manifest_hash,
+                       scoped_manifest_hash, benchmark_name, cargo_profile,
+                       command_json, status, issued_at, acquired_at
+                   ) VALUES (?, ?, 'session-a', ?, ?, 'M1', ?, ?, 'benchmark', ?, ?,
+                             'launching', '2026-08-11T00:00:00+00:00',
+                             '2026-08-11T00:00:00+00:00')""",
+                (
+                    grant_id,
+                    job_id,
+                    target_session_id,
+                    workflow_run_id,
+                    copy["input_manifest_hash"],
+                    "b" * 64,
+                    cargo_profile,
+                    json.dumps(command),
+                ),
+            )
+            if include_binding:
+                connection.execute(
+                    """INSERT INTO workflow_validation_bindings(
+                           validation_run_id, job_id, run_id,
+                           topology_version_id, node_id, session_id, template,
+                           source_manifest_hash, paths_json, input_fingerprint,
+                           copy_input_manifest_hash, benchmark_name, cargo_profile,
+                           benchmark_grant_id, actor, created_at
+                       ) VALUES (?, ?, ?, ?, ?, ?, 'coordinator-actions', ?,
+                                 '["README.md"]', 'fingerprint', ?, 'benchmark',
+                                 ?, ?, 'test', '2026-08-11T00:00:00+00:00')""",
+                    (
+                        validation_run_id,
+                        job_id,
+                        workflow_run_id,
+                        topology_version_id,
+                        node_id,
+                        target_session_id,
+                        "b" * 64,
+                        copy["input_manifest_hash"],
+                        cargo_profile,
+                        grant_id,
+                    ),
+                )
+                connection.execute(
+                    """INSERT INTO workflow_validation_template_bindings(
+                           validation_run_id, template
+                       ) VALUES (?, 'native-plugin-benchmark')""",
+                    (validation_run_id,),
+                )
+        return grant_id, validation_run_id
 
     def test_copy_uses_head_for_foreign_dirty_and_overlay_for_owned_files(self) -> None:
         (self.repo / "README.md").write_text("foreign dirty\n", encoding="utf-8")
@@ -398,20 +589,21 @@ class WorkspaceCopyTests(unittest.TestCase):
             metadata_runner=delayed_metadata,
         )
 
-        self.assertEqual("materializing", accepted.status)
-        self.assertEqual((), accepted.manifest)
-        self.assertTrue(started.wait(timeout=1))
-        with self.database.connect() as connection:
-            row = connection.execute(
-                """SELECT status, materialization_kind, materialization_phase
-                   FROM validation_copies WHERE job_id=?""",
-                (accepted.job_id,),
-            ).fetchone()
-        self.assertEqual("planned", row["status"])
-        self.assertEqual("cargo", row["materialization_kind"])
-        self.assertEqual("closure_planning", row["materialization_phase"])
-
-        release.set()
+        try:
+            self.assertEqual("materializing", accepted.status)
+            self.assertEqual((), accepted.manifest)
+            self.assertTrue(started.wait(timeout=5))
+            with self.database.connect() as connection:
+                row = connection.execute(
+                    """SELECT status, materialization_kind, materialization_phase
+                       FROM validation_copies WHERE job_id=?""",
+                    (accepted.job_id,),
+                ).fetchone()
+            self.assertEqual("planned", row["status"])
+            self.assertEqual("cargo", row["materialization_kind"])
+            self.assertEqual("closure_planning", row["materialization_phase"])
+        finally:
+            release.set()
         for _ in range(100):
             if self.service.status("session-a", accepted.job_id).status == "materialized":
                 break
@@ -1169,6 +1361,670 @@ class WorkspaceCopyTests(unittest.TestCase):
                 break
             threading.Event().wait(0.05)
         self.assertEqual("removed", status)
+
+    def test_start_binds_benchmark_environment_and_does_not_leak_to_normal_run(self) -> None:
+        benchmark = self.service.materialize("session-a", include_paths=("README.md",))
+        normal = self.service.materialize("session-a", include_paths=("README.md",))
+        command = ("cargo", "test")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=benchmark.job_id, command=command
+        )
+        captured_environments: list[dict[str, str]] = []
+        benchmark_launch_events: list[str] = []
+
+        def resume_after_durable_registration(_process) -> None:
+            with self.database.connect() as connection:
+                durable = connection.execute(
+                    "SELECT status, job_isolated FROM benchmark_validation_grants "
+                    "WHERE grant_id=?",
+                    (grant_id,),
+                ).fetchone()
+            self.assertEqual(("consumed", 1), tuple(durable))
+            benchmark_launch_events.append("resume")
+
+        def completed_process(*_args, **kwargs):
+            captured_environments.append(dict(kwargs["env"]))
+            process = mock.Mock()
+            process.pid = 4300 + len(captured_environments)
+            process.returncode = 0
+            process.stdout = io.StringIO("")
+            process.stderr = io.StringIO("")
+            process.poll.return_value = 0
+            process.wait.return_value = 0
+            return process
+
+        def completed_atomic_process(_command, *, cwd, env):
+            benchmark_launch_events.append("atomic")
+            return completed_process(cwd=cwd, env=env), 9003
+
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": "f" * 64,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "profiling",
+                },
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.subprocess.Popen",
+                side_effect=completed_process,
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.popen_process_creation_time",
+                side_effect=lambda _process: benchmark_launch_events.append("identity")
+                or "111222",
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.create_atomic_kill_on_close_process",
+                side_effect=completed_atomic_process,
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.terminate_and_close_process_job"
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.resume_popen_process",
+                side_effect=resume_after_durable_registration,
+            ),
+        ):
+            benchmark_started = self.service.start(
+                "session-a",
+                benchmark.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment={
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": benchmark.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+            )
+            self.service.start(
+                "session-a", normal.job_id, command=(sys.executable, "-c", "pass")
+            )
+
+        for _ in range(100):
+            with self.service._running_lock:
+                active_runs = set(self.service._active_run_jobs)
+            if not active_runs:
+                break
+            threading.Event().wait(0.02)
+        self.assertEqual(set(), active_runs)
+        self.assertEqual(
+            benchmark.input_manifest_hash,
+            captured_environments[0]["ZR_BENCHMARK_SOURCE_MANIFEST"],
+        )
+        self.assertEqual("release", captured_environments[0]["ZR_BENCHMARK_CARGO_PROFILE"])
+        self.assertNotIn("ZR_BENCHMARK_SOURCE_MANIFEST", captured_environments[1])
+        self.assertNotIn("ZR_BENCHMARK_CARGO_PROFILE", captured_environments[1])
+        self.assertEqual("111222", benchmark_started["processCreationTime"])
+        self.assertEqual(["atomic", "identity", "resume"], benchmark_launch_events)
+        with self.database.connect() as connection:
+            grant = connection.execute(
+                "SELECT status, validation_run_id, root_pid, "
+                "root_process_creation_time, job_isolated "
+                "FROM benchmark_validation_grants"
+            ).fetchone()
+            binding = connection.execute(
+                "SELECT root_pid, root_process_creation_time "
+                "FROM workflow_validation_bindings WHERE benchmark_grant_id=?",
+                (grant_id,),
+            ).fetchone()
+        self.assertEqual("consumed", grant["status"])
+        self.assertTrue(grant["validation_run_id"])
+        self.assertGreater(grant["root_pid"], 0)
+        self.assertEqual("111222", grant["root_process_creation_time"])
+        self.assertEqual(1, grant["job_isolated"])
+        self.assertEqual(grant["root_pid"], binding["root_pid"])
+        self.assertEqual("111222", binding["root_process_creation_time"])
+
+    def test_start_rehashes_complete_benchmark_copy_before_popen(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = ("cargo", "test")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+        (result.source_root / "unscoped-dependency.txt").write_text(
+            "changed after materialization\n", encoding="utf-8"
+        )
+
+        with (
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.subprocess.Popen",
+                side_effect=RuntimeError("Popen must not be called"),
+            ) as popen,
+            self.assertRaises(CoordinatorError) as rejected,
+        ):
+            self.service.start(
+                "session-a",
+                result.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment={
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+            )
+
+        self.assertEqual(
+            "validation_copy_benchmark_manifest_stale", rejected.exception.code
+        )
+        popen.assert_not_called()
+        with self.database.connect() as connection:
+            copy = connection.execute(
+                "SELECT status, input_manifest_hash FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual("materialized", copy["status"])
+        self.assertEqual(result.input_manifest_hash, copy["input_manifest_hash"])
+
+    def test_start_requires_exact_precreated_benchmark_workflow_binding(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = ("cargo", "test")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id,
+            command=command,
+            include_binding=False,
+        )
+
+        with (
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.subprocess.Popen",
+                side_effect=RuntimeError("Popen must not be called"),
+            ) as popen,
+            self.assertRaises(CoordinatorError) as rejected,
+        ):
+            self.service.start(
+                "session-a",
+                result.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment={
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+            )
+
+        self.assertEqual(
+            "validation_copy_benchmark_binding_invalid", rejected.exception.code
+        )
+        popen.assert_not_called()
+
+    def test_active_benchmark_cancel_is_target_bound_not_copy_owner_bound(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = (sys.executable, "-c", "import time; time.sleep(30)")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id,
+            command=command,
+            target_session_id="session-b",
+        )
+        self.service.start(
+            "session-b",
+            result.job_id,
+            command=command,
+            run_id=validation_run_id,
+            benchmark_grant_id=grant_id,
+            environment={
+                "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                "ZR_BENCHMARK_CARGO_PROFILE": "release",
+            },
+        )
+
+        with self.assertRaises(CoordinatorError) as source_denied:
+            self.service.cancel("session-a", result.job_id)
+        self.assertEqual(
+            "validation_copy_foreign_session", source_denied.exception.code
+        )
+        self.assertEqual(
+            "cancelling", self.service.cancel("session-b", result.job_id)["status"]
+        )
+        for _ in range(100):
+            with self.service._running_lock:
+                active = result.job_id in self.service._active_run_jobs
+            if not active:
+                break
+            threading.Event().wait(0.05)
+        self.assertFalse(active)
+
+    def test_benchmark_root_exit_closes_job_before_inherited_pipe_join(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = (
+            sys.executable,
+            "-c",
+            (
+                "import subprocess,sys; "
+                "subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); "
+                "print('root-complete', flush=True)"
+            ),
+        )
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+
+        original_release = self.service._terminate_running_process_job
+        release_observed = threading.Event()
+
+        def release_job(job_id: str) -> None:
+            original_release(job_id)
+            release_observed.set()
+
+        with mock.patch.object(
+            self.service,
+            "_terminate_running_process_job",
+            side_effect=release_job,
+        ):
+            self.service.start(
+                "session-a",
+                result.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment={
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+            )
+
+            for _ in range(200):
+                with self.database.connect() as connection:
+                    evidence = connection.execute(
+                        "SELECT stdout_text FROM validation_copy_runs WHERE run_id=?",
+                        (validation_run_id,),
+                    ).fetchone()
+                if evidence is not None:
+                    break
+                threading.Event().wait(0.05)
+        self.assertTrue(release_observed.is_set())
+        self.assertIsNotNone(evidence)
+        self.assertIn("root-complete", evidence["stdout_text"])
+        for _ in range(100):
+            with self.service._running_lock:
+                active = result.job_id in self.service._active_run_jobs
+                job_bound = result.job_id in self.service._running_process_jobs
+            if not active and not job_bound:
+                break
+            threading.Event().wait(0.05)
+        self.assertFalse(active)
+        self.assertFalse(job_bound)
+
+    def test_benchmark_terminal_evidence_waits_for_no_pipe_descendant_exit(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = (
+            sys.executable,
+            "-c",
+            (
+                "import subprocess,sys; "
+                "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)'],"
+                "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); "
+                "print(child.pid, flush=True)"
+            ),
+        )
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+        self.service.start(
+            "session-a",
+            result.job_id,
+            command=command,
+            run_id=validation_run_id,
+            benchmark_grant_id=grant_id,
+            environment={
+                "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                "ZR_BENCHMARK_CARGO_PROFILE": "release",
+            },
+        )
+
+        for _ in range(200):
+            with self.database.connect() as connection:
+                evidence = connection.execute(
+                    "SELECT stdout_text FROM validation_copy_runs WHERE run_id=?",
+                    (validation_run_id,),
+                ).fetchone()
+            if evidence is not None:
+                break
+            threading.Event().wait(0.05)
+        self.assertIsNotNone(evidence)
+        descendant_pid = int(evidence["stdout_text"].strip())
+        self.assertFalse(process_is_alive(descendant_pid))
+
+    def test_benchmark_evidence_failure_is_recoverable_after_restart(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = (sys.executable, "-c", "print('benchmark-complete')")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """CREATE TRIGGER reject_benchmark_validation_copy_run
+                   BEFORE INSERT ON validation_copy_runs
+                   BEGIN
+                     SELECT RAISE(ABORT, 'injected benchmark evidence failure');
+                   END"""
+            )
+
+        self.service.start(
+            "session-a",
+            result.job_id,
+            command=command,
+            run_id=validation_run_id,
+            benchmark_grant_id=grant_id,
+            environment={
+                "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                "ZR_BENCHMARK_CARGO_PROFILE": "release",
+            },
+        )
+        for _ in range(200):
+            with self.service._running_lock:
+                active = result.job_id in self.service._active_run_jobs
+            if not active:
+                break
+            threading.Event().wait(0.05)
+        self.assertFalse(active)
+        with self.database.connect() as connection:
+            failed = connection.execute(
+                "SELECT status, run_pid FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual(("failed", None), tuple(failed))
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy._is_managed_validation_root",
+            return_value=True,
+        ):
+            restarted = WorkspaceCopyService(
+                self.database, self.repo, (self.target_root,)
+            )
+        reject_validation = mock.Mock(return_value=True)
+        recovered = BenchmarkValidationGrantService(
+            self.database
+        ).reconcile_interrupted_consumed(
+            reject_validation,
+            terminate_interrupted=restarted.terminate_interrupted_benchmark,
+        )
+
+        self.assertEqual((validation_run_id,), recovered)
+        reject_validation.assert_called_once_with(
+            validation_run_id,
+            error_code="benchmark_validation_collector_interrupted",
+        )
+        with self.database.connect() as connection:
+            copy = connection.execute(
+                "SELECT status, run_pid FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()
+            grant = connection.execute(
+                "SELECT status, error_code FROM benchmark_validation_grants WHERE grant_id=?",
+                (grant_id,),
+            ).fetchone()
+        self.assertEqual(("failed", None), tuple(copy))
+        self.assertEqual(
+            ("consumed", "benchmark_validation_collector_interrupted"), tuple(grant)
+        )
+
+    def test_benchmark_collector_prelude_failure_releases_job_and_reservation(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = (sys.executable, "-c", "import time; time.sleep(60)")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+        terminated = threading.Event()
+        original_terminate = self.service._terminate_running_process_job
+
+        def terminate_job(job_id: str) -> None:
+            original_terminate(job_id)
+            terminated.set()
+
+        with (
+            mock.patch.object(
+                self.service,
+                "_validation_copy_row",
+                side_effect=sqlite3.OperationalError("injected row read failure"),
+            ),
+            mock.patch.object(
+                self.service,
+                "_terminate_running_process_job",
+                side_effect=terminate_job,
+            ),
+        ):
+            started = self.service.start(
+                "session-a",
+                result.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment={
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+            )
+            self.assertTrue(terminated.wait(10))
+
+        for _ in range(100):
+            with self.service._running_lock:
+                active = result.job_id in self.service._active_run_jobs
+            if not active:
+                break
+            threading.Event().wait(0.05)
+        self.assertFalse(active)
+        self.assertFalse(process_is_alive(int(started["pid"])))
+        with self.service._running_lock:
+            self.assertNotIn(result.job_id, self.service._running_process_jobs)
+            self.assertNotIn(result.job_id, self.service._running_processes)
+
+    def test_benchmark_collector_thread_exists_before_process_resume(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = (sys.executable, "-c", "import time; time.sleep(60)")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+        created_pids: list[int] = []
+        original_create = create_atomic_kill_on_close_process
+
+        def record_atomic_process(*args, **kwargs):
+            process, job_handle = original_create(*args, **kwargs)
+            created_pids.append(process.pid)
+            return process, job_handle
+
+        with (
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.create_atomic_kill_on_close_process",
+                side_effect=record_atomic_process,
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.resume_popen_process"
+            ) as resume,
+            mock.patch.object(
+                threading.Thread,
+                "start",
+                side_effect=RuntimeError("injected collector thread failure"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "collector thread failure"),
+        ):
+            self.service.start(
+                "session-a",
+                result.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment={
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+            )
+
+        resume.assert_not_called()
+        self.assertEqual(1, len(created_pids))
+        self.assertFalse(process_is_alive(created_pids[0]))
+        with self.database.connect() as connection:
+            copy = connection.execute(
+                "SELECT status, run_pid FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()
+            grant = connection.execute(
+                "SELECT status, validation_run_id FROM benchmark_validation_grants WHERE grant_id=?",
+                (grant_id,),
+            ).fetchone()
+        self.assertEqual(("materialized", None), tuple(copy))
+        self.assertEqual(("launching", None), tuple(grant))
+        with self.service._running_lock:
+            self.assertNotIn(result.job_id, self.service._active_run_jobs)
+            self.assertNotIn(result.job_id, self.service._running_process_jobs)
+            self.assertNotIn(result.job_id, self.service._running_processes)
+
+    def test_restart_terminates_matching_benchmark_identity_and_releases_copy(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        command = ("cargo", "test")
+        grant_id, _validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=result.job_id, command=command
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE benchmark_validation_grants
+                   SET status='consumed', validation_run_id='restart-validation',
+                       root_pid=4242, root_process_creation_time='111222',
+                       job_isolated=1,
+                       consumed_at='2026-08-11T00:01:00+00:00'
+                   WHERE grant_id=?""",
+                (grant_id,),
+            )
+            connection.execute(
+                "UPDATE validation_copies SET status='running', run_pid=4242 "
+                "WHERE job_id=?",
+                (result.job_id,),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.confirm_kill_on_close_job_terminated"
+        ) as confirm_terminated:
+            self.service.terminate_interrupted_benchmark(
+                grant_id=grant_id,
+                job_id=result.job_id,
+                root_pid=4242,
+                process_creation_time="111222",
+                job_isolated=True,
+            )
+
+        confirm_terminated.assert_called_once_with(4242, "111222")
+        with self.database.connect() as connection:
+            copy = connection.execute(
+                "SELECT status, run_pid FROM validation_copies WHERE job_id=?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual(("materialized", None), tuple(copy))
+
+    def test_run_removes_inherited_benchmark_environment(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        process = mock.Mock()
+        process.pid = 4200
+        process.returncode = 0
+        process.stdout = io.StringIO("")
+        process.stderr = io.StringIO("")
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+
+        with (
+            mock.patch.dict(
+                os.environ,
+                {
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": "f" * 64,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "profiling",
+                },
+            ),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.subprocess.Popen",
+                return_value=process,
+            ) as popen,
+        ):
+            self.service.run(
+                "session-a", result.job_id, command=(sys.executable, "-c", "pass")
+            )
+
+        child_environment = popen.call_args.kwargs["env"]
+        self.assertNotIn("ZR_BENCHMARK_SOURCE_MANIFEST", child_environment)
+        self.assertNotIn("ZR_BENCHMARK_CARGO_PROFILE", child_environment)
+
+    def test_start_rejects_invalid_or_mismatched_benchmark_identity(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        invalid_environments = (
+            (
+                {"ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash},
+                "validation_copy_benchmark_environment_invalid",
+            ),
+            (
+                {
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": result.input_manifest_hash,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "development",
+                },
+                "validation_copy_benchmark_environment_invalid",
+            ),
+            (
+                {
+                    "ZR_BENCHMARK_SOURCE_MANIFEST": "f" * 64,
+                    "ZR_BENCHMARK_CARGO_PROFILE": "release",
+                },
+                "validation_copy_benchmark_manifest_mismatch",
+            ),
+        )
+
+        for environment, code in invalid_environments:
+            with self.subTest(code=code):
+                with self.assertRaises(CoordinatorError) as rejected:
+                    self.service.start(
+                        "session-a",
+                        result.job_id,
+                        command=("cargo", "test"),
+                        environment=environment,
+                    )
+                self.assertEqual(code, rejected.exception.code)
+                with self.database.connect() as connection:
+                    status = connection.execute(
+                        "SELECT status FROM validation_copies WHERE job_id=?",
+                        (result.job_id,),
+                    ).fetchone()["status"]
+                self.assertEqual("materialized", status)
+
+    def test_start_rejects_ungranted_or_foreign_benchmark_copy_without_mutation(self) -> None:
+        first = self.service.materialize("session-a", include_paths=("README.md",))
+        second = self.service.materialize("session-a", include_paths=("README.md",))
+        command = ("cargo", "test")
+        grant_id, validation_run_id = self._insert_launching_benchmark_grant(
+            job_id=first.job_id, command=command
+        )
+        environment = {
+            "ZR_BENCHMARK_SOURCE_MANIFEST": second.input_manifest_hash,
+            "ZR_BENCHMARK_CARGO_PROFILE": "release",
+        }
+
+        with self.assertRaises(CoordinatorError) as ungranted:
+            self.service.start(
+                "session-a", second.job_id, command=command, environment=environment
+            )
+        self.assertEqual(
+            "validation_copy_benchmark_grant_required", ungranted.exception.code
+        )
+        with self.assertRaises(CoordinatorError) as foreign:
+            self.service.start(
+                "session-a",
+                second.job_id,
+                command=command,
+                run_id=validation_run_id,
+                benchmark_grant_id=grant_id,
+                environment=environment,
+            )
+        self.assertEqual(
+            "validation_copy_benchmark_grant_invalid", foreign.exception.code
+        )
+        with self.database.connect() as connection:
+            statuses = {
+                row["job_id"]: row["status"]
+                for row in connection.execute(
+                    "SELECT job_id, status FROM validation_copies WHERE job_id IN (?, ?)",
+                    (first.job_id, second.job_id),
+                )
+            }
+        self.assertEqual(
+            {first.job_id: "materialized", second.job_id: "materialized"}, statuses
+        )
 
     def test_async_completion_uses_the_shared_mutation_gate(self) -> None:
         gate = threading.Lock()

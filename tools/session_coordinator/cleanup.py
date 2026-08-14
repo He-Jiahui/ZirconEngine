@@ -22,6 +22,13 @@ from .cargo_jobs import (
     targets_overlap,
 )
 from .database import Database
+from .cleanup_deletion import (
+    DeletionEvidence,
+    begin_target_deletion,
+    complete_target_deletion,
+    complete_interrupted_target_deletion,
+    interrupted_target_deletions,
+)
 from .models import CoordinatorError, utc_text
 from .snapshots import ObjectStore
 
@@ -393,17 +400,82 @@ class CleanupService:
         self._async_cleanup_requested = threading.Event()
 
     def recover_reservations(self) -> int:
+        with self.database.connect() as connection:
+            reservations = connection.execute(
+                """SELECT target_key, target_dir FROM cleanup_reservations
+                   WHERE reservation_kind='cargo' ORDER BY reserved_at"""
+            ).fetchall()
+            interrupted = interrupted_target_deletions(connection, reservations)
+        count = len(reservations)
+        reconciled: list[str] = []
+        for evidence in interrupted:
+            target_key = str(evidence["target_key"])
+            target_text = str(evidence["target_dir"])
+            try:
+                target = self.cargo_jobs.target_policy.validate(target_text)
+                existed = target.exists()
+                if existed:
+                    shutil.rmtree(target)
+            except (CoordinatorError, OSError) as error:
+                with self.database.transaction() as connection:
+                    complete_interrupted_target_deletion(
+                        connection,
+                        evidence,
+                        result="failed_after_restart",
+                        error=str(error),
+                    )
+                    connection.execute(
+                        """
+                        UPDATE cargo_jobs SET cleanup_status='failed', cleanup_error=?
+                        WHERE target_key=?
+                        """,
+                        (str(error), target_key),
+                    )
+                raise CoordinatorError(
+                    "cleanup_recovery_failed",
+                    "Interrupted Cargo target deletion could not be completed safely",
+                    details={
+                        "deletionId": evidence["deletion_id"],
+                        "targetDir": target_text,
+                    },
+                ) from error
+            with self.database.transaction() as connection:
+                complete_interrupted_target_deletion(
+                    connection,
+                    evidence,
+                    result="deleted_after_restart" if existed else "already_missing_at_restart",
+                    error=None,
+                )
+                connection.execute(
+                    """
+                    UPDATE cargo_jobs SET cleanup_status='deleted', cleanup_error=NULL
+                    WHERE target_key=?
+                    """,
+                    (target_key,),
+                )
+                connection.execute(
+                    """DELETE FROM cleanup_reservations
+                       WHERE target_key=? AND reservation_kind='cargo'""",
+                    (target_key,),
+                )
+            reconciled.append(str(evidence["deletion_id"]))
+
         with self.database.transaction() as connection:
-            count = int(
-                connection.execute("SELECT COUNT(*) FROM cleanup_reservations").fetchone()[0]
-            )
             if count:
-                connection.execute("DELETE FROM cleanup_reservations")
+                connection.execute(
+                    "DELETE FROM cleanup_reservations WHERE reservation_kind='cargo'"
+                )
                 connection.execute(
                     "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
                     (
                         "cleanup.reservations_recovered",
-                        json.dumps({"count": count}, sort_keys=True),
+                        json.dumps(
+                            {
+                                "count": count,
+                                "reconciled_deletion_ids": reconciled,
+                            },
+                            sort_keys=True,
+                        ),
                         utc_text(),
                     ),
                 )
@@ -441,12 +513,18 @@ class CleanupService:
     def cleanup_job_now(self, job_id: str) -> CleanupResult:
         """Delete a non-reusable lane immediately after ownership has ended."""
         job = self.cargo_jobs.get(job_id)
-        if job.cleanup_policy is not CargoCleanupPolicy.DELETE_ON_RELEASE:
+        retry_failed_target = job.cleanup_status is CargoCleanupStatus.FAILED
+        if (
+            job.cleanup_policy is not CargoCleanupPolicy.DELETE_ON_RELEASE
+            and not retry_failed_target
+        ):
             return CleanupResult((), ())
-        if job.status not in {
-            CargoJobStatus.RELEASED,
-            CargoJobStatus.ORPHANED,
-        }:
+        retryable_status = (
+            job.status not in {CargoJobStatus.LEASED, CargoJobStatus.RUNNING}
+            if retry_failed_target
+            else job.status in {CargoJobStatus.RELEASED, CargoJobStatus.ORPHANED}
+        )
+        if not retryable_status:
             denial = CleanupDenial(
                 job.target_dir,
                 "cargo_job_active",
@@ -455,10 +533,12 @@ class CleanupService:
             return CleanupResult((), (denial,))
         target = self.cargo_jobs.target_policy.validate(job.target_dir)
         key = target_identity(target)
+        deletion_evidence: DeletionEvidence | None = None
         with self.database.transaction() as connection:
-            rows = connection.execute(
-                "SELECT * FROM cargo_jobs WHERE status IN ('leased', 'running')"
+            all_rows = connection.execute(
+                "SELECT * FROM cargo_jobs ORDER BY created_at, job_id"
             ).fetchall()
+            rows = [row for row in all_rows if row["status"] in ACTIVE_CARGO_STATUSES]
             active = [
                 self.cargo_jobs._from_row(row)
                 for row in rows
@@ -513,32 +593,64 @@ class CleanupService:
                 "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
                 (key, str(target), utc_text()),
             )
-        error: OSError | None = None
+            owner = next(row for row in all_rows if row["job_id"] == job_id)
+            deletion_evidence = begin_target_deletion(
+                connection,
+                trigger=(
+                    "retry_failed_cleanup"
+                    if retry_failed_target
+                    else "prompt_cleanup"
+                ),
+                target_key=key,
+                target_dir=str(target),
+                owner=owner,
+                overlapping_jobs=(
+                    row for row in all_rows if targets_overlap(key, row["target_key"])
+                ),
+                process_alive=self.process_alive,
+            )
+        error: BaseException | None = None
         deleted: tuple[str, ...] = ()
+        target_existed = False
         try:
-            if target.exists():
+            target_existed = target.exists()
+            if target_existed:
                 shutil.rmtree(target)
-            deleted = (str(target),)
-        except OSError as caught:
+                deleted = (str(target),)
+        except BaseException as caught:
             error = caught
         finally:
+            unexpected_error = error is not None and not isinstance(error, OSError)
             with self.database.transaction() as connection:
-                connection.execute(
-                    "DELETE FROM cleanup_reservations WHERE target_key=?", (key,)
-                )
+                if not unexpected_error:
+                    connection.execute(
+                        """DELETE FROM cleanup_reservations
+                           WHERE target_key=? AND reservation_kind='cargo'""",
+                        (key,),
+                    )
                 connection.execute(
                     """
                     UPDATE cargo_jobs
                     SET cleanup_status=?, cleanup_error=?
-                    WHERE job_id=?
+                    WHERE target_key=?
                     """,
                     (
                         CargoCleanupStatus.DELETED.value
                         if error is None
                         else CargoCleanupStatus.FAILED.value,
                         str(error) if error else None,
-                        job_id,
+                        key,
                     ),
+                )
+                complete_target_deletion(
+                    connection,
+                    deletion_evidence,
+                    result=(
+                        "failed"
+                        if error is not None
+                        else "deleted" if target_existed else "already_missing"
+                    ),
+                    error=str(error) if error else None,
                 )
                 connection.execute(
                     "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
@@ -553,6 +665,8 @@ class CleanupService:
                         utc_text(),
                     ),
                 )
+        if error is not None and not isinstance(error, OSError):
+            raise error
         denied = (
             (CleanupDenial(str(target), "cleanup_failed", str(error)),)
             if error is not None
@@ -589,24 +703,28 @@ class CleanupService:
         return True
 
     def retry_pending_jobs(self, *, include_failed: bool = True) -> tuple[str, ...]:
-        cleanup_status_filter = (
-            "cleanup_status IN ('pending', 'failed')"
-            if include_failed
-            else "cleanup_status='pending'"
-        )
         with self.database.connect() as connection:
-            job_ids = tuple(
-                row["job_id"]
-                for row in connection.execute(
-                    f"""
-                    SELECT job_id FROM cargo_jobs
-                    WHERE cleanup_policy='delete_on_release'
-                      AND {cleanup_status_filter}
-                      AND status IN ('released', 'orphaned')
-                    ORDER BY released_at, finished_at, created_at
-                    """
+            rows = connection.execute(
+                """
+                SELECT job_id, target_key, cleanup_status FROM cargo_jobs
+                WHERE (
+                    (cleanup_policy='delete_on_release'
+                     AND cleanup_status='pending'
+                     AND status IN ('released', 'orphaned'))
+                    OR (? AND cleanup_status='failed'
+                        AND status NOT IN ('leased', 'running'))
                 )
-            )
+                ORDER BY COALESCE(released_at, finished_at, created_at), job_id
+                """,
+                (1 if include_failed else 0,),
+            ).fetchall()
+        seen_targets: set[str] = set()
+        job_ids: list[str] = []
+        for row in rows:
+            if row["target_key"] in seen_targets:
+                continue
+            seen_targets.add(row["target_key"])
+            job_ids.append(row["job_id"])
         deleted: list[str] = []
         for job_id in job_ids:
             result = self.cleanup_job_now(job_id)
@@ -678,9 +796,10 @@ class CleanupService:
                 if available_bytes > self.pressure_threshold_bytes:
                     break
                 target = self.cargo_jobs.target_policy.validate(target_jobs[-1].target_dir)
+                deletion_evidence: DeletionEvidence | None = None
                 with self.database.transaction() as connection:
                     current_rows = connection.execute(
-                        "SELECT job_id, pid, status, target_key FROM cargo_jobs"
+                        "SELECT * FROM cargo_jobs ORDER BY created_at, job_id"
                     ).fetchall()
                     overlapping_rows = [
                         row
@@ -750,18 +869,37 @@ class CleanupService:
                         "VALUES (?, ?, ?)",
                         (target_key, str(target), utc_text()),
                     )
-                error: OSError | None = None
+                    owner = next(
+                        row
+                        for row in reversed(current_rows)
+                        if row["target_key"] == target_key
+                    )
+                    deletion_evidence = begin_target_deletion(
+                        connection,
+                        trigger="pressure_eviction",
+                        target_key=target_key,
+                        target_dir=str(target),
+                        owner=owner,
+                        overlapping_jobs=overlapping_rows,
+                        process_alive=self.process_alive,
+                    )
+                error: BaseException | None = None
+                target_existed = False
                 try:
-                    if target.exists():
+                    target_existed = target.exists()
+                    if target_existed:
                         shutil.rmtree(target)
-                except OSError as caught:
+                except BaseException as caught:
                     error = caught
                 finally:
+                    unexpected_error = error is not None and not isinstance(error, OSError)
                     with self.database.transaction() as connection:
-                        connection.execute(
-                            "DELETE FROM cleanup_reservations WHERE target_key=?",
-                            (target_key,),
-                        )
+                        if not unexpected_error:
+                            connection.execute(
+                                """DELETE FROM cleanup_reservations
+                                   WHERE target_key=? AND reservation_kind='cargo'""",
+                                (target_key,),
+                            )
                         connection.execute(
                             """
                             UPDATE cargo_jobs
@@ -776,7 +914,19 @@ class CleanupService:
                                 target_key,
                             ),
                         )
-                if error is None:
+                        complete_target_deletion(
+                            connection,
+                            deletion_evidence,
+                            result=(
+                                "failed"
+                                if error is not None
+                                else "deleted" if target_existed else "already_missing"
+                            ),
+                            error=str(error) if error else None,
+                        )
+                if error is not None and not isinstance(error, OSError):
+                    raise error
+                if error is None and target_existed:
                     deleted.append(str(target))
                 else:
                     denied.append(CleanupDenial(str(target), "cleanup_failed", str(error)))
@@ -945,6 +1095,7 @@ class CleanupService:
                 continue
             key = target_identity(target)
             reserved = False
+            deletion_evidence: DeletionEvidence | None = None
             with self.database.transaction() as connection:
                 rows = connection.execute(
                     "SELECT * FROM cargo_jobs",
@@ -1035,10 +1186,29 @@ class CleanupService:
                     "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
                     (key, str(target), utc_text()),
                 )
+                owner = max(
+                    (
+                        row
+                        for row in rows
+                        if row["target_key"] == key
+                    ),
+                    key=lambda row: (row["created_at"], row["job_id"]),
+                )
+                deletion_evidence = begin_target_deletion(
+                    connection,
+                    trigger="explicit_plan",
+                    target_key=key,
+                    target_dir=str(target),
+                    owner=owner,
+                    overlapping_jobs=(
+                        row for row in rows if targets_overlap(key, row["target_key"])
+                    ),
+                    process_alive=self.process_alive,
+                )
                 reserved = True
             if not reserved:
                 continue
-            deletion_error: OSError | None = None
+            deletion_error: BaseException | None = None
             try:
                 if not target.exists():
                     denied.append(
@@ -1047,15 +1217,22 @@ class CleanupService:
                 else:
                     shutil.rmtree(target)
                     deleted.append(target_text)
-            except OSError as error:
+            except BaseException as error:
                 deletion_error = error
-                denied.append(CleanupDenial(target_text, "cleanup_failed", str(error)))
+                if isinstance(error, OSError):
+                    denied.append(CleanupDenial(target_text, "cleanup_failed", str(error)))
             finally:
+                unexpected_error = (
+                    deletion_error is not None
+                    and not isinstance(deletion_error, OSError)
+                )
                 with self.database.transaction() as connection:
-                    connection.execute(
-                        "DELETE FROM cleanup_reservations WHERE target_key = ?",
-                        (key,),
-                    )
+                    if not unexpected_error:
+                        connection.execute(
+                            """DELETE FROM cleanup_reservations
+                               WHERE target_key = ? AND reservation_kind='cargo'""",
+                            (key,),
+                        )
                     if deletion_error is None and target_text in deleted:
                         connection.execute(
                             """
@@ -1063,6 +1240,14 @@ class CleanupService:
                             WHERE target_key=?
                             """,
                             (key,),
+                        )
+                    elif deletion_error is not None:
+                        connection.execute(
+                            """
+                            UPDATE cargo_jobs SET cleanup_status='failed', cleanup_error=?
+                            WHERE target_key=?
+                            """,
+                            (str(deletion_error), key),
                         )
                     connection.execute(
                         "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
@@ -1080,6 +1265,18 @@ class CleanupService:
                             utc_text(),
                         ),
                     )
+                    complete_target_deletion(
+                        connection,
+                        deletion_evidence,
+                        result=(
+                            "deleted"
+                            if deletion_error is None and target_text in deleted
+                            else "failed" if deletion_error is not None else "retained"
+                        ),
+                        error=str(deletion_error) if deletion_error else None,
+                    )
+            if deletion_error is not None and not isinstance(deletion_error, OSError):
+                raise deletion_error
         with self.database.transaction() as connection:
             connection.execute(
                 "UPDATE cleanup_plans SET status = 'applied', applied_at = ? WHERE plan_id = ?",

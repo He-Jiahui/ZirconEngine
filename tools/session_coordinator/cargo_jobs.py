@@ -4,13 +4,15 @@ import hashlib
 import json
 import re
 import shutil
+import threading
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Callable, Mapping
+from typing import Callable, Iterator, Mapping
 
 from .cargo_reservations import (
     NORMAL_CPU_RESERVATION_PRIORITY,
@@ -21,6 +23,15 @@ from .cargo_reservations import (
     reconcile_cpu_fifo_eligibility,
     reconcile_terminal_finished_lane_reservations,
     require_executable_cargo_session,
+)
+from .cargo_run_registration import (
+    SpawnObservation,
+    persist_authorized_spawn_observation,
+    persist_authorized_managed_run,
+    persist_cleanup_unproven_spawn,
+    persist_spawn_authorization,
+    mark_managed_run_resumed,
+    rollback_spawn_authorization,
 )
 from .cpu_burst import (
     BURST_TARGET_ROOT,
@@ -389,6 +400,61 @@ class CargoJobService:
         self._admission_guard = admission_guard
         self._reservation_consume_guard = reservation_consume_guard
         self._reported_health_timeouts: set[str] = set()
+        self._start_reconcile_lock = threading.RLock()
+        self._managed_collectors: set[str] = set()
+
+    @contextmanager
+    def managed_start_registration(self) -> Iterator[None]:
+        """Keep one managed launch indivisible from local orphan reconciliation."""
+        with self._start_reconcile_lock:
+            yield
+
+    def register_managed_collector(self, job_id: str) -> None:
+        with self._start_reconcile_lock:
+            self._managed_collectors.add(job_id)
+
+    def unregister_managed_collector(self, job_id: str) -> None:
+        with self._start_reconcile_lock:
+            self._managed_collectors.discard(job_id)
+
+    def record_cleanup_unproven_spawn(
+        self,
+        *,
+        run_id: str,
+        job_id: str,
+        session_id: str,
+        command: tuple[str, ...],
+        environment: Mapping[str, str],
+        stdout_path: Path,
+        stderr_path: Path,
+        started_at: str,
+        pid: int,
+        rejection_code: str,
+    ) -> CargoJob:
+        creation_time = self._read_process_creation_time(pid)
+        try:
+            live_pids = tuple(sorted({int(value) for value in self.supervisor_cargo_pids(pid)}))
+        except (OSError, ValueError):
+            live_pids = ()
+        persist_cleanup_unproven_spawn(
+            self.database,
+            run_id=run_id,
+            job_id=job_id,
+            session_id=session_id,
+            command=command,
+            environment=environment,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            started_at=started_at,
+            observation=SpawnObservation(
+                pid=pid,
+                creation_time=creation_time,
+                root_kind=CargoProcessRootKind.SUPERVISOR.value,
+                live_pids=live_pids,
+            ),
+            rejection_code=rejection_code,
+        )
+        return self.get(job_id)
 
     def set_admission_guard(self, guard: Callable[[Connection, str, str], None]) -> None:
         """Attach the coordinator's durable at-commit admission fence."""
@@ -2015,6 +2081,31 @@ class CargoJobService:
                     "cargo_lane_cleanup_reserved",
                     f"Cargo target is reserved for cleanup: {reservation['target_dir']}",
                 )
+            cleanup_failed = next(
+                (
+                    row
+                    for row in connection.execute(
+                        """
+                        SELECT job_id, target_key, target_dir, cleanup_error
+                        FROM cargo_jobs
+                        WHERE cleanup_status='failed'
+                        ORDER BY created_at DESC, job_id DESC
+                        """
+                    ).fetchall()
+                    if targets_overlap(target_key, row["target_key"])
+                ),
+                None,
+            )
+            if cleanup_failed is not None:
+                raise CoordinatorError(
+                    "cargo_lane_cleanup_failed",
+                    "Cargo target overlaps a failed deletion and cannot be reused until cleanup succeeds",
+                    details={
+                        "jobId": cleanup_failed["job_id"],
+                        "targetDir": cleanup_failed["target_dir"],
+                        "cleanupError": cleanup_failed["cleanup_error"],
+                    },
+                )
             active_rows = connection.execute(
                 """
                 SELECT job_id, target_key FROM cargo_jobs
@@ -2410,6 +2501,209 @@ class CargoJobService:
             ).fetchall()
         return tuple(self._from_row(row) for row in rows)
 
+    def authorize_managed_start(
+        self,
+        job_id: str,
+        *,
+        session_id: str,
+        command: list[str] | tuple[str, ...],
+    ) -> CargoJob:
+        """Durably consume launch authorization before a managed child exists."""
+
+        command_tuple = tuple(command)
+        now = utc_text()
+        try:
+            with self.database.transaction() as connection:
+                reservation = self._require_start_eligibility(
+                    connection,
+                    job_id=job_id,
+                    session_id=session_id,
+                    command=command_tuple,
+                    now=now,
+                )
+                persist_spawn_authorization(
+                    connection,
+                    job_id=job_id,
+                    session_id=session_id,
+                    command=command_tuple,
+                    authorized_at=now,
+                    reservation_id=(
+                        str(reservation["reservation_id"])
+                        if reservation is not None
+                        else None
+                    ),
+                )
+        except CoordinatorError as error:
+            with self.database.transaction() as connection:
+                self._record_event(
+                    connection,
+                    session_id,
+                    "cargo.start_rejected",
+                    {
+                        "jobId": job_id,
+                        "pid": None,
+                        "rootIsSupervisor": True,
+                        "code": error.code,
+                    },
+                )
+            raise
+        return self.get(job_id)
+
+    def register_authorized_managed_run(
+        self,
+        job_id: str,
+        *,
+        session_id: str,
+        pid: int,
+        command: list[str] | tuple[str, ...],
+        run_id: str,
+        environment: Mapping[str, str],
+        stdout_path: Path,
+        stderr_path: Path,
+        started_at: str,
+        root_process_creation_time: str | None = None,
+    ) -> CargoJob:
+        """Bind a suspended supervisor and run in one durable transaction."""
+
+        if pid <= 0:
+            raise ValueError("Cargo process PID must be positive")
+        command_tuple = tuple(command)
+        now = utc_text()
+        observed_creation_time, live_pids = self._observe_started_process(
+            pid, root_is_supervisor=True
+        )
+        creation_time = root_process_creation_time or observed_creation_time
+        with self.database.transaction() as connection:
+            persist_authorized_managed_run(
+                connection,
+                run_id=run_id,
+                job_id=job_id,
+                session_id=session_id,
+                command=command_tuple,
+                environment=environment,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                started_at=started_at,
+                observed_at=now,
+                observation=SpawnObservation(
+                    pid,
+                    creation_time,
+                    CargoProcessRootKind.SUPERVISOR.value,
+                    live_pids,
+                ),
+            )
+        return self.get(job_id)
+
+    def rollback_managed_start_authorization(
+        self,
+        job_id: str,
+        *,
+        session_id: str,
+        command: list[str] | tuple[str, ...],
+    ) -> CargoJob:
+        """Restore an authorization whose child was never durably registered."""
+
+        command_tuple = tuple(command)
+        now = utc_text()
+        with self.database.transaction() as connection:
+            rollback_spawn_authorization(
+                connection,
+                job_id=job_id,
+                session_id=session_id,
+                command=command_tuple,
+                rolled_back_at=now,
+            )
+        return self.get(job_id)
+
+    def mark_authorized_managed_run_resumed(
+        self, run_id: str, *, job_id: str, session_id: str
+    ) -> None:
+        with self.database.transaction() as connection:
+            mark_managed_run_resumed(
+                connection,
+                run_id=run_id,
+                job_id=job_id,
+                session_id=session_id,
+            )
+
+    def _require_start_eligibility(
+        self,
+        connection: Connection,
+        *,
+        job_id: str,
+        session_id: str,
+        command: tuple[str, ...],
+        now: str,
+    ):
+        require_executable_cargo_session(connection, session_id)
+        self._require_status(
+            connection, job_id, {CargoJobStatus.LEASED}, session_id=session_id
+        )
+        reservation = connection.execute(
+            "SELECT * FROM cargo_lane_reservations WHERE job_id=?", (job_id,)
+        ).fetchone()
+        if reservation is not None:
+            lane_scope = str(reservation["lane_scope"])
+            expire_invalid_pending_lane_reservations(
+                connection, lane_scope=lane_scope, now=now
+            )
+            reservation = connection.execute(
+                "SELECT * FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservation_id"],),
+            ).fetchone()
+            if reservation["status"] != "leased":
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "expired"),
+                    f"The {lane_scope.upper()} reservation is no longer active",
+                    details={"reservationId": reservation["reservation_id"]},
+                )
+            if reservation["command_fingerprint"] != self._command_fingerprint(command):
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "command_mismatch"),
+                    f"The reserved {lane_scope.upper()} job must start its exact approved command",
+                    details={"reservationId": reservation["reservation_id"]},
+                )
+            return reservation
+
+        # A legacy acquire cannot bypass a newer exact CPU FIFO reservation.
+        expire_invalid_pending_lane_reservations(connection, lane_scope="cpu", now=now)
+        reconcile_terminal_finished_lane_reservations(
+            connection, lane_scope="cpu", now=now
+        )
+        priority = connection.execute(
+            """SELECT reservation_id, session_id, status
+               FROM cargo_lane_reservations
+               WHERE lane_scope='cpu'
+                 AND status IN ('pending', 'leased', 'running', 'finished')
+               ORDER BY created_at, reservation_id LIMIT 1"""
+        ).fetchone()
+        if priority is not None:
+            raise CoordinatorError(
+                "cargo_cpu_lane_reserved",
+                "An exact CPU reservation must start before an unreserved job",
+                details={
+                    "reservationId": priority["reservation_id"],
+                    "sessionId": priority["session_id"],
+                    "status": priority["status"],
+                },
+            )
+        return None
+
+    def _observe_started_process(
+        self, pid: int, *, root_is_supervisor: bool
+    ) -> tuple[str | None, tuple[int, ...]]:
+        creation_time = self._read_process_creation_time(pid)
+        process_tree = (
+            self.supervisor_cargo_pids if root_is_supervisor else self.process_tree_pids
+        )
+        try:
+            live_pids = tuple(
+                sorted({int(value) for value in process_tree(pid) if int(value) > 0})
+            )
+        except (OSError, ValueError):
+            live_pids = ()
+        return creation_time, live_pids
+
     def start(
         self,
         job_id: str,
@@ -2422,80 +2716,23 @@ class CargoJobService:
         if pid <= 0:
             raise ValueError("Cargo process PID must be positive")
         now = utc_text()
-        root_process_creation_time = self._read_process_creation_time(pid)
+        root_process_creation_time, initial_live_pids = self._observe_started_process(
+            pid, root_is_supervisor=root_is_supervisor
+        )
         root_process_kind = (
             CargoProcessRootKind.SUPERVISOR
             if root_is_supervisor
             else CargoProcessRootKind.CARGO
         )
-        # Persist the first child-process observation at start.  The workspace
-        # watcher can be busy with a large shared checkout, so leaving this
-        # field empty until its next scan makes a real managed Cargo tree look
-        # like an unobserved or orphaned job to the UI and lifecycle checks.
-        process_tree = (
-            self.supervisor_cargo_pids if root_is_supervisor else self.process_tree_pids
-        )
-        try:
-            initial_live_pids = tuple(
-                sorted({int(value) for value in process_tree(pid) if int(value) > 0})
-            )
-        except (OSError, ValueError):
-            # Observation is advisory at this point.  Starting the already
-            # spawned managed process must remain recoverable by the periodic
-            # reconciler if Windows briefly refuses a process snapshot.
-            initial_live_pids = ()
         try:
             with self.database.transaction() as connection:
-                require_executable_cargo_session(connection, session_id)
-                self._require_status(
-                    connection, job_id, {CargoJobStatus.LEASED}, session_id=session_id
+                reservation = self._require_start_eligibility(
+                    connection,
+                    job_id=job_id,
+                    session_id=session_id,
+                    command=tuple(command),
+                    now=now,
                 )
-                reservation = connection.execute(
-                    "SELECT * FROM cargo_lane_reservations WHERE job_id=?", (job_id,)
-                ).fetchone()
-                if reservation is not None:
-                    lane_scope = str(reservation["lane_scope"])
-                    expire_invalid_pending_lane_reservations(
-                        connection, lane_scope=lane_scope, now=now
-                    )
-                    if reservation["status"] != "leased":
-                        raise CoordinatorError(
-                            reservation_code(lane_scope, "expired"),
-                            f"The {lane_scope.upper()} reservation is no longer active",
-                            details={"reservationId": reservation["reservation_id"]},
-                        )
-                    if reservation["command_fingerprint"] != self._command_fingerprint(tuple(command)):
-                        raise CoordinatorError(
-                            reservation_code(lane_scope, "command_mismatch"),
-                            f"The reserved {lane_scope.upper()} job must start its exact approved command",
-                            details={"reservationId": reservation["reservation_id"]},
-                        )
-                else:
-                    # An acquire that predates an exact CPU reservation must not
-                    # bypass that reservation later through a delayed start.
-                    expire_invalid_pending_lane_reservations(
-                        connection, lane_scope="cpu", now=now
-                    )
-                    reconcile_terminal_finished_lane_reservations(
-                        connection, lane_scope="cpu", now=now
-                    )
-                    priority = connection.execute(
-                        """SELECT reservation_id, session_id, status
-                           FROM cargo_lane_reservations
-                           WHERE lane_scope='cpu'
-                             AND status IN ('pending', 'leased', 'running', 'finished')
-                           ORDER BY created_at, reservation_id LIMIT 1"""
-                    ).fetchone()
-                    if priority is not None:
-                        raise CoordinatorError(
-                            "cargo_cpu_lane_reserved",
-                            "An exact CPU reservation must start before an unreserved job",
-                            details={
-                                "reservationId": priority["reservation_id"],
-                                "sessionId": priority["session_id"],
-                                "status": priority["status"],
-                            },
-                        )
                 connection.execute(
                     """
                     UPDATE cargo_jobs
@@ -2880,6 +3117,20 @@ class CargoJobService:
         leased_timeout_seconds: int = 300,
         running_health_timeout_seconds: int = 300,
     ) -> tuple[CargoJob, ...]:
+        with self._start_reconcile_lock:
+            return self._reconcile_orphans(
+                now=now,
+                leased_timeout_seconds=leased_timeout_seconds,
+                running_health_timeout_seconds=running_health_timeout_seconds,
+            )
+
+    def _reconcile_orphans(
+        self,
+        *,
+        now: datetime | None = None,
+        leased_timeout_seconds: int = 300,
+        running_health_timeout_seconds: int = 300,
+    ) -> tuple[CargoJob, ...]:
         orphaned_ids: list[str] = []
         current_time = now or utc_now()
         now_text = utc_text(current_time)
@@ -2898,6 +3149,8 @@ class CargoJobService:
 
         for snapshot in snapshots:
             snapshot_job = self._from_row(snapshot)
+            if snapshot_job.job_id in self._managed_collectors:
+                continue
             live_pids = self._live_process_pids(snapshot_job)
 
             # Re-read under a short write transaction.  A job may have

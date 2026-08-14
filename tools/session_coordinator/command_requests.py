@@ -231,6 +231,7 @@ class CommandRequestJournal:
         ],
         *,
         retention_class: str = "durable",
+        before_admission: Callable[[], object] | None = None,
     ) -> dict[str, Any]:
         """Expose accepted work, then commit its mutation and terminal result together."""
         request_id = self._validate_request_id(request_id)
@@ -267,6 +268,8 @@ class CommandRequestJournal:
         failure: BaseException | None = None
         terminal = None
         try:
+            if before_admission is not None:
+                before_admission()
             with self.database.transaction() as connection:
                 current = connection.execute(
                     "SELECT * FROM command_requests WHERE request_id=?", (request_id,)

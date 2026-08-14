@@ -29,6 +29,25 @@ from .server import (
 )
 
 
+_NATIVE_PLUGIN_BENCHMARK_NAMES = (
+    "native_callback_atomic_lease_1_thread_benchmark",
+    "native_callback_atomic_lease_2_thread_benchmark",
+    "native_callback_atomic_lease_16_thread_benchmark",
+    "native_callback_atomic_lease_64_thread_benchmark",
+    "native_host_context_lookup_1_thread_benchmark",
+    "native_host_context_lookup_16_thread_benchmark",
+    "native_registration_replay_1_systems_1_methods_benchmark",
+    "native_registration_replay_1_systems_100_methods_benchmark",
+    "native_registration_replay_100_systems_1_methods_benchmark",
+    "native_registration_replay_100_systems_100_methods_benchmark",
+    "native_registration_replay_1000_systems_1_methods_benchmark",
+    "native_registration_replay_1000_systems_100_methods_benchmark",
+    "native_runtime_broadcast_1_plugin_benchmark",
+    "native_runtime_broadcast_8_plugin_benchmark",
+    "native_runtime_broadcast_32_plugin_benchmark",
+)
+
+
 class _CoordinatorArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> None:
         raise CoordinatorError("cli_arguments_invalid", message)
@@ -354,8 +373,31 @@ def _parser() -> argparse.ArgumentParser:
     milestone_validate.add_argument("--milestone", required=True)
     milestone_validate.add_argument(
         "--template",
-        choices=("coordinator-actions", "web-check", "runtime14-rust-focused"),
+        choices=(
+            "coordinator-actions",
+            "web-check",
+            "runtime14-rust-focused",
+            "native-plugin-benchmark",
+        ),
         required=True,
+    )
+    milestone_validate.add_argument(
+        "--benchmark-name",
+        choices=_NATIVE_PLUGIN_BENCHMARK_NAMES,
+    )
+    milestone_validate.add_argument(
+        "--cargo-profile", choices=("release", "profiling")
+    )
+    milestone_grant_benchmark = milestone_commands.add_parser("grant-benchmark")
+    milestone_grant_benchmark.add_argument("--session-id", required=True)
+    milestone_grant_benchmark.add_argument("--source-session-id", required=True)
+    milestone_grant_benchmark.add_argument("--run-id", required=True)
+    milestone_grant_benchmark.add_argument("--milestone", required=True)
+    milestone_grant_benchmark.add_argument(
+        "--benchmark-name", choices=_NATIVE_PLUGIN_BENCHMARK_NAMES, required=True
+    )
+    milestone_grant_benchmark.add_argument(
+        "--cargo-profile", choices=("release", "profiling"), required=True
     )
     milestone_commit = milestone_commands.add_parser("commit")
     milestone_commit.add_argument("--session-id", required=True)
@@ -481,6 +523,20 @@ def _parser() -> argparse.ArgumentParser:
     validation_submit.add_argument("--coverage-json", required=True)
     validation_status = validation_commands.add_parser("status")
     validation_status.add_argument("--ticket-id", required=True)
+    artifact_receipt_request = validation_commands.add_parser(
+        "artifact-receipt-request"
+    )
+    artifact_receipt_request.add_argument("--session-id", required=True)
+    artifact_receipt_request.add_argument("--job-id", required=True)
+    artifact_receipt_request.add_argument("--ticket-id", required=True)
+    artifact_receipt_request.add_argument(
+        "--artifact-kind", choices=("shader-pbr-viewer",), required=True
+    )
+    artifact_receipt_status = validation_commands.add_parser(
+        "artifact-receipt-status"
+    )
+    artifact_receipt_status.add_argument("--receipt-id", required=True)
+    artifact_receipt_status.add_argument("--session-id")
     validation_result = validation_commands.add_parser("record-result")
     validation_result.add_argument("--ticket-id", required=True)
     validation_result.add_argument(
@@ -1416,15 +1472,36 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 reason=f"prepare milestone {arguments.milestone.strip().upper()}",
             )
         elif arguments.milestone_command == "validate":
+            parameters = {
+                "sessionId": arguments.session_id,
+                "runId": arguments.run_id,
+                "milestoneId": arguments.milestone.strip().upper(),
+                "template": arguments.template,
+            }
+            if arguments.benchmark_name is not None:
+                parameters["benchmarkName"] = arguments.benchmark_name
+            if arguments.cargo_profile is not None:
+                parameters["cargoProfile"] = arguments.cargo_profile
             action = client.execute_control_action(
                 "validation.start",
+                parameters,
+                reason=f"start managed validation for {arguments.milestone.strip().upper()}",
+            )
+        elif arguments.milestone_command == "grant-benchmark":
+            action = client.execute_control_action(
+                "validation.benchmark_grant.issue",
                 {
                     "sessionId": arguments.session_id,
+                    "sourceSessionId": arguments.source_session_id,
                     "runId": arguments.run_id,
                     "milestoneId": arguments.milestone.strip().upper(),
-                    "template": arguments.template,
+                    "benchmarkName": arguments.benchmark_name,
+                    "cargoProfile": arguments.cargo_profile,
                 },
-                reason=f"start managed validation for {arguments.milestone.strip().upper()}",
+                reason=(
+                    "authorize existing validation copy for "
+                    f"{arguments.milestone.strip().upper()} native benchmark"
+                ),
             )
         elif arguments.milestone_command == "review":
             action = client.execute_control_action(
@@ -1691,6 +1768,21 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     if arguments.command == "validation":
         if arguments.validation_command == "status":
             return client.command("validation.status", {"ticket_id": arguments.ticket_id})
+        if arguments.validation_command == "artifact-receipt-request":
+            return client.command(
+                "validation.artifact_receipt.request",
+                {
+                    "session_id": arguments.session_id,
+                    "job_id": arguments.job_id,
+                    "ticket_id": arguments.ticket_id,
+                    "artifact_kind": arguments.artifact_kind,
+                },
+            )
+        if arguments.validation_command == "artifact-receipt-status":
+            payload = {"receipt_id": arguments.receipt_id}
+            if arguments.session_id is not None:
+                payload["session_id"] = arguments.session_id
+            return client.command("validation.artifact_receipt.status", payload)
         if arguments.validation_command == "record-result":
             try:
                 evidence = _strict_json_loads(arguments.evidence_json)

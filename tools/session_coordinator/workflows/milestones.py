@@ -79,6 +79,29 @@ class MilestoneWorkflowService:
         self.leases = leases
         self.failures = failures
 
+    def current_milestone_manifest_hash(
+        self,
+        *,
+        session_id: str,
+        run_id: str,
+        milestone_key: str,
+        paths: tuple[str, ...] | list[str],
+    ) -> str:
+        self._require_run_owner(run_id, session_id)
+        normalized_paths = tuple(paths)
+        if normalized_paths != tuple(self.milestone_paths(run_id, milestone_key)):
+            raise CoordinatorError(
+                "milestone_manifest_paths_changed",
+                "Requested paths do not match the immutable milestone manifest",
+            )
+        return self.prepare_context(
+            run_id,
+            normalized_paths,
+            failure_workflow_node_keys=self._failure_node_keys(
+                run_id, milestone_key
+            ),
+        ).manifest_hash
+
     def bind_validation(
         self,
         *,
@@ -89,9 +112,44 @@ class MilestoneWorkflowService:
         job_id: str,
         template: str,
         source_manifest_hash: str,
+        copy_input_manifest_hash: str | None = None,
+        benchmark_name: str | None = None,
+        cargo_profile: str | None = None,
+        benchmark_grant_id: str | None = None,
         actor: str,
         action_id: str | None,
     ) -> None:
+        benchmark_values = (
+            copy_input_manifest_hash,
+            benchmark_name,
+            cargo_profile,
+            benchmark_grant_id,
+        )
+        if template == "native-plugin-benchmark":
+            if any(value is None for value in benchmark_values):
+                raise CoordinatorError(
+                    "validation_benchmark_binding_incomplete",
+                    "Native benchmark validation requires both manifests and grant identity",
+                )
+            if (
+                len(str(copy_input_manifest_hash)) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in str(copy_input_manifest_hash)
+                )
+                or cargo_profile not in {"release", "profiling"}
+                or not str(benchmark_name).strip()
+                or not str(benchmark_grant_id).strip()
+            ):
+                raise CoordinatorError(
+                    "validation_benchmark_binding_invalid",
+                    "Native benchmark validation identity is malformed",
+                )
+        elif any(value is not None for value in benchmark_values):
+            raise CoordinatorError(
+                "validation_benchmark_binding_unexpected",
+                "Benchmark identity is valid only for the native benchmark template",
+            )
         self._require_run_owner(run_id, session_id)
         paths = self.milestone_paths(run_id, milestone_key)
         if not paths:
@@ -127,9 +185,10 @@ class MilestoneWorkflowService:
                 """INSERT INTO workflow_validation_bindings(
                        validation_run_id, job_id, run_id, topology_version_id,
                        node_id, session_id, template, source_manifest_hash, paths_json,
-                       input_fingerprint,
+                       input_fingerprint, copy_input_manifest_hash, benchmark_name,
+                       cargo_profile, benchmark_grant_id,
                        action_id, actor, created_at
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     validation_run_id,
                     job_id,
@@ -141,6 +200,10 @@ class MilestoneWorkflowService:
                     source_manifest_hash,
                     json.dumps(paths),
                     fingerprint,
+                    copy_input_manifest_hash,
+                    benchmark_name,
+                    cargo_profile,
+                    benchmark_grant_id,
                     action_id,
                     actor,
                     utc_text(),
@@ -154,13 +217,73 @@ class MilestoneWorkflowService:
             )
         self.import_validation_result(validation_run_id)
 
+    def record_validation_process_identity(
+        self,
+        validation_run_id: str,
+        *,
+        root_pid: int,
+        process_creation_time: str,
+    ) -> None:
+        if not isinstance(root_pid, int) or root_pid <= 0:
+            raise CoordinatorError(
+                "validation_benchmark_root_pid_invalid",
+                "Native benchmark root process ID must be positive",
+            )
+        if not isinstance(process_creation_time, str) or not process_creation_time:
+            raise CoordinatorError(
+                "validation_benchmark_process_creation_time_invalid",
+                "Native benchmark process creation time must be recorded",
+            )
+        with self.database.transaction() as connection:
+            cursor = connection.execute(
+                """UPDATE workflow_validation_bindings
+                   SET root_pid=?, root_process_creation_time=?
+                   WHERE validation_run_id=?
+                     AND benchmark_grant_id IS NOT NULL
+                     AND copy_input_manifest_hash IS NOT NULL
+                     AND root_pid IS NULL
+                     AND root_process_creation_time IS NULL""",
+                (root_pid, process_creation_time, validation_run_id),
+            )
+            if cursor.rowcount == 1:
+                return
+            existing = connection.execute(
+                """SELECT root_pid, root_process_creation_time
+                   FROM workflow_validation_bindings
+                   WHERE validation_run_id=? AND benchmark_grant_id IS NOT NULL""",
+                (validation_run_id,),
+            ).fetchone()
+            if (
+                existing is None
+                or existing["root_pid"] != root_pid
+                or existing["root_process_creation_time"] != process_creation_time
+            ):
+                raise CoordinatorError(
+                    "validation_benchmark_process_identity_unavailable",
+                    "Benchmark validation binding is missing or has another root process",
+                )
+
+    def reject_validation_launch(
+        self, validation_run_id: str, *, error_code: str
+    ) -> bool:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT * FROM workflow_validation_bindings
+                   WHERE validation_run_id=? AND imported_at IS NULL""",
+                (validation_run_id,),
+            ).fetchone()
+        if row is None:
+            return False
+        return self._reject_validation_binding(row, error_code)
+
     def import_validation_result(self, validation_run_id: str) -> bool:
         with self.database.connect() as connection:
             row = connection.execute(
                 """SELECT binding.*, template_binding.template AS exact_template,
                           validation.exit_code, validation.command_json,
                           validation.stdout_text, validation.stderr_text,
-                          validation.completed_at, node.node_key, copy.source_root
+                          validation.completed_at, node.node_key, copy.source_root,
+                          copy.input_manifest_hash AS current_copy_input_manifest_hash
                    FROM workflow_validation_bindings binding
                    LEFT JOIN validation_copy_runs validation
                      ON validation.run_id=binding.validation_run_id
@@ -175,6 +298,14 @@ class MilestoneWorkflowService:
             return False
         if not row["source_manifest_hash"] or not json.loads(row["paths_json"]):
             return self._reject_validation_binding(row, "validation_binding_legacy_unbound")
+        if (
+            row["copy_input_manifest_hash"] is not None
+            and row["current_copy_input_manifest_hash"]
+            != row["copy_input_manifest_hash"]
+        ):
+            return self._reject_validation_binding(
+                row, "validation_copy_input_manifest_changed"
+            )
         current_copy_hash = self._manifest_hash_at(
             Path(row["source_root"]), tuple(json.loads(row["paths_json"]))
         )
@@ -201,6 +332,21 @@ class MilestoneWorkflowService:
                 "command": json.loads(row["command_json"]),
                 "exitCode": int(row["exit_code"]),
                 "completedAt": row["completed_at"],
+                **(
+                    {
+                        "benchmarkIdentity": {
+                            "sourceManifestHash": row["copy_input_manifest_hash"],
+                            "milestoneManifestHash": row["source_manifest_hash"],
+                            "benchmarkName": row["benchmark_name"],
+                            "cargoProfile": row["cargo_profile"],
+                            "grantId": row["benchmark_grant_id"],
+                            "rootPid": row["root_pid"],
+                            "rootProcessCreationTime": row["root_process_creation_time"],
+                        }
+                    }
+                    if row["benchmark_grant_id"] is not None
+                    else {}
+                ),
             },
         )
         with self.database.transaction() as connection:

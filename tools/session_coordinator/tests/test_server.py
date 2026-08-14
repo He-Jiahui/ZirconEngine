@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 import os
+import sqlite3
 import subprocess
 import time
 import tempfile
@@ -1631,6 +1632,95 @@ class ServerTests(unittest.TestCase):
                     client.command("session.register", {"session_id": "session-a"})
             self.assertEqual("not_on_main", rejected.exception.code)
 
+    def test_non_main_startup_and_maintenance_do_not_mutate_shared_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            subprocess.run(["git", "switch", "-q", "-c", "temporary-test"], cwd=repo, check=True)
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            target_root = root / "D" / "cargo-targets"
+            target_root.mkdir(parents=True)
+            governance = mock.Mock()
+            cargo_jobs = mock.Mock()
+            cargo_jobs.audit_active_gpu_jobs.return_value = ()
+            cargo_runner = mock.Mock()
+            cleanup = mock.Mock()
+            workspace_copy = mock.Mock()
+            validation_ticket_worker = mock.Mock()
+            benchmark_validation_grants = mock.Mock()
+            milestone_workflows = mock.Mock()
+
+            with (
+                mock.patch.object(
+                    CoordinatorConfig,
+                    "enabled_target_roots",
+                    new_callable=mock.PropertyMock,
+                    return_value=(target_root,),
+                ),
+                mock.patch.object(
+                    CoordinatorConfig,
+                    "unmanaged_artifact_sweep_enabled",
+                    new_callable=mock.PropertyMock,
+                    return_value=True,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.ArtifactGovernanceService",
+                    return_value=governance,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.CargoJobService",
+                    return_value=cargo_jobs,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.CargoJobRunner",
+                    return_value=cargo_runner,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.CleanupService",
+                    return_value=cleanup,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.WorkspaceCopyService",
+                    return_value=workspace_copy,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.ValidationTicketWorker",
+                    return_value=validation_ticket_worker,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.BenchmarkValidationGrantService",
+                    return_value=benchmark_validation_grants,
+                ),
+                mock.patch(
+                    "tools.session_coordinator.server.MilestoneWorkflowService",
+                    return_value=milestone_workflows,
+                ),
+            ):
+                application = CoordinatorApplication(config)
+
+            self.assertTrue(application.read_only)
+            governance.recover_reservations.assert_not_called()
+            cargo_jobs.reconcile_orphans.assert_not_called()
+            cargo_runner.reconcile_terminal_runs.assert_not_called()
+            cleanup.recover_reservations.assert_not_called()
+            workspace_copy.recover_interrupted_jobs.assert_not_called()
+            benchmark_validation_grants.reconcile_interrupted_consumed.assert_not_called()
+            milestone_workflows.recover_validation_results.assert_not_called()
+            stop_event = mock.Mock()
+            stop_event.wait.side_effect = (False, True)
+            stop_event.is_set.return_value = False
+
+            RunningCoordinator._maintenance_loop(application, 0.05, 60, stop_event)
+
+            governance.cleanup.assert_not_called()
+            cargo_jobs.reconcile_orphans.assert_not_called()
+            cargo_runner.reconcile_terminal_runs.assert_not_called()
+            cargo_jobs.reconcile_pending_reservations.assert_not_called()
+            cleanup.retry_pending_jobs.assert_not_called()
+            cleanup.evict_idle_pools_under_pressure.assert_not_called()
+            workspace_copy.recover_interrupted_jobs.assert_not_called()
+            validation_ticket_worker.tick.assert_not_called()
+
     def test_background_watcher_marks_external_drift_degraded(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -1938,8 +2028,135 @@ class ServerTests(unittest.TestCase):
             )
 
             self.assertEqual("resolving_failure", result["session"]["status"])
-            self.assertEqual("after", result["session"]["display_name"])
-            self.assertEqual(["provider"], [item["summary_slug"] for item in result["open_failures"]])
+        self.assertEqual("after", result["session"]["display_name"])
+        self.assertEqual(["provider"], [item["summary_slug"] for item in result["open_failures"]])
+
+    def test_registration_snapshot_parse_does_not_hold_the_database_writer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            plan = fixture.add_plan("docs/plans/runtime/01-runtime.md")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            application.sessions.register(session_id="copy-session")
+            parse_started = threading.Event()
+            release_parse = threading.Event()
+            registration_done = threading.Event()
+            materialize_done = threading.Event()
+            errors: list[BaseException] = []
+            original_parse = application.failures._parse_immutable_snapshot
+
+            def blocked_parse(*args, **kwargs):
+                parse_started.set()
+                release_parse.wait(timeout=5)
+                return original_parse(*args, **kwargs)
+
+            def register() -> None:
+                try:
+                    application.execute_command_request(
+                        "session.register",
+                        {
+                            "session_id": "registering-session",
+                            "plan_path": plan.path.relative_to(repo).as_posix(),
+                        },
+                        request_id="a" * 32,
+                    )
+                except BaseException as error:
+                    errors.append(error)
+                finally:
+                    registration_done.set()
+
+            def materialize() -> None:
+                try:
+                    application.execute_command_request(
+                        "validation_copy.materialize",
+                        {"session_id": "copy-session", "paths": ["README.md"]},
+                        request_id="b" * 32,
+                    )
+                except BaseException as error:
+                    errors.append(error)
+                finally:
+                    materialize_done.set()
+
+            record = WorkspaceCopyRecord(
+                "copy-job",
+                "copy-session",
+                root / "copy-job",
+                root / "copy-job/source",
+                root / "copy-job/target",
+                ("README.md",),
+                "materializing",
+            )
+            with (
+                mock.patch.object(
+                    application.failures,
+                    "_parse_immutable_snapshot",
+                    side_effect=blocked_parse,
+                ),
+                mock.patch.object(
+                    application, "_require_artifact_governance_clean"
+                ),
+                mock.patch.object(
+                    application.workspace_copy,
+                    "materialize_async",
+                    return_value=record,
+                ),
+            ):
+                registration = threading.Thread(target=register, daemon=True)
+                registration.start()
+                self.assertTrue(parse_started.wait(timeout=1))
+                copy_admission = threading.Thread(target=materialize, daemon=True)
+                copy_admission.start()
+                try:
+                    self.assertTrue(
+                        materialize_done.wait(timeout=1),
+                        "validation-copy admission waited behind failure snapshot parsing",
+                    )
+                finally:
+                    release_parse.set()
+                    registration.join(timeout=5)
+                    copy_admission.join(timeout=5)
+
+            self.assertTrue(registration_done.is_set())
+            self.assertEqual([], errors)
+
+    def test_database_busy_diagnostic_does_not_terminate_maintenance_loop(self) -> None:
+        application = mock.Mock()
+        application.read_only = False
+        application.cargo_jobs = None
+        application.artifact_governance = None
+        application.validation_ticket_worker = None
+        application.watcher.prepare_scan.return_value = mock.sentinel.observation
+        recovery_attempted = threading.Event()
+
+        def fail_recovery(*_args, **_kwargs):
+            recovery_attempted.set()
+            raise sqlite3.OperationalError("database is locked")
+
+        application.workspace_copy.recover_interrupted_jobs.side_effect = fail_recovery
+        application.database.transaction.side_effect = sqlite3.OperationalError(
+            "database is locked"
+        )
+        stop = threading.Event()
+        worker = threading.Thread(
+            target=RunningCoordinator._maintenance_loop,
+            args=(application, 0.01, 60, stop),
+            daemon=True,
+        )
+        worker.start()
+        try:
+            self.assertTrue(recovery_attempted.wait(timeout=1))
+            time.sleep(0.05)
+            self.assertTrue(
+                worker.is_alive(),
+                "maintenance loop exited after its DB-busy diagnostic write failed",
+            )
+        finally:
+            stop.set()
+            worker.join(timeout=1)
 
     def test_foreground_mutation_is_not_blocked_by_slow_workspace_observation(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

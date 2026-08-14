@@ -36,6 +36,7 @@ class ActionKind(StrEnum):
     PATCH_PROCESS = "patch.process_own"
     VALIDATION_START = "validation.start"
     VALIDATION_CANCEL = "validation.cancel"
+    BENCHMARK_GRANT_ISSUE = "validation.benchmark_grant.issue"
     FAILURE_REFRESH = "failure.refresh"
     TOPOLOGY_REFRESH = "topology.refresh"
     DRAIN_PREVIEW = "service.drain_preview"
@@ -341,6 +342,60 @@ class ValidationTemplate(StrEnum):
     COORDINATOR_ACTIONS = "coordinator-actions"
     WEB_CHECK = "web-check"
     RUNTIME14_RUST_FOCUSED = "runtime14-rust-focused"
+    NATIVE_PLUGIN_BENCHMARK = "native-plugin-benchmark"
+
+
+class NativePluginBenchmarkProfile(StrEnum):
+    RELEASE = "release"
+    PROFILING = "profiling"
+
+
+class NativePluginBenchmarkName(StrEnum):
+    NATIVE_CALLBACK_ATOMIC_LEASE_1_THREAD = (
+        "native_callback_atomic_lease_1_thread_benchmark"
+    )
+    NATIVE_CALLBACK_ATOMIC_LEASE_2_THREAD = (
+        "native_callback_atomic_lease_2_thread_benchmark"
+    )
+    NATIVE_CALLBACK_ATOMIC_LEASE_16_THREAD = (
+        "native_callback_atomic_lease_16_thread_benchmark"
+    )
+    NATIVE_CALLBACK_ATOMIC_LEASE_64_THREAD = (
+        "native_callback_atomic_lease_64_thread_benchmark"
+    )
+    NATIVE_HOST_CONTEXT_LOOKUP_1_THREAD = (
+        "native_host_context_lookup_1_thread_benchmark"
+    )
+    NATIVE_HOST_CONTEXT_LOOKUP_16_THREAD = (
+        "native_host_context_lookup_16_thread_benchmark"
+    )
+    NATIVE_REGISTRATION_REPLAY_1_SYSTEM_1_METHOD = (
+        "native_registration_replay_1_systems_1_methods_benchmark"
+    )
+    NATIVE_REGISTRATION_REPLAY_1_SYSTEM_100_METHODS = (
+        "native_registration_replay_1_systems_100_methods_benchmark"
+    )
+    NATIVE_REGISTRATION_REPLAY_100_SYSTEMS_1_METHOD = (
+        "native_registration_replay_100_systems_1_methods_benchmark"
+    )
+    NATIVE_REGISTRATION_REPLAY_100_SYSTEMS_100_METHODS = (
+        "native_registration_replay_100_systems_100_methods_benchmark"
+    )
+    NATIVE_REGISTRATION_REPLAY_1000_SYSTEMS_1_METHOD = (
+        "native_registration_replay_1000_systems_1_methods_benchmark"
+    )
+    NATIVE_REGISTRATION_REPLAY_1000_SYSTEMS_100_METHODS = (
+        "native_registration_replay_1000_systems_100_methods_benchmark"
+    )
+    NATIVE_RUNTIME_BROADCAST_1_PLUGIN = (
+        "native_runtime_broadcast_1_plugin_benchmark"
+    )
+    NATIVE_RUNTIME_BROADCAST_8_PLUGIN = (
+        "native_runtime_broadcast_8_plugin_benchmark"
+    )
+    NATIVE_RUNTIME_BROADCAST_32_PLUGIN = (
+        "native_runtime_broadcast_32_plugin_benchmark"
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -349,9 +404,30 @@ class ValidationStartParameters(ActionParameters):
     template: ValidationTemplate
     run_id: str
     milestone_id: str
+    benchmark_name: NativePluginBenchmarkName | None = None
+    cargo_profile: NativePluginBenchmarkProfile | None = None
     fields: ClassVar[frozenset[str]] = frozenset(
         {"sessionId", "template", "runId", "milestoneId"}
     )
+    benchmark_fields: ClassVar[frozenset[str]] = fields | frozenset(
+        {"benchmarkName", "cargoProfile"}
+    )
+
+    @classmethod
+    def parse(cls, payload: Mapping[str, object]) -> "ValidationStartParameters":
+        expected = (
+            cls.benchmark_fields
+            if payload.get("template")
+            == ValidationTemplate.NATIVE_PLUGIN_BENCHMARK.value
+            else cls.fields
+        )
+        if set(payload) != expected:
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Action parameters must exactly match the typed validation contract",
+                details={"expected": sorted(expected), "actual": sorted(payload)},
+            )
+        return cls._from_payload(payload)
 
     @classmethod
     def _from_payload(cls, payload: Mapping[str, object]) -> "ValidationStartParameters":
@@ -369,15 +445,38 @@ class ValidationStartParameters(ActionParameters):
                 "milestoneId": payload["milestoneId"],
             }
         )
-        return cls(session.session_id, template, milestone.run_id, milestone.milestone_id)
+        benchmark_name = None
+        cargo_profile = None
+        if template is ValidationTemplate.NATIVE_PLUGIN_BENCHMARK:
+            try:
+                benchmark_name = NativePluginBenchmarkName(str(payload["benchmarkName"]))
+                cargo_profile = NativePluginBenchmarkProfile(str(payload["cargoProfile"]))
+            except ValueError as error:
+                raise CoordinatorError(
+                    "action_parameters_invalid",
+                    "Native plugin benchmark name or Cargo profile is not allow-listed",
+                ) from error
+        return cls(
+            session.session_id,
+            template,
+            milestone.run_id,
+            milestone.milestone_id,
+            benchmark_name,
+            cargo_profile,
+        )
 
     def to_payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "sessionId": self.session_id,
             "template": self.template.value,
             "runId": self.run_id,
             "milestoneId": self.milestone_id,
         }
+        if self.benchmark_name is not None:
+            payload["benchmarkName"] = self.benchmark_name.value
+        if self.cargo_profile is not None:
+            payload["cargoProfile"] = self.cargo_profile.value
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -425,6 +524,61 @@ class MilestoneParameters(ActionParameters):
             "sessionId": self.session_id,
             "runId": self.run_id,
             "milestoneId": self.milestone_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class BenchmarkGrantIssueParameters(ActionParameters):
+    session_id: str
+    source_session_id: str
+    run_id: str
+    milestone_id: str
+    benchmark_name: NativePluginBenchmarkName
+    cargo_profile: NativePluginBenchmarkProfile
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {
+            "sessionId",
+            "sourceSessionId",
+            "runId",
+            "milestoneId",
+            "benchmarkName",
+            "cargoProfile",
+        }
+    )
+
+    @classmethod
+    def _from_payload(
+        cls, payload: Mapping[str, object]
+    ) -> "BenchmarkGrantIssueParameters":
+        milestone = MilestoneParameters._from_payload(payload)
+        source = SessionParameters._from_payload(
+            {"sessionId": payload["sourceSessionId"]}
+        )
+        try:
+            benchmark_name = NativePluginBenchmarkName(str(payload["benchmarkName"]))
+            cargo_profile = NativePluginBenchmarkProfile(str(payload["cargoProfile"]))
+        except ValueError as error:
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Native plugin benchmark name or Cargo profile is not allow-listed",
+            ) from error
+        return cls(
+            milestone.session_id,
+            source.session_id,
+            milestone.run_id,
+            milestone.milestone_id,
+            benchmark_name,
+            cargo_profile,
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "sessionId": self.session_id,
+            "sourceSessionId": self.source_session_id,
+            "runId": self.run_id,
+            "milestoneId": self.milestone_id,
+            "benchmarkName": self.benchmark_name.value,
+            "cargoProfile": self.cargo_profile.value,
         }
 
 

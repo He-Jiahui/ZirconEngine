@@ -164,6 +164,7 @@ class ActionFingerprinter:
         leases: list[dict[str, object]] = []
         workflow: dict[str, object] | None = None
         supervision: dict[str, object] | None = None
+        benchmark_source_session: dict[str, object] | None = None
         if spec.kind in {
             ActionKind.DRAIN_PREVIEW,
             ActionKind.SERVICE_DRAIN,
@@ -210,6 +211,30 @@ class ActionFingerprinter:
                    FROM validation_copies WHERE job_id = ? AND session_id = ?""",
                 (job_id, session_id),
             )]
+        if spec.kind is ActionKind.BENCHMARK_GRANT_ISSUE:
+            source_session_id = getattr(parameters, "source_session_id", "")
+            source = connection.execute(
+                """SELECT session_id, status, plan_path, updated_at
+                   FROM sessions WHERE session_id=?""",
+                (source_session_id,),
+            ).fetchone()
+            if source is None:
+                raise CoordinatorError(
+                    "session_not_found", f"Unknown Session {source_session_id}"
+                )
+            benchmark_source_session = dict(source)
+            validation_copies = [
+                dict(row)
+                for row in connection.execute(
+                    """SELECT job_id, session_id, head_commit, manifest_json,
+                              input_manifest_hash, status, run_pid, created_at,
+                              removed_at
+                       FROM validation_copies
+                       WHERE session_id=? AND status='materialized'
+                       ORDER BY created_at, job_id""",
+                    (source_session_id,),
+                )
+            ]
         if spec.kind is ActionKind.FAILURE_REFRESH:
             failure_nodes = [dict(row) for row in connection.execute(
                 """SELECT lifecycle_key, artifact_path, kind, fixing_plan, origin_plan,
@@ -309,6 +334,7 @@ class ActionFingerprinter:
             workflow = {"reconciliationRuns": reconciliation_runs}
         if spec.kind in {
             ActionKind.VALIDATION_START,
+            ActionKind.BENCHMARK_GRANT_ISSUE,
             ActionKind.TOPOLOGY_REFRESH,
             ActionKind.MILESTONE_COMMIT,
             ActionKind.SESSION_COMPLETE,
@@ -357,6 +383,7 @@ class ActionFingerprinter:
             "failureArtifacts": failure_artifacts,
             "workflow": workflow,
             "supervision": supervision,
+            "benchmarkSourceSession": benchmark_source_session,
         }
 
     @staticmethod
@@ -372,6 +399,12 @@ class ActionFingerprinter:
             lines.append(f"Failure: {row['lifecycle_key']} [{row['status']}]")
         for row in resources["failureArtifacts"]:
             lines.append(f"Failure artifact: {row['path']} sha256={row['hash'][:12]}")
+        source_session = resources.get("benchmarkSourceSession")
+        if isinstance(source_session, dict):
+            lines.append(
+                f"Benchmark source Session: {source_session['session_id']} "
+                f"[{source_session['status']}]"
+            )
         supervision = resources.get("supervision")
         if isinstance(supervision, dict):
             lines.append(f"Supervision: {supervision.get('state', 'unknown')}")

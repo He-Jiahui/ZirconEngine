@@ -25,6 +25,8 @@ Useful switches:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -CargoProfile release
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -CargoProfile profiling
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter export_visual_evidence -IgnoredTests
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipTest
@@ -53,6 +55,7 @@ Read `../references/cargo-target-disk-policy.md` when shared-target setup, clean
 - Expand a crate-local batch to multi-package validation only when shared contracts, DTOs, or manifests actually moved in the milestone.
 - Keep `--locked` on by default. Disable it only when lockfile work is explicitly in scope.
 - Every validator run submits the complete compatibility description to the local Session coordinator and acquires the corresponding single primary pool below an approved root.
+- `-CargoProfile development` is the compatibility default and uses Cargo's `debug` directory. Use `release` for throughput, power, and release artifacts; it adds exactly one `--release` to compiling commands and publishes from `release`. Use `profiling` for symbolized CPU/ETW attribution; it adds exactly one `--profile profiling`, consumes the workspace profile that inherits `release` with debug symbols retained, and publishes from `profiling`. Each profile has a distinct compatibility identity; cleanup remains profile-independent.
 - Compatible work reuses that pool across Sessions. One task owns it at a time; contention reports busy instead of creating a fallback. Incomplete compatibility is ephemeral and is removed immediately after release.
 - Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` values are accepted only when they resolve below one of the nine approved roots and agree with the coordinator-selected pool. Every other location fails before Cargo runs.
 - Before build or test, the validator checks remaining free space on the drive that hosts the active target directory. If that free space is `<= 50 GB`, it runs `cargo clean --target-dir <active-target-dir>` before continuing.

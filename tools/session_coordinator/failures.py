@@ -102,6 +102,32 @@ class FailureGraphAudit:
 
 
 @dataclass(frozen=True, slots=True)
+class _FailureImportRow:
+    lifecycle_key: str
+    artifact_path: str
+    kind: str
+    status: str
+    created_at: str
+    resolved_at: str | None
+    summary_slug: str
+    origin_plan: str
+    origin_workflow_node: str | None
+    fixing_plan: str
+    origin_child_dir: str
+    fixing_child_dir: str
+    priority: int
+    plan_link_mode: str
+    related_code: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FailureImportSnapshot:
+    artifact_manifest: tuple[tuple[str, str], ...]
+    rows: tuple[_FailureImportRow, ...]
+    diagnostics: tuple[GraphDiagnostic, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class FailureResolution:
     root_cause: str
     architecture_fix: str
@@ -144,9 +170,16 @@ class FailureGraphService:
         expected_artifacts: list[dict[str, str]] | None = None,
         connection: Connection | None = None,
     ) -> FailureGraphAudit:
+        prepared = self.prepare_import_snapshot(expected_artifacts=expected_artifacts)
+        return self.import_prepared_snapshot(prepared, connection=connection)
+
+    def prepare_import_snapshot(
+        self, *, expected_artifacts: list[dict[str, str]] | None = None
+    ) -> FailureImportSnapshot:
+        """Parse and analyze the repository without holding a database writer."""
         validator = self._validator_module()
-        records, parse_errors, validation_errors = self._parse_immutable_snapshot(
-            validator, expected_artifacts
+        records, parse_errors, validation_errors, artifact_manifest = (
+            self._parse_immutable_snapshot(validator, expected_artifacts)
         )
         diagnostics: list[GraphDiagnostic] = [
             GraphDiagnostic("parse_error", error) for error in parse_errors
@@ -216,6 +249,51 @@ class FailureGraphService:
                 )
         diagnostics.extend(self._graph_diagnostics(edges))
 
+        rows = tuple(
+            _FailureImportRow(
+                lifecycle_key=record.lifecycle_key,
+                artifact_path=record.relative_path,
+                kind=record.kind,
+                status="open" if record.kind == "failure" else "fixed",
+                created_at=record.created_at,
+                resolved_at=record.resolved_at,
+                summary_slug=record.summary_slug,
+                origin_plan=self._relative(record.origin_plan),
+                origin_workflow_node=origin_workflow_nodes[record.relative_path],
+                fixing_plan=self._relative(record.fixing_plan),
+                origin_child_dir=self._relative(record.origin_child_dir),
+                fixing_child_dir=self._relative(record.fixing_child_dir),
+                priority=self._priority(
+                    record.kind, "open" if record.kind == "failure" else "fixed"
+                ),
+                plan_link_mode=handoff_scopes[record.relative_path][0],
+                related_code=handoff_scopes[record.relative_path][1],
+            )
+            for record in records
+        )
+        return FailureImportSnapshot(
+            artifact_manifest=artifact_manifest,
+            rows=rows,
+            diagnostics=tuple(diagnostics),
+        )
+
+    def import_prepared_snapshot(
+        self,
+        prepared: FailureImportSnapshot,
+        *,
+        connection: Connection | None = None,
+    ) -> FailureGraphAudit:
+        """Verify a prepared fingerprint and replace the graph atomically."""
+        current_manifest = tuple(
+            (item["path"], item["hash"])
+            for item in failure_artifact_snapshot(self.repo_root)
+        )
+        if current_manifest != prepared.artifact_manifest:
+            raise CoordinatorError(
+                "failure_snapshot_stale",
+                "Failure artifacts changed after the import snapshot was prepared",
+            )
+
         now = utc_text()
         with (
             self.database.transaction()
@@ -224,8 +302,7 @@ class FailureGraphService:
         ) as connection:
             connection.execute("DELETE FROM failure_nodes")
             connection.execute("DELETE FROM failure_diagnostics")
-            for record in records:
-                canonical_status = "open" if record.kind == "failure" else "fixed"
+            for row in prepared.rows:
                 connection.execute(
                     """
                     INSERT INTO failure_nodes(
@@ -236,25 +313,25 @@ class FailureGraphService:
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
-                        record.lifecycle_key,
-                        record.relative_path,
-                        record.kind,
-                        canonical_status,
-                        record.created_at,
-                        record.resolved_at,
-                        record.summary_slug,
-                        self._relative(record.origin_plan),
-                        origin_workflow_nodes[record.relative_path],
-                        self._relative(record.fixing_plan),
-                        self._relative(record.origin_child_dir),
-                        self._relative(record.fixing_child_dir),
-                        self._priority(record.kind, canonical_status),
-                        handoff_scopes[record.relative_path][0],
-                        json.dumps(handoff_scopes[record.relative_path][1]),
+                        row.lifecycle_key,
+                        row.artifact_path,
+                        row.kind,
+                        row.status,
+                        row.created_at,
+                        row.resolved_at,
+                        row.summary_slug,
+                        row.origin_plan,
+                        row.origin_workflow_node,
+                        row.fixing_plan,
+                        row.origin_child_dir,
+                        row.fixing_child_dir,
+                        row.priority,
+                        row.plan_link_mode,
+                        json.dumps(row.related_code),
                         now,
                     ),
                 )
-            for diagnostic in diagnostics:
+            for diagnostic in prepared.diagnostics:
                 connection.execute(
                     """
                     INSERT INTO failure_diagnostics(code, message, paths_json, created_at)
@@ -271,7 +348,7 @@ class FailureGraphService:
 
     def _parse_immutable_snapshot(
         self, validator: ModuleType, expected_artifacts: list[dict[str, str]] | None
-    ) -> tuple[list[Any], list[str], list[str]]:
+    ) -> tuple[list[Any], list[str], list[str], tuple[tuple[str, str], ...]]:
         """Read once, hash the same bytes, then parse only an immutable plan copy."""
         plans_root = self.repo_root / "docs" / "plans"
         captured: dict[str, bytes] = {}
@@ -308,7 +385,12 @@ class FailureGraphService:
                 )
                 for record in records
             ]
-        return normalized, parse_errors, validation_errors
+        return (
+            normalized,
+            parse_errors,
+            validation_errors,
+            tuple((item["path"], item["hash"]) for item in actual),
+        )
 
     def _annotate_handoff_scopes(
         self, records: list[Any], captured: dict[str, bytes] | None = None

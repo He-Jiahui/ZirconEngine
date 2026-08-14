@@ -227,13 +227,20 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
 
     def _combined_candidate(self, *, include_noop_provenance: bool = False):
         slug = "bridge-second-atomic-target"
+        state_provenance = (
+            ".codex/state/session-coordinator/cargo-runs/proof/stderr.log"
+        )
         related = (
             "src/combined/second.rs",
-            *(("README.md",) if include_noop_provenance else ()),
+            *(("README.md", state_provenance) if include_noop_provenance else ()),
         )
         related_path = self.repo / "src/combined/second.rs"
         related_path.parent.mkdir(parents=True, exist_ok=True)
         related_path.write_text("second target\n", encoding="utf-8")
+        if include_noop_provenance:
+            state_path = self.repo / state_provenance
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            state_path.write_text("managed validation stderr\n", encoding="utf-8")
         fixture = FailureGraphFixture(self.repo)
         fixed = fixture.add_handoff(
             self.origin,
@@ -470,6 +477,10 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
         self.assertEqual(expected_keys, prepared.lifecycle_keys)
         self.assertIn("README.md", prepared.paths)
         self.assertIn(
+            ".codex/state/session-coordinator/cargo-runs/proof/stderr.log",
+            prepared.paths,
+        )
+        self.assertIn(
             "docs/plans/plugins/01/failure-2026-07-21-bridge-second-atomic-target.md",
             prepared.paths,
         )
@@ -501,21 +512,30 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             moderate_count=0,
             summary="independent combined C0/I0/M0 review",
         )
-        self.leases.acquire(self.session_id, list(prepared.paths))
-        self.baselines.attribute(self.session_id, list(prepared.paths))
         proof_only = {
+            ".codex/state/session-coordinator/cargo-runs/proof/stderr.log",
             "README.md",
             "docs/plans/plugins/01/failure-2026-07-21-bridge-second-atomic-target.md",
         }
         expected_commit_paths = tuple(
             path for path in prepared.paths if path not in proof_only
         )
+        self.leases.acquire(self.session_id, list(expected_commit_paths))
+        self.baselines.attribute(self.session_id, list(expected_commit_paths))
         acceptance = self.finalize._require_failure_closeouts_acceptance
-        with mock.patch.object(
-            self.finalize,
-            "_require_failure_closeouts_acceptance",
-            wraps=acceptance,
-        ) as revalidated:
+        differing = self.finalize._worktree_paths_differing_from_head
+        with (
+            mock.patch.object(
+                self.finalize,
+                "_require_failure_closeouts_acceptance",
+                wraps=acceptance,
+            ) as revalidated,
+            mock.patch.object(
+                self.finalize,
+                "_worktree_paths_differing_from_head",
+                wraps=differing,
+            ) as scanned,
+        ):
             result = self.service.commit(
                 session_id=self.session_id,
                 closeout_id=prepared.closeout_id,
@@ -532,6 +552,7 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
         ).stdout.splitlines()
         self.assertEqual(sorted(expected_commit_paths), sorted(committed))
         self.assertTrue(revalidated.called)
+        self.assertEqual(2, scanned.call_count)
         self.assertEqual(expected_keys, revalidated.call_args.args[1])
         self.assertEqual(prepared.paths, revalidated.call_args.args[2])
         with self.database.connect() as connection:
@@ -582,8 +603,14 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             moderate_count=0,
             summary="independent combined C0/I0/M0 review",
         )
-        self.leases.acquire(self.session_id, list(prepared.paths))
-        self.baselines.attribute(self.session_id, list(prepared.paths))
+        coordinator_state = ".codex/state/session-coordinator/"
+        committable_proof = [
+            path
+            for path in prepared.paths
+            if not path.casefold().startswith(coordinator_state)
+        ]
+        self.leases.acquire(self.session_id, committable_proof)
+        self.baselines.attribute(self.session_id, committable_proof)
         omitted = "src/owned-but-omitted.rs"
         target = self.repo / omitted
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -600,6 +627,72 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
 
         self.assertEqual("finalize_owned_path_omitted", rejected.exception.code)
         self.assertEqual([omitted], rejected.exception.details["paths"])
+
+    def test_combined_closeout_rejects_unattributed_material_path(self) -> None:
+        snapshot, second_key, delivery_record, _additional_paths = (
+            self._combined_candidate(include_noop_provenance=True)
+        )
+        prepared = self.service.prepare_combined(
+            session_id=self.session_id,
+            snapshot_id=snapshot.snapshot_id,
+            lifecycle_keys=[self.lifecycle_key, second_key],
+            delivery_records=[delivery_record],
+            validation_command=[
+                "cargo",
+                "+1.94.1",
+                "metadata",
+                "--format-version",
+                "1",
+                "--locked",
+                "--offline",
+                "--no-deps",
+            ],
+            validation_job_id="job-green",
+            validation_run_id="run-green",
+            executor_thread_id="executor-thread",
+            actor=self.session_id,
+        )
+        self.service.bind_validation(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            job_id="job-green",
+            cargo_run_id="run-green",
+            actor=self.session_id,
+        )
+        self.service.record_review(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            reviewer_session_id="reviewer-b",
+            reviewer_thread_id="reviewer-b",
+            critical_count=0,
+            important_count=0,
+            moderate_count=0,
+            summary="independent combined C0/I0/M0 review",
+        )
+        unattributed = "src/combined/second.rs"
+        owned = [
+            path
+            for path in prepared.paths
+            if not path.casefold().startswith(".codex/state/")
+            and path != unattributed
+            and path not in {
+                "README.md",
+                "docs/plans/plugins/01/failure-2026-07-21-bridge-second-atomic-target.md",
+            }
+        ]
+        self.leases.acquire(self.session_id, owned)
+        self.baselines.attribute(self.session_id, owned)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.commit(
+                session_id=self.session_id,
+                closeout_id=prepared.closeout_id,
+                summary="fix(plugins): reject unattributed material path",
+                actor=self.session_id,
+            )
+
+        self.assertEqual("finalize_unattributed_path", rejected.exception.code)
+        self.assertIn(unattributed, str(rejected.exception))
 
     def test_combined_closeout_rejects_proof_only_tamper(self) -> None:
         snapshot, second_key, delivery_record, _additional_paths = (
@@ -625,7 +718,11 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             executor_thread_id="executor-thread",
             actor=self.session_id,
         )
-        (self.repo / "README.md").write_text(
+        state_provenance = (
+            self.repo
+            / ".codex/state/session-coordinator/cargo-runs/proof/stderr.log"
+        )
+        state_provenance.write_text(
             "tampered proof-only path\n", encoding="utf-8"
         )
 
@@ -639,7 +736,10 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             )
 
         self.assertEqual("failure_closeout_snapshot_drift", rejected.exception.code)
-        self.assertEqual(["README.md"], rejected.exception.details["paths"])
+        self.assertEqual(
+            [".codex/state/session-coordinator/cargo-runs/proof/stderr.log"],
+            rejected.exception.details["paths"],
+        )
 
     def test_combined_closeout_rejects_untyped_extra_path(self) -> None:
         snapshot, second_key, delivery_record, _additional_paths = self._combined_candidate()
