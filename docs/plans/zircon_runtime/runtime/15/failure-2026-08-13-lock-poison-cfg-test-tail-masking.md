@@ -134,3 +134,13 @@ The lock-poison global gate likewise no longer reads five declaration-only
 Runtime15 parent/index/review/structure/module documents. It continues to walk
 all production Rust source and retains the lexical, cfg, event-stream ordering,
 and diagnostic-string regressions for the shared production view.
+
+## 2026-08-15 asset guard input narrowing
+
+The two Asset lock-poison guards had each read four historical Runtime15 output
+records plus two module documents without using any of those values in an
+assertion. Those declaration-only reads are removed. The guards continue to
+read and assert against the ProjectAssetManager, AssetWorkerPool, and service
+contract production sources; poison-recovery and direct-lock assertions remain
+unchanged. This is static source-scope repair only: managed Cargo, immutable
+review, and the canonical failure return remain pending.
