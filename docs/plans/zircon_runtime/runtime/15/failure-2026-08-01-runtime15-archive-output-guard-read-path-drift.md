@@ -18,6 +18,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/script_host.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/ui_text.rs
 tests:
+  - python -m unittest tools.tests.test_runtime15_archive_guard_hard_cut -v
   - cargo +1.94.1 test -p zircon_runtime --lib runtime_15_ --locked --jobs 1 -- --nocapture --test-threads=1
 ---
 
@@ -32,26 +33,44 @@ tests:
 
 ## 失败现象与复现证据
 
-`ui_text.rs` 与另外七个 Runtime15 测试文件仍直接或通过 clone/fallback 读取四份 live root 文档，并断言 2026-07-09 之前的历史状态锚点。逐源审计确认这些锚点在四份 canonical archive、对应模块文档与 status row owner 中完整存在，而相关 live runtime index、review findings 与 structure convention 文档已经移除历史输出。
+七个 Runtime15 Rust 结构守卫仍编译并读取 `docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-*` 历史输出，仅用于重复验证旧 milestone receipt。`ui_text.rs` 已先行收敛到当前生产源码约束，不再读取 archive；其余生产 owner、模块边界、文件预算和禁止 API 断言仍有效。
 
 ## 最低共享层根因
 
-2026-07-16 的 output archive hard cut 迁移了历史证据 owner，但早于迁移创建的结构守卫没有同步切换读取路径，并继续使用允许 archive fallback 的非精确断言。
+历史 plan receipt 的所有权已经硬迁移到 Coordinator/Python/plan lifecycle，Rust lib-test 仍承担历史输出镜像，导致归档文档变化进入 Runtime 编译和测试边界。最低层修复不是继续维护 archive 路径，而是删除 Rust guard 中的历史 receipt cohort，同时保留当前生产源码契约。
 
 ## 架构修复验收
 
-- 八个测试文件的历史 cohort 显式读取四份 `docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-*-output-records.md` canonical archives。
-- 历史输出断言使用 exact source 检查；生产代码、模块文档、current status row 与 current-owner 断言保持原 owner。
-- scoped rustfmt、静态锚点核验与 current-source Runtime15 focused Cargo gate 通过，且目标断言真实执行。
+- 七个剩余 Rust guard 不再读取或编译 `2026-07-09-*` 历史 output receipts。
+- 生产 owner、模块边界、目录挂载、行数预算、dead-code 禁止项和当前模块文档断言保持原 owner。
+- 独立 Python 回归固定该 hard cut，防止历史 archive 路径重新进入 live Rust guard。
+- scoped rustfmt、静态回归、二次审查与 current-source Runtime15 focused Cargo gate 均需形成可追溯证据。
 
 ## 禁止临时方案
 
-不得把历史锚点复制回 live root 文档，不得删除生产/状态/文档断言，也不得依赖 label-based archive fallback 掩盖错误 source。
+不得把历史锚点复制回 live root 文档，不得恢复 archive 读取、fallback 或兼容入口，也不得删除仍验证当前生产源码和模块边界的断言。
 
 ## 修复结果与回传
 
-Open state: `八个文件的历史读取 cohort 已静态硬切到 canonical archives 并改用 exact assertion；等待 Text04/Render17 current-source 编译阻断解除后取得真实 Runtime15 focused Cargo 证据`。
+Resolving state: 七个 Rust guard 的历史 receipt cohort 已删除；生产/owner/预算/禁止 API 断言保留。`python -m unittest tools.tests.test_runtime15_archive_guard_hard_cut -v` 当前 1/1 GREEN，Rust 1.94.1 rustfmt 与 scoped `git diff --check` 通过。二次审查和 managed Runtime15 focused Cargo 回执待完成，因此本记录保持 `open`，不提前返回 fixed。
 
 ## 2026-08-03 successor hard-cut 进展
 
-更高优先级的 receipt-test compile-debt failure 已取代“继续维护历史状态 Rust 断言”的旧验收方向：纯 archive/status receipt guards 及其路径镜像被直接删除，生产源码/owner/预算/禁止 API 断言继续由现有 structure guards 持有。当前不存在 archive fallback 或兼容入口；本地 hard-cut/Runtime03 Python 回归 5/5 通过，独立二次审查为 Critical/Important/Minor = `0/0/0`。managed Runtime lib-test 与 plan-output/handoff evidence 尚未完成，因此本记录保持 `resolving`，待 successor failure 的受管回执一起返回 fixed。
+更高优先级的 receipt-test compile-debt failure 将验收方向收敛为“Rust 只验证当前源码与模块边界，历史 plan receipt 由 Coordinator/Python 生命周期持有”。本次前向修复落实该边界，不恢复旧归档兼容路径；managed Runtime lib-test 与 failure return 尚未完成，因此只记录 resolving evidence。
+
+## 2026-08-15 exact cohort regression repair
+
+The first Python regression scan incorrectly covered all Runtime tests and then
+the entire `structure_convention` directory. Those scopes include independent
+archive consumers outside this handoff (159 and then 31 paths respectively),
+so their failures were not evidence against this repair. The regression now
+enumerates exactly the eight guard paths in this handoff's `related_code`
+cohort: the animation/facade guards and the six `runtime_dead_code` children.
+
+`PYTHONDONTWRITEBYTECODE=1 python -m unittest
+tools.tests.test_runtime15_archive_guard_hard_cut -v` now executes `1` test
+with `1 passed; 0 failed`; a direct cohort scan reports `8` paths and `0`
+historical archive readers. Rust 1.94.1 scoped `rustfmt --check` and scoped
+`git diff --check` also pass. This is static source evidence only: independent
+immutable review, managed Runtime15 Cargo, and the canonical fixed return are
+still required, so the handoff remains `open`.

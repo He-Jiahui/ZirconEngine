@@ -1,9 +1,4 @@
-use super::super::assert_contains_all;
-use super::super::support::assert_contains_all_exact;
-use super::{
-    collect_production_rust_sources, dead_code_suppression_lines, read_repo, read_runtime_src,
-    runtime_source_path,
-};
+use super::{collect_production_rust_sources, dead_code_suppression_lines, runtime_source_path};
 
 #[test]
 fn runtime_15_production_sources_do_not_allow_dead_code_suppression() {
@@ -37,18 +32,4 @@ fn runtime_15_production_sources_do_not_allow_dead_code_suppression() {
         violations.is_empty(),
         "production runtime sources should not use dead-code suppression: {violations:?}"
     );
-
-    let runtime_15_plan_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }

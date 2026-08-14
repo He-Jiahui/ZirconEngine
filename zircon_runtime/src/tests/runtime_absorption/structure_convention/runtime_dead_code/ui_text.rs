@@ -1,6 +1,5 @@
 use super::super::assert_contains_all;
-use super::super::support::assert_contains_all_exact;
-use super::{dead_code_suppression_lines, read_repo, read_runtime_src};
+use super::{dead_code_suppression_lines, read_runtime_src};
 
 #[test]
 fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
@@ -10,20 +9,6 @@ fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
     let editable_text = read_runtime_src("ui/surface/input/editable_text.rs");
     let keyboard_clipboard = read_runtime_src("ui/surface/input/keyboard_clipboard.rs");
     let text_pointer = read_runtime_src("ui/surface/input/text_pointer.rs");
-    let runtime_15_plan_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
 
     assert!(
         dead_code_suppression_lines(&ui_text_mod).is_empty(),
@@ -53,7 +38,7 @@ fn runtime_15_ui_text_edit_state_dead_code_suppression_cleanup() {
         "text input edit state reducer consumer",
         &text_input,
         &[
-            "use crate::ui::text::apply_text_edit_action;",
+            "text::apply_text_edit_action,",
             "let next_state = apply_text_edit_action(",
         ],
     );

@@ -1,5 +1,4 @@
-use super::support::assert_contains_all_exact;
-use super::{assert_contains_all, repo_path, runtime_src_path};
+use super::{assert_contains_all, runtime_src_path};
 
 #[test]
 fn runtime_15_prelude_covers_required_types() {
@@ -13,19 +12,6 @@ fn runtime_15_prelude_covers_required_types() {
     let ui_prelude = read_runtime_src("ui/prelude.rs");
     let graphics_prelude = read_runtime_src("graphics/prelude.rs");
     let prelude_tests = read_runtime_src("tests/prelude.rs");
-    let runtime_15_plan_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "crate prelude subsystem aggregation",
@@ -113,65 +99,11 @@ fn runtime_15_prelude_covers_required_types() {
         &prelude_tests,
         &["runtime_prelude_exports_asset_scene_ui_and_graphics_contracts"],
     );
-
-    for (label, source) in [
-        (
-            "Runtime 15 archived output",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "runtime index archived output",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings archived output",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention archived output",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 F9 runtime prelude required type coverage",
-                "runtime_15_prelude_required_types_coremin_check_passed",
-                "runtime_15_prelude_covers_required_types",
-                "f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred",
-            ],
-        );
-    }
-    let f9_row = review_findings_output
-        .lines()
-        .find(|line| line.starts_with("| F9 |"))
-        .expect("F9 review findings top row");
-    assert!(
-        f9_row.contains(
-            "f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred"
-        ) && f9_row.ends_with("| Runtime 15 / review closed |"),
-        "F9 top row should record runtime surface review closed status"
-    );
 }
 
 #[test]
 fn runtime_15_mixed_visibility_has_facade_note() {
     let graphics_mod = read_runtime_src("graphics/mod.rs");
-    let runtime_15_plan_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "graphics facade visibility notes",
@@ -194,80 +126,12 @@ fn runtime_15_mixed_visibility_has_facade_note() {
             "graphics facade should not expose implementation module entry {public_leak}"
         );
     }
-
-    for (label, source) in [
-        (
-            "Runtime 15 archived output",
-            runtime_15_plan_output.as_str(),
-        ),
-        (
-            "runtime index archived output",
-            runtime_index_output.as_str(),
-        ),
-        (
-            "review findings archived output",
-            review_findings_output.as_str(),
-        ),
-        (
-            "structure convention archived output",
-            structure_convention_output.as_str(),
-        ),
-        ("module convention doc", module_doc.as_str()),
-    ] {
-        assert_contains_all_exact(
-            label,
-            source,
-            &[
-                "Runtime 15 graphics facade visibility note",
-                "runtime_15_graphics_facade_visibility_note_static_passed_cargo_blocked_graphics_drift",
-                "runtime_15_mixed_visibility_has_facade_note",
-            ],
-        );
-    }
-}
-
-#[test]
-fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded() {
-    let runtime_15_plan_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-
-    let slice = "Runtime 15 M1 graphics facade visibility review findings mirror";
-    let status =
-        "runtime_15_graphics_facade_visibility_review_findings_mirror_static_passed_cargo_deferred";
-    let original_status =
-        "runtime_15_graphics_facade_visibility_note_static_passed_cargo_blocked_graphics_drift";
-    let guard = "runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded";
-    let review_doc = "docs/plans/engine-code-review-findings-2026-06.md";
 }
 
 #[test]
 fn runtime_15_facade_surface_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child = read_runtime_src("tests/runtime_absorption/structure_convention/facade_surface.rs");
-    let runtime_15_plan_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention_output = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(
         "structure convention parent facade surface mount",
@@ -281,7 +145,6 @@ fn runtime_15_facade_surface_guard_is_folder_backed() {
     for moved_guard in [
         "fn runtime_15_prelude_covers_required_types",
         "fn runtime_15_mixed_visibility_has_facade_note",
-        "fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded",
     ] {
         assert!(
             !parent.contains(moved_guard),
@@ -308,9 +171,4 @@ fn runtime_15_facade_surface_guard_is_folder_backed() {
 fn read_runtime_src(relative: &str) -> String {
     std::fs::read_to_string(runtime_src_path(relative))
         .unwrap_or_else(|error| panic!("failed to read runtime source `{relative}`: {error}"))
-}
-
-fn read_repo(relative: &str) -> String {
-    std::fs::read_to_string(repo_path(relative))
-        .unwrap_or_else(|error| panic!("failed to read repository file `{relative}`: {error}"))
 }
