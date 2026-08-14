@@ -1938,7 +1938,14 @@ class WorkspaceCopyService:
         error_code = (
             error.code if isinstance(error, CoordinatorError) else "validation_copy_materialization_failed"
         )
-        details = error.details if isinstance(error, CoordinatorError) else {}
+        if isinstance(error, CoordinatorError):
+            details = error.details
+        else:
+            details = {"errorType": type(error).__name__}
+            for name in ("errno", "winerror"):
+                value = getattr(error, name, None)
+                if isinstance(value, int):
+                    details[name] = value
         error_path = details.get("path")
         if error_path is None:
             paths = details.get("paths")
@@ -1975,10 +1982,14 @@ class WorkspaceCopyService:
     @staticmethod
     def _materialization_error_details(details: dict[str, object]) -> dict[str, object]:
         durable: dict[str, object] = {}
-        for key in ("path", "sourcePath", "resourcePath"):
+        for key in ("path", "sourcePath", "resourcePath", "operation", "errorType"):
             value = details.get(key)
             if value is not None:
                 durable[key] = str(value)
+        for key in ("resourceRootCount", "errno", "winerror", "exitCode"):
+            value = details.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                durable[key] = value
         paths = details.get("paths")
         if isinstance(paths, (list, tuple)):
             durable["paths"] = [str(path) for path in paths[:64]]

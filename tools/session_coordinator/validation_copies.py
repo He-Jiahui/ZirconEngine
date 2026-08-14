@@ -134,6 +134,7 @@ class CargoInputClosure:
 
 _COMPILE_TIME_INCLUDE_MACROS = frozenset({"include_bytes", "include_str"})
 _CARGO_MANIFEST_DIR = "CARGO_MANIFEST_DIR"
+_GIT_PATHSPEC_COMMAND_CHAR_LIMIT = 24_000
 _RustToken = tuple[str, str]
 
 
@@ -637,14 +638,54 @@ class CargoInputClosurePlanner:
                 resource_roots.add(resource.relative_to(self.repo_root).as_posix())
         if not resource_roots:
             return set()
-        result = subprocess.run(
-            ["git", "ls-files", "--", *sorted(resource_roots, key=str.casefold)],
-            cwd=self.repo_root,
-            check=True,
-            capture_output=True,
-            encoding="utf-8",
-        )
-        return {line for line in result.stdout.splitlines() if line}
+        return self._tracked_compile_time_resources(resource_roots)
+
+    def _tracked_compile_time_resources(self, resource_roots: set[str]) -> set[str]:
+        ordered_roots = tuple(sorted(resource_roots, key=str.casefold))
+        batches: list[tuple[str, ...]] = []
+        batch: list[str] = []
+        for root in ordered_roots:
+            candidate = ("git", "ls-files", "--", *batch, root)
+            if (
+                batch
+                and len(subprocess.list2cmdline(candidate))
+                > _GIT_PATHSPEC_COMMAND_CHAR_LIMIT
+            ):
+                batches.append(tuple(batch))
+                batch = []
+            batch.append(root)
+        if batch:
+            batches.append(tuple(batch))
+
+        tracked: set[str] = set()
+        try:
+            for roots in batches:
+                result = subprocess.run(
+                    ["git", "ls-files", "--", *roots],
+                    cwd=self.repo_root,
+                    check=True,
+                    capture_output=True,
+                    encoding="utf-8",
+                )
+                tracked.update(line for line in result.stdout.splitlines() if line)
+        except (OSError, subprocess.SubprocessError) as error:
+            details: dict[str, object] = {
+                "operation": "git_ls_files_compile_time_resources",
+                "errorType": type(error).__name__,
+                "resourceRootCount": len(ordered_roots),
+            }
+            for name in ("errno", "winerror"):
+                value = getattr(error, name, None)
+                if isinstance(value, int):
+                    details[name] = value
+            if isinstance(error, subprocess.CalledProcessError):
+                details["exitCode"] = int(error.returncode)
+            raise CoordinatorError(
+                "validation_copy_compile_time_resource_git_failed",
+                "Git could not enumerate compile-time resources",
+                details=details,
+            ) from error
+        return tracked
 
     def _manifest_path_dependencies(self, manifest: Path) -> tuple[Path, ...]:
         if not manifest.is_file():

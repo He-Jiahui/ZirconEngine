@@ -322,6 +322,110 @@ class ValidationCopySourceTests(unittest.TestCase):
             "templates/ignored/never-materialize.bin", closure.repository_paths
         )
 
+    def test_compile_time_resource_discovery_uses_bounded_git_arguments(self) -> None:
+        resource_count = 2_400
+        resource_roots = {
+            (
+                "interface/resources/windows-command-length/"
+                f"resource_{index:04d}_compile_time_fixture.txt"
+            )
+            for index in range(resource_count)
+        }
+        planner = CargoInputClosurePlanner(
+            self.repo, metadata_runner=lambda _command: {}
+        )
+
+        def tracked_batch(command, *_args, **_kwargs):
+            roots = tuple(str(part) for part in command[3:])
+            return subprocess.CompletedProcess(
+                args=command,
+                returncode=0,
+                stdout="\n".join(roots),
+                stderr="",
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.validation_copies.subprocess.run",
+            side_effect=tracked_batch,
+        ) as run:
+            resources = planner._tracked_compile_time_resources(resource_roots)
+
+        self.assertEqual(resource_count, len(resources))
+        commands = [
+            tuple(str(part) for part in call.args[0]) for call in run.call_args_list
+        ]
+        self.assertGreater(len(commands), 1)
+        self.assertEqual(
+            tuple(sorted(resource_roots)),
+            tuple(path for command in commands for path in command[3:]),
+        )
+        self.assertLess(
+            max(len(subprocess.list2cmdline(command)) for command in commands),
+            32_768,
+        )
+
+    def test_compile_time_resource_git_start_failure_is_actionable(self) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['interface']\n",
+            "interface/Cargo.toml": "[package]\nname='interface'\nversion='0.1.0'\n",
+            "interface/src/lib.rs": "const _: &str = include_str!(\"schema.txt\");\n",
+            "interface/src/schema.txt": "schema\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--all"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add resource failure fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "interface-id",
+                    "name": "interface",
+                    "manifest_path": str(self.repo / "interface/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["interface-id"],
+            "resolve": {"nodes": [{"id": "interface-id", "deps": []}]},
+        }
+        real_run = subprocess.run
+        failure = FileNotFoundError(2, "The filename or extension is too long")
+        failure.winerror = 206
+
+        def fail_resource_pathspec(command, *args, **kwargs):
+            if any(str(part).endswith("schema.txt") for part in command):
+                raise failure
+            return real_run(command, *args, **kwargs)
+
+        with mock.patch(
+            "tools.session_coordinator.validation_copies.subprocess.run",
+            side_effect=fail_resource_pathspec,
+        ):
+            with self.assertRaises(CoordinatorError) as raised:
+                CargoInputClosurePlanner(
+                    self.repo,
+                    metadata_runner=lambda _command: metadata,
+                ).plan(("cargo", "test", "-p", "interface", "--lib"))
+
+        self.assertEqual(
+            "validation_copy_compile_time_resource_git_failed",
+            raised.exception.code,
+        )
+        self.assertEqual(
+            {
+                "operation": "git_ls_files_compile_time_resources",
+                "errorType": "FileNotFoundError",
+                "resourceRootCount": 1,
+                "errno": 2,
+                "winerror": 206,
+            },
+            raised.exception.details,
+        )
+
     def test_cargo_metadata_is_decoded_as_utf8_independent_of_windows_locale(self) -> None:
         completed = subprocess.CompletedProcess(
             args=("cargo", "metadata"),

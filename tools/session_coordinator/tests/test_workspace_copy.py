@@ -773,6 +773,67 @@ class WorkspaceCopyTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(expected, json.loads(persisted))
 
+    def test_cargo_worker_persists_resource_git_failure_details(self) -> None:
+        expected = {
+            "operation": "git_ls_files_compile_time_resources",
+            "errorType": "FileNotFoundError",
+            "resourceRootCount": 2_349,
+            "errno": 2,
+            "winerror": 206,
+        }
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=CoordinatorError(
+                "validation_copy_compile_time_resource_git_failed",
+                "Git could not enumerate compile-time resources",
+                details=expected,
+            ),
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("failed", status.status)
+        self.assertEqual("closure_planning", status.error_stage)
+        self.assertIsNone(status.error_path)
+        self.assertEqual(expected, status.error_details)
+        self.assertEqual(expected, status.to_dict()["errorDetails"])
+        with self.database.connect() as connection:
+            persisted = connection.execute(
+                "SELECT error_details_json FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()[0]
+        self.assertEqual(expected, json.loads(persisted))
+
+    def test_cargo_worker_persists_unexpected_planning_error_type(self) -> None:
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=RuntimeError("unexpected planner failure"),
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        self.assertEqual("validation_copy_materialization_failed", status.error_code)
+        self.assertEqual("closure_planning", status.error_stage)
+        self.assertEqual({"errorType": "RuntimeError"}, status.error_details)
+
     def test_startup_recovery_claims_an_accepted_cargo_copy_once(self) -> None:
         """A restart may resume the same durable job, but never create another worker claim."""
         with mock.patch.object(self.service, "_spawn_cargo_materialization_worker") as spawn:
