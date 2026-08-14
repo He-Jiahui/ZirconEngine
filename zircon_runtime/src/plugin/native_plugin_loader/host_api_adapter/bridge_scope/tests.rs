@@ -1,16 +1,20 @@
-use std::marker::PhantomData;
 use std::sync::{Arc, Barrier, Mutex, OnceLock};
 use std::thread;
 
-use super::super::bridge_method_bindings::{
-    native_bridge_method_descriptors_from_manifest, NativeBridgeMethodBinding,
-    NativeBridgeMethodManifestError,
+use zircon_runtime_interface::{ZrByteBufferRef, ZrStatus, ZrStatusCode};
+
+use super::super::super::bridge_method_bindings::{
+    native_bridge_method_descriptors_from_manifest, NativeBridgeCall, NativeBridgeMethodBinding,
+    NativeBridgeMethodDescriptor, NativeBridgeMethodFn, NativeBridgeMethodManifestError,
 };
 use super::*;
 use crate::core::framework::bridge::PluginInterface;
 use crate::plugin::{
     PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginPackageManifest,
+    RuntimeExtensionRegistry,
 };
+
+use super::super::context_handles::context_snapshot;
 
 trait NativeWeatherBridge: Send + Sync {}
 
@@ -49,392 +53,10 @@ fn native_host_bridge_call_scope_clone_keeps_context_until_the_last_owner_drops(
 
     assert_eq!(retained.handle(), handle);
     drop(scope);
-    assert!(contexts().get(handle.raw()).is_some());
+    assert!(context_snapshot(handle.raw()).is_some());
 
     drop(retained);
-    assert!(contexts().get(handle.raw()).is_none());
-}
-
-#[test]
-fn native_host_api_v3_registers_systems_and_components_into_runtime_registry() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "weather.runtime").unwrap();
-    let api = scope.api();
-    let set_names = [ZrByteSlice::from_static(b"weather.main")];
-    let after = [ZrByteSlice::from_static(b"weather.bootstrap")];
-    let system = ZrSystemRegistrationV1 {
-        system_id: ZrByteSlice::from_static(b"weather.native_tick"),
-        stage: SystemStage::ORDER
-            .iter()
-            .position(|stage| *stage == SystemStage::Update)
-            .unwrap() as u32,
-        order: 3,
-        set_names: set_names.as_ptr(),
-        set_count: set_names.len(),
-        after: after.as_ptr(),
-        after_count: after.len(),
-        ..ZrSystemRegistrationV1::empty(3)
-    };
-    let component = ZrComponentDescV1 {
-        type_id: ZrByteSlice::from_static(b"weather.native_component"),
-        display_name: ZrByteSlice::from_static(b"Native Weather Component"),
-        schema: ZrByteSlice::from_static(br#"{"fields":[]}"#),
-        storage_kind: 1,
-        ..ZrComponentDescV1::empty(3)
-    };
-
-    let system_status = unsafe { (api.ecs.register_system.unwrap())(scope.handle(), &system) };
-    let component_status =
-        unsafe { (api.ecs.register_component.unwrap())(scope.handle(), &component) };
-    drop(scope);
-
-    assert!(system_status.is_ok());
-    assert!(component_status.is_ok());
-    let systems = registry.plugin_systems().collect::<Vec<_>>();
-    assert_eq!(systems.len(), 1);
-    assert_eq!(systems[0].1.id, "weather.native_tick");
-    assert_eq!(systems[0].1.stage, SystemStage::Update);
-    assert_eq!(systems[0].1.order, 3);
-    assert_eq!(systems[0].1.sets.len(), 1);
-    assert_eq!(systems[0].1.constraints.len(), 1);
-    let mut world = crate::scene::World::default();
-    let native_system = systems[0]
-        .1
-        .build(&mut world)
-        .expect("native ABI system should build into a schedule node");
-    assert!(native_system.access().has_conservative_world_access());
-    assert_eq!(
-        native_system.thread_affinity(),
-        crate::scene::ecs::SceneSystemThreadAffinity::MainThreadOnly
-    );
-    assert!(!native_system.supports_worldless_execution());
-    assert!(native_system
-        .access()
-        .conflicts_with(&crate::scene::ecs::SystemParamAccess::default()));
-    assert_eq!(
-        native_system
-            .access()
-            .conflict_kinds_with(&crate::scene::ecs::SystemParamAccess::default()),
-        vec![crate::scene::ecs::SystemParamConflictKind::World]
-    );
-    assert_eq!(registry.components().len(), 1);
-    assert_eq!(registry.components()[0].type_id, "weather.native_component");
-    assert_eq!(registry.components()[0].plugin_id, "weather");
-}
-
-#[test]
-fn native_system_enters_schedule_as_conservative_node() {
-    native_host_api_v3_registers_systems_and_components_into_runtime_registry();
-}
-
-#[test]
-fn native_host_api_v4_registers_authorized_worker_safe_typed_access() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV4RegistrationScope::new(
-        &mut registry,
-        "weather.runtime",
-        NativeHostApiV4RegistrationPolicy::new(
-            ["runtime.native.system.worker_safe"],
-            ["weather.solver"],
-        ),
-    )
-    .unwrap();
-    let api = scope.api();
-    let component = ZrComponentDescV1 {
-        type_id: ZrByteSlice::from_static(b"weather.native_component"),
-        display_name: ZrByteSlice::from_static(b"Native Weather Component"),
-        schema: ZrByteSlice::from_static(br#"{"fields":[]}"#),
-        storage_kind: 1,
-        ..ZrComponentDescV1::empty(4)
-    };
-    let component_status =
-        unsafe { (api.ecs.register_component.unwrap())(scope.handle(), &component) };
-    assert!(component_status.is_ok());
-
-    let accesses = [
-        ZrNativeSystemAccessV1 {
-            abi_version: 1,
-            size_bytes: core::mem::size_of::<ZrNativeSystemAccessV1>(),
-            mode: ZR_NATIVE_SYSTEM_ACCESS_MODE_READ_V1,
-            domain: ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1,
-            stable_id: ZrByteSlice::from_static(b"weather.native_component"),
-        },
-        ZrNativeSystemAccessV1 {
-            abi_version: 1,
-            size_bytes: core::mem::size_of::<ZrNativeSystemAccessV1>(),
-            mode: ZR_NATIVE_SYSTEM_ACCESS_MODE_WRITE_V1,
-            domain: ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_RESOURCE_V1,
-            stable_id: ZrByteSlice::from_static(b"weather.solver"),
-        },
-    ];
-    let system = ZrSystemRegistrationV2 {
-        system_id: ZrByteSlice::from_static(b"weather.native_tick_v4"),
-        stage: SystemStage::ORDER
-            .iter()
-            .position(|stage| *stage == SystemStage::Update)
-            .unwrap() as u32,
-        accesses: accesses.as_ptr(),
-        access_count: accesses.len(),
-        thread_affinity: ZR_NATIVE_SYSTEM_THREAD_AFFINITY_WORKER_SAFE_V1,
-        ..ZrSystemRegistrationV2::empty(4)
-    };
-    let system_status = unsafe { (api.ecs.register_system.unwrap())(scope.handle(), &system) };
-    assert!(system_status.is_ok());
-    drop(scope);
-
-    let mut world = crate::scene::World::default();
-    world
-        .register_component_type(ComponentTypeDescriptor::new(
-            "weather.native_component",
-            "weather",
-            "Native Weather Component",
-        ))
-        .unwrap();
-    let native_system = registry
-        .plugin_systems()
-        .next()
-        .expect("V4 system should be registered")
-        .1
-        .build(&mut world)
-        .expect("V4 system access should resolve into the scheduler");
-    assert!(!native_system.access().has_conservative_world_access());
-    assert_eq!(
-        native_system.thread_affinity(),
-        crate::scene::ecs::SceneSystemThreadAffinity::WorkerSafe
-    );
-}
-
-#[test]
-fn native_host_api_v4_rejects_unknown_access_before_registry_registration() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV4RegistrationScope::new(
-        &mut registry,
-        "weather.runtime",
-        NativeHostApiV4RegistrationPolicy::default(),
-    )
-    .unwrap();
-    let api = scope.api();
-    let accesses = [ZrNativeSystemAccessV1 {
-        abi_version: 1,
-        size_bytes: core::mem::size_of::<ZrNativeSystemAccessV1>(),
-        mode: ZR_NATIVE_SYSTEM_ACCESS_MODE_READ_V1,
-        domain: ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1,
-        stable_id: ZrByteSlice::from_static(b"render.not_registered"),
-    }];
-    let system = ZrSystemRegistrationV2 {
-        system_id: ZrByteSlice::from_static(b"weather.invalid_tick_v4"),
-        stage: SystemStage::ORDER
-            .iter()
-            .position(|stage| *stage == SystemStage::Update)
-            .unwrap() as u32,
-        accesses: accesses.as_ptr(),
-        access_count: accesses.len(),
-        ..ZrSystemRegistrationV2::empty(4)
-    };
-
-    let status = unsafe { (api.ecs.register_system.unwrap())(scope.handle(), &system) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::Error);
-    drop(scope);
-    assert_eq!(registry.plugin_systems().count(), 0);
-}
-
-#[test]
-fn native_host_api_v4_rejects_empty_access_contract() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV4RegistrationScope::new(
-        &mut registry,
-        "weather.runtime",
-        NativeHostApiV4RegistrationPolicy::default(),
-    )
-    .unwrap();
-    let api = scope.api();
-    let system = ZrSystemRegistrationV2 {
-        system_id: ZrByteSlice::from_static(b"weather.empty_access_tick_v4"),
-        stage: SystemStage::ORDER
-            .iter()
-            .position(|stage| *stage == SystemStage::Update)
-            .unwrap() as u32,
-        ..ZrSystemRegistrationV2::empty(4)
-    };
-
-    let status = unsafe { (api.ecs.register_system.unwrap())(scope.handle(), &system) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::Error);
-    drop(scope);
-    assert_eq!(registry.plugin_systems().count(), 0);
-}
-
-#[test]
-fn native_host_api_v4_rejects_null_string_list_pointer_before_registry_registration() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV4RegistrationScope::new(
-        &mut registry,
-        "weather.runtime",
-        NativeHostApiV4RegistrationPolicy::default(),
-    )
-    .unwrap();
-    let api = scope.api();
-    let component = ZrComponentDescV1 {
-        type_id: ZrByteSlice::from_static(b"weather.native_component"),
-        display_name: ZrByteSlice::from_static(b"Native Weather Component"),
-        schema: ZrByteSlice::from_static(br#"{"fields":[]}"#),
-        storage_kind: 1,
-        ..ZrComponentDescV1::empty(4)
-    };
-    let component_status =
-        unsafe { (api.ecs.register_component.unwrap())(scope.handle(), &component) };
-    assert!(component_status.is_ok());
-    let accesses = [ZrNativeSystemAccessV1 {
-        abi_version: 1,
-        size_bytes: core::mem::size_of::<ZrNativeSystemAccessV1>(),
-        mode: ZR_NATIVE_SYSTEM_ACCESS_MODE_READ_V1,
-        domain: ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1,
-        stable_id: ZrByteSlice::from_static(b"weather.native_component"),
-    }];
-    for field in ["set_names", "before", "after"] {
-        let mut system = ZrSystemRegistrationV2 {
-            system_id: ZrByteSlice::from_static(b"weather.null_string_list_pointer_v4"),
-            stage: SystemStage::ORDER
-                .iter()
-                .position(|stage| *stage == SystemStage::Update)
-                .unwrap() as u32,
-            accesses: accesses.as_ptr(),
-            access_count: accesses.len(),
-            ..ZrSystemRegistrationV2::empty(4)
-        };
-        match field {
-            "set_names" => system.set_count = 1,
-            "before" => system.before_count = 1,
-            "after" => system.after_count = 1,
-            _ => unreachable!(),
-        }
-
-        let status = unsafe { (api.ecs.register_system.unwrap())(scope.handle(), &system) };
-
-        assert_eq!(status.status_code(), ZrStatusCode::Error, "field={field}");
-    }
-    drop(scope);
-    assert_eq!(registry.plugin_systems().count(), 0);
-}
-
-#[test]
-fn native_host_api_v4_rejects_known_foreign_access_without_host_capability() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    registry
-        .register_component(ComponentTypeDescriptor::new(
-            "render.visible",
-            "render",
-            "Visible",
-        ))
-        .unwrap();
-    let scope = NativeHostApiV4RegistrationScope::new(
-        &mut registry,
-        "weather.runtime",
-        NativeHostApiV4RegistrationPolicy::default(),
-    )
-    .unwrap();
-    let api = scope.api();
-    let accesses = [ZrNativeSystemAccessV1 {
-        abi_version: 1,
-        size_bytes: core::mem::size_of::<ZrNativeSystemAccessV1>(),
-        mode: ZR_NATIVE_SYSTEM_ACCESS_MODE_READ_V1,
-        domain: ZR_NATIVE_SYSTEM_ACCESS_DOMAIN_COMPONENT_V1,
-        stable_id: ZrByteSlice::from_static(b"render.visible"),
-    }];
-    let system = ZrSystemRegistrationV2 {
-        system_id: ZrByteSlice::from_static(b"weather.foreign_tick_v4"),
-        stage: SystemStage::ORDER
-            .iter()
-            .position(|stage| *stage == SystemStage::Update)
-            .unwrap() as u32,
-        accesses: accesses.as_ptr(),
-        access_count: accesses.len(),
-        ..ZrSystemRegistrationV2::empty(4)
-    };
-
-    let status = unsafe { (api.ecs.register_system.unwrap())(scope.handle(), &system) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::Error);
-    drop(scope);
-    assert_eq!(registry.plugin_systems().count(), 0);
-}
-
-#[test]
-fn native_host_api_adapter_reports_unknown_stage_with_typed_error() {
-    let stage = SystemStage::ORDER.len() as u32;
-    let error = stage_from_abi(stage)
-        .expect_err("unknown host API stage should report typed adapter error");
-
-    assert!(matches!(
-        &error,
-        NativeHostApiAdapterError::UnknownSystemStage { stage: actual } if *actual == stage
-    ));
-    assert_eq!(
-        error.to_string(),
-        format!("unknown native system stage {stage}")
-    );
-    assert!(std::error::Error::source(&error).is_none());
-}
-
-#[test]
-fn native_host_api_adapter_utf8_error_preserves_source() {
-    let bytes = [0xff];
-    let error = unsafe {
-        read_utf8(ZrByteSlice {
-            data: bytes.as_ptr(),
-            len: bytes.len(),
-        })
-    }
-    .expect_err("invalid host API byte slice should report typed UTF-8 error");
-
-    assert!(matches!(
-        &error,
-        NativeHostApiAdapterError::InvalidUtf8 { .. }
-    ));
-    assert!(
-        std::error::Error::source(&error).is_some(),
-        "invalid UTF-8 adapter error should preserve Utf8Error source"
-    );
-}
-
-#[test]
-fn native_host_api_v3_rejects_unknown_registration_handles() {
-    let api = NativeHostApiV3RegistrationScope {
-        handle: ZrRuntimePluginHandle::invalid(),
-        lifetime: Arc::new(NativeHostRegistrationScopeState::default()),
-        _registry: PhantomData,
-    }
-    .api();
-    let system = ZrSystemRegistrationV1 {
-        system_id: ZrByteSlice::from_static(b"weather.native_tick"),
-        ..ZrSystemRegistrationV1::empty(3)
-    };
-
-    let status =
-        unsafe { (api.ecs.register_system.unwrap())(ZrRuntimePluginHandle::new(9999), &system) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::NotFound);
-}
-
-#[test]
-fn native_host_api_v3_exposes_bridge_domain_as_unsupported_until_connected() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "weather.runtime").unwrap();
-    let api = scope.api();
-
-    let status = unsafe {
-        (api.bridge.call.unwrap())(
-            scope.handle(),
-            1,
-            2,
-            std::ptr::null(),
-            0,
-            ZrByteBufferRef::empty(),
-        )
-    };
-
-    assert_eq!(status.status_code(), ZrStatusCode::UnsupportedVersion);
+    assert!(context_snapshot(handle.raw()).is_none());
 }
 
 #[test]
@@ -527,53 +149,6 @@ fn native_host_context_scope_drop_blocks_new_calls_while_in_flight_call_finishes
         .take();
     assert_eq!(stale_status.status_code(), ZrStatusCode::NotFound);
     assert_eq!(in_flight_status, ZrStatusCode::CapabilityDenied);
-}
-
-#[test]
-fn native_host_registration_scope_drop_waits_for_an_in_flight_context_pin() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "weather.runtime").unwrap();
-    let handle = scope.handle();
-    let pin = context_for(handle).expect("registration context should be available");
-
-    let release = thread::spawn(move || {
-        while !pin.is_closing() {
-            thread::yield_now();
-        }
-        drop(pin);
-    });
-
-    drop(scope);
-    release
-        .join()
-        .expect("in-flight registration context should release");
-    assert!(contexts().get(handle.raw()).is_none());
-}
-
-#[test]
-fn native_host_v4_registration_scope_drop_waits_for_an_in_flight_context_pin() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV4RegistrationScope::new(
-        &mut registry,
-        "weather.runtime",
-        NativeHostApiV4RegistrationPolicy::default(),
-    )
-    .unwrap();
-    let handle = scope.handle();
-    let pin = context_for_v4(handle).expect("V4 registration context should be available");
-
-    let release = thread::spawn(move || {
-        while !pin.is_closing() {
-            thread::yield_now();
-        }
-        drop(pin);
-    });
-
-    drop(scope);
-    release
-        .join()
-        .expect("in-flight V4 registration context should release");
-    assert!(contexts().get(handle.raw()).is_none());
 }
 
 #[test]
@@ -670,7 +245,7 @@ fn native_host_bridge_context_builds_dense_method_rows_without_tree_probes() {
 
 #[test]
 fn native_host_bridge_dense_dispatch_uses_fixed_width_sparse_slot_directory() {
-    let source = include_str!("context_registry.rs");
+    let source = include_str!("mod.rs");
 
     assert!(source.contains("DENSE_BRIDGE_SLOT_DIRECTORY_BITS"));
     assert!(source.contains("DenseBridgeSlotDirectory"));
@@ -697,8 +272,8 @@ fn native_host_bridge_dense_dispatch_keeps_sparse_u32_slots_addressable() {
 
 #[test]
 fn native_host_bridge_dispatch_source_uses_frozen_dense_slots() {
-    let source = include_str!("../host_api_adapter.rs");
-    let registry_source = include_str!("context_registry.rs");
+    let source = include_str!("mod.rs");
+    let registry_source = include_str!("../context_handles/registry.rs");
 
     assert!(source.contains("DenseBridgeMethodTable"));
     assert!(source.contains("context.methods.get(interface_slot, method_slot)"));
@@ -710,13 +285,13 @@ fn native_host_bridge_dispatch_source_uses_frozen_dense_slots() {
 
 #[test]
 fn native_host_bridge_context_pin_owns_only_the_registry_arc() {
-    let adapter_source = include_str!("../host_api_adapter.rs");
-    let registry_source = include_str!("context_registry.rs");
+    let context_source = include_str!("../context_handles/registry.rs");
+    let bridge_source = include_str!("mod.rs");
 
-    assert!(!adapter_source.contains("BridgeCall(Arc<NativeHostBridgeCallContext>)"));
-    assert!(registry_source.contains("BridgeCall(NativeHostBridgeCallContext)"));
-    assert!(registry_source.contains("struct NativeHostBridgeCallContextPin"));
-    assert!(registry_source.contains("context: Arc<NativeHostApiV3Context>"));
+    assert!(!context_source.contains("BridgeCall(Arc<NativeHostBridgeCallContext>)"));
+    assert!(context_source.contains("BridgeCall(NativeHostBridgeCallContext)"));
+    assert!(bridge_source.contains("struct NativeHostBridgeCallContextPin"));
+    assert!(bridge_source.contains("context: Arc<NativeHostApiV3Context>"));
 }
 
 #[test]
@@ -972,35 +547,12 @@ fn native_host_bridge_call_reports_absent_slot_and_missing_method() {
 }
 
 #[test]
-fn native_host_api_v3_preserves_dotted_plugin_ids() {
-    let mut registry = RuntimeExtensionRegistry::default();
-    let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "net.rpc.runtime")
-        .expect("dotted plugin runtime module owner");
-    let api = scope.api();
-    let component = ZrComponentDescV1 {
-        type_id: ZrByteSlice::from_static(b"net.rpc.NativePayload"),
-        display_name: ZrByteSlice::from_static(b"Native RPC Payload"),
-        ..ZrComponentDescV1::empty(3)
-    };
-
-    let status = unsafe { (api.ecs.register_component.unwrap())(scope.handle(), &component) };
-    drop(scope);
-
-    assert!(status.is_ok());
-    assert_eq!(registry.components().len(), 1);
-    assert_eq!(registry.components()[0].plugin_id, "net.rpc");
-}
-
-#[test]
 fn native_host_bridge_call_checks_entry_status_without_materializing_a_diagnostic_snapshot() {
-    let source = include_str!("../host_api_adapter.rs");
+    let source = include_str!("mod.rs");
     let function = source
         .split_once("unsafe fn native_host_bridge_call_v1_inner")
         .expect("native bridge call implementation should exist")
-        .1
-        .split_once("unsafe extern \"C\" fn native_host_diagnostics_emit_v1")
-        .expect("diagnostics callback should follow native bridge call")
-        .0;
+        .1;
 
     assert!(!function.contains("interface_snapshot"));
     assert!(function.contains("context.table.entry(slot)"));
