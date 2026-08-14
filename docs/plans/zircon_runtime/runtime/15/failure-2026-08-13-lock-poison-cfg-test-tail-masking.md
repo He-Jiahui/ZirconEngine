@@ -126,6 +126,11 @@ archive/module documents and its local repository reader was removed with them.
 It continues to read the live bridge-method source and structure-convention
 mount, then checks poison recovery and direct-lock safety through the shared
 production view. This removes unrelated document resources from the Runtime
-lib-test compile input without weakening the lock-poison contract. Static
-format/diff and exact source checks are pending for this source edit; no Cargo
+lib-test compile input without weakening the lock-poison contract. Rustfmt,
+scoped diff, and exact source checks passed for this source edit; no Cargo
 result or fixed return is claimed.
+
+The lock-poison global gate likewise no longer reads five declaration-only
+Runtime15 parent/index/review/structure/module documents. It continues to walk
+all production Rust source and retains the lexical, cfg, event-stream ordering,
+and diagnostic-string regressions for the shared production view.

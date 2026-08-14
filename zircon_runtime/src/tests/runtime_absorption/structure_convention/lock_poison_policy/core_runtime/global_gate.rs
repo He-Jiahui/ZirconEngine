@@ -33,13 +33,6 @@ fn runtime_15_production_sources_do_not_directly_unwrap_mutex_locks() {
         "runtime production code should use poison-safe lock helpers instead of direct {LOCK_UNWRAP_CALL}:\n{}",
         violations.join("\n")
     );
-
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 #[test]
