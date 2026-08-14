@@ -9,11 +9,14 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rust_source_view.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
   - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs
 tests:
+  - runtime_15_rust_production_view_rejects_lexical_and_test_only_false_positives
   - python -m unittest -v tools.tests.test_frameworks_05_text_boundary.Frameworks05TextBoundaryTests.test_graphics_does_not_own_cpu_text_service_state
   - cargo +1.94.1 test -p zircon_runtime --lib runtime_15_screen_space_ui_text_font_id_report_is_child_owner --locked --jobs 1 -- --exact --test-threads=1
 ---
@@ -53,4 +56,6 @@ Runtime15 旧契约把“font-id report 已拆为 graphics 子 owner”误等同
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+当前共享受管候选把 Rust lexical/cfg production view 提升到 Runtime15 结构约定共享 owner，并令 font-id report 守卫只审计 production code。守卫现在要求 `TextRenderState::font_face_id`、backend-id 解析闭包和 child resolver，同时明确拒绝 production graphics 的完整 `font_database()` 访问；注释、字符串与 `cfg(test)` helper 不能伪造通过或失败。
+
+Rust 1.94.1 独立 harness 中共享 production-view 回归和精确 Text 守卫分别 1/1 GREEN；原始 Frameworks05 Python 边界测试连续两次 1/1 GREEN。当前仍是 `resolving_failure`：fresh immutable review、managed Cargo、atomic commit 与 failure return 尚未完成，不声明 fixed。
