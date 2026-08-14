@@ -11,8 +11,6 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let dynamic_session_doc = read_repo("docs/zircon_runtime/dynamic_api/session.md");
 
     assert_contains_all(
         "dynamic API session registry module mount",
@@ -103,13 +101,6 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
 fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task() {
     let task = read_runtime_src("scene/dynamic_scene/spawn_task/task.rs");
     let loader = read_runtime_src("scene/dynamic_scene/spawn_task/loader.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
 
     assert_contains_all(
         "dynamic scene spawn task poison recovery helpers",
@@ -148,13 +139,6 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
 #[test]
 fn runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batch_result_slots() {
     let executor = read_runtime_src("scene/ecs/schedule_parallel_executor.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
 
     assert_contains_all(
         "schedule parallel executor batch-result poison recovery helpers",
