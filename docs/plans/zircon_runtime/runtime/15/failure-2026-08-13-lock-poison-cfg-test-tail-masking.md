@@ -118,3 +118,14 @@ by this repair.
 This establishes a HEAD-integratable support snapshot only. The source-bound
 managed `zircon_runtime --lib` validation, fresh immutable review, and failure
 return remain required, so the handoff stays `open`.
+
+## 2026-08-14 native-live-host input hard cut
+
+`native_live_host_lock_poison.rs` no longer reads six declaration-only Runtime15
+archive/module documents and its local repository reader was removed with them.
+It continues to read the live bridge-method source and structure-convention
+mount, then checks poison recovery and direct-lock safety through the shared
+production view. This removes unrelated document resources from the Runtime
+lib-test compile input without weakening the lock-poison contract. Static
+format/diff and exact source checks are pending for this source edit; no Cargo
+result or fixed return is claimed.
