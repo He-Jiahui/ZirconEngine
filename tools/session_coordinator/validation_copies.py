@@ -132,6 +132,277 @@ class CargoInputClosure:
     external_sources: tuple[ExternalGitSource, ...]
 
 
+_COMPILE_TIME_INCLUDE_MACROS = frozenset({"include_bytes", "include_str"})
+_CARGO_MANIFEST_DIR = "CARGO_MANIFEST_DIR"
+_RustToken = tuple[str, str]
+
+
+def _rust_tokens(source: str) -> tuple[_RustToken, ...]:
+    """Tokenize enough Rust to locate real include macros without parsing source strings."""
+
+    tokens: list[_RustToken] = []
+    index = 0
+    length = len(source)
+    while index < length:
+        current = source[index]
+        following = source[index + 1] if index + 1 < length else ""
+        if current.isspace():
+            index += 1
+            continue
+        if current == "/" and following == "/":
+            newline = source.find("\n", index + 2)
+            index = length if newline < 0 else newline + 1
+            continue
+        if current == "/" and following == "*":
+            index = _skip_rust_block_comment(source, index + 2)
+            continue
+        if current == "r":
+            raw_end = _rust_raw_string_end(source, index)
+            if raw_end is not None:
+                content_start, end = raw_end
+                tokens.append(("string", source[content_start:end]))
+                hash_count = content_start - index - 2
+                index = end + 1 + hash_count
+                continue
+        if current == '"':
+            value, index = _rust_string(source, index + 1)
+            tokens.append(("string", value))
+            continue
+        if current == "'":
+            character_end = _rust_character_end(source, index)
+            if character_end is not None:
+                index = character_end
+                continue
+        if current.isalpha() or current == "_":
+            end = index + 1
+            while end < length and (source[end].isalnum() or source[end] == "_"):
+                end += 1
+            tokens.append(("ident", source[index:end]))
+            index = end
+            continue
+        if current in "()!,":
+            tokens.append((current, current))
+        elif current == "$":
+            tokens.append(("dollar", current))
+        else:
+            tokens.append(("other", current))
+        index += 1
+    return tuple(tokens)
+
+
+def _skip_rust_block_comment(source: str, index: int) -> int:
+    depth = 1
+    while index < len(source) and depth:
+        pair = source[index : index + 2]
+        if pair == "/*":
+            depth += 1
+            index += 2
+        elif pair == "*/":
+            depth -= 1
+            index += 2
+        else:
+            index += 1
+    return index
+
+
+def _rust_raw_string_end(source: str, index: int) -> tuple[int, int] | None:
+    cursor = index + 1
+    while cursor < len(source) and source[cursor] == "#":
+        cursor += 1
+    if cursor >= len(source) or source[cursor] != '"':
+        return None
+    hashes = source[index + 1 : cursor]
+    content_start = cursor + 1
+    closing = '"' + hashes
+    end = source.find(closing, content_start)
+    if end < 0:
+        return content_start, len(source)
+    return content_start, end
+
+
+def _rust_string(source: str, index: int) -> tuple[str, int]:
+    value: list[str] = []
+    while index < len(source):
+        current = source[index]
+        if current == '"':
+            return "".join(value), index + 1
+        if current == "\\" and index + 1 < len(source):
+            index += 1
+            value.append(source[index])
+        else:
+            value.append(current)
+        index += 1
+    return "".join(value), index
+
+
+def _rust_character_end(source: str, index: int) -> int | None:
+    cursor = index + 1
+    if cursor >= len(source) or source[cursor] in "\r\n":
+        return None
+    if source[cursor] == "\\":
+        cursor += 1
+        if cursor >= len(source) or source[cursor] in "\r\n":
+            return None
+        if (
+            source[cursor] == "u"
+            and cursor + 1 < len(source)
+            and source[cursor + 1] == "{"
+        ):
+            closing = source.find("}", cursor + 2)
+            if closing < 0:
+                return None
+            cursor = closing + 1
+        elif source[cursor] == "x":
+            cursor += 3
+        else:
+            cursor += 1
+    else:
+        cursor += 1
+    return cursor + 1 if cursor < len(source) and source[cursor] == "'" else None
+
+
+def _matching_parenthesis(tokens: tuple[_RustToken, ...], opening: int) -> int | None:
+    depth = 0
+    for index in range(opening, len(tokens)):
+        kind, _value = tokens[index]
+        if kind == "(":
+            depth += 1
+        elif kind == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    return None
+
+
+def _macro_arguments(
+    tokens: tuple[_RustToken, ...], name: str
+) -> tuple[_RustToken, ...] | None:
+    if len(tokens) < 4 or tokens[0] != ("ident", name) or tokens[1][0] != "!":
+        return None
+    if tokens[2][0] != "(":
+        return None
+    closing = _matching_parenthesis(tokens, 2)
+    if closing != len(tokens) - 1:
+        return None
+    return tokens[3:closing]
+
+
+def _split_top_level_arguments(tokens: tuple[_RustToken, ...]) -> tuple[tuple[_RustToken, ...], ...]:
+    arguments: list[tuple[_RustToken, ...]] = []
+    start = 0
+    depth = 0
+    for index, (kind, _value) in enumerate(tokens):
+        if kind == "(":
+            depth += 1
+        elif kind == ")":
+            depth -= 1
+        elif kind == "," and depth == 0:
+            arguments.append(tokens[start:index])
+            start = index + 1
+    if start < len(tokens):
+        arguments.append(tokens[start:])
+    return tuple(argument for argument in arguments if argument)
+
+
+def _string_argument(tokens: tuple[_RustToken, ...]) -> str | None:
+    if len(tokens) == 1 and tokens[0][0] == "string":
+        return tokens[0][1]
+    return None
+
+
+def _is_cargo_manifest_dir(tokens: tuple[_RustToken, ...]) -> bool:
+    arguments = _macro_arguments(tokens, "env")
+    return arguments is not None and _string_argument(arguments) == _CARGO_MANIFEST_DIR
+
+
+def _compile_time_resource(
+    expression: tuple[_RustToken, ...],
+    *,
+    source: Path,
+    package_root: Path,
+    repo_root: Path,
+) -> Path:
+    literal = _string_argument(expression)
+    if literal is not None:
+        candidate = (source.parent / literal).resolve()
+    else:
+        arguments = _macro_arguments(expression, "concat")
+        if arguments is None:
+            raise CoordinatorError(
+                "validation_copy_compile_time_resource_unresolved",
+                "Compile-time include expression cannot be resolved safely",
+                details={"sourcePath": str(source)},
+            )
+        base = source.parent
+        uses_manifest_dir = False
+        dynamic_tail = False
+        literal_prefix: list[str] = []
+        for argument in _split_top_level_arguments(arguments):
+            if _is_cargo_manifest_dir(argument):
+                if literal_prefix or uses_manifest_dir:
+                    raise CoordinatorError(
+                        "validation_copy_compile_time_resource_unresolved",
+                        "Compile-time include has an ambiguous manifest-directory prefix",
+                        details={"sourcePath": str(source)},
+                    )
+                base = package_root
+                uses_manifest_dir = True
+                continue
+            literal_argument = _string_argument(argument)
+            if literal_argument is None:
+                dynamic_tail = True
+            elif not dynamic_tail:
+                literal_prefix.append(literal_argument)
+        if not literal_prefix:
+            raise CoordinatorError(
+                "validation_copy_compile_time_resource_unresolved",
+                "Compile-time include has no repository-local static path prefix",
+                details={"sourcePath": str(source)},
+            )
+        suffix = "".join(literal_prefix)
+        if uses_manifest_dir:
+            suffix = suffix.lstrip("/\\\\")
+        candidate = (base / suffix).resolve()
+        if dynamic_tail:
+            candidate = candidate if candidate.is_dir() else candidate.parent
+    if not candidate.is_relative_to(repo_root):
+        raise CoordinatorError(
+            "validation_copy_compile_time_resource_outside_repository",
+            "Compile-time include resolves outside the repository",
+            details={"sourcePath": str(source), "resourcePath": str(candidate)},
+        )
+    if not candidate.exists():
+        raise CoordinatorError(
+            "validation_copy_compile_time_resource_missing",
+            "Compile-time include resource is unavailable",
+            details={"sourcePath": str(source), "resourcePath": str(candidate)},
+        )
+    return candidate
+
+
+def _compile_time_include_expressions(
+    tokens: tuple[_RustToken, ...],
+) -> tuple[tuple[_RustToken, ...], ...]:
+    expressions: list[tuple[_RustToken, ...]] = []
+    for index, token in enumerate(tokens):
+        if token[0] != "ident" or token[1] not in _COMPILE_TIME_INCLUDE_MACROS:
+            continue
+        opening = index + 2
+        if opening >= len(tokens) or tokens[index + 1][0] != "!" or tokens[opening][0] != "(":
+            continue
+        closing = _matching_parenthesis(tokens, opening)
+        if closing is not None:
+            expressions.append(tokens[opening + 1 : closing])
+    return tuple(expressions)
+
+
+def _package_root_for_source(source: Path, package_roots: tuple[Path, ...]) -> Path | None:
+    candidates = [root for root in package_roots if source.is_relative_to(root)]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda root: len(root.parts))
+
+
 class CargoInputClosurePlanner:
     """Derive local Cargo inputs from server-owned metadata and Git trees."""
 
@@ -328,10 +599,52 @@ class CargoInputClosurePlanner:
             )
             if tracked.returncode == 0:
                 paths.add(root_file)
+        paths.update(self._compile_time_resource_paths(paths, repository_roots))
         return CargoInputClosure(
             tuple(sorted(paths, key=str.casefold)),
             tuple(sorted(used_external.values(), key=lambda item: item.mount_path.casefold())),
         )
+
+    def _compile_time_resource_paths(
+        self,
+        tracked_paths: set[str],
+        package_roots: set[str],
+    ) -> set[str]:
+        roots = tuple(
+            sorted(
+                {(self.repo_root / root).resolve() for root in package_roots},
+                key=lambda path: str(path).casefold(),
+            )
+        )
+        resource_roots: set[str] = set()
+        for relative in tracked_paths:
+            if not relative.endswith(".rs"):
+                continue
+            source = (self.repo_root / relative).resolve()
+            package_root = _package_root_for_source(source, roots)
+            if package_root is None or not source.is_file():
+                continue
+            expressions = _compile_time_include_expressions(
+                _rust_tokens(source.read_text(encoding="utf-8"))
+            )
+            for expression in expressions:
+                resource = _compile_time_resource(
+                    expression,
+                    source=source,
+                    package_root=package_root,
+                    repo_root=self.repo_root,
+                )
+                resource_roots.add(resource.relative_to(self.repo_root).as_posix())
+        if not resource_roots:
+            return set()
+        result = subprocess.run(
+            ["git", "ls-files", "--", *sorted(resource_roots, key=str.casefold)],
+            cwd=self.repo_root,
+            check=True,
+            capture_output=True,
+            encoding="utf-8",
+        )
+        return {line for line in result.stdout.splitlines() if line}
 
     def _manifest_path_dependencies(self, manifest: Path) -> tuple[Path, ...]:
         if not manifest.is_file():

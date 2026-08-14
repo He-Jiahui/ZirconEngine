@@ -162,7 +162,7 @@ class ValidationCopySourceTests(unittest.TestCase):
                 "[package]\nname='app'\nversion='0.1.0'\n"
                 "[dependencies]\nbinding={path='../../zr_vm/binding', optional=true}\n"
             ),
-            "app/src/lib.rs": "include_str!('schema.txt');\n",
+            "app/src/lib.rs": "include_str!(\"schema.txt\");\n",
             "app/src/schema.txt": "schema-v1\n",
             "local_dep/Cargo.toml": "[package]\nname='local_dep'\nversion='0.1.0'\n",
             "local_dep/src/lib.rs": "pub fn local() {}\n",
@@ -255,6 +255,72 @@ class ValidationCopySourceTests(unittest.TestCase):
             discover_external_sources=True,
         )
         self.assertTrue((materialized.job_root / "zr_vm/binding/Cargo.toml").is_file())
+
+    def test_cargo_closure_includes_compile_time_resources_outside_package_root(
+        self,
+    ) -> None:
+        files = {
+            "Cargo.toml": "[workspace]\nmembers=['interface']\n",
+            "Cargo.lock": "# lock\n",
+            "interface/Cargo.toml": "[package]\nname='interface'\nversion='0.1.0'\n",
+            "interface/src/lib.rs": "mod embedded;\n",
+            "interface/src/embedded.rs": (
+                "const TEMPLATE_NAMESPACE: &'static str = \"renderable-empty\";\n"
+                "macro_rules! template_bytes {\n"
+                "    ($path:literal) => {\n"
+                "        include_bytes!(concat!(\n"
+                "            env!(\"CARGO_MANIFEST_DIR\"),\n"
+                "            \"/../templates/projects/renderable-empty/\",\n"
+                "            $path,\n"
+                "        ))\n"
+                "    };\n"
+                "}\n"
+                "const _: &[u8] = template_bytes!(\"scene.toml\");\n"
+                "// include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../templates/ignored/\"))\n"
+                "const EXAMPLE: &str = \"include_bytes!(concat!(env!(\\\"CARGO_MANIFEST_DIR\\\"), \\\"/../templates/ignored/\\\"))\";\n"
+                "const RAW_EXAMPLE: &str = r##\"include_bytes!(concat!(env!(\\\"CARGO_MANIFEST_DIR\\\"), \\\"/../templates/ignored/\\\"))\"##;\n"
+            ),
+            "templates/projects/renderable-empty/scene.toml": "scene\n",
+            "templates/projects/renderable-empty/assets/texture.bin": "texture\n",
+            "templates/ignored/never-materialize.bin": "ignored\n",
+        }
+        for relative, content in files.items():
+            target = self.repo / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", *files], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add compile-time resource fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        metadata = {
+            "packages": [
+                {
+                    "id": "interface-id",
+                    "name": "interface",
+                    "manifest_path": str(self.repo / "interface/Cargo.toml"),
+                }
+            ],
+            "workspace_members": ["interface-id"],
+            "resolve": {"nodes": [{"id": "interface-id", "deps": []}]},
+        }
+
+        closure = CargoInputClosurePlanner(
+            self.repo,
+            metadata_runner=lambda _command: metadata,
+        ).plan(("cargo", "test", "-p", "interface", "--lib"))
+
+        self.assertTrue(
+            {
+                "templates/projects/renderable-empty/scene.toml",
+                "templates/projects/renderable-empty/assets/texture.bin",
+            }
+            <= set(closure.repository_paths)
+        )
+        self.assertNotIn(
+            "templates/ignored/never-materialize.bin", closure.repository_paths
+        )
 
     def test_cargo_metadata_is_decoded_as_utf8_independent_of_windows_locale(self) -> None:
         completed = subprocess.CompletedProcess(
