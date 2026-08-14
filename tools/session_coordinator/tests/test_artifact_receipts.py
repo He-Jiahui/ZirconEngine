@@ -19,7 +19,15 @@ JOB_ID = "a" * 32
 TICKET_ID = "b" * 32
 RUN_ID = "c" * 32
 INPUT_MANIFEST = "d" * 64
-SOURCE_MANIFEST = "e" * 64
+SOURCE_RELATIVE_PATH = "zircon_runtime/src/graphics/shader/current.rs"
+SOURCE_CONTENT = b"current shader source\n"
+SOURCE_FILE_SHA256 = hashlib.sha256(SOURCE_CONTENT).hexdigest()
+SOURCE_MANIFEST_JSON = json.dumps(
+    {SOURCE_RELATIVE_PATH: SOURCE_FILE_SHA256},
+    sort_keys=True,
+    separators=(",", ":"),
+)
+SOURCE_MANIFEST = hashlib.sha256(SOURCE_MANIFEST_JSON.encode("utf-8")).hexdigest()
 BUILD_COMMAND = (
     "cargo",
     "+1.94.1",
@@ -44,6 +52,9 @@ class ManagedArtifactReceiptServiceTests(unittest.TestCase):
         self.target_root = self.job_root / "target"
         self.source_root.mkdir(parents=True)
         self.target_root.mkdir()
+        source = self.source_root / SOURCE_RELATIVE_PATH
+        source.parent.mkdir(parents=True)
+        source.write_bytes(SOURCE_CONTENT)
         self.artifact_root = self.root / "managed-artifacts"
         self.service = ManagedArtifactReceiptService(
             self.database, self.artifact_root
@@ -86,7 +97,7 @@ class ManagedArtifactReceiptServiceTests(unittest.TestCase):
                     ticket_id, session_id, plan_path, status, dedupe_key,
                     source_manifest_hash, source_manifest_json, command_json,
                     toolchain_json, coverage_json, created_at, updated_at
-                ) VALUES (?, ?, ?, 'passed', ?, ?, '{}', '[]', '{}', '{}', ?, ?)
+                ) VALUES (?, ?, ?, 'passed', ?, ?, ?, '[]', '{}', '{}', ?, ?)
                 """,
                 (
                     TICKET_ID,
@@ -94,6 +105,7 @@ class ManagedArtifactReceiptServiceTests(unittest.TestCase):
                     "docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md",
                     "2" * 64,
                     SOURCE_MANIFEST,
+                    SOURCE_MANIFEST_JSON,
                     now,
                     now,
                 ),
@@ -107,7 +119,7 @@ class ManagedArtifactReceiptServiceTests(unittest.TestCase):
                     job_id, session_id, job_root, source_root, target_root,
                     head_commit, manifest_json, status, created_at,
                     input_manifest_hash, materialization_kind
-                ) VALUES (?, ?, ?, ?, ?, ?, '{}', 'materialized', ?, ?, 'cargo')
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'materialized', ?, ?, 'cargo')
                 """,
                 (
                     JOB_ID,
@@ -116,6 +128,7 @@ class ManagedArtifactReceiptServiceTests(unittest.TestCase):
                     str(self.source_root),
                     str(self.target_root),
                     "1" * 40,
+                    json.dumps([SOURCE_RELATIVE_PATH]),
                     "2026-08-14T00:00:00+00:00",
                     INPUT_MANIFEST,
                 ),
@@ -292,6 +305,58 @@ class ManagedArtifactReceiptServiceTests(unittest.TestCase):
         with self.assertRaises(CoordinatorError) as query_rejected:
             self.service.get(receipt.receipt_id, session_id=OTHER_SESSION_ID)
         self.assertEqual("managed_artifact_cross_session", query_rejected.exception.code)
+
+    def test_request_rejects_ticket_source_not_bound_to_materialized_copy(self) -> None:
+        stale_hash = hashlib.sha256(b"newer source than immutable copy\n").hexdigest()
+        manifest_json = json.dumps(
+            {SOURCE_RELATIVE_PATH: stale_hash},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        manifest_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE validation_tickets
+                SET source_manifest_hash=?, source_manifest_json=?
+                WHERE ticket_id=?
+                """,
+                (manifest_hash, manifest_json, TICKET_ID),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self._request()
+
+        self.assertEqual(
+            "managed_artifact_source_hash_mismatch", rejected.exception.code
+        )
+        self.assertEqual(
+            SOURCE_RELATIVE_PATH, rejected.exception.details.get("path")
+        )
+
+    def test_request_hashes_copy_sources_before_write_transaction(self) -> None:
+        real_fingerprint = self.service._fingerprint
+
+        def fingerprint_with_independent_writer(path: Path) -> tuple[str, int]:
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO events(session_id, event_type, payload_json, created_at)
+                    VALUES (?, 'test.independent_writer', '{}', ?)
+                    """,
+                    (SESSION_ID, "2026-08-14T00:00:30+00:00"),
+                )
+            return real_fingerprint(path)
+
+        with mock.patch.object(
+            self.service,
+            "_fingerprint",
+            side_effect=fingerprint_with_independent_writer,
+        ) as fingerprint:
+            receipt = self._request()
+
+        self.assertEqual("pending", receipt.status)
+        fingerprint.assert_called_once()
 
     def _reset_receipt_and_run(self) -> None:
         with self.database.transaction() as connection:

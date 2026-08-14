@@ -66,6 +66,17 @@ class ManagedArtifactReceipt:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class _ArtifactRequestSnapshot:
+    copy_signature: tuple[str, str, str, str]
+    ticket_signature: tuple[str, str, str, str]
+    input_manifest_hash: str
+    source_manifest_hash: str
+    source_root: Path
+    copy_paths: frozenset[str]
+    source_manifest: dict[str, str | None]
+
+
 class ManagedArtifactReceiptService:
     """Issue one immutable receipt for a closed, server-known artifact kind."""
 
@@ -96,11 +107,17 @@ class ManagedArtifactReceiptService:
                 (normalized_session, normalized_job, normalized_ticket, artifact_kind)
             ).encode("utf-8")
         ).hexdigest()[:32]
+        snapshot = self._request_snapshot(
+            normalized_session,
+            normalized_job,
+            normalized_ticket,
+        )
+        self._verify_source_binding(snapshot)
         now = utc_text()
         with self.database.transaction() as connection:
             copy = connection.execute(
                 """
-                SELECT session_id, status, input_manifest_hash
+                SELECT session_id, status, input_manifest_hash, source_root
                 FROM validation_copies WHERE job_id=?
                 """,
                 (normalized_job,),
@@ -111,7 +128,7 @@ class ManagedArtifactReceiptService:
                 )
             ticket = connection.execute(
                 """
-                SELECT session_id, status, source_manifest_hash
+                SELECT session_id, status, source_manifest_hash, source_manifest_json
                 FROM validation_tickets WHERE ticket_id=?
                 """,
                 (normalized_ticket,),
@@ -120,30 +137,13 @@ class ManagedArtifactReceiptService:
                 raise CoordinatorError(
                     "managed_artifact_ticket_not_found", "Validation ticket was not found"
                 )
-            if (
-                str(copy["session_id"]) != normalized_session
-                or str(ticket["session_id"]) != normalized_session
-            ):
+            if self._copy_signature(copy) != snapshot.copy_signature or self._ticket_signature(
+                ticket
+            ) != snapshot.ticket_signature:
                 raise CoordinatorError(
-                    "managed_artifact_cross_session",
-                    "Artifact receipt job, ticket, and requester must share one Session",
+                    "managed_artifact_request_snapshot_stale",
+                    "Artifact receipt inputs changed after source verification",
                 )
-            if str(copy["status"]) != "materialized":
-                raise CoordinatorError(
-                    "managed_artifact_job_not_ready",
-                    "Artifact receipt requires a materialized validation job",
-                )
-            if str(ticket["status"]) != "passed":
-                raise CoordinatorError(
-                    "managed_artifact_ticket_not_passed",
-                    "Artifact receipt requires a passed validation ticket",
-                )
-            input_manifest_hash = self._require_sha256(
-                "input_manifest_hash", copy["input_manifest_hash"]
-            )
-            source_manifest_hash = self._require_sha256(
-                "source_manifest_hash", ticket["source_manifest_hash"]
-            )
             existing = connection.execute(
                 "SELECT * FROM managed_artifact_receipts WHERE receipt_id=?",
                 (receipt_id,),
@@ -164,8 +164,8 @@ class ManagedArtifactReceiptService:
                     normalized_job,
                     normalized_ticket,
                     artifact_kind,
-                    input_manifest_hash,
-                    source_manifest_hash,
+                    snapshot.input_manifest_hash,
+                    snapshot.source_manifest_hash,
                     now,
                 ),
             )
@@ -175,6 +175,216 @@ class ManagedArtifactReceiptService:
             ).fetchone()
         assert row is not None
         return self._from_row(row)
+
+    def _request_snapshot(
+        self,
+        session_id: str,
+        job_id: str,
+        validation_ticket_id: str,
+    ) -> _ArtifactRequestSnapshot:
+        with self.database.connect() as connection:
+            copy = connection.execute(
+                """
+                SELECT session_id, status, input_manifest_hash, source_root,
+                       manifest_json
+                FROM validation_copies WHERE job_id=?
+                """,
+                (job_id,),
+            ).fetchone()
+            if copy is None:
+                raise CoordinatorError(
+                    "managed_artifact_job_not_found",
+                    "Managed validation job was not found",
+                )
+            ticket = connection.execute(
+                """
+                SELECT session_id, status, source_manifest_hash,
+                       source_manifest_json
+                FROM validation_tickets WHERE ticket_id=?
+                """,
+                (validation_ticket_id,),
+            ).fetchone()
+            if ticket is None:
+                raise CoordinatorError(
+                    "managed_artifact_ticket_not_found",
+                    "Validation ticket was not found",
+                )
+
+        copy_signature = self._copy_signature(copy)
+        ticket_signature = self._ticket_signature(ticket)
+        if copy_signature[0] != session_id or ticket_signature[0] != session_id:
+            raise CoordinatorError(
+                "managed_artifact_cross_session",
+                "Artifact receipt job, ticket, and requester must share one Session",
+            )
+        if copy_signature[1] != "materialized":
+            raise CoordinatorError(
+                "managed_artifact_job_not_ready",
+                "Artifact receipt requires a materialized validation job",
+            )
+        if ticket_signature[1] != "passed":
+            raise CoordinatorError(
+                "managed_artifact_ticket_not_passed",
+                "Artifact receipt requires a passed validation ticket",
+            )
+        input_manifest_hash = self._require_sha256(
+            "input_manifest_hash", copy_signature[2]
+        )
+        source_manifest_hash = self._require_sha256(
+            "source_manifest_hash", ticket_signature[2]
+        )
+        source_manifest = self._source_manifest(
+            ticket_signature[3], source_manifest_hash
+        )
+        return _ArtifactRequestSnapshot(
+            copy_signature=copy_signature,
+            ticket_signature=ticket_signature,
+            input_manifest_hash=input_manifest_hash,
+            source_manifest_hash=source_manifest_hash,
+            source_root=Path(copy_signature[3]).resolve(),
+            copy_paths=self._copy_manifest(copy["manifest_json"]),
+            source_manifest=source_manifest,
+        )
+
+    def _verify_source_binding(self, snapshot: _ArtifactRequestSnapshot) -> None:
+        for relative_path, expected_hash in snapshot.source_manifest.items():
+            candidate = snapshot.source_root.joinpath(*relative_path.split("/"))
+            try:
+                resolved = candidate.resolve()
+                resolved.relative_to(snapshot.source_root)
+            except (OSError, ValueError) as error:
+                raise CoordinatorError(
+                    "managed_artifact_source_escape",
+                    "Validation ticket source escaped the materialized copy",
+                    details={"path": relative_path},
+                ) from error
+            listed = relative_path in snapshot.copy_paths
+            if expected_hash is None:
+                if listed or resolved.exists():
+                    raise CoordinatorError(
+                        "managed_artifact_source_tombstone_mismatch",
+                        "Validation ticket tombstone exists in the materialized copy",
+                        details={"path": relative_path},
+                    )
+                continue
+            if not listed or not resolved.is_file():
+                raise CoordinatorError(
+                    "managed_artifact_source_not_in_copy",
+                    "Validation ticket source is absent from the materialized copy",
+                    details={"path": relative_path},
+                )
+            actual_hash, _ = self._fingerprint(resolved)
+            if actual_hash != expected_hash:
+                raise CoordinatorError(
+                    "managed_artifact_source_hash_mismatch",
+                    "Validation ticket source does not match the materialized copy",
+                    details={"path": relative_path},
+                )
+
+    @classmethod
+    def _copy_manifest(cls, value: object) -> frozenset[str]:
+        try:
+            decoded = json.loads(str(value))
+        except (TypeError, ValueError) as error:
+            raise CoordinatorError(
+                "managed_artifact_copy_manifest_invalid",
+                "Materialized copy manifest is malformed",
+            ) from error
+        if not isinstance(decoded, list):
+            raise CoordinatorError(
+                "managed_artifact_copy_manifest_invalid",
+                "Materialized copy manifest must be a path list",
+            )
+        normalized = [cls._manifest_path(path) for path in decoded]
+        if len(set(normalized)) != len(normalized):
+            raise CoordinatorError(
+                "managed_artifact_copy_manifest_invalid",
+                "Materialized copy manifest contains duplicate paths",
+            )
+        return frozenset(normalized)
+
+    @classmethod
+    def _source_manifest(
+        cls, value: object, expected_hash: str
+    ) -> dict[str, str | None]:
+        try:
+            decoded = json.loads(str(value))
+        except (TypeError, ValueError) as error:
+            raise CoordinatorError(
+                "managed_artifact_source_manifest_invalid",
+                "Validation ticket source manifest is malformed",
+            ) from error
+        if not isinstance(decoded, dict) or not decoded:
+            raise CoordinatorError(
+                "managed_artifact_source_manifest_invalid",
+                "Validation ticket source manifest must be a non-empty object",
+            )
+        normalized: dict[str, str | None] = {}
+        for path, source_hash in decoded.items():
+            relative_path = cls._manifest_path(path)
+            if source_hash is None:
+                normalized[relative_path] = None
+            elif isinstance(source_hash, str) and _SHA256.fullmatch(
+                source_hash.casefold()
+            ):
+                normalized[relative_path] = source_hash.casefold()
+            else:
+                raise CoordinatorError(
+                    "managed_artifact_source_manifest_invalid",
+                    "Validation ticket source hashes must be SHA-256 or null",
+                    details={"path": relative_path},
+                )
+        canonical = json.dumps(
+            normalized,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != expected_hash:
+            raise CoordinatorError(
+                "managed_artifact_source_manifest_invalid",
+                "Validation ticket source manifest hash is inconsistent",
+            )
+        return dict(sorted(normalized.items(), key=lambda item: item[0].casefold()))
+
+    @staticmethod
+    def _manifest_path(value: object) -> str:
+        if not isinstance(value, str):
+            raise CoordinatorError(
+                "managed_artifact_source_manifest_invalid",
+                "Artifact manifest paths must be strings",
+            )
+        normalized = value.replace("\\", "/")
+        if (
+            normalized != value
+            or normalized.startswith("/")
+            or re.match(r"^[A-Za-z]:", normalized)
+            or any(part in {"", ".", ".."} for part in normalized.split("/"))
+        ):
+            raise CoordinatorError(
+                "managed_artifact_source_manifest_invalid",
+                "Artifact manifest path is unsafe",
+                details={"path": value},
+            )
+        return normalized
+
+    @staticmethod
+    def _copy_signature(row: Row) -> tuple[str, str, str, str]:
+        return (
+            str(row["session_id"]),
+            str(row["status"]),
+            str(row["input_manifest_hash"] or ""),
+            str(row["source_root"]),
+        )
+
+    @staticmethod
+    def _ticket_signature(row: Row) -> tuple[str, str, str, str]:
+        return (
+            str(row["session_id"]),
+            str(row["status"]),
+            str(row["source_manifest_hash"] or ""),
+            str(row["source_manifest_json"]),
+        )
 
     def finalize_run(self, run_id: str) -> ManagedArtifactReceipt | None:
         normalized_run = self._require_record_id("run_id", run_id)
