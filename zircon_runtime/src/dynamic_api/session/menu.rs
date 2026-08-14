@@ -211,6 +211,7 @@ fn build_menu_extract(menu: &RuntimeMenu, layout: MenuLayout) -> UiRenderExtract
                 ),
             ],
         },
+        raster_scale: 1.0,
     }
 }
 

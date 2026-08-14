@@ -80,6 +80,7 @@ fn build_text_hud_extract(text: String, viewport_size: UVec2) -> UiRenderExtract
                 },
             ],
         },
+        raster_scale: 1.0,
     }
 }
 
