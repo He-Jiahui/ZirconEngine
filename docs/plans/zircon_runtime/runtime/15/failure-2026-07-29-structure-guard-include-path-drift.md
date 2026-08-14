@@ -198,3 +198,10 @@ coverage floor, and rejects a restored aggregate `mod tests;`. This keeps the
 Runtime09/UI12 source-bound copy dependent only on the real split contract.
 Static formatting, diff and exact source scans are required; no Cargo result or
 failure return is claimed by this update.
+
+The paired typed-error guard
+`typed_error_convergence/native_plugin_loader/abi_surfaces/host_adapter.rs`
+likewise now reads only the production root and
+`host_api_adapter/abi_decode/tests.rs`. Its six declaration-only architecture
+and archive document `include_str!` inputs were removed without changing the
+typed-error or ABI-decode assertions.
