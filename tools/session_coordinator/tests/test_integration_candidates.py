@@ -1,16 +1,35 @@
 from __future__ import annotations
 
+import json
+import os
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
 from tools.session_coordinator.database import Database
+from tools.session_coordinator.git_index_lock import recover_stale_index_lock
 from tools.session_coordinator.integration_candidates import IntegrationCandidateService
 from tools.session_coordinator.leases import LeaseService, PathPolicy
 from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.notifications import WeComNotificationService
 from tools.session_coordinator.tests.helpers import init_repo
+
+
+_NOW_NS = 2_000_000_000_000
+_OLD_NS = _NOW_NS - 120_000_000_000
+
+
+def _recover_index_lock(lock_path: Path):
+    return recover_stale_index_lock(
+        lock_path,
+        minimum_age_seconds=30.0,
+        observation_seconds=0.0,
+        now_ns=lambda: _NOW_NS,
+        sleep=lambda _: None,
+        lock_owner_process_ids=lambda: (),
+    )
 
 
 class IntegrationCandidateTests(unittest.TestCase):
@@ -258,6 +277,172 @@ class IntegrationCandidateTests(unittest.TestCase):
             text=True,
         ).stdout.strip()
         self.assertEqual("", staged)
+
+    def test_finalize_recovers_prepared_commit_after_head_advanced(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        candidate = self.service.submit(
+            session_id="primary",
+            request_id="candidate-prepared-recovery",
+            paths=("tools/candidate.py",),
+            compile_ticket_id="compile-pass",
+        )
+        subprocess.run(["git", "add", "tools/candidate.py"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "integration: prepared candidate"],
+            cwd=self.repo,
+            check=True,
+        )
+        prepared_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE integration_candidates SET commit_sha=? WHERE candidate_id=?",
+                (prepared_commit, candidate.candidate_id),
+            )
+        unrelated = self.repo / "tools" / "unrelated.py"
+        unrelated.write_text("unrelated = True\n", encoding="utf-8")
+        subprocess.run(["git", "add", "tools/unrelated.py"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "test: advance main"],
+            cwd=self.repo,
+            check=True,
+        )
+        current_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        subprocess.run(
+            ["git", "update-index", "--force-remove", "tools/candidate.py"],
+            cwd=self.repo,
+            check=True,
+        )
+        lock_path = self.repo / ".git" / "index.lock"
+        lock_path.write_bytes(b"")
+        os.utime(lock_path, ns=(_OLD_NS, _OLD_NS))
+        self.service.index_lock_recoverer = _recover_index_lock
+
+        recovered = self.service.finalize(
+            candidate.candidate_id, message="integration: prepared candidate"
+        )
+
+        self.assertEqual("integrated_validation_pending", recovered.status)
+        self.assertEqual(prepared_commit, recovered.commit_sha)
+        self.assertEqual(
+            current_head,
+            subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=self.repo,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip(),
+        )
+        self.assertFalse(lock_path.exists())
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--", "tools/candidate.py"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual("", staged)
+        with self.database.connect() as connection:
+            event = connection.execute(
+                """
+                SELECT session_id, payload_json FROM events
+                WHERE event_type='git.index_lock_recovered'
+                ORDER BY event_id DESC LIMIT 1
+                """
+            ).fetchone()
+        self.assertIsNotNone(event)
+        assert event is not None
+        payload = json.loads(event["payload_json"])
+        self.assertEqual("primary", event["session_id"])
+        self.assertEqual(candidate.candidate_id, payload["candidate_id"])
+        self.assertEqual(0, payload["size"])
+        replay = self.service.finalize(
+            candidate.candidate_id, message="integration: prepared candidate"
+        )
+        self.assertEqual(recovered, replay)
+        with self.database.connect() as connection:
+            finalized_count = connection.execute(
+                """
+                SELECT COUNT(*) FROM integration_candidate_events
+                WHERE candidate_id=? AND event_type='integration.finalized'
+                """,
+                (candidate.candidate_id,),
+            ).fetchone()[0]
+        self.assertEqual(1, finalized_count)
+
+    def test_finalize_refuses_nonzero_index_lock_without_state_change(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        candidate = self.service.submit(
+            session_id="primary",
+            request_id="candidate-lock-refusal",
+            paths=("tools/candidate.py",),
+            compile_ticket_id="compile-pass",
+        )
+        subprocess.run(["git", "add", "tools/candidate.py"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", "integration: prepared candidate"],
+            cwd=self.repo,
+            check=True,
+        )
+        prepared_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE integration_candidates SET commit_sha=? WHERE candidate_id=?",
+                (prepared_commit, candidate.candidate_id),
+            )
+        subprocess.run(
+            ["git", "update-index", "--force-remove", "tools/candidate.py"],
+            cwd=self.repo,
+            check=True,
+        )
+        lock_path = self.repo / ".git" / "index.lock"
+        lock_path.write_bytes(b"owned")
+        os.utime(lock_path, ns=(_OLD_NS, _OLD_NS))
+        self.service.index_lock_recoverer = _recover_index_lock
+
+        with self.assertRaises(CoordinatorError) as refused:
+            self.service.finalize(
+                candidate.candidate_id, message="integration: prepared candidate"
+            )
+
+        self.assertEqual(
+            "integration_candidate_index_lock_recovery_refused",
+            refused.exception.code,
+        )
+        self.assertEqual("nonzero", refused.exception.details["reason"])
+        unchanged = self.service.get(candidate.candidate_id)
+        self.assertEqual("integration_ready", unchanged.status)
+        self.assertEqual(prepared_commit, unchanged.commit_sha)
+        self.assertEqual(b"owned", lock_path.read_bytes())
+        with self.database.connect() as connection:
+            recovered_count = connection.execute(
+                "SELECT COUNT(*) FROM events WHERE event_type='git.index_lock_recovered'"
+            ).fetchone()[0]
+        self.assertEqual(0, recovered_count)
 
 
 if __name__ == "__main__":

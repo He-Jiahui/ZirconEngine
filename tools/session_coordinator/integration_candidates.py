@@ -10,10 +10,15 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from sqlite3 import IntegrityError
-from typing import Iterator
+from typing import Callable, Iterator
 from uuid import uuid4
 
 from .database import Database
+from .git_index_lock import (
+    IndexLockRecovery,
+    IndexLockRecoveryRefused,
+    recover_stale_index_lock,
+)
 from .leases import LeaseService
 from .models import CoordinatorError, utc_text
 from .notifications import WeComNotificationService
@@ -47,10 +52,18 @@ class IntegrationCandidateService:
     after a candidate was submitted.
     """
 
-    def __init__(self, database: Database, repo_root: str | Path, leases: LeaseService):
+    def __init__(
+        self,
+        database: Database,
+        repo_root: str | Path,
+        leases: LeaseService,
+        *,
+        index_lock_recoverer: Callable[[Path], IndexLockRecovery | None] | None = None,
+    ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
         self.leases = leases
+        self.index_lock_recoverer = index_lock_recoverer or recover_stale_index_lock
         self.notifications: WeComNotificationService | None = None
 
     def set_notifications(self, notifications: WeComNotificationService) -> None:
@@ -193,7 +206,7 @@ class IntegrationCandidateService:
             if candidate.status == "integrated_validation_pending":
                 current_head = self._git("rev-parse", "HEAD")
                 if self._head_contains_candidate(current_head, candidate.paths):
-                    self._align_shared_index(candidate.paths)
+                    self._align_shared_index(candidate)
                 return candidate
             if candidate.status in {"accepted", "delayed_merge"}:
                 return candidate
@@ -209,8 +222,10 @@ class IntegrationCandidateService:
                 )
 
             current_head = self._git("rev-parse", "HEAD")
-            if candidate.commit_sha and current_head == candidate.commit_sha:
-                self._align_shared_index(candidate.paths)
+            if candidate.commit_sha and self._prepared_commit_is_current(
+                candidate, current_head
+            ):
+                self._align_shared_index(candidate)
                 integrated = self._mark_integrated(
                     candidate, candidate.commit_sha, recovered=True
                 )
@@ -233,7 +248,7 @@ class IntegrationCandidateService:
                 self._git("update-ref", "HEAD", commit_sha, current_head)
             except subprocess.CalledProcessError:
                 return self._delay_merge(candidate, self._git("rev-parse", "HEAD"), "head_cas_failed")
-            self._align_shared_index(candidate.paths)
+            self._align_shared_index(candidate)
             integrated = self._mark_integrated(candidate, commit_sha, recovered=False)
             self._notify_integrated(candidate, commit_sha, message)
             return integrated
@@ -364,15 +379,72 @@ class IntegrationCandidateService:
                 return False
         return True
 
-    def _align_shared_index(self, paths: tuple[CandidatePath, ...]) -> None:
+    def _prepared_commit_is_current(
+        self, candidate: IntegrationCandidate, current_head: str
+    ) -> bool:
+        assert candidate.commit_sha is not None
+        return current_head == candidate.commit_sha or (
+            self._is_ancestor(candidate.commit_sha, current_head)
+            and self._head_contains_candidate(current_head, candidate.paths)
+        )
+
+    def _align_shared_index(self, candidate: IntegrationCandidate) -> None:
         """Advance only committed candidate entries in the shared index."""
-        for item in paths:
+        self._recover_index_lock(candidate)
+        for item in candidate.paths:
             self._git(
                 "update-index",
                 "--add",
                 "--cacheinfo",
                 f"100644,{item.blob_oid},{item.path}",
             )
+
+    def _recover_index_lock(self, candidate: IntegrationCandidate) -> None:
+        index_path = Path(self._git("rev-parse", "--git-path", "index"))
+        if not index_path.is_absolute():
+            index_path = self.repo_root / index_path
+        lock_path = index_path.with_name(index_path.name + ".lock")
+        try:
+            recovery = self.index_lock_recoverer(lock_path)
+        except IndexLockRecoveryRefused as error:
+            details: dict[str, object] = {
+                "candidate_id": candidate.candidate_id,
+                "lock_path": self._display_git_path(lock_path),
+                "reason": error.reason,
+                **error.details,
+            }
+            if error.active_pids:
+                details["active_git_pids"] = list(error.active_pids)
+            raise CoordinatorError(
+                "integration_candidate_index_lock_recovery_refused",
+                "Git index lock cannot be recovered safely for integration candidate",
+                details=details,
+            ) from error
+        if recovery is None:
+            return
+        payload: dict[str, object] = {
+            "candidate_id": candidate.candidate_id,
+            "lock_path": self._display_git_path(lock_path),
+            **recovery.to_event_payload(),
+        }
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO events(session_id, event_type, payload_json, created_at)
+                VALUES (?, 'git.index_lock_recovered', ?, ?)
+                """,
+                (
+                    candidate.session_id,
+                    json.dumps(payload, sort_keys=True),
+                    utc_text(),
+                ),
+            )
+
+    def _display_git_path(self, path: Path) -> str:
+        try:
+            return path.resolve().relative_to(self.repo_root).as_posix()
+        except ValueError:
+            return str(path.resolve())
 
     def _record_prepared_commit(
         self, candidate: IntegrationCandidate, commit_sha: str, parent: str
