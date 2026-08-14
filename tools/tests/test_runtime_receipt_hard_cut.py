@@ -109,6 +109,75 @@ class RuntimeReceiptHardCutTests(unittest.TestCase):
         for mount in required_mounts:
             self.assertIn(mount, structure_source)
 
+    def test_structure_anchor_helper_checks_only_the_supplied_source(self) -> None:
+        support_path = (
+            self.runtime_absorption / "structure_convention/support.rs"
+        )
+        support_source = support_path.read_text(encoding="utf-8")
+        wrapper_start = support_source.index("pub(super) fn assert_contains_all(")
+        exact_start = support_source.index(
+            "pub(super) fn assert_contains_all_exact(", wrapper_start
+        )
+        runtime_path_start = support_source.index(
+            "pub(super) fn runtime_src_path(", exact_start
+        )
+        wrapper = support_source[wrapper_start:exact_start]
+        exact = support_source[exact_start:runtime_path_start]
+
+        def normalized(source: str) -> str:
+            return "".join(source.split())
+
+        self.assertEqual(
+            normalized(
+                """
+                pub(super) fn assert_contains_all(
+                    label: &str,
+                    source: &str,
+                    required: &[&str]
+                ) {
+                    assert_contains_all_exact(label, source, required);
+                }
+                """
+            ),
+            normalized(wrapper),
+        )
+        self.assertEqual(
+            normalized(
+                """
+                pub(super) fn assert_contains_all_exact(
+                    label: &str,
+                    source: &str,
+                    required: &[&str]
+                ) {
+                    let missing: Vec<_> = required
+                        .iter()
+                        .copied()
+                        .filter(|anchor| !source.contains(anchor))
+                        .collect();
+                    assert!(
+                        missing.is_empty(),
+                        "{label} missing required anchors: {missing:?}"
+                    );
+                }
+                """
+            ),
+            normalized(exact),
+        )
+
+        retired_implicit_owners = (
+            "current_status_row_owner_inventory_source",
+            "runtime_15_output_archive_source",
+            "engine_code_review_findings_archive_source",
+            "engine_code_structure_archive_source",
+        )
+        for owner in retired_implicit_owners:
+            self.assertNotIn(owner, support_source)
+
+        self.assertIn(
+            "pub(crate) fn priority_plan_doc_current_owner_archive_source()",
+            support_source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

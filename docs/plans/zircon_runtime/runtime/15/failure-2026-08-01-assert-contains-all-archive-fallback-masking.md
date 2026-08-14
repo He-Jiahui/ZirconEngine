@@ -68,3 +68,16 @@ VM guard 的受管精确验证 wrapper job `c12a661fdc1245f6b314750802b51c50` �
 ## 2026-08-03 hard-cut 进展
 
 源码实现已删除 label 驱动的隐式 fallback 与仅供其使用的 status owner helpers；`assert_contains_all` 现在只检查调用方显式传入的 source。更高优先级 receipt hard cut 同时删除了纯历史状态镜像守卫，而生产结构守卫继续保留。当前本地 hard-cut/Runtime03 Python 回归 5/5 通过，独立二次审查为 Critical/Important/Minor = `0/0/0`；managed Runtime lib-test/plan-output 证据仍待回执，因此本 failure 保持 `resolving`，不提前改为 fixed。
+
+## 2026-08-14 current-source 量化复核
+
+- `structure_convention/support.rs::assert_contains_all` 无条件委托 `assert_contains_all_exact(label, source, required)`；调用方传入错误 source 时不再可能由 label 或其他 archive 补齐。当前 642 个 structure guard Rust 文件中共有 2,096 个 `assert_contains_all(` 文本 occurrences，其中 2 个是 helper definitions，真实 call expressions 为 2,094；它们全部采用显式 source 语义，旧记录中的 1,392 fallback-trigger 计数不再适用。
+- 四个仅供隐式 fallback 使用的 owner helpers 保持物理删除。`priority_plan_doc_current_owner_archive_source` 共 7 个文本 occurrences：root owner 与 local wrapper 共 2 个 definitions，另有 5 个调用引用（1 个 assembly、1 个 delegate、3 个 guard consumers）；它们均为显式 priority inventory 路由，不参与 `assert_contains_all` 的 source 选择。
+- `tools/tests/test_runtime_receipt_hard_cut.py` 新增防回归：对 wrapper 和 exact helper 两个完整函数体做 whitespace-normalized exact equality，确保 wrapper 只能委托 exact helper、missing 只能从传入 `source` 计算；同时禁止四个退役 implicit owner helpers 回归，并明确保留显式 priority inventory helper。
+- 当前仍为 `resolving_failure`：fresh Python execution、immutable review、managed Runtime focused evidence 与 failure return 尚未完成，不声明 fixed/accepted。
+
+## 2026-08-15 focused static regression
+
+- `PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_runtime_receipt_hard_cut -v` executed `4` tests with `4 passed; 0 failed`. This includes the exact source-contract regression for the wrapper and the retired implicit-owner helpers.
+- A Rust 1.94.1 standalone harness on `D:\\ZirconBuilds` exercised the real helper with a label containing the required anchor but a supplied source without it. The helper panicked as required and the harness completed `1 passed; 0 failed`; an unrelated label with a supplied anchor passed.
+- `git diff --check` for the test and this record has no whitespace defect. The dynamic Runtime focused gate, independent immutable review, and canonical failure return are still outstanding, so this handoff remains `open`.
