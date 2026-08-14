@@ -1,4 +1,4 @@
-use super::{assert_contains_all, read_repo, read_runtime_src};
+use super::{assert_contains_all, read_runtime_src};
 
 #[test]
 fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
@@ -18,13 +18,6 @@ fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
     let registration_policy_tests = read_runtime_src(
         "plugin/native_plugin_loader/host_api_adapter/registration_policy/tests.rs",
     );
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let plugin_bridge_doc = read_repo("docs/zircon_runtime/plugin/bridge.md");
 
     assert_contains_all(
         "native host API adapter root mounts its canonical child owners",

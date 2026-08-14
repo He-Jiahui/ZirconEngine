@@ -186,3 +186,15 @@ parallel owner.
 This is a forward structure repair only. No Cargo test ran, no UI12/Runtime09
 test is claimed, and this failure remains `open` until a fresh source-bound
 managed validation crosses the repaired guards.
+
+### 2026-08-14 validation-copy dependency hard cut
+
+`production_file_budget/native_host_api_adapter.rs` no longer imports or reads
+the Runtime15 parent/index/review/structure plans, module convention, or plugin
+bridge document: all six values were declaration-only and had no assertion
+consumer. The guard still reads the production root and five canonical leaf
+owners, preserves the V3/V4/bridge/context/ABI anchors, enforces the test
+coverage floor, and rejects a restored aggregate `mod tests;`. This keeps the
+Runtime09/UI12 source-bound copy dependent only on the real split contract.
+Static formatting, diff and exact source scans are required; no Cargo result or
+failure return is claimed by this update.
