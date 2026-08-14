@@ -355,12 +355,14 @@ class ValidationTicketWorker:
 
     @staticmethod
     def _copy_failure(record, job_id: str) -> dict[str, object]:
+        details = getattr(record, "error_details", None)
         return {
             "phase": "materialization",
             "jobId": job_id,
             "errorCode": str(record.error_code or "validation_copy_failed"),
             "errorStage": record.error_stage,
             "errorPath": record.error_path,
+            "errorDetails": dict(details) if isinstance(details, Mapping) else {},
         }
 
     @staticmethod

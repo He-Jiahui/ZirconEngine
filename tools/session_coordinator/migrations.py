@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 61
+LATEST_SCHEMA_VERSION = 62
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2597,6 +2597,16 @@ def _migration_61(connection: Connection) -> None:
     )
 
 
+def _migration_62(connection: Connection) -> None:
+    """Preserve structured validation-copy materialization diagnostics."""
+    connection.execute(
+        """
+        ALTER TABLE validation_copies
+            ADD COLUMN error_details_json TEXT NOT NULL DEFAULT '{}'
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2659,6 +2669,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     59: _migration_59,
     60: _migration_60,
     61: _migration_61,
+    62: _migration_62,
 }
 
 

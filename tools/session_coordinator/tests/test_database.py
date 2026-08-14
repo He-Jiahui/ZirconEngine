@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
+from unittest import mock
 
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
@@ -264,6 +265,7 @@ class DatabaseTests(unittest.TestCase):
                 "error_code",
                 "error_stage",
                 "error_path",
+                "error_details_json",
                 "materialization_kind",
                 "materialization_request_json",
                 "materialization_phase",
@@ -273,6 +275,56 @@ class DatabaseTests(unittest.TestCase):
             <= copy_columns
         )
         self.assertIn("workflow_failure_deferrals", tables)
+
+    def test_schema_62_preserves_legacy_copy_failure_while_adding_details(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with mock.patch(
+                "tools.session_coordinator.migrations.LATEST_SCHEMA_VERSION", 61
+            ):
+                self.assertEqual(61, migrate(database))
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO sessions(
+                        session_id, status, base_head, write_scope_json,
+                        created_at, updated_at, last_heartbeat_at
+                    ) VALUES ('legacy', 'active', 'head', '[]', 'now', 'now', 'now')
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO validation_copies(
+                        job_id, session_id, job_root, source_root, target_root,
+                        head_commit, manifest_json, status, created_at,
+                        external_sources_json, error_code, error_stage, error_path
+                    ) VALUES (
+                        'legacy-copy', 'legacy', 'job', 'source', 'target',
+                        'head', '[]', 'failed', 'now', '[]',
+                        'validation_copy_compile_time_resource_missing',
+                        'closure_planning', 'missing.rs'
+                    )
+                    """
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT error_code, error_stage, error_path, error_details_json
+                    FROM validation_copies WHERE job_id='legacy-copy'
+                    """
+                ).fetchone()
+        self.assertEqual(
+            (
+                "validation_copy_compile_time_resource_missing",
+                "closure_planning",
+                "missing.rs",
+                "{}",
+            ),
+            tuple(row),
+        )
 
     def test_schema_41_preserves_evidence_progress_and_adds_reservation_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

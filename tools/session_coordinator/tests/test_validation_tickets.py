@@ -52,6 +52,7 @@ class _FakeWorkspaceCopy:
             error_code=None,
             error_stage=None,
             error_path=None,
+            error_details=None,
         )
         self.records[job_id] = record
         self.generic_materializations.append(
@@ -77,6 +78,7 @@ class _FakeWorkspaceCopy:
             error_code=None,
             error_stage=None,
             error_path=None,
+            error_details=None,
         )
         self.records[job_id] = record
         self.materializations.append((session_id, command, overlay_paths))
@@ -625,6 +627,48 @@ class ValidationTicketTests(unittest.TestCase):
             "snapshot_stale", self.service.get(receipt.ticket.ticket_id).status
         )
         self.assertEqual([], self.workspace_copy.materializations)
+
+    def test_worker_projects_structured_copy_failure_details(self) -> None:
+        source = self.repo / "tools" / "owned.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("current = True\n", encoding="utf-8")
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        receipt = self.service.submit(
+            session_id="primary",
+            request_id="compile-resource-error-details",
+            source_manifest={"tools/owned.py": digest},
+            command=("cargo", "check", "-p", "zircon_runtime"),
+            toolchain={"rust": "1.94.1"},
+            coverage={"kind": "compile"},
+        )
+        self.assertEqual(1, self.worker.tick()["materializing"])
+        copy = next(iter(self.workspace_copy.records.values()))
+        expected = {
+            "sourcePath": str(self.repo / "zircon_runtime/src/tests/host_adapter.rs"),
+            "resourcePath": str(
+                self.repo / "zircon_runtime/src/plugin/native_plugin_loader/tests.rs"
+            ),
+        }
+        copy.status = "failed"
+        copy.error_code = "validation_copy_compile_time_resource_missing"
+        copy.error_stage = "closure_planning"
+        copy.error_path = expected["resourcePath"]
+        copy.error_details = expected
+
+        self.assertEqual(1, self.worker.tick()["failed"])
+
+        with self.database.connect() as connection:
+            event = connection.execute(
+                """
+                SELECT payload_json FROM validation_ticket_events
+                WHERE ticket_id=? AND event_type='validation.ticket_status_changed'
+                ORDER BY event_id DESC LIMIT 1
+                """,
+                (receipt.ticket.ticket_id,),
+            ).fetchone()
+        evidence = json.loads(event[0])["evidence"]
+        self.assertEqual(expected["resourcePath"], evidence["errorPath"])
+        self.assertEqual(expected, evidence["errorDetails"])
 
     def test_worker_materializes_a_source_deletion_tombstone(self) -> None:
         deleted_path = "zircon_runtime/src/core/framework/error.rs"

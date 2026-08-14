@@ -735,6 +735,44 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertEqual("materialization_prepare", status.error_stage)
         self.assertEqual("foreign-after-baseline.rs", status.error_path)
 
+    def test_cargo_worker_persists_compile_time_resource_error_details(self) -> None:
+        source_path = str(self.repo / "zircon_runtime/src/tests/host_adapter.rs")
+        resource_path = str(
+            self.repo / "zircon_runtime/src/plugin/native_plugin_loader/tests.rs"
+        )
+        with mock.patch.object(self.service, "_spawn_cargo_materialization_worker"):
+            accepted = self.service.materialize_cargo_async(
+                "session-a",
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.CargoInputClosurePlanner.plan",
+            side_effect=CoordinatorError(
+                "validation_copy_compile_time_resource_missing",
+                "Compile-time include resource is unavailable",
+                details={"sourcePath": source_path, "resourcePath": resource_path},
+            ),
+        ):
+            self.service._materialize_cargo_async_worker(
+                accepted.job_id,
+                metadata_runner=None,
+            )
+
+        status = self.service.status("session-a", accepted.job_id)
+        expected = {"sourcePath": source_path, "resourcePath": resource_path}
+        self.assertEqual("failed", status.status)
+        self.assertEqual("closure_planning", status.error_stage)
+        self.assertEqual(resource_path, status.error_path)
+        self.assertEqual(expected, status.error_details)
+        self.assertEqual(expected, status.to_dict()["errorDetails"])
+        with self.database.connect() as connection:
+            persisted = connection.execute(
+                "SELECT error_details_json FROM validation_copies WHERE job_id=?",
+                (accepted.job_id,),
+            ).fetchone()[0]
+        self.assertEqual(expected, json.loads(persisted))
+
     def test_startup_recovery_claims_an_accepted_cargo_copy_once(self) -> None:
         """A restart may resume the same durable job, but never create another worker claim."""
         with mock.patch.object(self.service, "_spawn_cargo_materialization_worker") as spawn:

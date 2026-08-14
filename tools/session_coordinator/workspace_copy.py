@@ -9,7 +9,7 @@ import tarfile
 import threading
 import uuid
 from contextlib import nullcontext
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable, ContextManager, Mapping
 
@@ -61,6 +61,7 @@ class WorkspaceCopyRecord:
     error_path: str | None = None
     materialization_phase: str | None = None
     terminal_evidence: ValidationRunEvidence | None = None
+    error_details: dict[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -76,6 +77,7 @@ class WorkspaceCopyRecord:
             "errorCode": self.error_code,
             "errorStage": self.error_stage,
             "errorPath": self.error_path,
+            "errorDetails": dict(self.error_details),
             "materializationPhase": self.materialization_phase,
             "terminalEvidence": (
                 self.terminal_evidence.to_dict()
@@ -817,7 +819,7 @@ class WorkspaceCopyService:
             SET status='failed', materialization_started_at=NULL,
                 materialization_phase='failed',
                 error_code='validation_copy_cargo_request_invalid',
-                error_stage='request_decode', error_path=NULL
+                error_stage='request_decode', error_path=NULL, error_details_json='{}'
             WHERE job_id=? AND status='planned' AND materialization_kind='cargo'
               AND materialization_phase='accepted'
             """,
@@ -1761,7 +1763,8 @@ class WorkspaceCopyService:
                         SET manifest_json='[]', external_sources_json='[]',
                             materialization_phase='accepted', materialization_started_at=NULL,
                             materialization_worker_id=NULL, input_manifest_hash=NULL,
-                            error_code=NULL, error_stage=NULL, error_path=NULL
+                            error_code=NULL, error_stage=NULL, error_path=NULL,
+                            error_details_json='{}'
                         WHERE job_id=? AND status='planned' AND materialization_kind='cargo'
                           AND materialization_phase IN ('accepted', 'closure_planning', 'materializing')
                         """,
@@ -1860,6 +1863,9 @@ class WorkspaceCopyService:
             or materialization_phase in {"accepted", "closure_planning", "materializing"}
         ):
             status = "materializing"
+        error_details = json.loads(str(row["error_details_json"] or "{}"))
+        if not isinstance(error_details, dict):
+            error_details = {}
         return WorkspaceCopyRecord(
             str(row["job_id"]),
             str(row["session_id"]),
@@ -1874,6 +1880,7 @@ class WorkspaceCopyService:
             row["error_stage"],
             row["error_path"],
             materialization_phase,
+            error_details=error_details,
         )
 
     def _begin_materialization(self, job_id: str) -> None:
@@ -1904,7 +1911,7 @@ class WorkspaceCopyService:
                 UPDATE validation_copies
                 SET status = 'materialized', materialization_started_at = NULL,
                     input_manifest_hash=?, error_code=NULL, error_stage=NULL,
-                    error_path=NULL,
+                    error_path=NULL, error_details_json='{}',
                     materialization_phase=CASE
                         WHEN materialization_kind='cargo' THEN 'materialized'
                         ELSE materialization_phase
@@ -1935,16 +1942,19 @@ class WorkspaceCopyService:
         error_path = details.get("path")
         if error_path is None:
             paths = details.get("paths")
-            if isinstance(paths, list) and paths:
+            if isinstance(paths, (list, tuple)) and paths:
                 error_path = paths[0]
+        if error_path is None:
+            error_path = details.get("resourcePath") or details.get("sourcePath")
         error_path_text = str(error_path)[:1024] if error_path is not None else None
+        durable_details = self._materialization_error_details(details)
         gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
         with gate, self.database.transaction() as connection:
             connection.execute(
                 """
                 UPDATE validation_copies
                 SET status = 'failed', materialization_started_at = NULL,
-                    error_code=?, error_stage=?, error_path=?,
+                    error_code=?, error_stage=?, error_path=?, error_details_json=?,
                     materialization_phase=CASE
                         WHEN materialization_kind='cargo' THEN 'failed'
                         ELSE materialization_phase
@@ -1952,8 +1962,27 @@ class WorkspaceCopyService:
                 WHERE job_id = ? AND status = 'planned'
                   AND (materialization_kind IS NULL OR materialization_worker_id=?)
                 """,
-                (error_code, stage, error_path_text, job_id, worker_id),
+                (
+                    error_code,
+                    stage,
+                    error_path_text,
+                    json.dumps(durable_details, sort_keys=True),
+                    job_id,
+                    worker_id,
+                ),
             )
+
+    @staticmethod
+    def _materialization_error_details(details: dict[str, object]) -> dict[str, object]:
+        durable: dict[str, object] = {}
+        for key in ("path", "sourcePath", "resourcePath"):
+            value = details.get(key)
+            if value is not None:
+                durable[key] = str(value)
+        paths = details.get("paths")
+        if isinstance(paths, (list, tuple)):
+            durable["paths"] = [str(path) for path in paths[:64]]
+        return durable
 
     def _extract_baseline_manifest(
         self, record: WorkspaceCopyRecord, attribution: dict[str, str | None]
