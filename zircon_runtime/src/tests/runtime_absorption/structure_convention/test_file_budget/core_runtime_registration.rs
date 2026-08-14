@@ -106,4 +106,25 @@ fn runtime_15_core_runtime_registration_structure_tests_are_folder_backed() {
             "2026-06-24",
         ],
     );
+    assert_contains_all_exact(
+        "module convention keeps the core runtime registration folder contract",
+        &module_doc,
+        &[
+            "Runtime 15 M3 core runtime registration structure owner split",
+            "runtime_15_core_runtime_registration_structure_owner_split_static_passed_cargo_deferred",
+            "core/runtime/tests/registration/structure/mod.rs",
+        ],
+    );
+    assert_contains_all_exact(
+        "core runtime lifecycle keeps the registration structure contract",
+        &lifecycle_doc,
+        &[
+            "Runtime 15 M3 core runtime registration structure owner split",
+            "runtime_15_core_runtime_registration_structure_owner_split_static_passed_cargo_deferred",
+            "core/runtime/tests/registration/structure/mod.rs",
+            "core/runtime/tests/registration/structure/service_count_paths.rs",
+            "core/runtime/tests/registration/structure/service_list_caches.rs",
+            "runtime_15_core_runtime_registration_structure_tests_are_folder_backed",
+        ],
+    );
 }

@@ -41,20 +41,20 @@ job 于 `2026-07-22T19:24:42.482382+00:00` 自然结束并 release，exit `101`�
 
 ## 最低共享层根因
 
-提交 `f7a320904d681fb30dede6d5b222fc943cdeb3a7` 已按 Runtime15 的 plan-output archive hard-cut 从四个根文档删除具体历史状态，并把完整记录迁入 `docs/plans/_archive/zircon_runtime/runtime/15/`。`ui_text.rs` 的生产断言仍然有效，但其四个 `read_repo(...)` 路径没有随迁移更新，因而把正确的单一 owner 结构误报为“主计划缺锚”。四个 canonical archive、当前 module/UI 文档和 status/date/output rows 都仍保留完整锚点。
+提交 `f7a320904d681fb30dede6d5b222fc943cdeb3a7` 已按 Runtime15 的 plan-output archive hard-cut 从四个根文档删除具体历史状态。后续 2026-08-02 receipt-tree hard cut 又把计划 lifecycle/status mirrors 移出 Runtime Rust lib-test。`ui_text.rs` 的生产断言仍然有效，但 current source 仍读取四个 canonical archive、module doc 与 UI doc，却完全没有消费这些变量；这些读取既不提供验证，也继续扩大 lib-test 的文档编译契约。
 
 ## 架构修复验收
 
 - 守卫保留 `ui/text/mod.rs` 无 dead-code suppression、`edit_state.rs` 状态机和四条生产消费链断言。
-- 四个历史文档断言改读对应的 Runtime15 canonical archive，不向 live 根计划、总索引或全局 review/structure 文档回填历史镜像。
+- 删除不参与断言的四个 archive 与 module/UI 文档读取；计划 lifecycle/schema 由 Coordinator/Python tooling 持有，不向 live 根计划、总索引或全局 review/structure 文档回填历史镜像。
 - 精确 current-source command 实际执行目标 test 恰好 1 个并通过。
 
 ## 禁止临时方案
 
 - 不删除整个生产结构守卫，也不把 live `edit_state` owner 降为 test-only。
-- 不向四个 live 根文档恢复已迁移的历史切片锚点或 duplicated truth。
+- 不向四个 live 根文档恢复已迁移的历史切片锚点或 duplicated truth，也不保留只读取但不验证的 archive dependency。
 - 不弱化生产 `allow(dead_code)` 扫描，不用 skip/ignore/cfg 绕过该测试。
 
 ## 修复结果与回传
 
-Open state: `ui_text.rs` 已改读四个 canonical Runtime15 archive；生产 consumer、当前 module/UI docs 与 status/date/output row 断言保持不变。等价静态锚点扫描通过，且没有修改四个并行 dirty 的 live 根文档。精确 Cargo test 尚未取得 current-source 1/1 终态，因此本记录继续保持 `open`；通过后再转为 `fixed-*` 并回传 Text01。
+Open state: `resolving_failure`。2026-08-14 current-source 前向修复已删除 `ui_text.rs` 中四个 archive、module doc 与 UI doc 的六个未使用读取及多余 exact helper import；`ui/text/mod.rs` dead-code suppression、`edit_state.rs` 状态机和四条生产消费链断言全部保留。精确 review 与 managed current-source 1/1 尚未完成，因此本记录继续保持 `open`，不声明 fixed/accepted。

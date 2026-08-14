@@ -50,7 +50,8 @@ Runtime15 parent/index 与 priority plan 的 current evidence aggregation 在压
 ## 架构修复验收
 
 - 先确定每组锚的 canonical current child record；parent/index/priority plans 应链接或由守卫读取该 child owner，不得重新复制大段历史成为第二事实源。
-- 两个 exact tests 分别通过，且同一测试内的所有后续 sources、status row/status/date map 断言都实际执行，不能只消除首个短路。
+- 两个 exact tests 分别通过；两组完整状态 tuple 只由 `2026-07-17-descriptor-filter-plan-anchor-current-owner.md` 持有，守卫继续验证真实 production owner，并验证仍属公共契约的 module convention 与 script host ledger。
+- 旧 Rust `plan_status` status row/status/date map 已由 2026-08-02 receipt-tree hard cut 物理删除，计划 lifecycle 由 Coordinator/Python tooling 持有；不得为满足本 failure 恢复这些退役 Rust 路径或未使用的文档读取。
 - 重跑 Frameworks02 `descriptor` filter 时两项消失；Render07 的 SSR history 失败独立处理。
 - 更新状态时保持 `engine-code-structure-convention.md` 与 `engine-code-review-findings-2026-06.md` 的优先级和 hard-cut 规则，不降低 required-anchor 集合。
 
@@ -61,4 +62,6 @@ Runtime15 parent/index 与 priority plan 的 current evidence aggregation 在压
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+- Current-source hard cut 已集成：`2026-07-17-descriptor-filter-plan-anchor-current-owner.md` 是两组 tuple 的唯一 current evidence owner；texture 与 script-host 两个守卫只读取该 child record，不再依赖 Runtime15 parent、runtime index 或两个 priority plans 的重复正文。
+- 2026-08-14 前向复核确认 required-anchor tuples 分别为 texture 6/6、script-host 5/5；texture guard 的三个未使用文档读取已删除，script-host guard 保留 module convention 与 function ledger 的真实公共契约断言。旧 plan-status Rust tables 保持 hard-delete，父计划与优先计划未恢复兼容镜像。
+- 当前仍为 `resolving_failure`：fresh immutable exact4 review、current-source managed Cargo `descriptor` gate 与 failure return 尚未完成，不声明 fixed。

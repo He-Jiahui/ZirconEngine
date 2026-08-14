@@ -38,7 +38,8 @@ Frameworks02 Windows managed job `cbbe13aff0db495181c4ec16e984c51f` / run `a4e89
 
 ## 架构修复验收
 
-- 两个 exact tests 通过，并真实检查 module/provider/lifecycle/status/date current sources。
+- 两个 exact tests 通过，并真实检查唯一 current child tuple 与仍存活的 module/provider/lifecycle 公共契约。
+- 旧 Rust `plan_status` status/date rows 已由 2026-08-02 receipt-tree hard cut 物理删除，计划 lifecycle 由 Coordinator/Python tooling 持有；不得为本 failure 恢复退役状态路径。
 - Frameworks02 `registration` 重跑时这两项消失。
 
 ## 禁止临时方案
@@ -47,4 +48,8 @@ Frameworks02 Windows managed job `cbbe13aff0db495181c4ec16e984c51f` / run `a4e89
 
 ## 修复结果与回传
 
-Open state: `待验证`; no Cargo pass is claimed.
+Open state: `resolving_failure`; no Cargo pass is claimed.
+
+- 2026-08-14 current-source 复核确认 `2026-07-17-registration-filter-plan-anchor-current-owner.md` 是 provider-registration 与 core-runtime-registration 两组完整 tuple 的唯一 current evidence owner；父计划、runtime index 与 priority plans 没有恢复重复正文。
+- 两个 structure guard exact 读取该 child record，并继续验证真实 provider/module/lifecycle owner；core guard 对 module convention 验证切片、状态与 folder `mod.rs` 三锚，对 lifecycle doc 验证同组三个锚、两个 focused child owner 与 exact guard 名共 6 锚。共享 `assert_contains_all` 只检查显式 source，没有 label-based archive fallback。required child tuples 分别保持 provider 6/6、core-runtime 7/7。
+- current child record、两条 guard 与共享 helper 相对 HEAD 零差异；fresh immutable exact review、managed current-source `registration` gate 与 failure return 尚未完成，因此不声明 fixed/accepted。

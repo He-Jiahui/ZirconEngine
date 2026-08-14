@@ -8,9 +8,6 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-17-descriptor-filter-plan-anchor-current-owner.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
-    let render_assets_doc = read_repo("docs/zircon_runtime/asset/render-assets.md");
 
     assert_contains_all(
         "texture descriptor parent keeps public descriptor behavior and delegates settings parsing",
