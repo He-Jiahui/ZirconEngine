@@ -52,10 +52,11 @@ fn runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_as
         ("project asset manager runtime", runtime.as_str()),
     ] {
         assert_no_direct_lock_unwrap_in_production(label, source);
+        let production = production_section(source);
         assert!(
-            !production_section(source).contains(".read().expect(")
-                && !production_section(source).contains(".write().expect(")
-                && !production_section(source).contains("lock poisoned"),
+            !production.contains(".read().expect(")
+                && !production.contains(".write().expect(")
+                && !production.contains("lock poisoned"),
             "{label} production code should recover poisoned locks instead of panicking"
         );
     }
@@ -114,16 +115,14 @@ fn runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_p
         ],
     );
 
-    let worker_pool_production = worker_pool
-        .split("\n#[cfg(test)]\nmod tests")
-        .next()
-        .unwrap_or(worker_pool.as_str());
+    let worker_pool_production = production_section(&worker_pool);
+    let project_runtime_production = production_section(&project_runtime);
     for (label, source) in [
-        ("asset worker pool", worker_pool_production),
+        ("asset worker pool", worker_pool_production.as_str()),
         ("asset manager service contract", service_contract.as_str()),
         (
             "project asset manager runtime",
-            production_section(&project_runtime),
+            project_runtime_production.as_str(),
         ),
     ] {
         assert!(

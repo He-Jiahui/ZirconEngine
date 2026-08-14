@@ -133,8 +133,9 @@ fn runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_t
         ],
     );
 
+    let task_production = production_section(&task);
     for (label, source) in [
-        ("dynamic scene spawn task", production_section(&task)),
+        ("dynamic scene spawn task", task_production.as_str()),
         ("dynamic scene spawn loader", loader.as_str()),
     ] {
         assert!(

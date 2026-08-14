@@ -1,3 +1,4 @@
+use super::rust_source_view::production_code_view;
 use super::{assert_contains_all_exact, repo_path, runtime_src_path};
 
 const READ_UNWRAP_CALL: &str = concat!(".read().", "unwrap()");
@@ -49,7 +50,7 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
 }
 
 fn assert_no_direct_rwlock_unwrap_in_production(label: &str, source: &str) {
-    let production = production_section(source);
+    let production = production_code_view(source);
     assert!(
         !production.contains(READ_UNWRAP_CALL),
         "{label} production code should use poison-safe read helpers instead of {READ_UNWRAP_CALL}"
@@ -58,10 +59,6 @@ fn assert_no_direct_rwlock_unwrap_in_production(label: &str, source: &str) {
         !production.contains(WRITE_UNWRAP_CALL),
         "{label} production code should use poison-safe write helpers instead of {WRITE_UNWRAP_CALL}"
     );
-}
-
-fn production_section(source: &str) -> &str {
-    source.split("\n#[cfg(test)]").next().unwrap_or(source)
 }
 
 fn read_runtime_src(relative: &str) -> String {

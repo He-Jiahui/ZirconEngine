@@ -33,6 +33,7 @@ pub(super) struct RenderShaderTemplateAssemblySources {
     pub(super) shadow_renderer: String,
     pub(super) shadow_mod: String,
     pub(super) graph_gpu_context: String,
+    pub(super) graph_gpu_mesh_recording: String,
     pub(super) graph_gpu_reports: String,
     pub(super) graph_stage_execution: String,
 }
@@ -111,6 +112,9 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         shadow_mod: read_runtime_src("graphics/scene/scene_renderer/shadow/mod.rs"),
         graph_gpu_context: read_runtime_src(
             "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs",
+        ),
+        graph_gpu_mesh_recording: read_runtime_src(
+            "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs",
         ),
         graph_gpu_reports: read_runtime_src(
             "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs",

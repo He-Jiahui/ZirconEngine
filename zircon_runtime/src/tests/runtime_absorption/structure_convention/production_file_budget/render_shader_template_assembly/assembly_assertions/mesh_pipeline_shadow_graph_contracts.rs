@@ -1,3 +1,4 @@
+use super::super::super::super::rust_source_view::production_code_view;
 use super::super::{assert_contains_all, sources::RenderShaderTemplateAssemblySources};
 
 pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
@@ -14,14 +15,12 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
         shadow_renderer,
         shadow_mod,
         graph_gpu_context,
+        graph_gpu_mesh_recording,
         graph_gpu_reports,
         graph_stage_execution,
         ..
     } = sources;
-    let mesh_pipeline_shadow_production = mesh_pipeline_shadow
-        .split("#[cfg(test)]")
-        .next()
-        .expect("shadow mesh pipeline production section");
+    let mesh_pipeline_shadow_production = production_code_view(mesh_pipeline_shadow);
 
     assert_contains_all(
         "velocity mesh pipeline consumes template entry names",
@@ -104,7 +103,7 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
     assert_contains_all(
         "shadow command producers resolve real variant ids",
         &shadow_processor,
-        &["context.pipeline_variant_id(pipeline_kind, batch)"],
+        &["context.pipeline_variant_id(spec.pipeline_kind, batch)"],
     );
     assert!(
         !shadow_processor.contains("MeshPipelineVariantId::new(0)"),
@@ -120,7 +119,7 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
     );
     assert_contains_all(
         "shadow graph execution carries mesh pipeline context",
-        &graph_gpu_context,
+        &graph_gpu_mesh_recording,
         &[
             "record_shadow_atlas_to_resources",
             "shadow atlas graph executor for pass `{pass_name}` requires mesh pipeline context",
@@ -128,6 +127,11 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
             "self.device",
             "mesh_pipelines,",
         ],
+    );
+    assert_contains_all(
+        "render pass gpu context mounts mesh recording child owner",
+        &graph_gpu_context,
+        &["mod mesh_recording;"],
     );
     assert_contains_all(
         "render pass gpu context mounts report extraction child owner",
@@ -153,7 +157,8 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
             "stage_streamer = uses_mesh_pipeline_context.then_some(streamer)",
             "stage_mesh_pipelines = if uses_mesh_pipeline_context",
             "uses_mesh_pipeline_context.then_some(mesh_draw_lists)",
-            "is_shadow.then_some(&self.shadow_map_renderer)",
+            "if is_shadow {",
+            "self.shadow_map_renderer.as_ref()",
             "is_shadow.then_some(shadow_frame_plan)",
         ],
     );

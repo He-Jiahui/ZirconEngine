@@ -1,3 +1,4 @@
+use super::rust_source_view::production_code_view;
 use super::{assert_contains_all, repo_path, runtime_src_path};
 
 const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
@@ -22,7 +23,7 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
             "fn lock_state(&self) -> MutexGuard<'_, DeterministicRhiContractDeviceState>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_state().transient_allocator_stats()",
-            "wgpu_render_device_state_accessors_recover_poisoned_lock",
+            "deterministic_rhi_contract_device_state_accessors_recover_poisoned_lock",
         ],
     );
     assert_contains_all(
@@ -37,15 +38,11 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
 }
 
 fn assert_no_direct_lock_unwrap_in_production(label: &str, source: &str) {
-    let production = production_section(source);
+    let production = production_code_view(source);
     assert!(
         !production.contains(LOCK_UNWRAP_CALL),
         "{label} production code should use poison-safe lock helpers instead of {LOCK_UNWRAP_CALL}"
     );
-}
-
-fn production_section(source: &str) -> &str {
-    source.split("\n#[cfg(test)]").next().unwrap_or(source)
 }
 
 fn read_runtime_src(relative: &str) -> String {

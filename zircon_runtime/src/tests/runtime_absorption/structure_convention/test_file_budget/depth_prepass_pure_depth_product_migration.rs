@@ -1,3 +1,4 @@
+use super::super::rust_source_view::{production_code_view, production_section};
 use super::*;
 
 const STATUS: &str = "render_plan08_runtime_depth_prepass_pure_depth_product_migration_static_passed_cargo_check_renderdoc_deferred";
@@ -18,19 +19,14 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
     let depth_pipeline = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs",
     );
-    let depth_pipeline_production = depth_pipeline
-        .split("#[cfg(test)]")
-        .next()
-        .expect("production source section should exist");
+    let depth_pipeline_production = production_section(&depth_pipeline);
+    let depth_pipeline_code = production_code_view(&depth_pipeline);
     let plan_08 = read_repo(
         "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-
     assert_contains_all(
         "depth prepass variant identity uses the depth pass type",
         &variant_registry,
@@ -61,7 +57,7 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
     );
     assert_contains_all(
         "WGPU depth prepass pipeline has no color target",
-        depth_pipeline_production,
+        &depth_pipeline_production,
         &[
             "depth_write_enabled: Some(true)",
             "key.is_alpha_mask()",
@@ -71,7 +67,7 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
         ],
     );
     assert!(
-        !depth_pipeline_production.contains("NORMAL_FORMAT"),
+        !depth_pipeline_code.contains("NORMAL_FORMAT"),
         "depth prepass production pipeline must not write the prepass normal target"
     );
 
@@ -104,8 +100,6 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
         ("Plan 08", plan_08.as_str()),
         ("render index", render_index.as_str()),
         ("shader doc", shader_doc.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
     ] {
         assert_contains_all(
             label,

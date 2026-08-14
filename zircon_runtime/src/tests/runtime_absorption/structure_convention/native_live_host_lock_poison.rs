@@ -1,3 +1,4 @@
+use super::rust_source_view::{production_code_view, production_section};
 use super::support::assert_contains_all_exact;
 use super::{repo_path, runtime_src_path};
 
@@ -27,10 +28,10 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
         "native live host bridge methods poison recovery",
         &bridge_methods,
         &[
-            "use std::collections::BTreeMap;",
-            "use std::sync::MutexGuard;",
+            "use std::collections::HashMap;",
+            "use std::sync::{Arc, MutexGuard};",
             "fn lock_runtime_bridge_method_bindings(",
-            "MutexGuard<'_, BTreeMap<String, Vec<NativeBridgeMethodBinding>>>",
+            "MutexGuard<'_, NativePluginLiveRegistry<ValidatedRuntimeBridgeMethodBindings>>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "self.lock_runtime_bridge_method_bindings()",
             "native_live_host_bridge_method_bindings_recover_poisoned_lock",
@@ -52,15 +53,11 @@ fn runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_
 }
 
 fn assert_no_direct_lock_unwrap_in_production(label: &str, source: &str) {
-    let production = production_section(source);
+    let production = production_code_view(source);
     assert!(
         !production.contains(LOCK_UNWRAP_CALL),
         "{label} production code should use poison-safe lock helpers instead of {LOCK_UNWRAP_CALL}"
     );
-}
-
-fn production_section(source: &str) -> &str {
-    source.split("\n#[cfg(test)]").next().unwrap_or(source)
 }
 
 fn read_runtime_src(relative: &str) -> String {

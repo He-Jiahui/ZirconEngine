@@ -1,3 +1,4 @@
+pub(super) use super::super::rust_source_view::{production_code_view, production_section};
 use super::super::{repo_path as parent_repo_path, runtime_src_path as parent_runtime_src_path};
 
 pub(super) const LOCK_UNWRAP_CALL: &str = concat!(".lock()", ".unwrap()");
@@ -12,15 +13,11 @@ pub(super) fn assert_contains_all_exact(label: &str, source: &str, required: &[&
 }
 
 pub(super) fn assert_no_direct_lock_unwrap_in_production(label: &str, source: &str) {
-    let production = production_section(source);
+    let production = production_code_view(source);
     assert!(
         !production.contains(LOCK_UNWRAP_CALL),
         "{label} production code should use poison-safe lock helpers instead of {LOCK_UNWRAP_CALL}"
     );
-}
-
-pub(super) fn production_section(source: &str) -> &str {
-    source.split("\n#[cfg(test)]").next().unwrap_or(source)
 }
 
 pub(super) fn runtime_src_path(relative: &str) -> std::path::PathBuf {
