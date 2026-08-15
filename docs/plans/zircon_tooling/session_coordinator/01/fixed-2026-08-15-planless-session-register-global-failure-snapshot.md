@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-15
 summary_slug: planless-session-register-global-failure-snapshot
@@ -12,7 +12,9 @@ plan_link_mode: child_record_only
 related_code:
   - tools/session_coordinator/server.py
   - tools/session_coordinator/tests/test_server.py
+resolved_at: 2026-08-15
 ---
+
 
 # planless-session-register-global-failure-snapshot: 验证失败回写
 
@@ -47,12 +49,7 @@ related_code:
 
 ## 修复结果与回传
 
-- RED：`test_planless_registration_does_not_prepare_or_import_failure_snapshot` 在旧实现中准确失败于无条件 `prepare_import_snapshot()` 调用。
-- 架构修复：admission 前通过统一 effective-plan 判定只为显式或既存 plan 准备 immutable snapshot；writer 内重新判定，planless 直接返回空 failure 集，竞态出现 plan 但缺 snapshot 时以 `failure_snapshot_missing` fail closed。
-- 本地验证：相关 server 6/6、session-register durability 15/15、完整 `test_server` 66 项可通过；完整套件首次仅 maintenance-stop 的 5 秒 fixture 时序超时，单项串行复验通过。
-- 受管验证：copy `2eaa14c0fc9b4596b43fc5a437d04b7e`，input manifest `d648cd9f10ac9e3087bb449e16b0bc7a50dc38d619c82f804d266dd5b0c52057`，run `1143041c6ea84273aa1f33ca90c6a8b6`，`python -m py_compile tools/session_coordinator/server.py tools/session_coordinator/tests/test_server.py` exit 0。
-- 受管验证边界：早先 exact-path copy/run `6e4e26818feb424e84a925e1f027310e` / `fcc20a4e2aba4f2dbd74811389893cf2` 在加载测试前因 generic copy 不含未修改 Python import closure 而 exit 1；未将其计为行为验证，也未复用已消费 copy。
-- 实现 commit：`a062a8e11fa9e425a41e4aedf576c27ea18ad747` (`fix(coordinator): skip failure graph for planless sessions`)，通过受管 finalizer 请求 `d4aa1dd7c7764a1c9b48cb0fda3c7453` 提交。
-- 加载证据：post-commit controlled rollover 请求 `95c3f1f30c904f9f85416a0245238543` 成功；后继实例 `64cc2db38443484ba4ca01b1d85605a2` 为 schema 63 / `read_write` / `healthy` / `busy=false`。
-- 生产验证：全新 planless Session `coordinator01-planless-production-proof-20260815` 在 4.711 秒内注册成功，请求 `35bc23403e424015bade12d30c2318ac` 返回 `open_failures: []`，持久 Session 的 `plan_path` / `plan_family_key` 均为 null。
-- 生产 CAS 证据：注册前后 failure graph 保持 619 nodes / 78 diagnostics / identity size 197042，节点和诊断的最新导入时间均仍为 `2026-08-15T09:48:01.970228Z`；该 Session 仅产生 `session.registered` 事件，证明未触发全局 failure import。
+- 根因：Planless session.register requests prepared and imported the repository-wide failure snapshot before determining that their effective plan was empty.
+- 架构修复：Admission now resolves the explicit or immutable existing plan before snapshot preparation; truly planless requests skip failure graph work, while writer-time plan races fail closed with failure_snapshot_missing.
+- 验证：Managed copy 2eaa14c0fc9b4596b43fc5a437d04b7e run 1143041c6ea84273aa1f33ca90c6a8b6 exited 0; server and durability regressions passed; post-commit daemon 64cc2db38443484ba4ca01b1d85605a2 registered a fresh planless Session in 4.711s while the 619-node/78-diagnostic failure graph import identity remained unchanged.
+- 回传：Planless maintenance registration no longer parses or mutates the global failure graph; plan-backed registration keeps immutable snapshot CAS.
